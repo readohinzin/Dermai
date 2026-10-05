@@ -4,6 +4,8 @@ const { AnalysisError, toUserMessage } = require('../server/errors');
 const perfectcorp = require('../server/perfectcorp');
 const { isAnalysisEnabled, isDebugRawEnabled } = require('../server/config');
 const { describeStructure } = require('../server/structure');
+/* Module partagé avec le navigateur (js/skin-model.js) : localise le résultat et ne garde que les champs autorisés. */
+const skinModel = require('../js/skin-model.js');
 
 /* Corps brut : le navigateur envoie directement l'image JPEG (pas de multipart). */
 const config = { api: { bodyParser: false } };
@@ -29,11 +31,26 @@ async function handler(req, res) {
     console.log('[DERMAI] Skin analysis started');
     const body = await readBody(req);
     const image = validateImage(body, req.headers['content-type']);
-    const raw = await perfectcorp.analyzeSkin(image);
+    const envelope = await perfectcorp.analyzeSkin(image);
     /* Log de la structure seulement (noms de champs et types) : jamais de valeurs, d'URL ni de photo. */
-    console.log('[DERMAI] Perfect Corp result structure', JSON.stringify(describeStructure(raw)));
-    /* Le JSON brut ne part pas au navigateur, sauf diagnostic explicite (DERMAI_DEBUG_RAW). */
-    return send(res, 200, isDebugRawEnabled() ? { ok: true, raw } : { ok: true });
+    console.log('[DERMAI] Perfect Corp result structure', JSON.stringify(describeStructure(envelope)));
+    /* Le navigateur ne reçoit que le résultat normalisé : ni enveloppe, ni task_id, ni URL, ni champ inconnu. */
+    const out = skinModel.parseSkinResponse(envelope);
+    if (out.status === 'not_found') {
+      throw new AnalysisError('RESULT_NOT_FOUND', { status: 502, detail: `${out.path} absent ou sans métrique connue (types ignorés : ${out.ignoredTypes.join(', ') || 'aucun'})` });
+    }
+    if (out.status === 'invalid') {
+      throw new AnalysisError('RESULT_INVALID', { status: 502, detail: `${out.path} n'est pas un tableau d'éléments { type, … }` });
+    }
+    if (out.status === 'ambiguous') {
+      throw new AnalysisError('RESULT_AMBIGUOUS', { status: 502, detail: `${out.path} : métrique répétée (${out.types.join(', ')})` });
+    }
+    /* Noms de types seulement (identifiants Perfect Corp), jamais de valeurs. Les types ignorés révéleront la représentation
+       éventuelle de skin_type / all dans le tableau, aujourd'hui non établie. */
+    console.log('[DERMAI] Perfect Corp result path:', out.path, '| types lus :', out.types.join(','), '| types ignorés :', out.ignoredTypes.join(',') || 'aucun');
+    const result = { schemaVersion: skinModel.SCHEMA_VERSION, normalized: out.normalized };
+    /* L'enveloppe brute ne part au navigateur que sur diagnostic explicite (DERMAI_DEBUG_RAW). */
+    return send(res, 200, isDebugRawEnabled() ? { ok: true, result, raw: envelope } : { ok: true, result });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('UNKNOWN', { cause: err });
     console.error('[DERMAI] Skin analysis failed:', e.code, e.detail || (e.cause && e.cause.message) || '');

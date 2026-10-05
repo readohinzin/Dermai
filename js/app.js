@@ -136,13 +136,15 @@ class MockProvider extends SkinAnalysisProvider{
 }
 class PerfectCorpProvider extends SkinAnalysisProvider{
   /* Appelle le backend DERMAI (jamais Perfect Corp directement).
-     Le backend garde la clé API, envoie les photos et renvoie le JSON brut. */
+     Le backend garde la clé API, envoie la photo et ne renvoie que la racine des scores (liste blanche). */
   /* `blob` : le JPEG de l'utilisateur (jamais PORTRAIT_SRC ni une photo de démonstration). */
   async analyzeSkin(blob,{onStatus=()=>{}}={}){
     if(!(blob instanceof Blob)||!blob.size)throw userError(`Aucune photo à analyser. Veuillez prendre une photo.`);
     if(blob.type!==`image/jpeg`)throw userError(`Format de photo non pris en charge. Utilisez une photo JPEG.`);
     const payload=await postJpeg(blob,onStatus);
-    return normalizeSkinResult(payload.raw);
+    const normalized=normalizeSkinResult(payload.result);
+    if(!normalized)throw userError(SCAN_ERR_GENERIC);
+    return toScan(normalized);
   }
 }
 const userError=m=>Object.assign(new Error(m),{userMessage:m});
@@ -165,14 +167,23 @@ function postJpeg(blob,onStatus){
     x.send(blob);
   });
 }
-/* Normalizer : transforme le JSON brut du fournisseur vers le modèle DERMAI, sans rien inventer. */
-function normalizeSkinResult(raw){
-  const num=v=>Number.isFinite(v)?v:null;
-  raw=raw||{};
-  return {id:null,date:new Date().toLocaleDateString(`fr-FR`,{day:`numeric`,month:`long`}),short:``,day:null,
-    skinType:raw.skinType||null,acne:num(raw.acne),pigmentation:num(raw.pigmentation??raw.spots),pores:num(raw.pores),
-    oiliness:num(raw.oiliness),hydration:num(raw.hydration),redness:num(raw.redness),texture:num(raw.texture),
-    wrinkles:num(raw.wrinkles),global:num(raw.global)};
+/* Normalizer : le backend renvoie déjà le résultat normalisé (js/skin-model.js, partagé avec le serveur). Ici on le contrôle
+   (version du schéma, champs connus, nombres finis) : null si la réponse n'a pas la forme attendue. Aucune donnée n'est inventée. */
+function normalizeSkinResult(result){return SkinModel.sanitizeNormalized(result)}
+/* Trois couches : normalized (Perfect Corp renommé) → derived (concernScore = 100 − rawScore, DERMAI) → display (valeurs à plat
+   de l'interface). Pour les clés que CONCERNS déclare « better: higher » (hydratation), l'interface inverse elle-même : display
+   reçoit le rawScore. normalized et derived ne sont jamais modifiés pour l'affichage. */
+function toScan(normalized){
+  const goodWhenHigh=Object.keys(CONCERNS).filter(id=>CONCERNS[id].better===`higher`);
+  const derived=SkinModel.deriveConcern(normalized);
+  return Object.assign({id:null,real:true,day:null},SkinModel.scanLabels(new Date()),SkinModel.toDisplay(normalized,derived,{goodWhenHigh}),{normalized,derived});
+}
+/* Premier scan réel réussi : les analyses fictives sont retirées, démo et réel ne sont jamais mélangés dans l'historique. */
+function commitRealScan(r){
+  if(SCANS.some(s=>!s.real))SCANS.length=0;
+  r.id=SCANS.length;SCANS.push(r);
+  const last=SCANS.length-1;
+  state.latest=r.id;state.view=r.id;state.period=Math.min(Math.max(state.period,1),Math.max(last,0));state.cmpA=0;state.cmpB=last;
 }
 const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
 
@@ -555,7 +566,7 @@ function productSheet(id){
 
 /* Progression */
 V.progress=()=>{
-  const A=SCANS[state.cmpA],B=SCANS[state.cmpB],end=state.period,range=SCANS.slice(0,end+1),first=SCANS[0],last=SCANS[end];
+  const lastIdx=SCANS.length-1,end=Math.min(state.period,lastIdx),A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)],range=SCANS.slice(0,end+1),first=SCANS[0],last=SCANS[end];
   const opt=(sel)=>SCANS.map(s=>`<option value="${s.id}" ${s.id===sel?`selected`:``}>${s.date}</option>`).join(``);
   const ids=CIDS.filter(id=>have(first,id)&&have(last,id));
   return shell(`<div class="pagehead"><h1>Votre peau évolue.</h1><p>Votre analyse est comparée à vos précédentes observations. Ce sont des indicateurs de suivi cosmétique.</p></div>
@@ -743,8 +754,8 @@ async function runRealAnalysis(){
     if(tok!==anTok)return;
     setScanStatus(`success`);
     state.realBlob=null;   // la photo envoyée n'est plus conservée : seul l'aperçu reste en mémoire
-    if(r.id==null){r.id=SCANS.length;SCANS.push(r)}
-    state.latest=Math.max(state.latest,r.id);state.view=r.id;state.run++;state.sel=`all`;
+    commitRealScan(r);
+    state.run++;state.sel=`all`;
     timers.push(setTimeout(()=>go(`result`,null,{replace:true}),500));
   }catch(err){
     if(tok!==anTok)return;

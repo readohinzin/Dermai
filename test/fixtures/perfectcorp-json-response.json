@@ -1,0 +1,130 @@
+{
+  "status": 200,
+  "data": {
+    "results": {
+      "output": [
+        {
+          "type": "wrinkle",
+          "ui_score": 76,
+          "raw_score": 79.58341836929321,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/wrinkle_output.jpg"
+          ]
+        },
+        {
+          "type": "acne",
+          "ui_score": 74,
+          "raw_score": 65.8439,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/acne_output.jpg"
+          ]
+        },
+        {
+          "type": "moisture",
+          "ui_score": 67,
+          "raw_score": 42.08343029022217,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/moisture_output.jpg"
+          ]
+        },
+        {
+          "type": "age_spot",
+          "ui_score": 75,
+          "raw_score": 80.52677154541016,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/age_spot_output.jpg"
+          ]
+        },
+        {
+          "type": "radiance",
+          "ui_score": 75,
+          "raw_score": 66.618812084198,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/radiance_output.jpg"
+          ]
+        },
+        {
+          "type": "redness",
+          "ui_score": 99,
+          "raw_score": 100,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/redness_output.jpg"
+          ]
+        },
+        {
+          "type": "oiliness",
+          "ui_score": 68,
+          "raw_score": 50.192237854003906,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/oiliness_output.jpg"
+          ]
+        },
+        {
+          "type": "pore",
+          "ui_score": 64,
+          "raw_score": 41.18226081132889,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/pore_output.jpg"
+          ]
+        },
+        {
+          "type": "texture",
+          "ui_score": 67,
+          "raw_score": 49.07534718513489,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/texture_output.jpg"
+          ]
+        },
+        {
+          "type": "firmness",
+          "ui_score": 78,
+          "raw_score": 74.81268048286438,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/firmness_output.jpg"
+          ]
+        },
+        {
+          "type": "tear_trough",
+          "ui_score": 65,
+          "raw_score": 44.35970187187195,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/tear_trough_output.jpg"
+          ]
+        },
+        {
+          "type": "eye_bag",
+          "ui_score": 75,
+          "raw_score": 67.29480028152466,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/eye_bag_output.jpg"
+          ]
+        },
+        {
+          "type": "dark_circle_v2",
+          "ui_score": 59,
+          "raw_score": 34.616801142692566,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/dark_circle_v2_output.jpg"
+          ]
+        },
+        {
+          "type": "droopy_upper_eyelid",
+          "ui_score": 81,
+          "raw_score": 79.99314036947925,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/droopy_upper_eyelid_output.jpg"
+          ]
+        },
+        {
+          "type": "droopy_lower_eyelid",
+          "ui_score": 77,
+          "raw_score": 71.95637226104736,
+          "mask_urls": [
+            "https://example.invalid/fixture-masks/droopy_lower_eyelid_output.jpg"
+          ]
+        }
+      ]
+    },
+    "task_status": "success"
+  }
+}

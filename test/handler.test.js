@@ -94,37 +94,95 @@ test('verrou fermé : la requête n\'est même pas lue (pas de validation, pas d
   });
 });
 
-test('verrou ouvert : succès sans raw dans la réponse (production normale)', async () => {
-  const fake = { data: { task_status: 'success', results: { acne: { raw_score: 74, mask_urls: ['https://cdn.example/MASQUE_SECRET.png?sig=abc'] } } } };
-  await withEnv({ DERMAI_DEBUG_RAW: undefined }, () => withStub(fake, async calls => {
+const JSON_RESP = require('./fixtures/perfectcorp-json-response.json');   // réponse format = "json" : data.results.output[]
+const SCORE_INFO = require('./fixtures/perfectcorp-score-info.json');     // score_info.json (ZIP) : non parsé par DERMAI
+const skinModel = require('../js/skin-model.js');
+const EXPECTED = skinModel.parseSkinResponse(JSON_RESP).normalized;
+/* Enveloppe de statut simulée, volontairement « sale » : task_id, URL de masque, champs et éléments inconnus. */
+function dirtyEnvelope() {
+  const env = JSON.parse(JSON.stringify(JSON_RESP));
+  env.data.task_id = 'TASKID_SECRET_123';
+  env.data.results.output[0].mask_urls = ['https://cdn.example/MASQUE_SECRET.png?sig=abc'];
+  env.data.results.output[0].extra_field = 'INCONNU_SECRET';
+  env.data.results.output.push({ type: 'skin_type', whole: 'Oily', t_zone: 'Oily', u_zone: 'Oily' }, { type: 'inconnu_type', secret: 'TYPE_SECRET' });
+  env.data.results.all = SCORE_INFO.all;
+  return env;
+}
+
+test('verrou ouvert : le navigateur reçoit seulement le résultat normalisé { schemaVersion, normalized }', async () => {
+  await withEnv({ DERMAI_DEBUG_RAW: undefined }, () => withStub(dirtyEnvelope(), async calls => {
     const [r] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
     assert.equal(r.status, 200);
-    assert.deepEqual(r.body, { ok: true });
+    assert.deepEqual(r.body, { ok: true, result: { schemaVersion: 1, normalized: EXPECTED } });
+    assert.strictEqual(r.body.result.normalized.globalScore, null);
+    assert.strictEqual(r.body.result.normalized.skinAge, null);
+    assert.deepEqual(Object.keys(r.body.result).sort(), ['normalized', 'schemaVersion']);
     assert.equal(r.body.raw, undefined);
     assert.equal(calls(), 1);
-    assert.ok(!JSON.stringify(r.body).includes('MASQUE_SECRET'));
+    const s = JSON.stringify(r.body);
+    for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'INCONNU_SECRET', 'https', 'task_id', 'task_status', 'mask_urls', 'raw_score', 'ui_score', 'extra_field', 'TYPE_SECRET', 'inconnu_type', 'Oily']) assert.ok(!s.includes(interdit), interdit);
   }));
 });
 
-test('DERMAI_DEBUG_RAW=1 : le JSON brut est renvoyé (diagnostic explicite seulement)', async () => {
-  const fake = { data: { task_status: 'success' } };
+async function expectControlledError(env, code, motInterne) {
+  await withStub(env, async () => {
+    const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
+    assert.equal(r.status, 502);
+    assert.equal(r.body.error, toUserMessage(code));
+    assert.equal(r.body.result, undefined);
+    assert.ok(!JSON.stringify(r.body).includes('TASKID_SECRET'));
+    assert.ok(!logs.join('\n').includes('TASKID_SECRET'), 'task_id dans les logs');
+    assert.ok(logs.some(l => l.includes(motInterne)), `le détail « ${motInterne} » doit rester dans les logs serveur`);
+  });
+}
+const withOutput = output => ({ data: { task_id: 'TASKID_SECRET_123', task_status: 'success', results: { output } } });
+
+test('data.results.output absent (résultat ailleurs ou forme score_info.json) : erreur contrôlée, aucun repli', async () => {
+  await expectControlledError({ data: { task_id: 'TASKID_SECRET_123', task_status: 'success', results: { url: 'https://cdn.example/r.zip' } } }, 'RESULT_NOT_FOUND', 'absent');
+  await expectControlledError({ data: { task_id: 'TASKID_SECRET_123', task_status: 'success', results: JSON.parse(JSON.stringify(JSON_RESP.data.results.output)) } }, 'RESULT_NOT_FOUND', 'absent');
+  await expectControlledError({ data: { task_id: 'TASKID_SECRET_123', task_status: 'success', results: SCORE_INFO } }, 'RESULT_NOT_FOUND', 'absent');
+});
+
+test('data.results.output pas un tableau (objet indexé de type score_info.json) : erreur contrôlée', async () => {
+  await expectControlledError(withOutput(SCORE_INFO), 'RESULT_INVALID', 'pas un tableau');
+});
+
+test('élément de output sans type valide : erreur contrôlée', async () => {
+  await expectControlledError(withOutput([...JSON.parse(JSON.stringify(JSON_RESP.data.results.output)), { ui_score: 1, raw_score: 2 }]), 'RESULT_INVALID', 'pas un tableau');
+});
+
+test('métrique répétée dans output : erreur contrôlée, aucun résultat choisi', async () => {
+  const out = JSON.parse(JSON.stringify(JSON_RESP.data.results.output)); out.push({ type: 'acne', ui_score: 1, raw_score: 2 });
+  await expectControlledError(withOutput(out), 'RESULT_AMBIGUOUS', 'métrique répétée');
+});
+
+test('tableau sans métrique connue : erreur contrôlée, les types ignorés sont journalisés (noms seulement)', async () => {
+  await expectControlledError(withOutput([{ type: 'inconnu_type', raw_score: 1 }]), 'RESULT_NOT_FOUND', 'inconnu_type');
+});
+
+test('DERMAI_DEBUG_RAW=1 : l\'enveloppe brute est ajoutée (diagnostic explicite seulement)', async () => {
+  const fake = dirtyEnvelope();
   await withEnv({ DERMAI_DEBUG_RAW: '1' }, () => withStub(fake, async () => {
     const [r] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
-    assert.deepEqual(r.body, { ok: true, raw: fake });
+    assert.deepEqual(r.body.result, { schemaVersion: 1, normalized: EXPECTED });
+    assert.deepEqual(r.body.raw, fake);
   }));
 });
 
-test('log de structure : noms de champs et types, jamais de valeurs ni d\'URL', async () => {
-  const fake = { data: { task_status: 'success', task_id: 'TASKID_SECRET_123', results: { acne: { raw_score: 74.2, ui_score: 60, mask_urls: ['https://cdn.example/MASQUE_SECRET.png?sig=abc'] }, skin_type: { type: 'oily' } } } };
+test('log : structure (noms et types), chemin et noms de types ; jamais de valeurs ni d\'URL', async () => {
+  const fake = dirtyEnvelope();
   await withEnv({ PERFECT_CORP_API_KEY: 'CLE_SECRETE_XYZ' }, () => withStub(fake, async () => {
     const [, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
     const line = logs.find(l => l.includes('Perfect Corp result structure'));
     assert.ok(line, 'ligne de structure absente');
-    for (const attendu of ['data.results.acne.raw_score: number', 'data.results.acne.mask_urls[]: string', 'data.results.skin_type.type: string', 'data.task_status: string']) {
+    for (const attendu of ['data.results.output: array', 'data.results.output[].type: string', 'data.results.output[].raw_score: number', 'data.results.output[].mask_urls[]: string', 'data.task_status: string']) {
       assert.ok(line.includes(attendu), 'manque : ' + attendu);
     }
+    const chemin = logs.find(l => l.includes('Perfect Corp result path: data.results.output'));
+    assert.ok(chemin, 'chemin du résultat non journalisé');
+    assert.ok(chemin.includes('skin_type') && chemin.includes('inconnu_type'), 'types ignorés non journalisés (noms)');
     const tout = logs.join('\n');
-    for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'cdn.example', 'https://', 'oily', '74.2', 'CLE_SECRETE_XYZ', 'sig=abc']) {
+    for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'TYPE_SECRET', 'cdn.example', 'https://', 'sig=abc', 'CLE_SECRETE_XYZ', 'Oily', String(JSON_RESP.data.results.output[0].raw_score)]) {
       assert.ok(!tout.includes(interdit), 'fuite dans les logs : ' + interdit);
     }
   }));

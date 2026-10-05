@@ -1,0 +1,71 @@
+{
+  "tear_trough": {
+    "ui_score": 65,
+    "raw_score": 44.35970187187195
+  },
+  "droopy_lower_eyelid": {
+    "ui_score": 77,
+    "raw_score": 71.95637226104736
+  },
+  "eye_bag": {
+    "ui_score": 75,
+    "raw_score": 67.29480028152466
+  },
+  "firmness": {
+    "ui_score": 78,
+    "raw_score": 74.81268048286438
+  },
+  "droopy_upper_eyelid": {
+    "ui_score": 81,
+    "raw_score": 79.99314036947925
+  },
+  "pore": {
+    "ui_score": 64,
+    "raw_score": 41.18226081132889
+  },
+  "oiliness": {
+    "ui_score": 68,
+    "raw_score": 50.192237854003906
+  },
+  "texture": {
+    "ui_score": 67,
+    "raw_score": 49.07534718513489
+  },
+  "redness": {
+    "ui_score": 99,
+    "raw_score": 100
+  },
+  "age_spot": {
+    "ui_score": 75,
+    "raw_score": 80.52677154541016
+  },
+  "radiance": {
+    "ui_score": 75,
+    "raw_score": 66.618812084198
+  },
+  "wrinkle": {
+    "ui_score": 76,
+    "raw_score": 79.58341836929321
+  },
+  "dark_circle_v2": {
+    "ui_score": 59,
+    "raw_score": 34.616801142692566
+  },
+  "acne": {
+    "ui_score": 74,
+    "raw_score": 65.8439
+  },
+  "moisture": {
+    "ui_score": 67,
+    "raw_score": 42.08343029022217
+  },
+  "skin_type": {
+    "whole": "Oily",
+    "t_zone": "Oily",
+    "u_zone": "Oily"
+  },
+  "all": {
+    "score": 73.33333333333333
+  },
+  "skin_age": 36
+}

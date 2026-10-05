@@ -87,6 +87,18 @@ test('createSkinAnalysisTask : src_file_id, actions SD, format json', async () =
   assert.equal(body.src_file_url, undefined);
 });
 
+test('createSkinAnalysisTask : liste EXACTE des dst_actions envoyées (SD uniquement) et format json', async () => {
+  const ATTENDUES = ['wrinkle', 'acne', 'moisture', 'age_spot', 'radiance', 'redness', 'oiliness', 'pore', 'texture', 'firmness',
+    'tear_trough', 'eye_bag', 'dark_circle_v2', 'droopy_upper_eyelid', 'droopy_lower_eyelid', 'skin_type'];
+  const f = mockFetch([taskOk()]);
+  await pc.createSkinAnalysisTask({ fileId: 'F1' }, pc.makeEnv({ ...noSleep, fetch: f }));
+  const body = JSON.parse(f.calls[0].init.body);
+  assert.deepEqual(body.dst_actions, ATTENDUES);
+  assert.ok(body.dst_actions.every(a => !a.startsWith('hd_')), 'aucune action HD');
+  assert.strictEqual(body.format, 'json');
+  assert.deepEqual(Object.keys(body).sort(), ['dst_actions', 'format', 'src_file_id']);
+});
+
 test('createSkinAnalysisTask : task_id absent', async () => {
   const f = mockFetch([res(200, { data: {} })]);
   await assert.rejects(pc.createSkinAnalysisTask({ fileId: 'F1' }, pc.makeEnv({ ...noSleep, fetch: f })), { code: 'SERVICE_UNAVAILABLE' });
