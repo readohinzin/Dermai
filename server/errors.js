@@ -24,6 +24,7 @@ const MESSAGES = {
   SERVICE_UNAVAILABLE: 'Le service d\'analyse est momentanément indisponible.',
   TASK_ERROR: 'L\'analyse n\'a pas pu être terminée.',
   TIMEOUT: 'L\'analyse prend trop de temps. Veuillez réessayer.',
+  ANALYSIS_DISABLED: 'L\'analyse n\'est pas disponible pour le moment.',
   METHOD_NOT_ALLOWED: 'Requête non autorisée.',
   NOT_IMPLEMENTED: 'Le service d\'analyse est momentanément indisponible.',
   UNKNOWN: 'Nous n\'avons pas pu analyser cette photo. Veuillez réessayer.'

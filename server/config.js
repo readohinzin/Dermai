@@ -27,4 +27,11 @@ const POLLING = {
   totalTimeoutMs: 50000       // reste sous maxDuration (60 s, voir vercel.json)
 };
 
-module.exports = { PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
+/* Verrous d'exploitation (variables d'environnement serveur, désactivés par défaut). */
+const flag = v => ['1', 'true', 'yes', 'on'].includes(String(v || '').trim().toLowerCase());
+/* Sans DERMAI_ANALYSIS_ENABLED, l'endpoint refuse toute analyse : aucun crédit Perfect Corp ne peut être consommé. */
+const isAnalysisEnabled = (env = process.env) => flag(env.DERMAI_ANALYSIS_ENABLED);
+/* Diagnostic uniquement : renvoie le JSON brut au navigateur. À laisser désactivé en production normale. */
+const isDebugRawEnabled = (env = process.env) => flag(env.DERMAI_DEBUG_RAW);
+
+module.exports = { isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
