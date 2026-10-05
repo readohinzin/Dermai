@@ -30,12 +30,12 @@ function call(method, env) {
   } finally { if (saved === undefined) delete process.env.DERMAI_DEMO_MODE; else process.env.DERMAI_DEMO_MODE = saved; }
 }
 
-test('/js/config.js : démo vrai par défaut, faux seulement si DERMAI_DEMO_MODE=false', () => {
+test('/api/config-js : démo vrai par défaut, faux seulement si DERMAI_DEMO_MODE=false', () => {
   assert.equal(call('GET', undefined).body.trim(), 'window.DERMAI_CONFIG={"demoMode":true};');
   assert.equal(call('GET', 'false').body.trim(), 'window.DERMAI_CONFIG={"demoMode":false};');
 });
 
-test('/js/config.js : JavaScript, jamais mis en cache, rien d\'autre que demoMode', () => {
+test('/api/config-js : JavaScript, jamais mis en cache, rien d\'autre que demoMode', () => {
   const r = call('GET', 'false');
   assert.equal(r.status, 200);
   assert.match(r.headers['content-type'], /javascript/);
@@ -44,21 +44,26 @@ test('/js/config.js : JavaScript, jamais mis en cache, rien d\'autre que demoMod
   assert.deepEqual(Object.keys(JSON.parse(r.body.match(/=(.*);/)[1])), ['demoMode']);
 });
 
-test('/js/config.js : HEAD sans corps, POST refusé', () => {
+test('/api/config-js : HEAD sans corps, POST refusé', () => {
   assert.equal(call('HEAD', undefined).body, '');
   assert.equal(call('POST', undefined).status, 405);
 });
 
-test('vercel.json : /js/config.js est routé vers la fonction, et aucun fichier statique ne le masque', () => {
+test('vercel.json : plus de rewrite, la configuration des fonctions est conservée', () => {
   const v = JSON.parse(fs.readFileSync(__dirname + '/../vercel.json', 'utf8'));
-  assert.deepEqual(v.rewrites, [{ source: '/js/config.js', destination: '/api/config-js' }]);
-  assert.equal(fs.existsSync(__dirname + '/../js/config.js'), false);
+  assert.equal(v.rewrites, undefined);
+  assert.deepEqual(v.functions, { 'api/skin-analysis.js': { maxDuration: 60 } });
 });
 
-test('index.html charge config.js avant app.js', () => {
+test('index.html charge /api/config-js (directement) avant app.js, plus /js/config.js', () => {
   const h = fs.readFileSync(__dirname + '/../index.html', 'utf8');
-  const a = h.indexOf('js/config.js'), b = h.indexOf('js/app.js');
-  assert.ok(a > -1 && b > -1 && a < b);
+  assert.ok(h.includes('<script src="/api/config-js"></script>'));
+  assert.ok(!h.includes('js/config.js'));
+  assert.ok(h.indexOf('/api/config-js') < h.indexOf('js/app.js'));
+});
+
+test('la fonction config-js existe dans api/ (route /api/config-js)', () => {
+  assert.ok(fs.existsSync(__dirname + '/../api/config-js.js'));
 });
 
 /* La ligne réelle de js/app.js, évaluée avec différents window. */

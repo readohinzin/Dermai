@@ -13,7 +13,7 @@
    ========================================================= */
 
 /* ---------- 0. CONFIGURATION ---------- */
-/* Mode démo : vrai par défaut. Seul /js/config.js (servi par Vercel selon DERMAI_DEMO_MODE) peut le passer à faux, et uniquement
+/* Mode démo : vrai par défaut. Seul /api/config-js (servi par Vercel selon DERMAI_DEMO_MODE) peut le passer à faux, et uniquement
    avec demoMode === false explicite. Si config.js est absent ou illisible, on reste en démo. */
 const DEMO_MODE = !(window.DERMAI_CONFIG && window.DERMAI_CONFIG.demoMode === false);   // true : données et photo fictives. false : appelle le backend DERMAI.
 /* Mode réel : une seule photo frontale, réduite en JPEG côté navigateur, gardée en mémoire uniquement. */

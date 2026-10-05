@@ -1,7 +1,7 @@
 'use strict';
 const { isDemoMode } = require('../server/config');
 
-/* Servi sur /js/config.js (voir vercel.json). Expose uniquement le booléen demoMode : aucune autre variable,
+/* Servi sur /api/config-js (chargé directement par index.html). Expose uniquement le booléen demoMode : aucune autre variable,
    aucun secret. Si ce script ne se charge pas, le frontend reste en mode démo. */
 function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {

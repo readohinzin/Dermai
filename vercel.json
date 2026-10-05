@@ -1,7 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/js/config.js", "destination": "/api/config-js" }
-  ],
   "functions": {
     "api/skin-analysis.js": { "maxDuration": 60 }
   }

@@ -16,7 +16,7 @@ Une valeur absente reste `null` et l'indicateur est masqué, jamais inventé.
 
 ## Configuration par environnement (Vercel)
 - `DERMAI_DEMO_MODE` : vide ou absente = mode démo (défaut, Production). `false` (ou `0`, `no`, `off`) = le frontend appelle le backend.
-  À définir uniquement sur l'environnement Preview de test. Le frontend lit cette valeur via `/js/config.js`, servi par `api/config-js.js`.
+  À définir uniquement sur l'environnement Preview de test. Le frontend lit cette valeur via `/api/config-js` (fonction `api/config-js.js`), chargé par `index.html` avant `app.js`.
 - `DERMAI_ANALYSIS_ENABLED` : verrou de `/api/skin-analysis`, fermé par défaut.
 - `PERFECT_CORP_API_KEY` : clé Perfect Corp, côté serveur uniquement.
 - `DERMAI_DEBUG_RAW` : diagnostic, renvoie le JSON brut au navigateur. Laisser vide.
