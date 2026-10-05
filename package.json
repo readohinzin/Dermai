@@ -5,6 +5,6 @@
   "description": "DERMAI : maquette interactive et backend d'analyse de peau",
   "engines": { "node": ">=20" },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test \"test/*.test.js\""
   }
 }
