@@ -13,7 +13,9 @@
    ========================================================= */
 
 /* ---------- 0. CONFIGURATION ---------- */
-const DEMO_MODE = true;        // true : données et photo fictives. false : appelle le backend DERMAI.
+/* Mode démo : vrai par défaut. Seul /js/config.js (servi par Vercel selon DERMAI_DEMO_MODE) peut le passer à faux, et uniquement
+   avec demoMode === false explicite. Si config.js est absent ou illisible, on reste en démo. */
+const DEMO_MODE = !(window.DERMAI_CONFIG && window.DERMAI_CONFIG.demoMode === false);   // true : données et photo fictives. false : appelle le backend DERMAI.
 /* Mode réel : une seule photo frontale, réduite en JPEG côté navigateur, gardée en mémoire uniquement. */
 const REAL_PHOTO = {maxSide:1600,maxBytes:4*1024*1024,quality:.9};   // maxBytes : même limite que le backend
 const SCAN_ERR_GENERIC = `Nous n'avons pas pu analyser cette photo. Veuillez réessayer.`;

@@ -34,4 +34,8 @@ const isAnalysisEnabled = (env = process.env) => flag(env.DERMAI_ANALYSIS_ENABLE
 /* Diagnostic uniquement : renvoie le JSON brut au navigateur. À laisser désactivé en production normale. */
 const isDebugRawEnabled = (env = process.env) => flag(env.DERMAI_DEBUG_RAW);
 
-module.exports = { isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
+/* Mode démonstration du frontend. Vrai par défaut : seules les valeurs explicites false/0/no/off le désactivent
+   (variable absente, vide ou inconnue = démo). Lu à chaque requête de /js/config.js, par environnement Vercel. */
+const isDemoMode = (env = process.env) => !['false', '0', 'no', 'off'].includes(String(env.DERMAI_DEMO_MODE || '').trim().toLowerCase());
+
+module.exports = { isDemoMode, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
