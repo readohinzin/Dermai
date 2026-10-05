@@ -1,0 +1,10 @@
+{
+  "name": "dermai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "DERMAI : maquette interactive et backend d'analyse de peau",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

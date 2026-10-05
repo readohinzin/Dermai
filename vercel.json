@@ -1,0 +1,5 @@
+{
+  "functions": {
+    "api/skin-analysis.js": { "maxDuration": 60 }
+  }
+}
