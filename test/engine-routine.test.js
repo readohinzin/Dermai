@@ -56,7 +56,7 @@ test('RO4 protection solaire le matin seulement ; nettoyage et hydratation matin
 });
 
 test('RO5 soins ciblés placés dans leur créneau (vitamine C le matin, salicylique le soir), un seul exfoliant ou rétinoïde par soir', () => {
-  const r = run({ acne: 30, pigmentation: 40 }, {}, { level: 'full' });
+  const r = run({ acne: 30, wrinkles: 40 }, {}, { level: 'full' });
   const by = id => treat(r).find(s => s.activeId === id);
   assert.equal(by('salicylic').slot, 'evening');
   assert.equal(by('vitamin_c').slot, 'morning');
@@ -112,12 +112,12 @@ test('RO9 mode confort et peau sèche : notes de prudence, introduction ralentie
 });
 
 test('RO10 un nouvel actif à la fois : la note est présente dès qu\'un actif exigeant ou plusieurs soins sont prévus', () => {
-  assert.ok(run({ acne: 30, pigmentation: 40 }, {}, { level: 'full' }).routinePlan.notes.includes(require('../js/engine/copy.fr.js').NOTES.oneAtATime));
+  assert.ok(run({ acne: 30, wrinkles: 40 }, {}, { level: 'full' }).routinePlan.notes.includes(require('../js/engine/copy.fr.js').NOTES.oneAtATime));
   assert.ok(!run({}).routinePlan.notes.includes(require('../js/engine/copy.fr.js').NOTES.oneAtATime));
 });
 
 test('RO11 produits : reliés par activeId (jamais par texte), sans score ni pourcentage, marqués démonstration', () => {
-  const r = run({ acne: 30, pigmentation: 40 }, {}, { level: 'full' });
+  const r = run({ acne: 30, wrinkles: 40 }, {}, { level: 'full' });
   assert.ok(r.productMatches.length > 0);
   for (const m of r.productMatches) {
     assert.equal(m.demo, true);

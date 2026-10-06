@@ -71,7 +71,7 @@ test('PR10 aucun indicateur actionnable sous « Bien » : mode maintenance, jama
   const r = run({ acne: 61, pores: 90, hydration: 100 });
   assert.equal(r.priorities.mode, 'maintenance');
   assert.deepEqual(r.priorities.items, []);
-  assert.ok(r.explanations.some(e => e.kind === 'mode' && /n'indique pas d'indicateur à soutenir/.test(e.text)));
+  assert.ok(r.explanations.some(e => e.kind === 'mode' && /ne fait pas ressortir de priorité forte/.test(e.text)));
   assert.equal(run({ acne: 60 }).priorities.mode, 'action');                                  // 60 : « À soutenir »
 });
 

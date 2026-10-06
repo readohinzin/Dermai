@@ -32,4 +32,10 @@ function withStatus(id, status, fn) {
   a.status = status;
   try { return fn(); } finally { a.status = saved; }
 }
-module.exports = { M, Engine, norm, run, ids, randomCase, withStatus };
+/* Futur hypothétique : rétinoïde validé ET seul actif de préférence pour rides, fermeté et texture (pour éprouver ses gardes-fous). */
+function withRetinoidFirst(fn) {
+  const data = require('../../js/engine/data/actives.js'), saved = {};
+  for (const k of ['wrinkles', 'firmness', 'texture']) { saved[k] = data.PREFERENCE[k]; data.PREFERENCE[k] = ['retinoid']; }
+  try { return withStatus('retinoid', 'validated', fn); } finally { Object.assign(data.PREFERENCE, saved); }
+}
+module.exports = { M, Engine, norm, run, ids, randomCase, withStatus, withRetinoidFirst };

@@ -2,7 +2,7 @@
 /* Garde-fous 6C : règles que les audits 6A, 6B-2 et 6B-3 interdisent d'automatiser tant que la sémantique Perfect Corp n'est pas confirmée. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { M, norm, run, randomCase, withStatus } = require('./helpers/engine.js');
+const { M, norm, run, randomCase, withStatus, withRetinoidFirst } = require('./helpers/engine.js');
 const data = require('../js/engine/data/actives.js');
 const actives = require('../js/engine/actives.js');
 const indicators = require('../js/engine/data/indicators.js');
@@ -33,7 +33,7 @@ test('G3 radiance faible : jamais de niacinamide automatique ; vitamine C et AHA
 
 test('G4 routine minimale (none) : jamais de rétinoïde (aujourd\'hui « à_valider » ; garde-fou conservé si validé)', () => {
   for (const ind of ['wrinkles', 'firmness', 'texture']) assert.ok(!tids(only(ind, 10, {}, { level: 'none' })).includes('retinoid'), ind);
-  withStatus('retinoid', 'validated', () => {
+  withRetinoidFirst(() => {
     for (const ind of ['wrinkles', 'firmness']) assert.ok(!tids(only(ind, 10, {}, { level: 'none' })).includes('retinoid'), ind);
     const r = only('wrinkles', 10, {}, { level: 'none' });
     assert.ok(r.activePlan.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'minimal'));
@@ -48,7 +48,7 @@ test('G5 confort + rougeurs : jamais de rétinoïde ; actif exigeant : repli ver
       for (const level of ['none', 'simple', 'full']) assert.ok(!tids(only(ind, 15, { skin }, { level })).includes('retinoid'));
   };
   check();
-  withStatus('retinoid', 'validated', check);
+  withRetinoidFirst(check);
   const acne = only('acne', 30, { skin: 'Redness' });
   assert.deepEqual(tids(acne), ['niacinamide']);
   assert.ok(acne.activePlan.deferred.some(d => d.activeId === 'salicylic' && d.kind === 'comfort'));

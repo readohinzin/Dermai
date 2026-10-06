@@ -69,10 +69,10 @@
     if (placed.length > 1 || placed.some(s => s.slowDown)) notes.push(copy.NOTES.oneAtATime);
     if (deferred.some(d => d.kind === 'conflict') || placed.some(s => actives.byId(s.activeId).groups.length > 0)) notes.push(copy.NOTES.oneStrong);
     if (placed.some(s => { const a = actives.byId(s.activeId); return a.irritation !== 'low'; })) notes.push(copy.NOTES.marks);
-    if (ctx.comfortMode) notes.push(copy.NOTES.comfort);
+    if (ctx.comfortMode) notes.push((ctx.comfortReasons || []).join() === 'user_preference' ? copy.PERSONAL.comfortUser : copy.NOTES.comfort);
     if (ctx.skinBase === 'dry') notes.push(copy.NOTES.dry);
     return {
-      level: profile.level, mode: prios.mode, comfortMode: ctx.comfortMode, skinBase: ctx.skinBase,
+      level: profile.level, exclusions: profile.exclusions || [], mode: prios.mode, comfortMode: ctx.comfortMode, skinBase: ctx.skinBase,
       summary: copy.summary(prios.items.map(i => i.label), prios.mode), slots, notes, deferred
     };
   }

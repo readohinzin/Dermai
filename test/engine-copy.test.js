@@ -15,7 +15,7 @@ const idata = require('../js/engine/data/indicators.js');
 const word = src => new RegExp('(?<![\\p{L}])(?:' + src + ')(?![\\p{L}])', 'iu');
 const stem = src => new RegExp('(?<![\\p{L}])(?:' + src + ')', 'iu');
 const FORBIDDEN = [
-  [word('vous avez'), 'Vous avez'], [word('vous souffrez'), 'Vous souffrez'], [word('traiter'), 'traiter'], [word('il faut'), 'Il faut'],
+  [new RegExp('(?<![\\p{L}])vous avez (?!indiqu[ée]|choisi)', 'iu'), 'Vous avez (hors « indiqué » / « choisi »)'], [word('vous souffrez'), 'Vous souffrez'], [word('traiter'), 'traiter'], [word('il faut'), 'Il faut'],
   [stem('malad'), 'maladie'], [stem('patholog'), 'pathologie'], [stem('pr[ée]scri'), 'prescription'], [stem('gu[ée]ri'), 'guérir'], [word('soigner'), 'soigner'],
   [word('[ée]claircir'), 'éclaircir'], [stem('[ée]claircissant'), 'éclaircissant'], [word('blanchir'), 'blanchir'], [stem('blanchissant'), 'blanchissant'],
   [stem('d[ée]pigment'), 'dépigmentant'], [stem('acn[ée]\\s+(?:sévère|kystique)'), 'acné sévère']
@@ -57,7 +57,8 @@ test('CP4 formulations attendues : « Votre analyse… », « Cet indicateur est
   assert.match(copy.priorityReason({ band: 'mid', objectiveMatch: true }), /Il correspond à votre objectif\.$/);
   assert.match(copy.eyeInfo(['Cernes']), /^Votre analyse montre/);
   assert.match(copy.summary(['Pores', 'Hydratation'], 'action'), /^Une routine orientée vers : pores et hydratation\.$/);
-  assert.match(copy.MAINTENANCE.title, /^Votre analyse n'indique pas/);
+  assert.match(copy.MAINTENANCE.title, /^Votre analyse ne fait pas ressortir de priorité forte\./);
+  assert.match(copy.MAINTENANCE.text, /^Nous privilégions une routine d'entretien/);
 });
 
 test('CP5 le vocabulaire reste « taches / uniformité du teint / éclat » : le catalogue ne promet ni éclaircissement ni guérison', () => {

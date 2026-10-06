@@ -68,7 +68,7 @@ const CATS=[[`cleanser`,`Nettoyant`],[`serum`,`Sérum`],[`moisturizer`,`Hydratan
 const state={route:`landing`,param:null,stack:[],user:DEMO_MODE?{name:`Amina`,email:`amina@exemple.com`}:{name:``,email:``},
   goals:DEMO_MODE?[`tone`,`oil_pores`,`hydration`]:[],noGoal:false,level:DEMO_MODE?`simple`:``,cats:DEMO_MODE?[`cleanser`,`moisturizer`]:[],
   scanStep:0,shots:[false,false,false],retake:false,run:0,latest:0,view:0,tab:`am`,done:{},filter:`all`,
-  cmpA:0,cmpB:1,prefs:{reminder:true,tips:true,keep:false},photo:``,
+  gentle:false,cmpA:0,cmpB:1,prefs:{reminder:true,tips:true,keep:false},photo:``,
   scanStatus:`idle`,scanError:``,realBlob:null,realPreview:``};   // scanStatus : idle | capturing | uploading | processing | success | error
 if(DEMO_MODE)try{state.photo=localStorage.getItem(`dermai_demo_photo`)||``}catch(e){}
 
@@ -139,7 +139,9 @@ function commitRealScan(r){
 const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
 /* Moteur d'interprétation cosmétique (js/engine) : l'interface appelle run() et affiche. Aucune règle de priorité, d'actif ou de routine ici. */
 const Engine=window.DermaiEngine;
-const engineFor=s=>Engine.run(s.normalized,{goals:state.goals,level:state.level,cats:state.cats});
+/* Profil courant → moteur. Rien n'est mis en cache : toute modification (objectifs, niveau, confort) recalcule la routine à l'affichage suivant.
+   L'analyse précédente (si elle existe) sert seulement à comparer, jamais de référence courante. */
+const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:[]},prev?{previous:prev.normalized}:undefined)};
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 
@@ -246,7 +248,7 @@ const planProductIds=()=>noReal()?new Set():new Set(engineFor(SCANS[state.latest
 const initial=()=>state.user.name.trim()?esc(state.user.name.trim().charAt(0).toUpperCase()):DEMO_MODE?`A`:ic(`user`);
 const pad=n=>String(n).padStart(2,`0`);
 const activeCard=(id,i,why)=>{const a=Engine.actives.byId(id);return `<div class="acard"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${a.label}</b><p class="muted" style="margin:2px 0 8px">${a.summary}</p>${why?`<p class="muted" style="margin-bottom:8px"><span class="u-strong">Pourquoi cet actif ?</span> ${why}</p>`:``}<div class="chips">${a.targets.slice(0,4).map(t=>`<span class="c-badge">${SkinModel.METRIC_LABELS[t]}</span>`).join(``)}</div></div><button class="c-btn c-btn--tonal c-btn--sm" data-go="active:${a.id}">Découvrir</button></div>`};
-const whyOf=(eng,id)=>{const e=eng.explanations.find(x=>(x.kind===`active`||x.kind===`support`)&&x.activeId===id);return e?e.text:``};
+const whyOf=(eng,id)=>{const e=eng.personalization.selectedActives.find(x=>x.activeId===id);return e?`${e.why} ${e.whyNow}`:``};
 const stepName=st=>st.kind===`treatment`?st.activeLabel:{cleanse:`Nettoyant doux`,moisturize:`Hydratant`,spf:`Protection solaire`}[st.kind];
 const stepSub=st=>st.kind===`moisturize`?st.texture:{cleanse:`Matin et soir`,spf:`Chaque matin`,treatment:Engine.copy.STEP_LABELS.treatment}[st.kind];
 
@@ -457,11 +459,12 @@ V.result=()=>{
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
     <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length
-      ?`<p class="muted" style="margin-bottom:14px">Les indicateurs à soutenir en premier, d'après votre analyse${eng.profile.goals.length?` et vos objectifs`:``}. 100 correspond au meilleur état.</p><div class="stack" style="gap:12px">${prio}</div>`
+      ?`<p class="muted" style="margin-bottom:14px">Vos principaux repères à soutenir, d'après votre analyse${eng.profile.goals.length?`. Vos objectifs aident seulement à départager des repères comparables`:``}. 100 correspond au meilleur état.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
     ${P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
+    ${eng.personalization.goals.length?`<section><div class="hd"><h2 class="h3">Vos objectifs</h2></div><p class="muted" style="margin-bottom:10px">Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><ul class="l-list" style="margin-top:0">${eng.personalization.goals.map(g=>`<li>${ic(`check`)}<span><b>${g.label}</b> : ${g.text}</span></li>`).join(``)}</ul></section>`:``}
     <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul></section>
-    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
+    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
   </div>`,{back:true,title:`Analyse`});
@@ -518,18 +521,24 @@ V.active=id=>{
 /* Routine : générée par le moteur (priorités, actifs, type de peau, niveau de routine). */
 V.routine=()=>{
   if(noReal())return emptyScan(`Ma routine`,[`Aucune routine pour le moment`,`Faites une analyse pour obtenir une routine adaptée à vos résultats.`],{back:true,title:`Routine`});
-  const eng=engineFor(SCANS[state.latest]),R=eng.routinePlan,pm=Object.fromEntries(eng.productMatches.map(m=>[m.stepId,m]));
+  const eng=engineFor(SCANS[state.latest]),R=eng.routinePlan,PZ=eng.personalization,pm=Object.fromEntries(eng.productMatches.map(m=>[m.stepId,m]));
+  const sel=Object.fromEntries(PZ.selectedActives.map(x=>[x.activeId,x]));
+  const whyBlock=st=>{const x=sel[st.activeId];if(!x)return ``;return `<details class="c-why"><summary>Pourquoi cet actif ?</summary><p>${x.why}</p><p>${x.whyNow}</p>${x.whyNot.map(n=>`<p>${n.text}</p>`).join(``)}</details>`};
   const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId);
     return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>
-      ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>`:``}
+      ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}`:``}
       ${p?`<button class="link" data-act="product" data-v="${p.id}">Exemple (démonstration) : ${p.name}</button>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
-  return shell(`<div class="pagehead"><h1>Ma routine</h1><p>Suivez l'ordre indiqué. Cochez chaque étape une fois faite.</p></div>
+  const cautions=[...new Set(R.slots.morning.concat(R.slots.evening).filter(s=>s.kind===`treatment`).flatMap(s=>s.cautions))];
+  return shell(`<div class="pagehead"><h1>Ma routine</h1><p>${R.summary}</p></div>
+  <section class="sand" style="margin-bottom:28px"><h2 class="h3" style="margin-bottom:10px">Pourquoi cette routine ?</h2>
+    <ul class="l-list" style="margin-top:0">${PZ.rationale.slice(0,3).map(r=>`<li>${ic(`check`)}<span>${r.text}</span></li>`).join(``)}</ul>
+    ${PZ.evolution.note?`<p class="muted" style="margin-top:10px">${PZ.evolution.note}</p>`:``}</section>
   <div class="grid2">${list(`morning`,`am`,`sun`,`Matin`)}${list(`evening`,`pm`,`moon`,`Soir`)}</div>
-  <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">Pourquoi cette routine ?</h2><p style="color:var(--ink)">${R.summary}</p>
-    <ul class="l-list" style="margin-top:12px">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
-  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir des exemples de produits</button></div></div>`);
+  <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">À retenir</h2>
+    <ul class="l-list" style="margin-top:0">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${cautions.map(c=>`<li>${ic(`info`)}<span>${c}</span></li>`).join(``)}${eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
+  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir des exemples de produits</button></div></div>`);
 };
 
 /* Produits : catalogue de démonstration, jamais noté ni présenté comme personnalisé. */
@@ -586,11 +595,15 @@ V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes
 /* Profil */
 const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="c-switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
 V.profile=()=>{
-  const none=noReal(),r=none?null:viewOf(SCANS[state.latest]),goals=state.goals.map(id=>Engine.copy.GOAL_LABELS[id]).filter(Boolean);
+  const none=noReal(),r=none?null:viewOf(SCANS[state.latest]);
   return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
    <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(SCANS[state.latest]).priorities.items)}`}</section>
-   <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><div class="chips">${goals.length?goals.map(g=>`<span class="c-badge">${g}</span>`).join(``):`<span class="muted">Aucun objectif choisi.</span>`}</div></section>
+   <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><p class="muted" style="margin-bottom:10px">Facultatif, trois au maximum. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau. Votre routine se recalcule aussitôt.</p>
+     <div class="chips">${Engine.goalList().map(g=>`<button class="c-chip" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}">${g.label}</button>`).join(``)}<button class="c-chip" data-act="goal" data-v="none" aria-pressed="${state.noGoal}">${Engine.copy.NO_GOAL}</button></div></section>
+   <section><div class="hd"><h2 class="h3">Ma routine actuelle</h2></div><p class="muted" style="margin-bottom:10px">Ce n'est pas un niveau de gravité : cela règle seulement le nombre de soins proposés.${state.level?``:` Par défaut : routine simple.`}</p>
+     <div class="chips">${[`none`,`simple`,`full`].map(l=>`<button class="c-chip" data-act="level" data-v="${l}" aria-pressed="${state.level===l}">${Engine.copy.LEVEL_LABELS[l]}</button>`).join(``)}</div>
+     <div style="margin-top:12px"><div class="rowlink"><div class="grow"><b>Privilégier une approche douce</b><span class="s">Actifs doux, hydratation, barrière et protection solaire d'abord</span></div><button class="c-switch" role="switch" aria-checked="${state.gentle}" data-act="gentle" aria-label="Privilégier une approche douce"></button></div></div></section>
    <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
@@ -780,6 +793,7 @@ function act(a,v,el){
     case `signup`:{const n=document.getElementById(`f-name`),m=document.getElementById(`f-mail`);state.user.name=(n&&n.value.trim())||(DEMO_MODE?`Amina`:``);state.user.email=(m&&m.value.trim())||(DEMO_MODE?`amina@exemple.com`:``);go(`welcome`);break}
     case `goal`:{const r=Engine.toggleGoal(state.goals,v);state.goals=r.goals;if(v===`none`)state.noGoal=true;else if(!r.limited)state.noGoal=false;if(r.limited)toast(Engine.copy.GOAL_LIMIT);render(true);break}
     case `level`:state.level=v;render(true);break;
+    case `gentle`:state.gentle=!state.gentle;render(true);break;
     case `cat`:if(v===`none`)state.cats=state.cats.includes(`none`)?[]:[`none`];else{state.cats=state.cats.filter(c=>c!==`none`);toggle(state.cats,v)}render(true);break;
     case `finish-onb`:go(`home`,null,{reset:true});break;
     case `scan-start`:state.scanStep=1;render();scrollTo(0,0);break;

@@ -28,3 +28,9 @@
 .c-active__body{flex:1;min-width:0}
 .c-active__name{display:block;font-weight:700;font-size:var(--fs-lg);margin-bottom:var(--s-2)}
 .c-active__tags{display:flex;flex-wrap:wrap;gap:6px}
+
+/* Détail « Pourquoi cet actif ? » : explications du moteur de personnalisation (pourquoi, pourquoi maintenant, pourquoi pas autre chose). */
+.c-why{margin-top:var(--s-2)}
+.c-why>summary{display:flex;align-items:center;min-height:var(--tap);cursor:pointer;font:600 var(--fs-sm)/1.3 var(--font-sans);color:var(--ink)}
+.c-why>summary:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.c-why>p{margin:0 0 var(--s-2);font:400 var(--fs-sm)/1.5 var(--font-sans);color:var(--ink)}

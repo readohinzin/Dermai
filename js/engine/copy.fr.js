@@ -29,8 +29,8 @@
     return objectiveMatch ? base + ' Il correspond à votre objectif.' : base;
   }
   const MAINTENANCE = {
-    title: 'Votre analyse n\'indique pas d\'indicateur à soutenir en priorité.',
-    text: 'Une routine d\'entretien simple convient bien : nettoyer doucement, hydrater et protéger du soleil.'
+    title: 'Votre analyse ne fait pas ressortir de priorité forte.',
+    text: 'Nous privilégions une routine d\'entretien : nettoyer doucement, hydrater et protéger du soleil.'
   };
   const eyeInfo = labels => 'Votre analyse montre un indicateur plus faible au niveau du contour des yeux (' + joinList(labels.map(lower)) +
     '). C\'est une information : aucun actif n\'est proposé automatiquement pour cet indicateur.';
@@ -62,7 +62,10 @@
     minimal: 'Mis de côté pour l\'instant : cette routine reste volontairement minimale.',
     cap: 'Mis de côté : votre plan reste volontairement court.',
     owned: 'Mis de côté : vous utilisez déjà un exfoliant.',
-    slot: 'Mis de côté : le créneau est déjà chargé.'
+    slot: 'Mis de côté : le créneau est déjà chargé.',
+    excluded: 'Mis de côté : vous avez choisi de ne pas utiliser cet actif.',
+    covered: 'Mis de côté : un autre actif retenu couvre déjà ce repère.',
+    gentler: 'Mis de côté : une option plus douce est retenue pour votre profil.'
   };
 
   /* ---- routine ---- */
@@ -91,7 +94,61 @@
     : 'Une routine orientée vers : ' + joinList(labels.map(lower)) + '.';
   const productBecause = labels => 'Contient : ' + joinList(labels.map(lower)) + '.';
 
+  /* ---- personnalisation : explications structurées (pourquoi, pourquoi maintenant, pourquoi pas autre chose) ---- */
+  const LEVEL_LABELS = { none: 'Aucune routine', simple: 'Routine simple', full: 'Routine complète' };
+  const PERSONAL = {
+    measured: labels => 'Votre analyse indique des repères plus faibles sur : ' + joinList(labels.map(lower)) + '.',
+    measuredNone: 'Votre analyse ne fait pas ressortir de priorité forte. Nous privilégions une routine d\'entretien.',
+    goals: labels => 'Vous avez indiqué comme objectif : ' + joinList(labels.map(lower)) + '. Un objectif sert à départager des options, il ne crée pas de priorité.',
+    skin: label => 'Votre analyse indique le profil : ' + label + '. Il sert de contexte (texture de l\'hydratant, prudence), pas de constat médical.',
+    comfortAnalysis: 'Votre analyse suggère de privilégier le confort : actifs doux, hydratation, barrière et protection solaire d\'abord.',
+    comfortUser: 'Vous avez choisi une approche douce : actifs doux, hydratation, barrière et protection solaire d\'abord.',
+    level: {
+      none: 'Votre routine est encore minimale : nous gardons au plus un soin ciblé très doux.',
+      simple: 'Votre routine est structurée mais courte : deux soins ciblés au plus, introduits un par un.',
+      full: 'Votre routine est déjà structurée : trois soins ciblés au plus, sans multiplier les actifs.'
+    },
+    whyNow: {
+      none: 'Votre routine est encore minimale : nous privilégions une introduction simple.',
+      simple: 'Votre routine est courte : un nouvel actif à la fois, à quelques jours d\'intervalle.',
+      full: 'Votre routine est déjà structurée : le plan reste limité, un nouvel actif à la fois.'
+    },
+    whyNowComfort: 'Le confort passe d\'abord : introduction progressive.',
+    whyNowDry: 'Votre profil suggère d\'espacer davantage les actifs plus exigeants.',
+    choice: {
+      coverage: 'Il couvre plusieurs de vos repères à la fois : nous évitons de multiplier les actifs.',
+      gentle_skin: 'À repères équivalents, nous avons retenu l\'option la plus douce pour votre profil.'
+    },
+    whyNot: {
+      conflict: 'un seul exfoliant ou rétinoïde est prévu par soir',
+      duplicate: 'un actif au rôle équivalent est déjà dans le plan',
+      comfort: 'le confort passe d\'abord',
+      gentle: 'la routine privilégie une approche plus douce',
+      minimal: 'la routine reste minimale',
+      cap: 'le plan reste volontairement court',
+      owned: 'vous utilisez déjà un exfoliant',
+      slot: 'le créneau est déjà chargé',
+      excluded: 'vous avez choisi de ne pas l\'utiliser',
+      covered: 'un autre actif retenu couvre déjà ce besoin, sans multiplier les actifs',
+      gentler: 'une option plus douce est retenue pour votre profil'
+    },
+    goalStatus: {
+      priority: 'Un repère lié à cet objectif est plus faible : il est pris en compte dans vos priorités.',
+      beyond_cap: 'Un repère lié à cet objectif est plus faible, mais vos priorités sont limitées à trois : il reste pour une prochaine étape.',
+      no_signal: 'Votre analyse ne fait pas ressortir de repère plus faible pour cet objectif : aucun actif n\'est ajouté à ce titre.',
+      unavailable: 'Les données de votre analyse ne permettent pas de rattacher cet objectif à un repère.',
+      maintenance: 'Une routine d\'entretien est privilégiée : aucun actif n\'est ajouté pour cet objectif.'
+    },
+    result: labels => 'Nous avons donc privilégié : ' + joinList(labels.map(lower)) + '.',
+    resultNone: 'Nous avons donc gardé une routine simple : nettoyage, hydratation et protection solaire.',
+    evolution: {
+      stable: 'Votre routine reste cohérente avec votre précédente analyse : aucun changement inutile.',
+      changed: 'Votre routine évolue par rapport à la précédente analyse, d\'après vos résultats actuels.'
+    }
+  };
+
   return {
+    LEVEL_LABELS, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
     priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause
   };

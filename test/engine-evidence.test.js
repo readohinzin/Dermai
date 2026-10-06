@@ -108,12 +108,12 @@ test('EV7 l\'azélaïque est atteignable dans le scénario prévu (acné, exfoli
 });
 
 test('EV8 rougeurs « À soutenir » sans mode confort : prudence renforcée (introduction plus lente) pour un actif exigeant', () => {
+  const demanding = r => [...r.routinePlan.slots.morning, ...r.routinePlan.slots.evening].filter(s => s.kind === 'treatment' && actives.byId(s.activeId).irritation !== 'low');
   const soft = run({ acne: 30, redness: 45 }, {}, { level: 'simple' });
-  const st = soft.routinePlan.slots.evening.find(s => s.kind === 'treatment' && s.activeId === 'salicylic');
-  assert.equal(st.slowDown, true);
+  assert.ok(demanding(soft).length > 0 && demanding(soft).every(s => s.slowDown === true));
   assert.ok(soft.routinePlan.notes.some(n => /à la fois/.test(n)));
   const fine = run({ acne: 30, redness: 90 }, {}, { level: 'simple' });
-  assert.equal(fine.routinePlan.slots.evening.find(s => s.activeId === 'salicylic').slowDown, false);
+  assert.ok(demanding(fine).length > 0 && demanding(fine).every(s => s.slowDown === false));
 });
 
 test('EV9 skin_age et all n\'influencent jamais le choix des actifs ni le niveau de routine', () => {

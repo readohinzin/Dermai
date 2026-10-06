@@ -5,8 +5,8 @@
   const isNode = typeof module === 'object' && module.exports;
   const E = root.DermaiEngine || {};
   const dep = isNode
-    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js') }
-    : { pdata: E.productsData, actives: E.actives, copy: E.copy };
+    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js') }
+    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); NS.products = api; }
@@ -23,6 +23,7 @@
   function match(routine) {
     const out = [];
     const comfort = routine.comfortMode;
+    const excluded = new Set(routine.exclusions || []);
     const planned = new Set([...routine.slots.morning, ...routine.slots.evening].filter(st => st.kind === 'treatment').map(st => st.activeId));
     for (const slot of ['morning', 'evening']) {
       routine.slots[slot].forEach(step => {
@@ -32,7 +33,8 @@
           if (step.kind === 'spf') return p.category === 'spf';
           if (step.kind === 'moisturize') return p.category === 'moisturizer';
           return p.category === 'serum' && ids(p).includes(step.activeId);
-        }).filter(({ p }) => !comfort || !ids(p).some(id => demanding(id) && id !== step.activeId))
+        }).filter(({ p }) => !ids(p).some(id => excluded.has(id)))
+          .filter(({ p }) => !comfort || !ids(p).some(id => demanding(id) && id !== step.activeId))
           /* Composition vérifiée : un produit ne doit jamais introduire un actif que le plan n'a pas prévu. Un nettoyant, un hydratant
              ou une protection solaire ne contient aucun actif de traitement ; un sérum ne contient que son actif et des actifs de soutien
              ou des soins prévus et non forts. Jamais d'exfoliant ou de rétinoïde caché. */
@@ -60,5 +62,16 @@
     return out;
   }
 
-  return { PRODUCTS, byId, match, ids };
+  /* Forme cible d'une entrée de catalogue réel (étape ultérieure). Les champs commerciaux restent NULS tant qu'aucune donnée vérifiée n'existe :
+     jamais de prix, de vendeur, de disponibilité ni de lien inventés. Les prix du catalogue de démonstration ne sont pas repris ici.
+     `goals` est dérivé des indicateurs ciblés et des domaines d'objectifs existants : aucune relation nouvelle. */
+  const CATALOG_FIELDS = ['productId', 'activeIds', 'categories', 'skinTypes', 'goals', 'price', 'currency', 'vendor', 'availability', 'url'];
+  function toCatalogEntry(p) {
+    const indicatorIds = (p.targets || []);
+    const goals = dep.indicators.GOALS.filter(g => g.domain && indicatorIds.some(i => (dep.indicators.INDICATORS[i] || {}).domain === g.domain)).map(g => g.id);
+    return { productId: p.id, activeIds: ids(p), categories: [p.category], skinTypes: p.skinTypes.slice(), goals,
+      price: null, currency: null, vendor: p.vendor || null, availability: p.availability || null, url: p.url || null };
+  }
+
+  return { PRODUCTS, byId, match, ids, CATALOG_FIELDS, toCatalogEntry };
 });

@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { M, Engine, norm, run, ids, randomCase, withStatus } = require('./helpers/engine.js');
+const { M, Engine, norm, run, ids, randomCase, withStatus, withRetinoidFirst } = require('./helpers/engine.js');
 const data = require('../js/engine/data/actives.js');
 const pdata = require('../js/engine/data/products.js');
 const actives = require('../js/engine/actives.js');
@@ -49,22 +49,23 @@ test('AC2 un actif « à_valider » n\'est jamais sélectionné, même s\'il fig
 
 test('AC3 conflit : un seul exfoliant ou rétinoïde par soir (le second est écarté avec sa raison)', () => {
   assert.deepEqual(tids(sel(['acne', 'wrinkles'])), ['salicylic', 'vitamin_c']);
-  withStatus('retinoid', 'validated', () => {            // garde-fou conservé pour le jour où le rétinoïde serait validé
+  withRetinoidFirst(() => {            // garde-fou conservé pour le jour où le rétinoïde serait validé
     const r = sel(['acne', 'wrinkles']);
-    assert.deepEqual(tids(r), ['salicylic', 'vitamin_c']);
+    assert.deepEqual(tids(r), ['salicylic']);
     assert.ok(r.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'conflict'));
     assert.ok(r.treatments.filter(t => t.groups.includes('evening_strong')).length <= 1);
   });
 });
 
 test('AC4 doublon de rôle : un seul actif par rôle (exfoliation, rénovation…)', () => {
-  const saved = data.PREFERENCE.texture;
+  const saved = { texture: data.PREFERENCE.texture, acne: data.PREFERENCE.acne };
   try {
     data.PREFERENCE.texture = ['aha_pha'];
+    data.PREFERENCE.acne = ['salicylic'];
     const r = sel(['acne', 'texture']);
     assert.deepEqual(tids(r), ['salicylic']);
     assert.ok(r.deferred.some(d => d.activeId === 'aha_pha' && d.kind === 'duplicate'));
-  } finally { data.PREFERENCE.texture = saved; }
+  } finally { Object.assign(data.PREFERENCE, saved); }
 });
 
 test('AC5 un même actif utile à deux priorités n\'apparaît qu\'une fois, avec ses deux indicateurs', () => {
@@ -74,16 +75,21 @@ test('AC5 un même actif utile à deux priorités n\'apparaît qu\'une fois, ave
 });
 
 test('AC6 routine trop chargée : le nombre de soins ciblés est plafonné par niveau (none 1, simple 2, full 3)', () => {
-  const items = ['acne', 'pigmentation', 'wrinkles', 'texture'];
   const caps = { none: 1, simple: 2, full: 3 };
-  for (const [level, cap] of Object.entries(caps)) {
-    const r = sel(items, {}, { level });
-    assert.ok(r.treatments.length <= cap, level);
-    assert.equal(r.treatments.length, cap, level + ' : le plafond est atteint avec 4 priorités');
-  }
+  const saved = { ...data.PREFERENCE };
+  try {                                                      // préférences disjointes : aucun actif ne couvre plusieurs priorités
+    Object.assign(data.PREFERENCE, { acne: ['salicylic'], pigmentation: ['vitamin_c'], texture: ['aha_pha'], pores: ['niacinamide'] });
+    for (const [level, cap] of Object.entries(caps)) {
+      const r = sel(['acne', 'pigmentation', 'pores'], {}, { level });
+      assert.ok(r.treatments.length <= cap, level);
+      if (level !== 'none') assert.equal(r.treatments.length, cap, level + ' : le plafond est atteint');
+    }
+  } finally { Object.assign(data.PREFERENCE, saved); }
+  /* Routine minimale : seulement un soin ciblé très doux (irritation faible), les actifs plus exigeants sont mis de côté. */
   const none = sel(['acne', 'pigmentation'], {}, { level: 'none' });
-  assert.deepEqual(tids(none), ['salicylic']);
-  assert.ok(none.deferred.some(d => d.activeId === 'vitamin_c' && d.kind === 'cap'));
+  assert.deepEqual(tids(none), ['niacinamide']);
+  assert.ok(none.deferred.some(d => d.activeId === 'vitamin_c' && d.kind === 'minimal'));
+  assert.ok(none.treatments.every(t => t.irritation === 'low'));
 });
 
 test('AC7 mode confort : actifs doux d\'abord, l\'actif plus exigeant est mis de côté (pas supprimé sans raison), base d\'hydratation ajoutée', () => {
@@ -105,7 +111,7 @@ test('AC8 le rétinoïde est « à_valider » : jamais sélectionné ; si un jou
   const go = (items, o, ui) => actives.select(items.map(indicator => ({ indicator })), ctxOf(ui || {}, o), { level: 'full', cats: [] });
   for (const [items, o, ui] of cases) {
     assert.ok(!go(items, o, ui).treatments.some(t => t.activeId === 'retinoid'), items.join());
-    withStatus('retinoid', 'validated', () => {
+    withRetinoidFirst(() => {
       const r = go(items, o, ui);
       assert.equal(r.treatments.some(t => data.ACTIVES.find(a => a.id === t.activeId).irritation === 'high'), false, items.join());
       if (items[0] !== 'texture') assert.ok(r.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'gentle'), items.join());
@@ -118,7 +124,7 @@ test('AC8b le rétinoïde reste au catalogue (« à_valider », consultable) et 
   assert.ok(actives.byId('retinoid'));
   assert.equal(actives.byId('retinoid').status, 'à_valider');
   for (const ind of ['wrinkles', 'firmness']) assert.ok(!tids(sel([ind])).includes('retinoid'), ind);
-  withStatus('retinoid', 'validated', () => {
+  withRetinoidFirst(() => {
     for (const ind of ['wrinkles', 'firmness']) assert.ok(tids(sel([ind])).includes('retinoid'), ind);
     assert.equal(sel(['wrinkles']).treatments[0].gentleFallback, false);
   });
@@ -152,7 +158,7 @@ test('AC11 type de peau sec : base d\'hydratation même sans priorité d\'hydrat
 });
 
 test('AC12 ordre d\'introduction : les actifs les plus doux d\'abord, un à la fois', () => {
-  const r = sel(['acne', 'pigmentation'], {}, { level: 'full' });
+  const r = sel(['acne', 'wrinkles'], {}, { level: 'full' });
   assert.deepEqual(tids(r), ['salicylic', 'vitamin_c']);
   assert.deepEqual(r.treatments.map(t => t.introductionOrder).sort(), [1, 2]);
   assert.equal(r.treatments.find(t => t.irritation === 'moderate').introductionOrder >= 1, true);
@@ -178,8 +184,12 @@ test('AC14 règles de conflit : seules les règles « validated » sont appliqu�
   const pending = data.CONFLICT_RULES.find(r => r.id === 'vitamin_c_retinoid');
   assert.equal(pending.status, 'à_valider');
   withStatus('retinoid', 'validated', () => {                              // retinoid (soir) + vitamin C (matin) : non exclus
-    const r = sel(['wrinkles', 'pigmentation'], {}, { level: 'full' });
-    assert.deepEqual(tids(r).sort(), ['retinoid', 'vitamin_c']);
+    const saved = { ...data.PREFERENCE };
+    try {
+      Object.assign(data.PREFERENCE, { wrinkles: ['retinoid'], pigmentation: ['vitamin_c'] });
+      const r = sel(['wrinkles', 'pigmentation'], {}, { level: 'full' });
+      assert.deepEqual(tids(r).sort(), ['retinoid', 'vitamin_c']);
+    } finally { Object.assign(data.PREFERENCE, saved); }
   });
 });
 

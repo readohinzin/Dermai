@@ -17,7 +17,7 @@ const engineFiles = () => {
 
 test('RUN1 sortie centrale : interpretation, priorities, activePlan, routinePlan, productMatches, explanations', () => {
   const r = Engine.run(M.parseSkinResponse(FX).normalized, { goals: ['tone'], level: 'simple', cats: [] });
-  assert.deepEqual(Object.keys(r).sort(), ['activePlan', 'explanations', 'interpretation', 'priorities', 'productMatches', 'profile', 'routinePlan']);
+  assert.deepEqual(Object.keys(r).sort(), ['activePlan', 'explanations', 'interpretation', 'personalization', 'priorities', 'productMatches', 'profile', 'routinePlan']);
   assert.equal(r.interpretation.indicators.length, 15);
   assert.ok(['action', 'maintenance'].includes(r.priorities.mode));
 });
@@ -61,8 +61,8 @@ test('RUN4 données absentes : global, âge, type de peau, scores absents → au
 
 test('RUN5 profil : objectifs filtrés (3 au plus, connus, sans doublon), niveau inconnu → simple', () => {
   assert.deepEqual(Engine.normalizeProfile({ goals: ['hydration', 'hydration', 'x', 'tone', 'aging', 'texture'], level: 'wow', cats: ['spf', 3] }),
-    { goals: ['hydration', 'tone', 'aging'], level: 'simple', cats: ['spf'] });
-  assert.deepEqual(Engine.normalizeProfile(null), { goals: [], level: 'simple', cats: [] });
+    { goals: ['hydration', 'tone', 'aging'], level: 'simple', cats: ['spf'], comfort: { preferGentle: false }, exclusions: [] });
+  assert.deepEqual(Engine.normalizeProfile(null), { goals: [], level: 'simple', cats: [], comfort: { preferGentle: false }, exclusions: [] });
 });
 
 test('RUN6 objectifs : « Aucun » efface, 3 au maximum, retrait possible, valeur inconnue ignorée', () => {
@@ -113,7 +113,7 @@ test('RUN11 la page charge les modules du moteur dans le bon ordre, avant app.js
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const order = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
   const need = ['js/skin-model.js', 'js/engine/data/indicators.js', 'js/engine/data/actives.js', 'js/engine/data/products.js', 'js/engine/copy.fr.js', 'js/engine/interpret.js',
-    'js/engine/actives.js', 'js/engine/priorities.js', 'js/engine/routine.js', 'js/engine/products.js', 'js/engine/index.js', 'js/app.js'];
+    'js/engine/actives.js', 'js/engine/priorities.js', 'js/engine/personalization.js', 'js/engine/routine.js', 'js/engine/products.js', 'js/engine/index.js', 'js/app.js'];
   const idx = need.map(n => order.indexOf(n));
   assert.ok(idx.every(i => i >= 0), JSON.stringify(idx));
   assert.deepEqual([...idx].sort((a, b) => a - b), idx, 'ordre de chargement');
