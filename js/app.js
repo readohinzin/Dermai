@@ -765,19 +765,26 @@ function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=fa
   if(!noHash)syncHash(replace);
 }
 /* ---------- Adresse = page (rechargement et boutons précédent / suivant du navigateur) ----------
-   La page courante est écrite dans l'adresse (#profile, #concern:acne…). Une page « en cours » (analyse) n'est jamais restaurée : on revient à l'accueil de l'application. */
+   La page courante est écrite dans l'adresse (/profile, /concern/acne…). Vercel renvoie toute adresse inconnue vers index.html (vercel.json).
+   La page d'accueil du site est /accueil ; la racine « / » veut dire « aucune page choisie ». Une page « en cours » (analyse) n'est jamais restaurée.
+   Les anciens liens avec « # » (/#scan) sont encore compris et convertis. */
 const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`]);
-const hashOf=(r,p)=>`#${r}${p!=null&&p!==``?`:${encodeURIComponent(p)}`:``}`;
-function readHash(){
-  const h=(location.hash||``).replace(/^#/,``);if(!h)return null;
-  const i=h.indexOf(`:`),r=i<0?h:h.slice(0,i);let p=null;
-  if(i>=0){try{p=decodeURIComponent(h.slice(i+1))}catch(e){return null}}
+const PATH_OF={landing:`accueil`};
+const ROUTE_OF=Object.fromEntries(Object.entries(PATH_OF).map(([k,v])=>[v,k]));
+const pathOf=(r,p)=>`/${PATH_OF[r]||r}${p!=null&&p!==``?`/${encodeURIComponent(p)}`:``}`;
+function readLocation(){
+  if(!/^https?:$/.test(location.protocol))return null;
+  let seg=location.pathname.split(`/`).filter(Boolean);
+  if(!seg.length){const h=(location.hash||``).replace(/^#/,``);if(!h)return null;const i=h.indexOf(`:`);seg=i<0?[h]:[h.slice(0,i),h.slice(i+1)]}   // ancien format /#route:param
+  const r=ROUTE_OF[seg[0]]||seg[0];let p=null;
+  if(seg.length>1){try{p=decodeURIComponent(seg.slice(1).join(`/`))}catch(e){return null}}
   if(r===`analyzing`)return{route:`home`,param:null};
   return RESTORABLE.has(r)&&V[r]?{route:r,param:p}:null;
 }
 function syncHash(replace){
-  const h=hashOf(state.route,state.param);if(location.hash===h)return;
-  try{(replace?history.replaceState:history.pushState).call(history,null,``,h)}catch(e){/* adresse non modifiable : la navigation interne continue de fonctionner */}
+  if(!/^https?:$/.test(location.protocol))return;
+  const u=pathOf(state.route,state.param);if(location.pathname===u&&!location.hash)return;
+  try{(replace?history.replaceState:history.pushState).call(history,null,``,u)}catch(e){/* adresse non modifiable : la navigation interne continue de fonctionner */}
 }
 function back(){const p=state.stack.pop();if(p){go(p.route,p.param,{replace:true})}else go(`home`,null,{replace:true})}
 function render(keep){
@@ -968,8 +975,9 @@ document.addEventListener(`change`,e=>{
 });
 document.addEventListener(`submit`,e=>{const f=e.target&&e.target.dataset&&e.target.dataset.form;if(!f||!ACCOUNT)return;e.preventDefault();submitAuth(f,e.target)});
 document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
-window.addEventListener(`popstate`,()=>{const h=readHash();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
-const initialRoute=readHash();
+window.addEventListener(`popstate`,()=>{const h=readLocation();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
+const initialRoute=readLocation();
+if(initialRoute&&location.hash)try{history.replaceState(null,``,pathOf(initialRoute.route,initialRoute.param))}catch(e){}
 if(initialRoute){state.route=initialRoute.route;state.param=initialRoute.param}
 render();
 bootAccount(!initialRoute);
