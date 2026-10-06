@@ -21,8 +21,8 @@
 
    ÉTAT (2026-10-06) : les pages fabricant de The Ordinary (6 produits), CeraVe Afrique (Blemish Control Gel) et La Roche-Posay Afrique (Cicaplast, Pure
    Vitamin C10) ont été ouvertes et lues directement ; les autres produits reposent encore sur des recherches web ciblées (méthode indiquée dans chaque source).
-   Les prix, stocks et pages des revendeurs n'ont pas pu être ouverts (accès réseau bloqué) : seules deux offres, tirées du bloc « Buy Online » de la page
-   CeraVe Afrique, sont renseignées, sans prix ni stock vérifiés. Les produits « to_verify » sont conservés pour mémoire (jamais affichés) avec ce qui manque. */
+   Revendeurs : la page Dermastore (Afrique du Sud) a été ouverte et lue (prix, stock, format). Le lien BuyBetter (Nigeria) cité par la page CeraVe Afrique renvoie une
+   erreur 404 et le produit est absent de sa page marque : aucune offre n'est donc enregistrée pour le Nigeria. Les produits « to_verify » sont conservés pour mémoire (jamais affichés) avec ce qui manque. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -35,8 +35,6 @@
   const MD = 'Page fabricant ouverte directement (téléchargement HTTP) et lue le jour du relevé';
   const src = (label, url, kind) => ({ kind: kind || 'manufacturer', label, url, checkedAt: D, method: M });
   const direct = (label, url) => ({ kind: 'manufacturer', label, url, checkedAt: D, method: MD });
-  const retailerLink = (market, retailer, url, from) => ({ market, retailer, type: 'retailer', currency: null, price: null, availability: 'unknown', url, shipping: null,
-    source: 'Lien « Buy Online » de ' + from + ' (page du revendeur non ouverte : accès réseau bloqué ; prix et stock non vérifiés)', checkedAt: D });
   const TO = 'The Ordinary';
 
   const PRODUCTS = [
@@ -117,8 +115,9 @@
       inci: ['Aqua / Water', 'Glycerin', 'Sodium Hydroxide', 'Glycolic Acid', 'Lactic Acid', 'Salicylic Acid', 'Niacinamide', 'Ceramide NP', 'Ceramide AP', 'Ceramide EOP', 'Carbomer', 'Cetearyl Alcohol', 'Behentrimonium Methosulfate', 'Triethyl Citrate', 'Sodium Hyaluronate', 'Sodium Lauroyl Lactylate', 'Cholesterol', 'Chlorphenesin', 'Disodium EDTA', 'Hydroxypropyl Guar', 'Caprylyl Glycol', 'Xanthan Gum', 'Phytosphingosine', 'Benzoic Acid'],
       inciNote: 'Liste lue sur la page CeraVe Afrique (« Targeted Facial Blemish-Control Gel », format 40 ml). La version américaine « Acne Control Gel » est un autre produit.',
       sources: [direct('CeraVe Afrique : Targeted Facial Blemish-Control Gel (40 ml)', 'https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel')],
-      offers: [retailerLink('NG', 'BuyBetter', 'https://buybetter.ng/shop/specific-concern/acne/cerave-blemish-control-gel-with-aha-bha-40ml/', 'la page CeraVe Afrique'),
-               retailerLink('ZA', 'Dermastore', 'https://www.dermastore.co.za/cerave-blemish-control-gel/', 'la page CeraVe Afrique')], image: null },
+      offers: [{ market: 'ZA', retailer: 'Dermastore', type: 'retailer', currency: 'ZAR', price: 300, availability: 'in_stock', url: 'https://dermastore.co.za/cerave-blemish-control-gel/', shipping: null,
+                 source: 'Page produit Dermastore ouverte directement : prix (300 ZAR), stock et format 40 ml lus sur la page ; lien cité par la page CeraVe Afrique', checkedAt: D }],
+      image: null },
 
     { id: 'lrp-effaclar-duo-m', name: 'Effaclar Duo+M', brand: 'La Roche-Posay', format: '40 ml', category: 'serum',
       ingredients: [{ activeId: 'niacinamide', label: 'Niacinamide' }, { activeId: 'salicylic', label: 'Acide salicylique 0,5 % (fiche US) et dérivé LHA : à confirmer selon le pays' }, { activeId: null, label: 'Zinc PCA' }], primaryActiveId: 'niacinamide',

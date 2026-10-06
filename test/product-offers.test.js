@@ -108,10 +108,13 @@ test('OF6 K : aucune donnée commerciale globale ; aucune offre inventée ; la l
     assert.ok(Array.isArray(p.offers));
     for (const o of p.offers) { assert.ok(o.source && o.checkedAt); if (o.price != null) assert.ok(o.currency); }
   }
-  // seules offres livrées : les 2 revendeurs cités par le bloc « Buy Online » de la page CeraVe Afrique ; ni prix, ni stock, ni devise inventés
+  // seule offre livrée : Dermastore (Afrique du Sud), page produit ouverte et lue ; le lien BuyBetter cité par CeraVe renvoie 404 : aucune offre pour le Nigeria
   const shipped = REAL.flatMap(p => p.offers.map(o => [p.id, o]));
-  assert.deepEqual(shipped.map(([id, o]) => id + ':' + o.market + ':' + o.retailer).sort(), ['cerave-blemish-control-gel:NG:BuyBetter', 'cerave-blemish-control-gel:ZA:Dermastore']);
-  for (const [, o] of shipped) { assert.equal(o.price, null); assert.equal(o.currency, null); assert.equal(o.availability, 'unknown'); assert.match(o.url, /^https:\/\//); assert.match(o.source, /Buy Online.*CeraVe Afrique/); assert.equal(o.type, 'retailer'); }
+  assert.deepEqual(shipped.map(([id, o]) => id + ':' + o.market + ':' + o.retailer), ['cerave-blemish-control-gel:ZA:Dermastore']);
+  const dz = shipped[0][1];
+  assert.equal(dz.price, 300); assert.equal(dz.currency, 'ZAR'); assert.equal(dz.availability, 'in_stock'); assert.equal(dz.type, 'retailer');
+  assert.equal(dz.url, 'https://dermastore.co.za/cerave-blemish-control-gel/'); assert.match(dz.source, /ouverte directement/); assert.equal(dz.checkedAt, '2026-10-06');
+  assert.ok(!JSON.stringify(REAL).includes('buybetter.ng'), 'lien mort : retiré');
   assert.ok(shipped.every(([id]) => byId(id).status === 'validated'));
   assert.ok(REAL.every(p => p.image === null), 'aucune image vérifiable : « Image à venir »');
   const text = JSON.stringify(REAL);
