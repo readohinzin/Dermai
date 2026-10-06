@@ -26,4 +26,10 @@ function randomCase(seed) {
     profile: { goals: ['hydration', 'oil_pores', 'blemishes', 'tone', 'redness_comfort', 'texture', 'aging', 'maintenance'].filter(() => r() < 0.25),
       level: ['none', 'simple', 'full', 'zzz'][Math.floor(r() * 4)], cats: ['cleanser', 'serum', 'moisturizer', 'spf', 'exfoliant', 'mask'].filter(() => r() < 0.2) } };
 }
-module.exports = { M, Engine, norm, run, ids, randomCase };
+/* Vérifie un garde-fou « pour le jour où » un actif serait validé : promotion temporaire, restaurée dans tous les cas. */
+function withStatus(id, status, fn) {
+  const a = require('../../js/engine/data/actives.js').ACTIVES.find(x => x.id === id), saved = a.status;
+  a.status = status;
+  try { return fn(); } finally { a.status = saved; }
+}
+module.exports = { M, Engine, norm, run, ids, randomCase, withStatus };

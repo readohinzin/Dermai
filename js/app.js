@@ -505,7 +505,7 @@ V.actives=()=>{
 const WHEN_FR={morning:`Matin`,evening:`Soir`,both:`Matin et soir`};
 V.active=id=>{
   const A=Engine.actives;
-  let a=A.byId(id);if(!a||!A.isValidated(a))a=A.validated()[0];
+  let a=A.byId(id);if(!a||!(A.isValidated(a)||a.consultable))a=A.validated()[0];
   return shell(`<div class="grid2 lw"><div class="col sticky-d"><div class="sand"><p class="kicker">${a.summary}</p><h1 style="margin:10px 0 12px">${a.label}</h1><p>${a.description}</p></div>${disc()}</div>
   <div class="col"><div class="kv">
    <div><h4>Indicateurs ciblés</h4><div class="chips" style="margin-top:8px">${a.targets.map(t=>`<span class="c-badge">${SkinModel.METRIC_LABELS[t]}</span>`).join(``)}</div></div>

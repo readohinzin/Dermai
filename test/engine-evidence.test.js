@@ -3,7 +3,7 @@
    (C) règle DERMAI. Aucune source n'est inventée : les URL citées doivent être dans la liste des pages réellement consultées. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { M, run, randomCase } = require('./helpers/engine.js');
+const { M, run, randomCase, withStatus } = require('./helpers/engine.js');
 const data = require('../js/engine/data/actives.js');
 const pdata = require('../js/engine/data/products.js');
 const actives = require('../js/engine/actives.js');
@@ -46,7 +46,7 @@ test('EV1 chaque actif porte une preuve structurée cohérente avec ses cibles ;
 test('EV2 les actifs « à_valider » n\'ont aucune source retenue et ne sont jamais sélectionnés (6000 profils)', () => {
   const pending = data.ACTIVES.filter(a => a.status === 'à_valider');
   assert.ok(pending.length >= 5);
-  for (const a of pending) { assert.equal(a.evidence.sourceStatus, 'to_add'); assert.equal(a.evidence.refs.length, 0); }
+  for (const a of pending) { assert.equal(a.evidence.sourceStatus, 'to_add'); assert.deepEqual([...a.evidence.direct, ...a.evidence.indirect], []); }
   const bad = new Set(pending.map(a => a.id));
   for (let seed = 1; seed <= 6000; seed++) {
     const c = randomCase(seed * 11 + 5), r = run(c.ui, c.o, c.profile);
@@ -81,12 +81,12 @@ test('EV5 combinaisons : un seul exfoliant ou rétinoïde par soir, appliqué pa
     [{ acne: ['salicylic'], wrinkles: ['retinoid'] }, { acne: 30, wrinkles: 30 }, 'retinoid'],
     [{ texture: ['aha_pha'], wrinkles: ['retinoid'] }, { texture: 30, wrinkles: 30 }, 'retinoid']
   ];
-  for (const [pref, ui, dropped] of pairs) withPref(pref, () => {
+  for (const [pref, ui, dropped] of pairs) withStatus('retinoid', 'validated', () => withPref(pref, () => {
     const r = run(ui, {}, { level: 'full' });
     assert.ok(!tids(r).includes(dropped), dropped);
     assert.ok(r.activePlan.deferred.some(d => d.activeId === dropped && ['conflict', 'duplicate'].includes(d.kind)), dropped);   // même rôle (exfoliation) ou même groupe fort
     assert.equal(r.routinePlan.slots.evening.filter(s => s.kind === 'treatment' && actives.byId(s.activeId).groups.length).length, 1);
-  });
+  }));
 });
 
 test('EV6 l\'azélaïque n\'est pas le « deuxième exfoliant » : il se combine avec un exfoliant ou un rétinoïde, sans interdiction générale', () => {
@@ -94,10 +94,10 @@ test('EV6 l\'azélaïque n\'est pas le « deuxième exfoliant » : il se combine
     const r = run({ acne: 30, redness: 40 }, {}, { level: 'full' });
     assert.deepEqual(tids(r).sort(), ['azelaic', 'salicylic']);
   });
-  withPref({ wrinkles: ['retinoid'], redness: ['azelaic'] }, () => {
+  withStatus('retinoid', 'validated', () => withPref({ wrinkles: ['retinoid'], redness: ['azelaic'] }, () => {
     const r = run({ wrinkles: 30, redness: 40 }, {}, { level: 'full' });
     assert.deepEqual(tids(r).sort(), ['azelaic', 'retinoid']);
-  });
+  }));
   assert.deepEqual(actives.byId('azelaic').groups, []);
 });
 
@@ -108,12 +108,12 @@ test('EV7 l\'azélaïque est atteignable dans le scénario prévu (acné, exfoli
 });
 
 test('EV8 rougeurs « À soutenir » sans mode confort : prudence renforcée (introduction plus lente) pour un actif exigeant', () => {
-  const soft = run({ wrinkles: 30, redness: 45 }, {}, { level: 'simple' });
-  const st = soft.routinePlan.slots.evening.find(s => s.kind === 'treatment' && s.activeId === 'retinoid');
+  const soft = run({ acne: 30, redness: 45 }, {}, { level: 'simple' });
+  const st = soft.routinePlan.slots.evening.find(s => s.kind === 'treatment' && s.activeId === 'salicylic');
   assert.equal(st.slowDown, true);
   assert.ok(soft.routinePlan.notes.some(n => /à la fois/.test(n)));
-  const fine = run({ wrinkles: 30, redness: 90 }, {}, { level: 'simple' });
-  assert.equal(fine.routinePlan.slots.evening.find(s => s.activeId === 'retinoid').slowDown, false);
+  const fine = run({ acne: 30, redness: 90 }, {}, { level: 'simple' });
+  assert.equal(fine.routinePlan.slots.evening.find(s => s.activeId === 'salicylic').slowDown, false);
 });
 
 test('EV9 skin_age et all n\'influencent jamais le choix des actifs ni le niveau de routine', () => {

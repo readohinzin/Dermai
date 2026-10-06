@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { M, Engine, norm, run, ids, randomCase } = require('./helpers/engine.js');
+const { M, Engine, norm, run, ids, randomCase, withStatus } = require('./helpers/engine.js');
 const data = require('../js/engine/data/actives.js');
 const pdata = require('../js/engine/data/products.js');
 const actives = require('../js/engine/actives.js');
@@ -34,10 +34,10 @@ test('AC1 intégrité du catalogue : statuts, sources, cautions, préférences c
 test('AC2 un actif « à_valider » n\'est jamais sélectionné, même s\'il figure dans une préférence', () => {
   const saved = data.PREFERENCE.firmness;
   try {
-    data.PREFERENCE.firmness = ['peptides', 'retinoid'];
+    data.PREFERENCE.firmness = ['peptides', 'retinoid', 'vitamin_c'];
     const r = sel(['firmness']);
-    assert.ok(!tids(r).includes('peptides'));
-    assert.deepEqual(tids(r), ['retinoid']);
+    assert.ok(!tids(r).includes('peptides') && !tids(r).includes('retinoid'));
+    assert.deepEqual(tids(r), ['vitamin_c']);
   } finally { data.PREFERENCE.firmness = saved; }
   for (let seed = 1; seed <= 150; seed++) {
     const c = randomCase(seed), r = run(c.ui, c.o, c.profile);
@@ -48,11 +48,13 @@ test('AC2 un actif « à_valider » n\'est jamais sélectionné, même s\'il fig
 });
 
 test('AC3 conflit : un seul exfoliant ou rétinoïde par soir (le second est écarté avec sa raison)', () => {
-  const r = sel(['acne', 'wrinkles']);
-  assert.deepEqual(tids(r), ['salicylic', 'vitamin_c']);
-  assert.ok(r.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'conflict'));
-  const strong = r.treatments.filter(t => t.groups.includes('evening_strong'));
-  assert.ok(strong.length <= 1);
+  assert.deepEqual(tids(sel(['acne', 'wrinkles'])), ['salicylic', 'vitamin_c']);
+  withStatus('retinoid', 'validated', () => {            // garde-fou conservé pour le jour où le rétinoïde serait validé
+    const r = sel(['acne', 'wrinkles']);
+    assert.deepEqual(tids(r), ['salicylic', 'vitamin_c']);
+    assert.ok(r.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'conflict'));
+    assert.ok(r.treatments.filter(t => t.groups.includes('evening_strong')).length <= 1);
+  });
 });
 
 test('AC4 doublon de rôle : un seul actif par rôle (exfoliation, rénovation…)', () => {
@@ -95,25 +97,31 @@ test('AC7 mode confort : actifs doux d\'abord, l\'actif plus exigeant est mis de
   assert.equal(low.context.comfortMode, true);
 });
 
-test('AC8 mode confort : un rétinoïde (irritation forte) n\'est jamais sélectionné, il est mis de côté avec une explication', () => {
+test('AC8 le rétinoïde est « à_valider » : jamais sélectionné ; si un jour validé, jamais en mode confort (mis de côté avec explication)', () => {
   const cases = [
     [['wrinkles'], { skin: 'Dry & Redness' }], [['wrinkles'], { skin: 'Redness' }], [['firmness'], { skin: 'Redness' }],
     [['texture'], { skin: 'Redness' }], [['texture', 'wrinkles', 'firmness'], { skin: 'Redness' }], [['wrinkles'], {}, { redness: 5 }]
   ];
+  const go = (items, o, ui) => actives.select(items.map(indicator => ({ indicator })), ctxOf(ui || {}, o), { level: 'full', cats: [] });
   for (const [items, o, ui] of cases) {
-    const r = actives.select(items.map(indicator => ({ indicator })), ctxOf(ui || {}, o), { level: 'full', cats: [] });
-    assert.equal(r.treatments.some(t => data.ACTIVES.find(a => a.id === t.activeId).irritation === 'high'), false, items.join());
-    if (items[0] !== 'texture') assert.ok(r.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'gentle'), items.join());
+    assert.ok(!go(items, o, ui).treatments.some(t => t.activeId === 'retinoid'), items.join());
+    withStatus('retinoid', 'validated', () => {
+      const r = go(items, o, ui);
+      assert.equal(r.treatments.some(t => data.ACTIVES.find(a => a.id === t.activeId).irritation === 'high'), false, items.join());
+      if (items[0] !== 'texture') assert.ok(r.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'gentle'), items.join());
+    });
   }
-  const r = sel(['wrinkles'], { skin: 'Dry & Redness' });
-  assert.ok(tids(r).every(id => id !== 'retinoid'));
   assert.match(copyText('gentle'), /approche plus douce/);
 });
 
-test('AC8b hors mode confort : le rétinoïde reste disponible au catalogue et sélectionnable', () => {
+test('AC8b le rétinoïde reste au catalogue (« à_valider », consultable) et n\'est jamais auto-sélectionné ; validé, il serait sélectionnable hors confort', () => {
   assert.ok(actives.byId('retinoid'));
-  for (const ind of ['wrinkles', 'firmness']) assert.ok(tids(sel([ind])).includes('retinoid'), ind);
-  assert.equal(sel(['wrinkles']).treatments[0].gentleFallback, false);
+  assert.equal(actives.byId('retinoid').status, 'à_valider');
+  for (const ind of ['wrinkles', 'firmness']) assert.ok(!tids(sel([ind])).includes('retinoid'), ind);
+  withStatus('retinoid', 'validated', () => {
+    for (const ind of ['wrinkles', 'firmness']) assert.ok(tids(sel([ind])).includes('retinoid'), ind);
+    assert.equal(sel(['wrinkles']).treatments[0].gentleFallback, false);
+  });
 });
 
 test('AC8c invariant : en mode confort, jamais d\'actif à irritation forte (1000 jeux)', () => {
@@ -169,8 +177,10 @@ test('AC13 actifs exclus (médicaments, éclaircissants) : jamais dans le catalo
 test('AC14 règles de conflit : seules les règles « validated » sont appliquées (association débattue laissée à valider)', () => {
   const pending = data.CONFLICT_RULES.find(r => r.id === 'vitamin_c_retinoid');
   assert.equal(pending.status, 'à_valider');
-  const r = sel(['wrinkles', 'pigmentation'], {}, { level: 'full' });     // retinoid (soir) + vitamin C (matin) : non exclus
-  assert.deepEqual(tids(r).sort(), ['retinoid', 'vitamin_c']);
+  withStatus('retinoid', 'validated', () => {                              // retinoid (soir) + vitamin C (matin) : non exclus
+    const r = sel(['wrinkles', 'pigmentation'], {}, { level: 'full' });
+    assert.deepEqual(tids(r).sort(), ['retinoid', 'vitamin_c']);
+  });
 });
 
 test('AC15 invariants sur 300 jeux aléatoires : plafond, un seul fort par soir, un actif par rôle, déterminisme', () => {

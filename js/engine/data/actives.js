@@ -4,6 +4,8 @@
    Le statut « validated » est une décision de projet (règle éditoriale DERMAI). Les preuves réellement consultées sont décrites dans `evidence`
    (voir plus bas) ; quand aucune source n'a été retenue, c'est écrit « SOURCE À AJOUTER » : rien n'est inventé. Relecture par un cosmétologue requise avant un lancement public.
 
+   consultable : actif « à_valider » dont la fiche reste lisible (consultation), sans jamais être proposé automatiquement.
+
    kind : « treatment » = soin ciblé (étape propre de la routine) ; « support » = ingrédient recherché dans l'hydratant.
    role : rôle fonctionnel. Un seul actif par rôle dans un plan (évite les doublons).
    irritation : low | moderate | high. Sert au mode confort et à l'ordre d'introduction, jamais à un score.
@@ -48,7 +50,7 @@
     salicylic: ev('sourced', [REF.salicylicStudy, REF.salicylicSccs], ['acne'], ['pores'], [], 'Pores : effet comédolytique, preuve indirecte. Aucune cible oiliness ni texture.'),
     azelaic: ev('sourced', [REF.azelaicJdd, REF.azelaicJabfm], ['acne'], ['redness', 'pigmentation'], [], 'Preuves surtout aux dosages médicamenteux ; « rougeurs » mesurées par la caméra ne sont pas une rosacée.'),
     vitamin_c: ev('sourced', [REF.vitCJcad, REF.vitCPmc], ['pigmentation'], ['radiance', 'wrinkles'], ['firmness'], 'Éclat et rides : preuve indirecte (teint, photovieillissement). Fermeté : règle DERMAI prudente.'),
-    retinoid: ev('to_add', [REF.retinoidPregnancy], [], [], ['wrinkles', 'firmness', 'texture'], 'Efficacité cosmétique non sourcée. La source présente ne couvre que la sécurité (grossesse).'),
+    retinoid: ev('to_add', [REF.retinoidPregnancy], [], [], ['wrinkles', 'firmness', 'texture'], 'À valider : aucune source d\'efficacité cosmétique retenue, donc jamais sélectionné automatiquement. La source présente ne couvre que la sécurité (grossesse).'),
     aha_pha: ev('partial', [REF.ahaFda, REF.ahaReview, REF.phaReview], [], ['texture', 'radiance', 'pigmentation'], [], 'Regroupe AHA et PHA : la preuve est plus abondante pour les AHA ; les PHA sont décrits comme mieux tolérés.'),
     hyaluronic: ev('to_add', [], [], [], ['hydration'], 'Humectant de base : règle DERMAI.'),
     glycerin: ev('to_add', [], [], [], ['hydration'], 'Humectant de base : règle DERMAI.'),
@@ -101,11 +103,11 @@
       introduction: { frequency: 'Un matin sur deux au début', note: 'Appliquez avant la protection solaire.' }
     },
     {
-      id: 'retinoid', label: 'Rétinoïde cosmétique', kind: 'treatment', role: 'renewal', irritation: 'high', groups: ['evening_strong'],
+      id: 'retinoid', label: 'Rétinoïde cosmétique', kind: 'treatment', role: 'renewal', irritation: 'high', groups: ['evening_strong'], consultable: true,
       targets: ['wrinkles', 'firmness', 'texture'], objectives: ['aging', 'texture'],
-      confidence: 'medium', status: 'validated', source: srcText(EV.retinoid), evidence: EV.retinoid,
+      confidence: 'medium', status: 'à_valider', source: srcText(EV.retinoid), evidence: EV.retinoid,
       summary: 'Renouvelle la texture', description: 'Dérivés cosmétiques de la vitamine A (par exemple le rétinol), jamais un médicament. Aident à lisser le grain de peau et à estomper l\'aspect des signes visibles du vieillissement.',
-      cautions: ['Protection solaire indispensable le lendemain.', PREGNANCY, 'Peuvent irriter : commencez très doucement.', MARKS],
+      cautions: ['Par prudence, les rétinoïdes cosmétiques ne sont pas proposés automatiquement par DERMAI. En cas de grossesse ou de projet de grossesse, demandez conseil à un professionnel de santé avant d\'utiliser ce type d\'actif.', 'Protection solaire indispensable le lendemain.', 'Peuvent irriter : commencez très doucement.', MARKS],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Un soir par semaine au début', note: 'Passez à deux soirs par semaine après quelques semaines si tout va bien.' }
     },

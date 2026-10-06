@@ -2,7 +2,7 @@
 /* Garde-fous 6C : règles que les audits 6A, 6B-2 et 6B-3 interdisent d'automatiser tant que la sémantique Perfect Corp n'est pas confirmée. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { M, norm, run, randomCase } = require('./helpers/engine.js');
+const { M, norm, run, randomCase, withStatus } = require('./helpers/engine.js');
 const data = require('../js/engine/data/actives.js');
 const actives = require('../js/engine/actives.js');
 const indicators = require('../js/engine/data/indicators.js');
@@ -31,17 +31,24 @@ test('G3 radiance faible : jamais de niacinamide automatique ; vitamine C et AHA
   assert.ok(actives.byId('niacinamide'), 'niacinamide reste au catalogue');
 });
 
-test('G4 routine minimale (none) : jamais de rétinoïde, explication « volontairement minimale »', () => {
+test('G4 routine minimale (none) : jamais de rétinoïde (aujourd\'hui « à_valider » ; garde-fou conservé si validé)', () => {
   for (const ind of ['wrinkles', 'firmness', 'texture']) assert.ok(!tids(only(ind, 10, {}, { level: 'none' })).includes('retinoid'), ind);
-  const r = only('wrinkles', 10, {}, { level: 'none' });
-  assert.ok(r.activePlan.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'minimal'));
-  assert.match(r.explanations.map(e => e.text).join(' '), /volontairement minimale/);
-  assert.ok(tids(only('wrinkles', 10, {}, { level: 'simple' })).includes('retinoid'), 'disponible aux autres niveaux');
+  withStatus('retinoid', 'validated', () => {
+    for (const ind of ['wrinkles', 'firmness']) assert.ok(!tids(only(ind, 10, {}, { level: 'none' })).includes('retinoid'), ind);
+    const r = only('wrinkles', 10, {}, { level: 'none' });
+    assert.ok(r.activePlan.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'minimal'));
+    assert.match(r.explanations.map(e => e.text).join(' '), /volontairement minimale/);
+    assert.ok(tids(only('wrinkles', 10, {}, { level: 'simple' })).includes('retinoid'), 'disponible aux autres niveaux');
+  });
 });
 
 test('G5 confort + rougeurs : jamais de rétinoïde ; actif exigeant : repli vers du plus doux', () => {
-  for (const ind of ['wrinkles', 'firmness', 'texture']) for (const skin of ['Redness', 'Dry & Redness', 'Oily & Redness'])
-    for (const level of ['none', 'simple', 'full']) assert.ok(!tids(only(ind, 15, { skin }, { level })).includes('retinoid'));
+  const check = () => {
+    for (const ind of ['wrinkles', 'firmness', 'texture']) for (const skin of ['Redness', 'Dry & Redness', 'Oily & Redness'])
+      for (const level of ['none', 'simple', 'full']) assert.ok(!tids(only(ind, 15, { skin }, { level })).includes('retinoid'));
+  };
+  check();
+  withStatus('retinoid', 'validated', check);
   const acne = only('acne', 30, { skin: 'Redness' });
   assert.deepEqual(tids(acne), ['niacinamide']);
   assert.ok(acne.activePlan.deferred.some(d => d.activeId === 'salicylic' && d.kind === 'comfort'));
@@ -102,10 +109,7 @@ test('G12 simulation : 6000 profils synthétiques, aucune règle interdite n\'ap
       assert.equal(actives.byId(x.activeId).status, 'validated', `seed ${seed} à_valider`);
       if (x.activeId === 'salicylic') assert.ok(x.indicators.some(i => i === 'acne' || i === 'pores'), `seed ${seed} salicylique sans acne/pores`);
       if (x.activeId === 'niacinamide') assert.ok(x.indicators.some(i => i !== 'radiance'), `seed ${seed} niacinamide pour radiance seule`);
-      if (x.activeId === 'retinoid') {
-        assert.notEqual(level, 'none', `seed ${seed} rétinoïde en none`);
-        assert.equal(r.routinePlan.comfortMode, false, `seed ${seed} rétinoïde en confort`);
-      }
+      assert.notEqual(x.activeId, 'retinoid', `seed ${seed} rétinoïde auto-sélectionné`);
       assert.ok(x.indicators.every(i => !eyes.includes(i)), `seed ${seed} actif pour le contour des yeux`);
     }
     for (const p of r.priorities.items) assert.ok(!eyes.includes(p.indicator), `seed ${seed} priorité yeux`);
