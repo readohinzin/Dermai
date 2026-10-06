@@ -19,6 +19,7 @@ const strip = code => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm,
 const OFFER = (extra) => Object.assign({ market: 'BJ', retailer: 'Boutique de test', type: 'retailer', currency: 'XOF', price: 9500, availability: 'in_stock', url: 'https://vendeur-de-test.shop/produit',
   shipping: 'local', source: 'Relevé de test', checkedAt: '2026-10-01' }, extra || {});
 const withOffers = (id, offers) => ({ ...byId(id), offers });
+/* Offres de test ci-dessous : jeux de test. */
 const BRIEF = {
   acne: ['to-salicylic-2-solution', 'lrp-effaclar-duo-m'], pores: ['to-niacinamide-10-zinc-1', 'cerave-blemish-control-gel'], oiliness: ['to-niacinamide-10-zinc-1', 'lrp-effaclar-duo-m'],
   hydration: ['to-hyaluronic-b5-ceramides', 'cerave-hydrating-ha-serum'], redness: ['to-azelaic-acid-10', 'lrp-cicaplast-baume-b5-plus'], texture: ['to-mandelic-acid-10-ha', 'lrp-pure-vitamin-c10-serum'],
@@ -46,7 +47,7 @@ test('OF2 C : chaque actif référencé existe ; aucun actif nouveau ; mandéliq
   assert.equal(byId('to-mandelic-acid-10-ha').primaryActiveId, 'aha_pha');
   // « zinc » existe mais est un soin « à valider » : relier le zinc PCA ferait écarter le produit (composition) sans raison utile ; le zinc reste un ingrédient secondaire non relié
   assert.ok(!REAL.some(p => p.ingredients.some(i => i.activeId === 'zinc')));
-  assert.ok(byId('lrp-cicaplast-baume-b5-plus').ingredients.some(i => i.activeId === 'centella'), 'centella existe : relié (actif de soutien à valider, jamais sélectionné)');
+  assert.ok(!byId('lrp-cicaplast-baume-b5-plus').inci.some(x => /centella/i.test(x)) && !byId('lrp-cicaplast-baume-b5-plus').ingredients.some(i => i.activeId === 'centella'), 'l\'INCI Afrique du Cicaplast ne liste pas d\'extrait de centella : non relié (le madécassoside n\'est pas l\'extrait)');
   assert.equal(byId('to-ascorbyl-glucoside-12').primaryActiveId, 'vitamin_c');
   assert.equal(byId('to-niacinamide-10-zinc-1').primaryActiveId, 'niacinamide');
   assert.equal(byId('to-azelaic-acid-10').primaryActiveId, 'azelaic');
@@ -83,11 +84,12 @@ test('OF4 F/G : statut — validé = identité complète (nom, marque, format, I
       assert.deepEqual(p.offers, []);
     }
   }
-  assert.deepEqual(REAL.filter(p => p.status === 'to_verify').map(p => p.id).sort(), ['lrp-effaclar-duo-m', 'lrp-mela-b3-serum', 'to-hyaluronic-b5-ceramides', 'vichy-liftactiv-vitamin-c-serum']);
-  assert.equal(products.usable(REAL).length, 9);
+  assert.deepEqual(REAL.filter(p => p.status === 'to_verify').map(p => p.id).sort(), ['lrp-effaclar-duo-m', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum']);
+  assert.equal(products.usable(REAL).length, 10);
   // une seule version de chaque produit (aucun mélange ancienne / nouvelle formule)
   assert.equal(REAL.filter(p => /Hyaluronic Acid 2%/.test(p.name)).length, 1);
   assert.match(byId('to-hyaluronic-b5-ceramides').name, /with Ceramides/);
+  assert.ok(byId('to-hyaluronic-b5-ceramides').inci.includes('Phospholipids') && !byId('to-hyaluronic-b5-ceramides').inci.some(x => /original/i.test(x)));
   assert.doesNotMatch(JSON.stringify(byId('to-hyaluronic-b5-ceramides')), /Original Formulation['"]?\s*[,}]\s*category/);
   assert.match(byId('to-salicylic-2-solution').description, /anhydre/);
 });
@@ -106,7 +108,11 @@ test('OF6 K : aucune donnée commerciale globale ; aucune offre inventée ; la l
     assert.ok(Array.isArray(p.offers));
     for (const o of p.offers) { assert.ok(o.source && o.checkedAt); if (o.price != null) assert.ok(o.currency); }
   }
-  assert.equal(REAL.reduce((n, p) => n + p.offers.length, 0), 0, 'aucune offre vérifiable depuis le sandbox : aucune offre livrée');
+  // seules offres livrées : les 2 revendeurs cités par le bloc « Buy Online » de la page CeraVe Afrique ; ni prix, ni stock, ni devise inventés
+  const shipped = REAL.flatMap(p => p.offers.map(o => [p.id, o]));
+  assert.deepEqual(shipped.map(([id, o]) => id + ':' + o.market + ':' + o.retailer).sort(), ['cerave-blemish-control-gel:NG:BuyBetter', 'cerave-blemish-control-gel:ZA:Dermastore']);
+  for (const [, o] of shipped) { assert.equal(o.price, null); assert.equal(o.currency, null); assert.equal(o.availability, 'unknown'); assert.match(o.url, /^https:\/\//); assert.match(o.source, /Buy Online.*CeraVe Afrique/); assert.equal(o.type, 'retailer'); }
+  assert.ok(shipped.every(([id]) => byId(id).status === 'validated'));
   assert.ok(REAL.every(p => p.image === null), 'aucune image vérifiable : « Image à venir »');
   const text = JSON.stringify(REAL);
   assert.doesNotMatch(text, /\d\s?%\s?(de )?(correspondance|compatib)/i);
@@ -209,7 +215,7 @@ test('OF10 S/T : sélection réelle cohérente avec l\'actif retenu ; exclusions
   }
   assert.ok(seen.has('to-niacinamide-10-zinc-1') && seen.has('lrp-cicaplast-baume-b5-plus') && seen.has('to-ascorbyl-glucoside-12'), 'les produits compatibles sont bien recommandés');
   // conséquences assumées de l'architecture existante (moteur inchangé) : ces produits restent « Autres produits »
-  for (const id of ['cerave-blemish-control-gel', 'lrp-pure-vitamin-c10-serum', 'cerave-hydrating-ha-serum']) assert.ok(!seen.has(id), id + ' ne doit pas être recommandé par le moteur actuel');
+  for (const id of ['cerave-blemish-control-gel', 'lrp-pure-vitamin-c10-serum', 'cerave-hydrating-ha-serum', 'to-hyaluronic-b5-ceramides']) assert.ok(!seen.has(id), id + ' ne doit pas être recommandé par le moteur actuel');
 });
 
 test('OF11 démonstration séparée : aucun produit ni marque de démonstration dans le catalogue réel, et inversement', () => {
