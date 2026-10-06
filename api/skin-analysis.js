@@ -6,6 +6,7 @@ const { isAnalysisEnabled, isDebugRawEnabled } = require('../server/config');
 const { describeStructure } = require('../server/structure');
 /* Module partagé avec le navigateur (js/skin-model.js) : localise le résultat et ne garde que les champs autorisés. */
 const skinModel = require('../js/skin-model.js');
+const { diagnosticLines, repetitionLine } = require('../server/diagnostic');   // DIAGNOSTIC TEMPORAIRE (voir server/diagnostic.js)
 
 /* Corps brut : le navigateur envoie directement l'image JPEG (pas de multipart). */
 const config = { api: { bodyParser: false } };
@@ -34,6 +35,9 @@ async function handler(req, res) {
     const envelope = await perfectcorp.analyzeSkin(image);
     /* Log de la structure seulement (noms de champs et types) : jamais de valeurs, d'URL ni de photo. */
     console.log('[DERMAI] Perfect Corp result structure', JSON.stringify(describeStructure(envelope)));
+    for (const line of diagnosticLines(envelope)) console.log(line);   // DIAGNOSTIC TEMPORAIRE : valeurs de skin_type, all, skin_age
+    const repetitions = repetitionLine(envelope);                       // DIAGNOSTIC TEMPORAIRE : occurrences par type (noms et nombres)
+    if (repetitions) console.log(repetitions);
     /* Le navigateur ne reçoit que le résultat normalisé : ni enveloppe, ni task_id, ni URL, ni champ inconnu. */
     const out = skinModel.parseSkinResponse(envelope);
     if (out.status === 'not_found') {

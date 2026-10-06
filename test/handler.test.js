@@ -198,3 +198,148 @@ test('échec Perfect Corp : message générique, aucun détail interne ni raw', 
     assert.ok(logs.some(l => l.includes('détail interne')), 'le détail doit rester dans les logs serveur');
   });
 });
+
+/* ---------- DIAGNOSTIC TEMPORAIRE : valeurs réelles de skin_type, all, skin_age (voir server/diagnostic.js) ----------
+   À retirer avec server/diagnostic.js une fois les valeurs observées. */
+const { diagnosticLines } = require('../server/diagnostic');
+
+/* Réponse de forme réelle observée en Production : chaque élément porte type, raw_score, ui_score, score, skin_type, region,
+   mask_urls, url ; types supplémentaires skin_type, all, skin_age, resize_image. Valeurs des trois éléments : fictives. */
+function realShapedEnvelope() {
+  const el = (type, extra) => ({ type, raw_score: null, ui_score: null, score: null, skin_type: null, region: null, mask_urls: [], url: null, ...extra });
+  const output = JSON_RESP.data.results.output.map(e => el(e.type, { raw_score: e.raw_score, ui_score: e.ui_score, mask_urls: ['https://cdn.example/MASQUE_SECRET.png?sig=abc'] }));
+  output.push(
+    el('skin_type', { skin_type: 'Oily', region: 'whole' }), el('skin_type', { skin_type: 'Dry', region: 't_zone' }), el('skin_type', { skin_type: 'Combination', region: 'u_zone' }),
+    el('all', { score: 61.5, raw_score: 62.25, ui_score: 70 }),
+    el('skin_age', { score: 33, raw_score: 33.5 }),
+    el('resize_image', { url: 'https://cdn.example/RESIZED_SECRET.jpg?sig=zzz', mask_urls: ['https://cdn.example/RESIZE_MASQUE_SECRET.jpg'] }));
+  return { status: 200, data: { task_id: 'TASKID_SECRET_123', task_status: 'success', results: { output } } };
+}
+
+test('DIAG : lignes pour skin_type, all et skin_age avec leurs champs scalaires explicites', () => {
+  const lignes = diagnosticLines(realShapedEnvelope());
+  assert.equal(lignes[0], '[DERMAI][DIAG] éléments lus : skin_type=3 all=1 skin_age=1 (sur 21 éléments)');   // 15 métriques + 3 skin_type + all + skin_age + resize_image
+  assert.equal(lignes.length, 1 + 5);
+  const st = lignes.filter(l => l.includes('type="skin_type"'));
+  assert.equal(st.length, 3);
+  assert.ok(st[0].includes('skin_type="Oily"') && st[0].includes('region="whole"'));
+  assert.ok(st[1].includes('skin_type="Dry"') && st[1].includes('region="t_zone"'));
+  assert.ok(st[2].includes('skin_type="Combination"') && st[2].includes('region="u_zone"'));
+  const all = lignes.find(l => l.includes('type="all"'));
+  assert.ok(all.includes('score=61.5') && all.includes('raw_score=62.25') && all.includes('ui_score=70') && all.includes('skin_type=null') && all.includes('region=null'));
+  const age = lignes.find(l => l.includes('type="skin_age"'));
+  assert.ok(age.includes('score=33 ') && age.includes('raw_score=33.5') && age.includes('ui_score=null'));
+});
+
+test('DIAG : champs absents signalés, valeurs non scalaires ou ressemblant à une URL jamais affichées', () => {
+  const env = { data: { results: { output: [
+    { type: 'all' },
+    { type: 'skin_age', score: { a: 1 }, raw_score: [1, 2], ui_score: true, skin_type: 'https://cdn.example/URL_SECRET.png', region: 'x'.repeat(80) },
+    { type: 'skin_type', score: NaN, raw_score: Infinity, ui_score: undefined, skin_type: 'Oily', region: 'whole', url: 'https://cdn.example/URL_SECRET2', mask_urls: ['https://cdn.example/M'] }
+  ] } } };
+  const t = diagnosticLines(env).join('\n');
+  assert.ok(t.includes('score=(absent)') && t.includes('raw_score=(absent)'));
+  assert.ok(t.includes('score=<objet>') && t.includes('raw_score=<tableau>') && t.includes('ui_score=<booléen>'));
+  assert.ok(t.includes('skin_type=<masqué>') && t.includes('region=<masqué>'));
+  assert.ok(t.includes('score=<nombre non fini>'));
+  for (const interdit of ['URL_SECRET', 'cdn.example', 'https', 'mask_urls', 'url=']) assert.ok(!t.includes(interdit), interdit);
+});
+
+test('DIAG : sans tableau data.results.output, aucune ligne ; aucun élément ciblé : seulement le comptage', () => {
+  for (const x of [null, undefined, {}, { data: { results: { output: {} } } }, { data: { results: { output: 'x' } } }]) assert.deepEqual(diagnosticLines(x), []);
+  assert.deepEqual(diagnosticLines({ data: { results: { output: [{ type: 'acne', raw_score: 1 }, null, 'x'] } } }),
+    ['[DERMAI][DIAG] éléments lus : skin_type=0 all=0 skin_age=0 (sur 3 éléments)']);
+});
+
+test('DIAG : dans les logs du handler, uniquement ces champs ; aucune fuite (JSON brut, mask_urls, url, task_id, clé, autres scores)', async () => {
+  await withEnv({ PERFECT_CORP_API_KEY: 'CLE_SECRETE_XYZ' }, () => withStub(realShapedEnvelope(), async () => {
+    const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
+    const diag = logs.filter(l => l.startsWith('[DERMAI][DIAG]') && !l.includes('répétitions'));   // diagnostic skin_type / all / skin_age, inchangé
+    assert.equal(diag.length, 6);
+    assert.ok(diag.join('\n').includes('skin_type="Oily"') && diag.join('\n').includes('score=61.5') && diag.join('\n').includes('score=33 '));
+    const tout = logs.join('\n');
+    for (const interdit of ['MASQUE_SECRET', 'RESIZED_SECRET', 'RESIZE_MASQUE', 'TASKID_SECRET', 'CLE_SECRETE_XYZ', 'cdn.example', 'https://', 'sig=abc', 'sig=zzz',
+      String(JSON_RESP.data.results.output[0].raw_score), String(JSON_RESP.data.results.output[1].ui_score) + '.']) {
+      assert.ok(!tout.includes(interdit), 'fuite dans les logs : ' + interdit);
+    }
+    assert.ok(!diag.some(l => /resize_image|"acne"|"pore"/.test(l)), 'seuls skin_type, all et skin_age sont journalisés');
+    /* le contrat métier est inchangé : mêmes 15 métriques, skinType/globalScore/skinAge toujours null, rien de plus renvoyé */
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, { ok: true, result: { schemaVersion: 1, normalized: EXPECTED } });
+    assert.ok(!JSON.stringify(r.body).includes('Oily'));
+  }));
+});
+
+test('DIAG : le diagnostic journalise aussi quand le résultat est refusé (ambigu), avant l\'erreur', async () => {
+  const env = realShapedEnvelope(); env.data.results.output.push({ type: 'acne', raw_score: 1, ui_score: 2 });
+  await withStub(env, async () => {
+    const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
+    assert.equal(r.status, 502);
+    assert.ok(logs.some(l => l.startsWith('[DERMAI][DIAG] éléments lus : skin_type=3 all=1 skin_age=1')));
+  });
+});
+
+/* ---------- DIAGNOSTIC TEMPORAIRE : comptage des répétitions par type (voir server/diagnostic.js) ---------- */
+const { repetitionLine, METRIC_TYPES } = require('../server/diagnostic');
+const REP_ATTENDU = '[DERMAI][DIAG] répétitions : ' + [...METRIC_TYPES].map(t => `${t}=1`).join(', ');
+
+test('REP : 15 types de métriques connus, ordre du parseur, une occurrence chacun', () => {
+  assert.equal(METRIC_TYPES.length, 15);
+  assert.deepEqual([...METRIC_TYPES].sort(), JSON_RESP.data.results.output.map(e => e.type).sort());
+  assert.equal(repetitionLine(realShapedEnvelope()), REP_ATTENDU);
+  assert.equal(repetitionLine(JSON_RESP), REP_ATTENDU);
+  assert.deepEqual([...METRIC_TYPES], skinModel.METRICS.map(m => m[0]), 'ordre et liste = ceux de la table du parseur');
+});
+
+test('REP : un type répété apparaît avec son nombre (2, 3…), les autres restent à 1', () => {
+  const env = realShapedEnvelope();
+  env.data.results.output.push({ type: 'pore', raw_score: 1 }, { type: 'pore', raw_score: 2 }, { type: 'acne', raw_score: 3 });
+  const l = repetitionLine(env);
+  assert.ok(l.includes('pores') === false && l.includes('pore=3'));
+  assert.ok(l.includes('acne=2'));
+  assert.ok(l.includes('texture=1') && l.includes('moisture=1'));
+  assert.equal((l.match(/=1/g) || []).length, 13);
+});
+
+test('REP : un type absent vaut 0 ; les types inconnus (skin_type, all, skin_age, resize_image…) sont ignorés', () => {
+  const env = { data: { results: { output: [{ type: 'acne' }, { type: 'skin_type' }, { type: 'all' }, { type: 'skin_age' }, { type: 'resize_image' }, { type: 'inconnu' }] } } };
+  const l = repetitionLine(env);
+  assert.ok(l.includes('acne=1') && l.includes('pore=0') && l.includes('moisture=0'));
+  for (const t of ['skin_type', 'all=', 'skin_age', 'resize_image', 'inconnu']) assert.ok(!l.includes(t), t);
+  assert.equal(l.split(', ').length, 15);
+});
+
+test('REP : sans tableau data.results.output → null ; éléments hostiles ignorés sans exception', () => {
+  for (const x of [null, undefined, {}, { data: { results: { output: {} } } }, { data: { results: { output: 'x' } } }]) assert.equal(repetitionLine(x), null);
+  const l = repetitionLine({ data: { results: { output: [null, 'x', 7, [], { type: 7 }, { type: null }, { type: ['acne'] }, { type: 'acne' }] } } });
+  assert.ok(l.includes('acne=1'));
+});
+
+test('REP : la ligne ne contient que des noms de types et des nombres : jamais valeurs, URL, task_id, clé ni JSON', () => {
+  const l = repetitionLine(realShapedEnvelope());
+  assert.match(l, /^\[DERMAI\]\[DIAG\] répétitions : [a-z_0-9]+=\d+(, [a-z_0-9]+=\d+)*$/);
+  for (const interdit of ['https', 'cdn.example', 'MASQUE', 'RESIZED', 'TASKID', 'Oily', '61.5', '{', '[]']) assert.ok(!l.includes(interdit), interdit);
+});
+
+test('REP : dans les logs du handler, une seule ligne de répétitions, sans fuite, contrat métier inchangé', async () => {
+  await withEnv({ PERFECT_CORP_API_KEY: 'CLE_SECRETE_XYZ' }, () => withStub(realShapedEnvelope(), async () => {
+    const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
+    const rep = logs.filter(l => l.includes('répétitions'));
+    assert.deepEqual(rep, [REP_ATTENDU]);
+    for (const interdit of ['CLE_SECRETE_XYZ', 'TASKID_SECRET', 'MASQUE_SECRET', 'RESIZED_SECRET']) assert.ok(!rep[0].includes(interdit), interdit);
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, { ok: true, result: { schemaVersion: 1, normalized: EXPECTED } });
+  }));
+});
+
+test('REP : le comptage est journalisé même quand le résultat est refusé (métrique répétée), sans rien modifier au verdict', async () => {
+  const env = realShapedEnvelope();
+  env.data.results.output.push({ type: 'pore', raw_score: 9, ui_score: 9 });
+  await withStub(env, async () => {
+    const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
+    assert.ok(logs.some(l => l.includes('répétitions') && l.includes('pore=2')));
+    assert.equal(r.status, 502);                                   // le parseur reste strict : aucun changement automatique
+    assert.equal(r.body.error, toUserMessage('RESULT_AMBIGUOUS'));
+    assert.equal(r.body.result, undefined);
+  });
+});
