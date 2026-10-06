@@ -1,0 +1,67 @@
+/* Couche ROUTINE : plan matin / soir à partir des priorités, des actifs choisis, du contexte et du niveau de routine déclaré.
+   Étapes : nettoyage doux, soins ciblés (seulement ceux du plan), hydratation, protection solaire (matin). Pas de routine de 8 produits :
+   le nombre de soins ciblés est plafonné par niveau (data.LIMITS, provisoire). Une routine minimale reste possible. */
+(function (root, factory) {
+  const isNode = typeof module === 'object' && module.exports;
+  const E = root.DermaiEngine || {};
+  const dep = isNode
+    ? { data: require('./data/actives.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js') }
+    : { data: E.activesData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel };
+  const api = factory(dep);
+  if (isNode) module.exports = api;
+  else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); NS.routine = api; }
+})(typeof self !== 'undefined' ? self : this, function (dep) {
+  'use strict';
+  const data = dep.data, actives = dep.actives, copy = dep.copy, skin = dep.skin;
+
+  function build(interp, prios, plan, profile) {
+    const limits = data.LIMITS[profile.level] || data.LIMITS[data.DEFAULT_LEVEL];
+    const owned = new Set(profile.cats || []);
+    const ctx = interp.context;
+    const texture = copy.TEXTURE[ctx.skinBase || 'unknown'];
+    const supportIds = plan.supports.map(s => s.activeId);
+    const supportLabels = supportIds.map(id => actives.byId(id).label);
+    const slots = { morning: [], evening: [] };
+    const extraDeferred = [];
+    const labelOf = id => skin.METRIC_LABELS[id];
+
+    for (const slot of ['morning', 'evening']) {
+      slots[slot].push({ id: slot + ':cleanse', slot, kind: 'cleanse', label: copy.STEP_LABELS.cleanse, owned: owned.has('cleanser'),
+        reason: owned.has('cleanser') ? copy.stepReason.owned : copy.stepReason.cleanse });
+    }
+    for (const t of plan.treatments) {
+      const a = actives.byId(t.activeId);
+      let slot = a.defaultSlot;
+      const full = s => slots[s].filter(x => x.kind === 'treatment').length >= limits.perSlot;
+      if (full(slot)) {
+        const alt = slot === 'morning' ? 'evening' : 'morning';
+        if (a.when === 'both' && !full(alt)) slot = alt;
+        else { extraDeferred.push({ activeId: t.activeId, kind: 'slot', indicators: t.indicators }); continue; }
+      }
+      slots[slot].push({ id: slot + ':treatment:' + a.id, slot, kind: 'treatment', label: copy.STEP_LABELS.treatment, activeId: a.id, activeLabel: a.label,
+        reason: copy.activeReason(t.indicators.map(labelOf), t.gentleFallback), indicators: t.indicators,
+        introduction: { frequency: a.introduction.frequency, note: a.introduction.note, order: t.introductionOrder },
+        cautions: a.cautions, slowDown: (ctx.comfortMode || ctx.skinBase === 'dry') && a.irritation !== 'low' });
+    }
+    for (const slot of ['morning', 'evening']) {
+      slots[slot].push({ id: slot + ':moisturize', slot, kind: 'moisturize', label: copy.STEP_LABELS.moisturize, owned: owned.has('moisturizer'), supportIds, texture,
+        reason: owned.has('moisturizer') ? copy.stepReason.owned : copy.stepReason.moisturize(texture, supportLabels) });
+    }
+    slots.morning.push({ id: 'morning:spf', slot: 'morning', kind: 'spf', label: copy.STEP_LABELS.spf, owned: owned.has('spf'),
+      reason: owned.has('spf') ? copy.stepReason.owned : copy.stepReason.spf });
+
+    const placed = [...slots.morning, ...slots.evening].filter(s => s.kind === 'treatment');
+    const deferred = plan.deferred.concat(extraDeferred);
+    const notes = [copy.NOTES.level[profile.level] || copy.NOTES.level.simple];
+    if (placed.length > 1 || placed.some(s => s.slowDown)) notes.push(copy.NOTES.oneAtATime);
+    if (deferred.some(d => d.kind === 'conflict') || placed.filter(s => s.slot === 'evening').length > 0) notes.push(copy.NOTES.oneStrong);
+    if (ctx.comfortMode) notes.push(copy.NOTES.comfort);
+    if (ctx.skinBase === 'dry') notes.push(copy.NOTES.dry);
+    return {
+      level: profile.level, mode: prios.mode, comfortMode: ctx.comfortMode, skinBase: ctx.skinBase,
+      summary: copy.summary(prios.items.map(i => i.label), prios.mode), slots, notes, deferred
+    };
+  }
+
+  return { build };
+});

@@ -53,51 +53,19 @@ const SCANS=[
 /* Contenu éditorial statique de 4 indicateurs (zones pour l'illustration de la page d'accueil, conseils, actifs). Aucun score ici. */
 const CONCERNS={
   pigmentation:{label:`Pigmentation`,zones:`Front et joues`,
-    tips:[`Appliquez une protection solaire chaque matin, même par temps couvert.`,`Évitez de toucher ou de gratter les zones concernées.`],actives:[`azelaic`,`niacinamide`,`vitc`,`retinol`]},
+    tips:[`Appliquez une protection solaire chaque matin, même par temps couvert.`,`Évitez de toucher ou de gratter les zones concernées.`]},
   pores:{label:`Pores`,zones:`Nez, joues et menton`,
-    tips:[`Nettoyez le visage matin et soir avec un produit doux.`,`Ne pressez pas les pores : cela les agrandit visuellement.`],actives:[`niacinamide`,`salicylic`,`retinol`]},
+    tips:[`Nettoyez le visage matin et soir avec un produit doux.`,`Ne pressez pas les pores : cela les agrandit visuellement.`]},
   hydration:{label:`Hydratation`,zones:`Joues et contour des yeux`,
-    tips:[`Appliquez votre hydratant sur peau légèrement humide.`,`Évitez les eaux de nettoyage trop chaudes.`],actives:[`hyaluronic`,`niacinamide`]},
+    tips:[`Appliquez votre hydratant sur peau légèrement humide.`,`Évitez les eaux de nettoyage trop chaudes.`]},
   acne:{label:`Acné`,zones:`Menton et front`,
-    tips:[`Changez régulièrement de taie d'oreiller et nettoyez votre téléphone.`,`Préférez des textures légères, non comédogènes.`],actives:[`salicylic`,`azelaic`,`niacinamide`]}
+    tips:[`Changez régulièrement de taie d'oreiller et nettoyez votre téléphone.`,`Préférez des textures légères, non comédogènes.`]}
 };
 const CIDS=[`pigmentation`,`pores`,`hydration`,`acne`];
 const ZONES_BY={pigmentation:[`front`,`jg`,`jd`],pores:[`nez`,`jg`,`jd`,`menton`],hydration:[`jg`,`jd`,`yg`,`yd`],acne:[`menton`,`front`],all:[`front`,`jg`,`jd`,`nez`,`menton`,`yg`,`yd`]};
-const ACTIVES={
-  azelaic:{name:`Acide azélaïque`,short:`Uniformise le teint`,for:[`Pigmentation`,`Acné`,`Rougeurs`],role:`Aide à atténuer les marques et l'aspect des imperfections, tout en uniformisant le teint.`,when:`Soir`,freq:`Un soir sur deux au début, puis chaque soir si la peau le tolère.`,cautions:[`De légers picotements sont possibles au début.`,`Introduisez un seul nouvel actif à la fois.`,`En cas de grossesse ou de peau très sensible, demandez conseil à un professionnel de santé.`],good:[`Niacinamide`,`Acide hyaluronique`,`Protection solaire`],avoid:[`Autres exfoliants forts le même soir`]},
-  niacinamide:{name:`Niacinamide`,short:`Équilibre et affine`,for:[`Texture`,`Sébum`,`Pores`],role:`Aide à équilibrer l'aspect du sébum, à affiner le grain de peau et à renforcer la barrière cutanée.`,when:`Matin et soir`,freq:`Une fois par jour, puis deux fois si la peau le tolère.`,cautions:[`Un dosage élevé peut irriter certaines peaux sensibles.`],good:[`Acide azélaïque`,`Acide hyaluronique`,`Protection solaire`],avoid:[`Aucune incompatibilité majeure connue`]},
-  vitc:{name:`Vitamine C`,short:`Éclat et uniformité`,for:[`Pigmentation`,`Teint terne`,`Éclat`],role:`Aide à rendre le teint plus lumineux et plus uniforme, et protège la peau du stress oxydatif.`,when:`Matin`,freq:`Chaque matin, avant la protection solaire.`,cautions:[`Peut piquer sur peau sensible.`,`Conservez le produit à l'abri de la lumière et de la chaleur.`],good:[`Protection solaire`,`Niacinamide`,`Acide hyaluronique`],avoid:[`Exfoliants forts appliqués au même moment`]},
-  salicylic:{name:`Acide salicylique`,short:`Purifie les pores`,for:[`Pores`,`Acné`,`Excès de sébum`],role:`Exfoliant doux qui pénètre dans les pores pour les désobstruer et limiter l'aspect brillant.`,when:`Soir`,freq:`Deux à trois soirs par semaine.`,cautions:[`Peut assécher : hydratez bien ensuite.`,`Ne pas cumuler avec un rétinoïde le même soir.`],good:[`Niacinamide`,`Acide hyaluronique`],avoid:[`Rétinoïdes le même soir`,`Autres exfoliants`]},
-  retinol:{name:`Rétinoïdes cosmétiques`,short:`Renouvelle la texture`,for:[`Rides et ridules`,`Texture`,`Pigmentation`],role:`Aident à lisser le grain de peau et à estomper les signes visibles du vieillissement.`,when:`Soir`,freq:`Une à deux fois par semaine au début, en augmentant lentement.`,cautions:[`Protection solaire indispensable le lendemain.`,`Déconseillés pendant la grossesse sans avis médical.`,`Peuvent irriter : commencez doucement.`],good:[`Acide hyaluronique`,`Niacinamide`],avoid:[`Acides exfoliants le même soir`,`Vitamine C au même moment`]},
-  hyaluronic:{name:`Acide hyaluronique`,short:`Hydrate en surface`,for:[`Hydratation`,`Confort`,`Aspect repulpé`],role:`Capte l'eau à la surface de la peau pour la rendre plus souple et plus confortable.`,when:`Matin et soir`,freq:`Chaque jour, sur peau légèrement humide.`,cautions:[`Aucune précaution particulière pour la plupart des peaux.`],good:[`Tous les autres actifs`],avoid:[`Aucune incompatibilité connue`]}
-};
-/* Catalogue de démonstration. Prêt pour un futur catalogue réel (Bénin, Afrique francophone). */
-const PRODUCTS=[
-  {id:`p1`,name:`Gel nettoyant doux`,brand:`Nuru Lab`,type:`pump`,price:6500,cur:`XOF`,actives:[`Glycérine`,`Acide salicylique 0,5 %`],mainActive:`Glycérine`,skinType:`Peau mixte`,concerns:[`pores`,`acne`],match:89,color:`#E9C4CC`,vendor:null,availability:null,url:null,demo:true},
-  {id:`p2`,name:`Sérum Éclat Vitamine C 10 %`,brand:`Oria`,type:`dropper`,price:12900,cur:`XOF`,actives:[`Vitamine C 10 %`,`Vitamine E`],mainActive:`Vitamine C`,skinType:`Tous types`,concerns:[`pigmentation`],match:90,color:`#E9B99A`,vendor:null,availability:null,url:null,demo:true},
-  {id:`p3`,name:`Sérum Uniformité Acide azélaïque 10 %`,brand:`Kalma`,type:`dropper`,price:15500,cur:`XOF`,actives:[`Acide azélaïque 10 %`,`Niacinamide 2 %`],mainActive:`Acide azélaïque`,skinType:`Peau mixte`,concerns:[`pigmentation`,`acne`],match:92,color:`#D9A3B0`,vendor:null,availability:null,url:null,demo:true},
-  {id:`p4`,name:`Lotion Pores Affinés`,brand:`Nuru Lab`,type:`dropper`,price:9800,cur:`XOF`,actives:[`Acide salicylique 2 %`],mainActive:`Acide salicylique`,skinType:`Peau mixte à grasse`,concerns:[`pores`,`acne`],match:84,color:`#F0CFD5`,vendor:null,availability:null,url:null,demo:true},
-  {id:`p5`,name:`Crème légère Hydra Équilibre`,brand:`Kalma`,type:`jar`,price:11000,cur:`XOF`,actives:[`Niacinamide 4 %`,`Acide hyaluronique`,`Céramides`],mainActive:`Acide hyaluronique`,skinType:`Peau mixte`,concerns:[`hydration`,`pores`],match:91,color:`#F3D9C8`,vendor:null,availability:null,url:null,demo:true},
-  {id:`p6`,name:`Fluide invisible SPF 50+`,brand:`Oria`,type:`tube`,price:8900,cur:`XOF`,actives:[`Filtres UV large spectre`],mainActive:`Filtres UV`,skinType:`Tous types`,concerns:[`pigmentation`],match:95,color:`#F6C9B0`,vendor:null,availability:null,url:null,demo:true},
-  {id:`p7`,name:`Crème barrière Nuit Réconfort`,brand:`Sève Botanique`,type:`jar`,price:13500,cur:`XOF`,actives:[`Acide hyaluronique`,`Céramides`,`Squalane`],mainActive:`Céramides`,skinType:`Peau sèche à mixte`,concerns:[`hydration`],match:87,color:`#DDB5BC`,vendor:null,availability:null,url:null,demo:true},
-  {id:`p8`,name:`Sérum Pores et Texture Niacinamide 10 %`,brand:`Nuru Lab`,type:`dropper`,price:10500,cur:`XOF`,actives:[`Niacinamide 10 %`,`Zinc`],mainActive:`Niacinamide`,skinType:`Peau mixte à grasse`,concerns:[`pores`,`acne`],match:90,color:`#E4B6C0`,vendor:null,availability:null,url:null,demo:true}
-];
-const AM=[
-  {step:`Nettoyant`,p:`p1`,active:`Nettoyage doux`,role:`Retire l'excès de sébum sans agresser la peau.`,when:`Matin`},
-  {step:`Vitamine C`,p:`p2`,active:`Vitamine C`,role:`Aide à uniformiser le teint et à estomper les taches.`,when:`Matin`},
-  {step:`Niacinamide`,p:`p8`,active:`Niacinamide`,role:`Aide à équilibrer le sébum et à affiner le grain de peau.`,when:`Matin`},
-  {step:`Hydratant`,p:`p5`,active:`Acide hyaluronique`,role:`Hydrate et apporte du confort.`,when:`Matin`},
-  {step:`SPF 50+`,p:`p6`,active:`Filtres UV`,role:`Empêche les taches de s'accentuer au soleil.`,when:`Matin`}
-];
-const PM=[
-  {step:`Nettoyant`,p:`p1`,active:`Nettoyage doux`,role:`Élimine impuretés et protection solaire de la journée.`,when:`Soir`},
-  {step:`Acide azélaïque`,p:`p3`,active:`Acide azélaïque`,role:`Travaille sur la pigmentation et les imperfections pendant la nuit.`,when:`Soir`},
-  {step:`Hydratant`,p:`p7`,active:`Céramides`,role:`Apporte du confort et renforce la barrière de la peau.`,when:`Soir`}
-];
-const GOALS=[[`acne`,`Réduire l'acné`],[`pigmentation`,`Réduire les taches`],[`texture`,`Améliorer la texture`],[`hydration`,`Hydrater ma peau`],[`oiliness`,`Contrôler la peau grasse`],[`wrinkles`,`Prévenir les signes du vieillissement`],[`global`,`Améliorer globalement ma peau`]];
 const CATS=[[`cleanser`,`Nettoyant`],[`serum`,`Sérum`],[`moisturizer`,`Hydratant`],[`spf`,`Protection solaire`],[`exfoliant`,`Exfoliant`],[`mask`,`Masque`]];
 const state={route:`landing`,param:null,stack:[],user:DEMO_MODE?{name:`Amina`,email:`amina@exemple.com`}:{name:``,email:``},
-  goals:[`pigmentation`,`pores`,`hydration`],level:`simple`,cats:[`cleanser`,`moisturizer`],
+  goals:DEMO_MODE?[`tone`,`oil_pores`,`hydration`]:[],noGoal:false,level:DEMO_MODE?`simple`:``,cats:DEMO_MODE?[`cleanser`,`moisturizer`]:[],
   scanStep:0,shots:[false,false,false],retake:false,run:0,latest:0,view:0,tab:`am`,done:{},filter:`all`,
   cmpA:0,cmpB:1,sel:`all`,prefs:{reminder:true,tips:true,keep:false},photo:``,
   scanStatus:`idle`,scanError:``,realBlob:null,realPreview:``};   // scanStatus : idle | capturing | uploading | processing | success | error
@@ -168,6 +136,9 @@ function commitRealScan(r){
   state.latest=r.id;state.view=r.id;state.cmpA=0;state.cmpB=last;
 }
 const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
+/* Moteur d'interprétation cosmétique (js/engine) : l'interface appelle run() et affiche. Aucune règle de priorité, d'actif ou de routine ici. */
+const Engine=window.DermaiEngine;
+const engineFor=s=>Engine.run(s.normalized,{goals:state.goals,level:state.level,cats:state.cats});
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 
@@ -270,10 +241,13 @@ const trendCard=()=>{
       <button class="mcard" data-go="progress" style="width:100%"><div class="r1"><b>Score global</b><span class="c-badge">${g.length} analyses</span></div><div class="r3"><span class="v">${g[0].v} → ${g[g.length-1].v}<small>/100</small></span>${spark(g.map(p=>p.v))}</div></button></section>`;
 };
 const disc=()=>`<div class="note">${ic(`info`)}<span>Analyse cosmétique visuelle et conseils de soin. Ce n'est pas un diagnostic médical.</span></div>`;
-const inRoutine=id=>[...AM,...PM].some(s=>s.p===id);
+const planProductIds=()=>noReal()?new Set():new Set(engineFor(SCANS[state.latest]).productMatches.map(m=>m.productId));
 const initial=()=>state.user.name.trim()?esc(state.user.name.trim().charAt(0).toUpperCase()):DEMO_MODE?`A`:ic(`user`);
 const pad=n=>String(n).padStart(2,`0`);
-const activeCard=(a,i)=>`<div class="acard"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${ACTIVES[a].name}</b><div class="chips">${ACTIVES[a].for.map(f=>`<span class="c-badge">${f}</span>`).join(``)}</div></div><button class="c-btn c-btn--tonal c-btn--sm" data-go="active:${a}">Découvrir</button></div>`;
+const activeCard=(id,i,why)=>{const a=Engine.actives.byId(id);return `<div class="acard"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${a.label}</b><p class="muted" style="margin:2px 0 8px">${a.summary}</p>${why?`<p class="muted" style="margin-bottom:8px"><span class="u-strong">Pourquoi cet actif ?</span> ${why}</p>`:``}<div class="chips">${a.targets.slice(0,4).map(t=>`<span class="c-badge">${SkinModel.METRIC_LABELS[t]}</span>`).join(``)}</div></div><button class="c-btn c-btn--tonal c-btn--sm" data-go="active:${a.id}">Découvrir</button></div>`};
+const whyOf=(eng,id)=>{const e=eng.explanations.find(x=>(x.kind===`active`||x.kind===`support`)&&x.activeId===id);return e?e.text:``};
+const stepName=st=>st.kind===`treatment`?st.activeLabel:{cleanse:`Nettoyant doux`,moisturize:`Hydratant`,spf:`Protection solaire`}[st.kind];
+const stepSub=st=>st.kind===`moisturize`?st.texture:{cleanse:`Matin et soir`,spf:`Chaque matin`,treatment:Engine.copy.STEP_LABELS.treatment}[st.kind];
 
 /* ---------- 4. ÉCRANS ---------- */
 const NAV=[[`home`,`Accueil`,`home`],[`scan`,`Analyser`,`scan`],[`routine`,`Routine`,`routine`],[`progress`,`Progression`,`chart`],[`profile`,`Profil`,`user`]];
@@ -351,11 +325,11 @@ V.landing=()=>{
   <section class="sec"><div class="wrap two">
     <div>
       <h2>Une routine claire, matin et soir</h2>
-      <p style="margin-top:14px;max-width:30em">Chaque étape a un produit, un rôle et un ordre. Vous cochez au fil de la journée.</p>
+      <p style="margin-top:14px;max-width:30em">Chaque étape a un rôle et un ordre. Vous cochez au fil de la journée.</p>
     </div>
     <div class="c-card">
       <p class="kicker" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">${ic(`sun`)} Matin</p>
-      ${AM.map((s,i)=>`<div class="rowlink" ${i===0?`style="border-top:1px solid var(--line)"`:``}><span class="idx">${pad(i+1)}</span><div class="grow"><b>${s.step}</b><span class="s">${s.active}</span></div></div>`).join(``)}
+      ${[`Nettoyage doux`,`Soin ciblé`,`Hydratation`,`Protection solaire`].map((t,i)=>`<div class="rowlink" ${i===0?`style="border-top:1px solid var(--line)"`:``}><span class="idx">${pad(i+1)}</span><div class="grow"><b>${t}</b></div></div>`).join(``)}
     </div>
   </div></section>
 
@@ -396,7 +370,7 @@ V.onb=n=>{
   n=Number(n)||1;
   const top=`<div class="flowtop"><button class="iconbtn c-icon-btn" data-go="${n===1?`welcome`:`onb:`+(n-1)}" aria-label="Retour">${ic(`back`)}</button><div class="dots" aria-label="Question ${n} sur 3">${[1,2,3].map(i=>`<i class="${i<=n?`on`:``}"></i>`).join(``)}</div></div>`;
   let body=``;
-  if(n===1) body=`<h1>Quel est votre objectif principal ?</h1><p style="margin:10px 0 22px">Vous pouvez en choisir plusieurs.</p><div class="stack" style="gap:10px">${GOALS.map(g=>`<button class="opt" data-act="goal" data-v="${g[0]}" aria-pressed="${state.goals.includes(g[0])}"><span class="grow"><b>${g[1]}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}</div>`;
+  if(n===1) body=`<h1>Quels sont vos objectifs ?</h1><p style="margin:10px 0 22px">Facultatif. Vous pouvez en choisir jusqu'à 3.</p><div class="stack" style="gap:10px">${Engine.goalList().map(g=>`<button class="opt" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}"><span class="grow"><b>${g.label}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}<button class="opt" data-act="goal" data-v="none" aria-pressed="${state.noGoal}"><span class="grow"><b>${Engine.copy.NO_GOAL}</b></span><span class="tick">${ic(`check`)}</span></button></div>`;
   if(n===2) body=`<h1>Quelle est votre routine actuelle ?</h1><p style="margin:10px 0 22px">Pas de mauvaise réponse.</p><div class="stack" style="gap:10px">${[[`none`,`Aucune routine`,`Je n'ai pas de soins réguliers.`],[`simple`,`Routine simple`,`Je nettoie et j'hydrate.`],[`full`,`Routine complète`,`J'utilise plusieurs soins, dont des sérums.`]].map(o=>`<button class="opt" data-act="level" data-v="${o[0]}" aria-pressed="${state.level===o[0]}"><span class="grow"><b>${o[1]}</b><span class="s">${o[2]}</span></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}</div>`;
   if(n===3) body=`<h1>Quels produits utilisez-vous ?</h1><p style="margin:10px 0 22px">Choisissez les catégories que vous utilisez déjà.</p><div class="stack" style="gap:10px">${CATS.map(c=>`<button class="opt" data-act="cat" data-v="${c[0]}" aria-pressed="${state.cats.includes(c[0])}"><span class="grow"><b>${c[1]}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}<button class="opt" data-act="cat" data-v="none" aria-pressed="${state.cats.includes(`none`)}"><span class="grow"><b>Aucun produit pour l'instant</b></span><span class="tick">${ic(`check`)}</span></button></div>`;
   const next=n<3?`<button class="c-btn c-btn--primary c-btn--block" data-go="onb:${n+1}">Continuer</button>`:`<button class="c-btn c-btn--primary c-btn--block" data-act="finish-onb">Terminer</button>`;
@@ -406,25 +380,25 @@ V.onb=n=>{
 /* Accueil */
 V.home=()=>{
   if(noReal())return emptyScan(`Votre peau aujourd'hui`,EMPTY_MSG);
-  const s=SCANS[state.latest],r=viewOf(s),g=r.global,steps=state.tab===`am`?AM:PM,key=state.tab;
+  const s=SCANS[state.latest],r=viewOf(s),g=r.global,eng=engineFor(s),P=eng.priorities,steps=eng.routinePlan.slots[state.tab===`am`?`morning`:`evening`],key=state.tab;
   const doneN=steps.filter((_,i)=>state.done[key+i]).length;
-  const top2=r.priorities.slice(0,2).map(m=>m.label.toLowerCase()),stype=skinLabel(r);
+  const top2=P.items.slice(0,2).map(m=>m.label.toLowerCase()),stype=skinLabel(r);
   return shell(`
   <header class="hello"><div><p class="kicker">Bonjour${state.user.name?` ${esc(state.user.name)}`:``}</p><h1>Votre peau aujourd'hui</h1></div><button class="avatar" data-go="profile" data-reset="1" aria-label="Mon profil">${initial()}</button></header>
   <div class="grid2">
    <div class="col">
     <section class="skin-now"><div class="mf">${portrait({photo:s.photo})}</div>
-      <div class="txt"><p class="kicker">Profil cutané</p><p class="big" style="font-size:${stype.length>16?`1.9rem`:`2.9rem`};margin:6px 0 10px">${stype}</p>${g.score===null?`<p class="muted">Score global indisponible</p>`:`<p class="muted">Score global <b style="color:var(--ink)">${g.score}/100</b></p><p style="margin-top:6px">${bandBadge(g)}</p>`}${top2.length?`<p class="muted" style="margin-top:6px">Scores les plus bas : ${top2.join(` et `)}.</p>`:``}</div>
+      <div class="txt"><p class="kicker">Profil cutané</p><p class="big" style="font-size:${stype.length>16?`1.9rem`:`2.9rem`};margin:6px 0 10px">${stype}</p>${g.score===null?`<p class="muted">Score global indisponible</p>`:`<p class="muted">Score global <b style="color:var(--ink)">${g.score}/100</b></p><p style="margin-top:6px">${bandBadge(g)}</p>`}${top2.length?`<p class="muted" style="margin-top:6px">Priorités : ${top2.join(` et `)}.</p>`:`<p class="muted" style="margin-top:6px">Routine d'entretien.</p>`}</div>
       <button class="c-btn c-btn--primary c-btn--sm" data-go="result" data-act="setview" data-v="${state.latest}">Voir mon analyse</button></section>
-    ${r.priorities.length?`<section><div class="hd"><h2 class="h3">Vos scores les plus bas</h2></div><p class="muted" style="margin-bottom:8px">Les trois indicateurs aux scores les plus bas de votre dernière analyse.</p><ul class="c-list">${r.priorities.map(m=>`<li><button class="c-list-row" data-go="concern:${m.key}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${bandBadge(m)}${ic(`chev`)}</button></li>`).join(``)}</ul></section>`:``}
+    <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length?`<p class="muted" style="margin-bottom:8px">Les indicateurs à soutenir en premier, d'après votre analyse.</p><ul class="c-list">${P.items.map(m=>`<li><button class="c-list-row" data-go="concern:${m.indicator}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${bandBadge(m)}${ic(`chev`)}</button></li>`).join(``)}</ul>`:`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}</section>
     <section><div class="hd"><h2 class="h3">Explorer</h2></div>
-      <button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Ce qui peut aider votre peau</span></div>${ic(`chev`)}</button>
-      <button class="rowlink" data-go="products"><div class="grow"><b>Produits recommandés</b><span class="s">Choisis selon votre profil</span></div>${ic(`chev`)}</button></section>
+      <button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Ceux de votre plan, et pourquoi</span></div>${ic(`chev`)}</button>
+      <button class="rowlink" data-go="products"><div class="grow"><b>Exemples de produits</b><span class="s">Exemples de démonstration</span></div>${ic(`chev`)}</button></section>
    </div>
    <div class="col">
     <section><div class="hd"><h2 class="h3">Ma routine du jour</h2><span class="muted">${doneN} sur ${steps.length}</span></div>
       <div class="c-seg" role="group" aria-label="Moment de la journée"><button class="c-seg__btn" data-act="tab" data-v="am" aria-pressed="${state.tab===`am`}">${ic(`sun`)}Matin</button><button class="c-seg__btn" data-act="tab" data-v="pm" aria-pressed="${state.tab===`pm`}">${ic(`moon`)}Soir</button></div>
-      <div style="margin-top:10px">${steps.map((st,i)=>`<div class="rowlink"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${st.step}</b><span class="s">${PRODUCTS.find(p=>p.id===st.p).name}</span></div><button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${st.step} comme fait">${ic(`check`)}</button></div>`).join(``)}</div>
+      <div style="margin-top:10px">${steps.map((st,i)=>`<div class="rowlink"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${stepName(st)}</b><span class="s">${stepSub(st)}</span></div><button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`).join(``)}</div>
       <button class="link" data-go="routine">Voir toute la routine</button></section>
     ${trendCard()}
     <section class="next"><div style="flex:1"><b>Nouvelle analyse</b><p class="muted">Refaites un scan quand vous le souhaitez.</p></div><button class="c-btn c-btn--tonal c-btn--sm" data-go="scan">Analyser</button></section>
@@ -461,19 +435,18 @@ V.analyzing=()=>`<div class="an"><p class="pill-up">Analyse en cours</p><div cla
 /* Résultat */
 /* Écran Résultat : lit uniquement SkinModel.toResultView(normalized) (échelle 0-100, 100 = meilleur). Aucun repli, aucune zone du visage. */
 const SCORE_SENTENCE={good:`Votre peau présente un bon état apparent.`,mid:`Votre peau a besoin d'un peu de soutien.`,low:`Votre peau mérite une attention particulière.`};
-const PRIO_TXT={good:`Bon niveau. C'est l'un de vos scores les plus bas.`,mid:`Cet indicateur mérite davantage d'attention.`,low:`Cet indicateur demande une attention particulière.`};
 const IND_TXT={good:`Cet indicateur est dans une bonne zone.`,mid:`Cet indicateur mérite davantage d'attention.`,low:`Cet indicateur demande une attention particulière.`};
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
-  const s=SCANS[state.view],r=viewOf(s),g=r.global;
+  const s=SCANS[state.view],r=viewOf(s),g=r.global,eng=engineFor(s),P=eng.priorities;
   const hero=`<div class="c-card c-card--result c-result"><div class="c-result__hero"><div class="c-result__photo">${portrait({photo:s.photo})}</div>
       <div class="c-score-block"><span class="c-result__kicker">Score global</span>${g.score===null?`<p class="c-result__na">Score global indisponible</p>`:`${scoreHtml(g,`xl`)}${bandBadge(g)}`}</div></div>
       ${g.score===null?``:`<p class="c-result__sentence">${SCORE_SENTENCE[g.band]}</p>`}</div>`;
   const type=`<div class="c-card"><p class="c-disclaimer">Type de peau</p>${r.skinType?`<h2 class="c-card__title">${r.skinType.label}</h2><p class="c-card__text">${r.skinType.description}</p>`:`<p class="c-card__text">Type de peau indisponible.</p>`}
       ${r.skinAge===null?``:`<div class="c-result__age"><b>Âge cutané estimé : ${r.skinAge} ans</b><p class="c-disclaimer">Estimation cosmétique, ce n'est pas un âge biologique.</p></div>`}</div>`;
-  const prio=r.priorities.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
-      <div class="c-concern-card__foot">${bandBadge(m)}</div><p class="c-card__text">${PRIO_TXT[m.band]}</p></div>`).join(``);
-  const others=r.others.map(m=>m.score===null
+  const prio=P.items.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
+      <div class="c-concern-card__foot">${bandBadge(m)}${m.objectiveMatch?`<span class="c-badge c-badge--outline">Votre objectif</span>`:``}</div><p class="c-card__text"><b>Pourquoi cette priorité ?</b> ${m.reason}</p></div>`).join(``);
+  const others=eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
   return shell(`
@@ -481,9 +454,12 @@ V.result=()=>{
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
-    ${prio?`<section><div class="hd"><h2 class="h3">Vos priorités</h2></div><p class="muted" style="margin-bottom:14px">Vos trois scores les plus bas. 100 correspond au meilleur état.</p><div class="stack" style="gap:12px">${prio}</div></section>`:``}
+    <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length
+      ?`<p class="muted" style="margin-bottom:14px">Les indicateurs à soutenir en premier, d'après votre analyse${eng.profile.goals.length?` et vos objectifs`:``}. 100 correspond au meilleur état.</p><div class="stack" style="gap:12px">${prio}</div>`
+      :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
+    ${P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
     <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul></section>
-    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--secondary c-btn--block" data-go="analyses">Mes analyses</button></div>
+    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
   </div>`,{back:true,title:`Analyse`});
@@ -492,11 +468,12 @@ V.result=()=>{
 /* Préoccupation */
 V.concern=id=>{
   id=SkinModel.METRIC_KEYS.includes(id)?id:`pigmentation`;
-  const label=SkinModel.METRIC_LABELS[id],c=CONCERNS[id];   // c : contenu éditorial, seulement pour 4 indicateurs
+  const label=SkinModel.METRIC_LABELS[id],c=CONCERNS[id];   // c : conseils statiques, seulement pour 4 indicateurs
   if(noReal())return emptyScan(label,EMPTY_MSG,{back:true,title:label});
   const s=SCANS[state.view],r=viewOf(s),all=[...r.priorities,...r.others].sort((a,b)=>a.order-b.order),m=all.find(x=>x.key===id);
   const nav=`<div class="chips" style="margin-bottom:22px">${all.filter(x=>x.score!==null).map(x=>`<button class="c-chip" data-go="concern:${x.key}" aria-pressed="${x.key===id}">${x.label}</button>`).join(``)}</div>`;
   if(m.score===null)return shell(`${nav}<div class="pagehead"><h1>${label}</h1><p>Donnée indisponible pour cette analyse.</p></div>`,{back:true,title:label});
+  const levers=Engine.actives.leversFor(id);
   return shell(`
   ${nav}
   <div class="grid2">
@@ -505,60 +482,77 @@ V.concern=id=>{
     <section class="facebox">${portrait({photo:s.photo})}</section>
    </div>
    <div class="col">
-    ${c?`<section><div class="hd"><h2 class="h3">Ce qui peut aider</h2></div><p class="muted" style="margin-bottom:14px">Recommandations cosmétiques générales, pas un traitement.</p><div class="stack" style="gap:12px">${c.actives.map((a,i)=>activeCard(a,i)).join(``)}</div></section>
-    <section><div class="hd"><h2 class="h3">Au quotidien</h2></div><ul class="l-list" style="margin-top:0">${c.tips.map(x=>`<li>${ic(`check`)}<span>${x}</span></li>`).join(``)}</ul></section>
-    ${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="actives">Voir tous mes actifs</button>`
-    :`<div class="c-notice">${ic(`info`)}<div>Les recommandations détaillées pour cet indicateur seront bientôt disponibles.</div></div>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="result">Voir mon analyse</button>`}
+    ${levers.length?`<section><div class="hd"><h2 class="h3">Ce qui peut aider</h2></div><p class="muted" style="margin-bottom:14px">Actifs cosmétiques souvent utilisés pour cet indicateur. Ceux de votre plan sont dans « Ma routine ».</p><div class="stack" style="gap:12px">${levers.map((a,i)=>activeCard(a.id,i)).join(``)}</div></section>`
+      :`<div class="c-notice">${ic(`info`)}<div>${Engine.copy.EYE_NOTE}</div></div>`}
+    ${c?`<section><div class="hd"><h2 class="h3">Au quotidien</h2></div><ul class="l-list" style="margin-top:0">${c.tips.map(x=>`<li>${ic(`check`)}<span>${x}</span></li>`).join(``)}</ul></section>`:``}
+    ${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button>
    </div>
   </div>`,{back:true,title:label});
 };
 
-/* Actifs */
+/* Actifs : ceux du plan (moteur), avec la raison de chaque choix, et ceux mis de côté. */
 V.actives=()=>{
-  const rec=[`azelaic`,`niacinamide`,`vitc`,`hyaluronic`],lib=[`salicylic`,`retinol`];
-  return shell(`<div class="pagehead"><h1>Les actifs recommandés</h1><p>Les ingrédients qui correspondent aux préoccupations observées.</p></div>
-  <div class="grid2"><section><div class="stack" style="gap:12px">${rec.map((a,i)=>activeCard(a,i)).join(``)}</div></section>
-  <div class="col"><section><div class="hd"><h2 class="h3">À connaître</h2></div><div class="stack" style="gap:12px">${lib.map((a,i)=>activeCard(a,i+rec.length)).join(``)}</div></section>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button></div></div>`,{back:true,title:`Actifs`});
+  if(noReal())return emptyScan(`Mes actifs`,[`Aucun actif pour le moment`,`Faites une analyse pour voir les actifs retenus d'après vos résultats.`],{back:true,title:`Actifs`});
+  const eng=engineFor(SCANS[state.latest]),ap=eng.activePlan,chosen=[...ap.treatments,...ap.supports];
+  const side=`${ap.deferred.length?`<section><div class="hd"><h2 class="h3">Mis de côté pour l'instant</h2></div><div class="stack" style="gap:10px">${ap.deferred.map(d=>`<div class="c-card"><b>${Engine.actives.byId(d.activeId).label}</b><p class="c-card__text">${Engine.copy.DEFERRED[d.kind]}</p></div>`).join(``)}</div></section>`:``}`;
+  return shell(`<div class="pagehead"><h1>Mes actifs</h1><p>Les actifs retenus d'après votre analyse, vos objectifs et votre niveau de routine.</p></div>
+  <div class="grid2"><section>${chosen.length?`<div class="stack" style="gap:12px">${chosen.map((a,i)=>activeCard(a.activeId,i,whyOf(eng,a.activeId))).join(``)}</div>`
+    :`<div class="c-notice">${ic(`info`)}<div>Votre analyse n'indique pas de soin ciblé à ajouter pour l'instant.</div></div>`}</section>
+  <div class="col">${side}${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button></div></div>`,{back:true,title:`Actifs`});
 };
+const WHEN_FR={morning:`Matin`,evening:`Soir`,both:`Matin et soir`};
 V.active=id=>{
-  id=ACTIVES[id]?id:`azelaic`;const a=ACTIVES[id];
-  const targeted=CIDS.filter(c=>CONCERNS[c].actives.includes(id));
-  return shell(`<div class="grid2 lw"><div class="col sticky-d"><div class="sand"><p class="kicker">${a.short}</p><h1 style="margin:10px 0 12px">${a.name}</h1><p>${a.role}</p></div>${disc()}</div>
+  const A=Engine.actives;
+  let a=A.byId(id);if(!a||!A.isValidated(a))a=A.validated()[0];
+  const lab=ids=>ids.map(x=>(A.byId(x)||{label:x}).label);
+  return shell(`<div class="grid2 lw"><div class="col sticky-d"><div class="sand"><p class="kicker">${a.summary}</p><h1 style="margin:10px 0 12px">${a.label}</h1><p>${a.description}</p></div>${disc()}</div>
   <div class="col"><div class="kv">
-   <div><h4>Préoccupations ciblées</h4><div class="chips" style="margin-top:8px">${a.for.map(f=>`<span class="c-badge">${f}</span>`).join(``)}</div>${targeted.length?`<p class="muted" style="margin-top:10px">Utile pour : ${targeted.map(c=>CONCERNS[c].label.toLowerCase()).join(`, `)}.</p>`:``}</div>
-   <div><h4>Moment d'utilisation</h4><p>${a.when}</p></div>
-   <div><h4>Fréquence indicative</h4><p>${a.freq}</p></div>
+   <div><h4>Indicateurs ciblés</h4><div class="chips" style="margin-top:8px">${a.targets.map(t=>`<span class="c-badge">${SkinModel.METRIC_LABELS[t]}</span>`).join(``)}</div></div>
+   <div><h4>Moment d'utilisation</h4><p>${WHEN_FR[a.when]}</p></div>
+   <div><h4>Fréquence indicative</h4><p>${a.introduction.frequency}${a.introduction.note?`. ${a.introduction.note}`:``}</p></div>
    <div><h4>Précautions générales</h4><ul>${a.cautions.map(x=>`<li>${x}</li>`).join(``)}</ul></div>
-   <div><h4>S'associe bien avec</h4><p>${a.good.join(`, `)}</p></div>
-   <div><h4>À éviter en même temps</h4><p>${a.avoid.join(`, `)}</p></div>
-  </div><button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir les produits correspondants</button></div></div>`,{back:true,title:a.name});
+   ${a.pairsWith.length?`<div><h4>S'associe bien avec</h4><p>${lab(a.pairsWith).join(`, `)}</p></div>`:``}
+   <div><h4>À éviter en même temps</h4><p>${a.conflicts.length?lab(a.conflicts).join(`, `):`Aucune incompatibilité majeure connue`}</p></div>
+  </div><button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir des exemples de produits</button></div></div>`,{back:true,title:a.label});
 };
 
-/* Routine */
+/* Routine : générée par le moteur (priorités, actifs, type de peau, niveau de routine). */
 V.routine=()=>{
-  const list=(steps,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${steps.map((st,i)=>{const p=PRODUCTS.find(x=>x.id===st.p);return `<div class="step"><span class="ord">${pad(i+1)}</span><button class="pimg-s" data-act="product" data-v="${p.id}" aria-label="Voir ${p.name}">${bottle(p.type,p.color)}</button><div class="info"><div class="st">${st.step}</div><div class="pn">${p.name}</div><div class="st">${p.brand}, actif principal : ${st.active}</div><p class="role">${st.role}</p></div><button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${st.step} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
+  if(noReal())return emptyScan(`Ma routine`,[`Aucune routine pour le moment`,`Faites une analyse pour obtenir une routine adaptée à vos résultats.`],{back:true,title:`Routine`});
+  const eng=engineFor(SCANS[state.latest]),R=eng.routinePlan,pm=Object.fromEntries(eng.productMatches.map(m=>[m.stepId,m]));
+  const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
+    const m=pm[st.id],p=m&&Engine.products.byId(m.productId);
+    return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>
+      ${st.kind===`treatment`?`<p class="c-routine-step__role">${st.introduction.frequency}. ${st.introduction.note}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>`:``}
+      ${p?`<button class="link" data-act="product" data-v="${p.id}">Exemple (démonstration) : ${p.name}</button>`:``}</div>
+      <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>Suivez l'ordre indiqué. Cochez chaque étape une fois faite.</p></div>
-  <div class="grid2">${list(AM,`am`,`sun`,`Matin`)}${list(PM,`pm`,`moon`,`Soir`)}</div>
-  <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">Pourquoi cette routine ?</h2><p style="color:var(--ink)">Vos deux priorités sont la pigmentation et les pores. Le matin, la vitamine C et la protection solaire aident à uniformiser le teint et évitent que les taches ne s'accentuent, pendant que la niacinamide affine le grain de peau. Le soir, l'acide azélaïque agit sur la pigmentation. Les hydratants soutiennent le confort de la peau.</p><p class="muted" style="margin-top:12px">Introduisez les nouveaux produits un par un, à quelques jours d'intervalle.</p></section>
-  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Les actifs recommandés</b><span class="s">Comprendre chaque ingrédient</span></div>${ic(`chev`)}</button>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir les produits recommandés</button></div></div>`);
+  <div class="grid2">${list(`morning`,`am`,`sun`,`Matin`)}${list(`evening`,`pm`,`moon`,`Soir`)}</div>
+  <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">Pourquoi cette routine ?</h2><p style="color:var(--ink)">${R.summary}</p>
+    <ul class="l-list" style="margin-top:12px">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
+  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir des exemples de produits</button></div></div>`);
 };
 
-/* Produits */
+/* Produits : catalogue de démonstration, jamais noté ni présenté comme personnalisé. */
+const SKIN_FR={all:`tous types de peau`,normal:`peau normale`,oily:`peau grasse`,dry:`peau sèche`,combination:`peau mixte`};
 V.products=()=>{
-  const f=state.filter,items=PRODUCTS.filter(p=>f===`all`||p.concerns.includes(f)).sort((a,b)=>b.match-a.match);
-  return shell(`<div class="pagehead"><h1>Produits recommandés</h1><p>Choisis selon les actifs dont votre peau a besoin.</p></div>
+  const f=state.filter,inPlan=planProductIds(),items=Engine.products.PRODUCTS.filter(p=>f===`all`||p.targets.includes(f));
+  return shell(`<div class="pagehead"><h1>Exemples de produits</h1><p>Un catalogue de démonstration, qui n'est pas personnalisé. Ceux de votre routine sont repérés.</p></div>
   <div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>
   <div class="chips" style="margin-bottom:24px"><button class="c-chip" data-act="filter" data-v="all" aria-pressed="${f===`all`}">Tous</button>${CIDS.map(c=>`<button class="c-chip" data-act="filter" data-v="${c}" aria-pressed="${f===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
-  <div class="pgrid">${items.map(p=>`<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${inRoutine(p.id)?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${bottle(p.type,p.color)}</div><div class="pb"><div class="br">${p.brand}</div><div class="nm">${p.name}</div><div class="pr"><span>${fmt(p.price)}</span><b>${p.match} %</b></div></div></button>`).join(``)}</div>
+  <div class="pgrid">${items.map(p=>`<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${inPlan.has(p.id)?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${bottle(p.type,p.color)}</div><div class="pb"><div class="br">${p.brand}</div><div class="nm">${p.name}</div><div class="pr"><span>${fmt(p.price.amount)}</span></div></div></button>`).join(``)}</div>
   <div style="margin-top:32px;max-width:520px">${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="progress">Suivre ma progression</button></div>`,{back:true,title:`Produits`});
 };
 function productSheet(id){
-  const p=PRODUCTS.find(x=>x.id===id);
+  const p=Engine.products.byId(id),A=Engine.actives;
+  const eng=noReal()?null:engineFor(SCANS[state.latest]),steps=eng?eng.productMatches.filter(m=>m.productId===id):[];
+  const why=steps.length?`Proposé comme exemple pour votre routine${steps[0].because?` : ${steps[0].because.charAt(0).toLowerCase()+steps[0].because.slice(1)}`:`.`}`:`Produit de démonstration, non lié à votre analyse.`;
+  const main=p.ingredients.find(i=>i.activeId);
   return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:18px">${bottle(p.type,p.color)}</div>
-  <p class="muted">${p.brand}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${p.name}</h2><p style="color:var(--ink)">${fmt(p.price)} <span class="muted">prix indicatif</span></p>
-  <div class="c-card" style="margin:18px 0"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b>Correspondance avec votre profil</b><b style="color:var(--accent)">${p.match} %</b></div><div class="meter"><i style="width:${p.match}%"></i></div><p class="muted" style="margin-top:10px">Cible : ${p.concerns.map(c=>CONCERNS[c].label.toLowerCase()).join(`, `)}. Type de peau : ${p.skinType.toLowerCase()}.</p></div>
-  <div class="kv" style="margin-bottom:18px"><div><h4>Actif principal</h4><p>${p.mainActive}</p></div><div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.actives.map(a=>`<span class="c-badge">${a}</span>`).join(``)}</div></div><div><h4>Vendeur et disponibilité</h4><p class="muted">${p.vendor||`Vendeur`}, ${p.availability||`disponibilité`} : à venir.</p></div></div>
-  <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-act="toast" data-v="Ajouté à votre routine (simulation)">Ajouter à ma routine</button><button class="c-btn c-btn--secondary c-btn--block" data-act="toast" data-v="Liens d'achat au Bénin : prévus à l'étape suivante">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
+  <p class="muted">${p.brand}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${p.name}</h2><p style="color:var(--ink)">${fmt(p.price.amount)} <span class="muted">prix indicatif</span></p>
+  <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p><p class="muted" style="margin-top:8px">Cible : ${p.targets.map(c=>SkinModel.METRIC_LABELS[c].toLowerCase()).join(`, `)}. Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.</p></div>
+  <div class="kv" style="margin-bottom:18px">${main?`<div><h4>Actif principal</h4><p>${A.byId(main.activeId).label}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${i.label}</span>`).join(``)}</div></div><div><h4>Vendeur et disponibilité</h4><p class="muted">À venir.</p></div></div>
+  <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-act="toast" data-v="Liens d'achat au Bénin : prévus à l'étape suivante">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
 }
 
 /* Progression */
@@ -593,12 +587,12 @@ V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes
 /* Profil */
 const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="c-switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
 V.profile=()=>{
-  const none=noReal(),r=none?null:viewOf(SCANS[state.latest]),goals=GOALS.filter(g=>state.goals.includes(g[0]));
+  const none=noReal(),r=none?null:viewOf(SCANS[state.latest]),goals=state.goals.map(id=>Engine.copy.GOAL_LABELS[id]).filter(Boolean);
   return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
    <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${r.priorities.length?`<p class="c-disclaimer" style="margin-bottom:6px">Scores les plus bas</p><div class="chips">${r.priorities.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``}`}</section>
-   <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><div class="chips">${goals.length?goals.map(g=>`<span class="c-badge">${g[1]}</span>`).join(``):`<span class="muted">Aucun objectif choisi.</span>`}</div></section>
-   <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}${sw(`tips`,`Conseils personnalisés`,`Selon votre profil et votre routine`)}</section>
+   <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><div class="chips">${goals.length?goals.map(g=>`<span class="c-badge">${g}</span>`).join(``):`<span class="muted">Aucun objectif choisi.</span>`}</div></section>
+   <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
    <button class="rowlink" data-go="privacy">${ic(`shield`)}<div class="grow"><b>Confidentialité et données</b><span class="s">Photos, historique, compte</span></div>${ic(`chev`)}</button>
@@ -786,7 +780,7 @@ function act(a,v,el){
     case `close`:closeSheet();break;
     case `scroll`:document.getElementById(v).scrollIntoView({behavior:`smooth`});break;
     case `signup`:{const n=document.getElementById(`f-name`),m=document.getElementById(`f-mail`);state.user.name=(n&&n.value.trim())||(DEMO_MODE?`Amina`:``);state.user.email=(m&&m.value.trim())||(DEMO_MODE?`amina@exemple.com`:``);go(`welcome`);break}
-    case `goal`:toggle(state.goals,v);render(true);break;
+    case `goal`:{const r=Engine.toggleGoal(state.goals,v);state.goals=r.goals;if(v===`none`)state.noGoal=true;else if(!r.limited)state.noGoal=false;if(r.limited)toast(Engine.copy.GOAL_LIMIT);render(true);break}
     case `level`:state.level=v;render(true);break;
     case `cat`:if(v===`none`)state.cats=state.cats.includes(`none`)?[]:[`none`];else{state.cats=state.cats.filter(c=>c!==`none`);toggle(state.cats,v)}render(true);break;
     case `finish-onb`:go(`home`,null,{reset:true});break;

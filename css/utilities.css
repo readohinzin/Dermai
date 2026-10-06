@@ -9,3 +9,4 @@
 .u-hide-mobile{display:none}
 @media (min-width:600px){.u-hide-mobile{display:revert}}
 .u-my-5{margin-block:var(--s-5)}
+.u-strong{font-weight:700;color:var(--ink)}

@@ -284,6 +284,6 @@
     SCHEMA_VERSION, METRICS, METRIC_KEYS, SKIN_TYPE_LABELS, OUTPUT_PATH, BANDS, METRIC_LABELS,
     parseSkinResponse, sanitizeNormalized,
     scanLabels,
-    displayScore, scoreBand, displayAge, toResultView, TREND_STEP, compareScores, compareScans, globalSeries
+    displayScore, scoreBand, displayAge, toResultView, TREND_STEP, compareScores, compareScans, globalSeries, skinTypeKey
   };
 });
