@@ -28,7 +28,7 @@ test('N2 une analyse en cours n\'est jamais restaurée ; seules les pages connue
 
 test('N3 connecté et arrivé à la racine : son espace s\'ouvre ; une page choisie (ex. /accueil) est respectée', () => {
   assert.match(app, /if\(u&&arrivedWithoutPage&&state\.route===`landing`\)\{go\(`home`/);
-  assert.match(app, /bootAccount\(!initialRoute\)/);
+  assert.match(app, /bootAccount\(!initialRoute(,authRedirect)?\)/);
 });
 
 test('N4 le logo DERMAI est un bouton vers la page d\'accueil, partout', () => {

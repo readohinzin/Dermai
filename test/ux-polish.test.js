@@ -55,7 +55,8 @@ test('UX6 profil et confidentialité réels : aucun réglage ni action factice',
   const priv = between('V.privacy=', 'const CONFIRMS');
   assert.match(priv, /\$\{DEMO_MODE\?`<section>\$\{sw\(`keep`/);                                                // « Conserver mes photos » : démo seulement
   assert.match(priv, /\$\{DEMO_MODE\?`<button class="rowlink" data-act="confirm" data-v="photos"/);
-  assert.match(priv, /La suppression de compte n'est pas encore disponible\./);                                // jamais de fausse suppression
+  assert.match(priv, /signedIn\(\)\?`<button class="rowlink" data-act="confirm" data-v="delete-account">/);       // suppression réelle, proposée seulement à une personne connectée
+  assert.doesNotMatch(priv, /Compte supprimé \(simulation\)/);
   assert.match(priv, /DERMAI n'en garde aucune copie/);
   assert.match(priv, /photos originales ne sont pas non plus enregistrées avec vos analyses/);
 });

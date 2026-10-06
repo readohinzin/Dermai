@@ -122,7 +122,7 @@ async function pollSkinAnalysisTask(taskId, env = makeEnv()) {
     }
     if (attempt < maxAttempts) await env.sleep(intervalMs);
   }
-  throw new AnalysisError('TIMEOUT', { status: 504, detail: `polling abandonné pour ${taskId}` });
+  throw new AnalysisError('TIMEOUT', { status: 504, detail: 'polling abandonné (délai dépassé)' });
 }
 
 /* Orchestration complète. Renvoie le JSON brut du dernier appel de statut. */
@@ -135,6 +135,9 @@ async function analyzeSkin({ buffer, mime }, opts = {}) {
   return pollSkinAnalysisTask(taskId, env);
 }
 
+/* Clé présente ? Vérifié avant de réserver le quota : une configuration manquante ne doit consommer l'analyse de personne. */
+const isConfigured = (env = process.env) => !!env.PERFECT_CORP_API_KEY;
+
 module.exports = {
-  requestUploadUrl, uploadFile, createSkinAnalysisTask, getSkinAnalysisTask, pollSkinAnalysisTask, analyzeSkin, makeEnv
+  isConfigured, requestUploadUrl, uploadFile, createSkinAnalysisTask, getSkinAnalysisTask, pollSkinAnalysisTask, analyzeSkin, makeEnv
 };

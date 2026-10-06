@@ -26,6 +26,8 @@ const MESSAGES = {
   TIMEOUT: 'L\'analyse prend trop de temps. Veuillez réessayer.',
   ANALYSIS_DISABLED: 'L\'analyse n\'est pas disponible pour le moment.',
   AUTH_REQUIRED: 'Connectez-vous pour analyser votre peau.',
+  QUOTA_EXCEEDED: 'Vous avez atteint le nombre d\'analyses disponibles pour le moment. Réessayez plus tard.',
+  QUOTA_UNAVAILABLE: 'L\'analyse n\'est pas disponible pour le moment. Réessayez plus tard.',
   AUTH_UNAVAILABLE: 'Impossible de vérifier votre connexion pour le moment. Réessayez.',
   RESULT_NOT_FOUND: 'L\'analyse n\'a pas pu être terminée.',
   RESULT_INVALID: 'L\'analyse n\'a pas pu être terminée.',

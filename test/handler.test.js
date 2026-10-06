@@ -15,7 +15,8 @@ const handler = require('../api/skin-analysis.js');
 const auth = require('../server/auth');
 const { createFake } = require('./helpers/fake-supabase.js');
 process.env.SUPABASE_URL = 'https://demo.supabase.co'; process.env.SUPABASE_ANON_KEY = 'public-anon-key';
-const FAKE_SB = createFake(); auth.api.fetchImpl = FAKE_SB.fetch;
+const FAKE_SB = createFake(); auth.api.fetchImpl = FAKE_SB.fetch; require('../server/quota').api.fetchImpl = FAKE_SB.fetch;   // quota : réservation simulée (analysis-quota.test.js)
+process.env.PERFECT_CORP_API_KEY = process.env.PERFECT_CORP_API_KEY || 'TEST_ONLY_KEY_NOT_REAL'; process.env.DERMAI_MAX_ANALYSES_PER_PERIOD = '1000';
 const TEST_TOKEN = 'aaaaaaaa.bbbbbbbb.cccccccc';
 FAKE_SB.users.set('t@exemple.com', { id: '11111111-1111-4111-8111-111111111111', email: 't@exemple.com', password: 'x', confirmed: true });
 FAKE_SB.tokens.set(TEST_TOKEN, { sub: '11111111-1111-4111-8111-111111111111', exp: Number.MAX_SAFE_INTEGER });

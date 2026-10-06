@@ -46,4 +46,14 @@ const publicSupabase = (env = process.env) => {
   return /^https:\/\/[^/\s]+$/.test(url) && anonKey ? { supabaseUrl: url, supabaseAnonKey: anonKey } : null;
 };
 
-module.exports = { isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
+/* Quota d'analyses par utilisateur (appliqué par la base, voir supabase/migrations/20261008120000_analysis_quota.sql).
+   DERMAI_MAX_ANALYSES_PER_PERIOD : nombre d'analyses autorisées par période (0 = aucune) ; DERMAI_ANALYSIS_PERIOD_HOURS : durée de la période.
+   Valeurs techniques de sécurité, modifiables sans toucher au code. Absentes ou invalides : valeurs prudentes par défaut (jamais « illimité »). */
+const QUOTA_DEFAULTS = { limit: 3, hours: 24 };
+const intIn = (v, min, max, dflt) => { const s = String(v === undefined ? '' : v).trim(); return /^\d+$/.test(s) && Number(s) >= min && Number(s) <= max ? Number(s) : dflt; };
+const analysisQuota = (env = process.env) => ({
+  limit: intIn(env.DERMAI_MAX_ANALYSES_PER_PERIOD, 0, 1000, QUOTA_DEFAULTS.limit),
+  windowSeconds: intIn(env.DERMAI_ANALYSIS_PERIOD_HOURS, 1, 8760, QUOTA_DEFAULTS.hours) * 3600
+});
+
+module.exports = { analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };

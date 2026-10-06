@@ -21,7 +21,8 @@ test('AU1 visiteur : message humain et orientation vers la connexion, jamais d\'
 test('AU2 le démo n\'est pas concerné ; la navigation publique non plus (seule la route scan est redirigée)', () => {
   assert.match(app, /needsLogin=\(\)=>!DEMO_MODE/);
   const g = app.slice(app.indexOf('function go('), app.indexOf('anTok++', app.indexOf('function go(')));
-  assert.equal((g.match(/route===`/g) || []).length, 1);
+  assert.equal((g.match(/route===`/g) || []).length, 2);                 // forgot (efface les messages) et scan (visiteur → connexion)
+  assert.match(g, /route===`forgot`/); assert.match(g, /route===`scan`&&needsLogin\(\)/);
 });
 
 test('AU3 le jeton de session est envoyé au backend ; refus 401 du serveur → retour à la connexion sans détail', () => {

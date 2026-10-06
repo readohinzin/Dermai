@@ -3,6 +3,7 @@ const { readBody, validateImage } = require('../server/validation');
 const { AnalysisError, toUserMessage } = require('../server/errors');
 const perfectcorp = require('../server/perfectcorp');
 const auth = require('../server/auth');
+const quota = require('../server/quota');
 const { isAnalysisEnabled, isDebugRawEnabled } = require('../server/config');
 const { describeStructure } = require('../server/structure');
 /* Module partagé avec le navigateur (js/skin-model.js) : localise le résultat et ne garde que les champs autorisés. */
@@ -43,6 +44,11 @@ async function handler(req, res) {
     console.log('[DERMAI] Skin analysis started');
     const body = await readBody(req);
     const image = validateImage(body, req.headers['content-type']);
+    /* Quota : réservation atomique côté base, avec l'identité du jeton. Dernier contrôle avant Perfect Corp : refus (quota atteint, base ou
+       fonction indisponible) = aucun appel au fournisseur. Les photos invalides ci-dessus ne consomment rien. */
+    if (!perfectcorp.isConfigured()) throw new AnalysisError('SERVICE_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });   // rien n'est réservé si le service ne peut pas répondre
+    await quota.reserve(auth.bearerToken(req));
+    console.log('[DERMAI] Analysis quota reserved');
     const envelope = await perfectcorp.analyzeSkin(image);
     /* Log de la structure seulement (noms de champs et types) : jamais de valeurs, d'URL ni de photo. */
     console.log('[DERMAI] Perfect Corp result structure', JSON.stringify(describeStructure(envelope)));
@@ -69,6 +75,8 @@ async function handler(req, res) {
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('UNKNOWN', { cause: err });
     console.error('[DERMAI] Skin analysis failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
+    if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
+    if (e.status === 429 && e.retryAfter) res.setHeader('Retry-After', String(e.retryAfter));
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });
   }
 }

@@ -21,6 +21,8 @@ const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
 const fake = createFake();
 const supabaseCalls = [];
 auth.api.fetchImpl = (url, init) => { supabaseCalls.push({ url, headers: init.headers }); return fake.fetch(url, init); };
+require('../server/quota').api.fetchImpl = (url, init) => fake.fetch(url, init);   // quota simulé (jamais de réseau)
+process.env.PERFECT_CORP_API_KEY = 'TEST_ONLY_KEY_NOT_REAL'; process.env.DERMAI_MAX_ANALYSES_PER_PERIOD = '1000';
 let pcCalls = 0, netCalls = [];
 const realAnalyze = perfectcorp.analyzeSkin;
 perfectcorp.analyzeSkin = async () => { pcCalls++; return JSON_RESP; };                       // aucun appel réel

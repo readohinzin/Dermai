@@ -55,7 +55,7 @@ test('U4 le profil n\'est jamais copié dans le stockage local ; seules la sessi
 test('U5 profil : une seule source (state), persistance après chaque modification, aucun refetch à l\'affichage', () => {
   for (const a of ['goal', 'level', 'gentle']) assert.match(app, new RegExp('case `' + a + '`:[^\\n]*persist\\(\\)'), a);
   assert.equal((app.match(/ACCOUNT\.loadProfile\(\)/g) || []).length, 1, 'chargé une seule fois, à la connexion');
-  assert.match(app, /bootAccount\(!initialRoute\);\s*$/);
+  assert.match(app, /bootAccount\(!initialRoute(,authRedirect)?\);\s*$/);
   const views = code.slice(code.indexOf('V.result='), code.indexOf('/* ---------- 5. NAVIGATION'));
   assert.doesNotMatch(views, /loadProfile|saveProfile|ACCOUNT\./);
   assert.match(app, /const profileForSave=/);

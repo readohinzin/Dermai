@@ -11,12 +11,13 @@ const GOALS = ['hydration', 'oil_pores', 'blemishes', 'tone', 'redness_comfort',
 function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
   const users = new Map();            // email -> { id, email, password, confirmed }
   const profiles = new Map();         // user_id -> ligne
+  const usage = new Map();            // user_id -> horodatages (secondes) des analyses réservées (quota)
   const analyses = new Map();         // user_id -> lignes de skin_analyses
   const tokens = new Map();           // access_token -> { sub, exp }
   const refresh = new Map();          // refresh_token -> sub
   let n = 0, clock = 1_800_000_000;
   const log = [];
-  const state = { now: () => clock, advance: s => { clock += s; }, failNetwork: false, failRest: false, failAuth: false, failAnalyses: false, failAnalysesOnce: 0, failAuthUser: false };
+  const state = { now: () => clock, advance: s => { clock += s; }, failNetwork: false, failRest: false, failAuth: false, failAnalyses: false, failAnalysesOnce: 0, failAuthUser: false, failQuota: false, quotaMissing: false, failDelete: false, rateLimit: false };
   const resp = (status, body) => ({ ok: status >= 200 && status < 300, status, text: async () => (body === undefined ? '' : JSON.stringify(body)) });
   const mkSession = u => {
     const access = 'at-' + (++n) + '.pl-' + n + '.sg-' + n, rt = 'rt-' + (++n);
@@ -53,12 +54,36 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       refresh.delete(body.refresh_token);
       return resp(200, mkSession([...users.values()].find(x => x.id === sub)));
     }
-    if (u.pathname === '/auth/v1/user') {                                              // vérification d'un jeton (GoTrue : GET /user)
+    if (u.pathname === '/auth/v1/user') {                                              // vérification d'un jeton (GoTrue : GET /user) et changement de mot de passe (PUT)
       if (state.failAuthUser) return resp(500, { message: 'internal db trace' });
       const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
       if (!t || t.exp <= clock) return resp(401, { code: 401, error_code: 'bad_jwt', msg: 'invalid JWT' });
       const user = [...users.values()].find(x => x.id === t.sub);
+      if (!user) return resp(403, { code: 403, error_code: 'user_not_found', msg: 'User from sub claim in JWT does not exist' });
+      if ((init.method || 'GET') === 'PUT') {
+        if (!body || typeof body.password !== 'string' || body.password.length < 6) return resp(422, { error_code: 'weak_password', msg: 'Password should be at least 6 characters' });
+        if (body.password === user.password) return resp(422, { error_code: 'same_password', msg: 'New password should be different from the old password.' });
+        user.password = body.password; log[log.length - 1].body = { password: '<masqué>' }; return resp(200, { id: user.id, email: user.email });
+      }
       return resp(200, { id: user.id, email: user.email, aud: 'authenticated', role: 'authenticated' });
+    }
+    if (u.pathname === '/auth/v1/recover') {                                           // toujours 200, que l'adresse existe ou non (comme GoTrue)
+      state.recoverRequests = (state.recoverRequests || []).concat(body && body.email);
+      if (state.rateLimit) return resp(429, { error_code: 'over_email_send_rate_limit', msg: 'email rate limit exceeded' });
+      return resp(200, {});
+    }
+    if (u.pathname === '/auth/v1/resend') {
+      state.resendRequests = (state.resendRequests || []).concat(body && body.email);
+      if (state.rateLimit) return resp(429, { error_code: 'over_email_send_rate_limit', msg: 'email rate limit exceeded' });
+      return resp(200, {});
+    }
+    if (u.pathname === '/rest/v1/rpc/delete_my_account') {                              // équivalent de la fonction SQL : l'appelant seulement, en cascade
+      if (state.failDelete) return resp(500, { message: 'internal db trace', code: 'XX000' });
+      const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
+      if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
+      for (const [email, usr] of users) if (usr.id === t.sub) users.delete(email);
+      profiles.delete(t.sub); analyses.delete(t.sub); usage.delete(t.sub);
+      return resp(204);
     }
     if (u.pathname === '/auth/v1/logout') {
       const t = (h.authorization || '').replace('Bearer ', ''); tokens.delete(t); return resp(204);
@@ -81,6 +106,16 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
         if (own) return resp(409, { code: '23505', message: 'duplicate key' });
         profiles.set(t.sub, Object.assign(newProfile(t.sub), body)); return resp(201);
       }
+    }
+    if (u.pathname === '/rest/v1/rpc/reserve_analysis') {                              // réservation atomique du quota (équivalent de la fonction SQL)
+      if (state.quotaMissing) return resp(404, { code: 'PGRST202', message: 'Could not find the function public.reserve_analysis' });
+      if (state.failQuota) return resp(500, { message: 'internal db trace', code: 'XX000' });
+      const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
+      if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
+      if (!body || !Number.isInteger(body.p_limit) || body.p_limit < 0 || body.p_limit > 1000 || !Number.isInteger(body.p_window_seconds) || body.p_window_seconds < 60) return resp(400, { code: '22023', message: 'invalid parameters' });
+      const rows = usage.get(t.sub) || [], within = rows.filter(x => x > clock - body.p_window_seconds);
+      if (within.length >= body.p_limit) return resp(200, { ok: false, used: within.length, limit: body.p_limit, retry_after: Math.max(1, Math.min(...within) + body.p_window_seconds - clock) });
+      usage.set(t.sub, [...rows, clock]); return resp(200, { ok: true, used: within.length + 1, limit: body.p_limit });
     }
     if (u.pathname === '/rest/v1/skin_analyses') {
       if (state.failRest || state.failAnalyses) return resp(500, { message: 'relation "public.skin_analyses" does not exist', code: '42P01' });
@@ -115,7 +150,14 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
     }
     return resp(404, { message: 'not found' });
   }
-  return { fetch: fetchImpl, state, users, profiles, analyses, tokens, refresh, log, GOALS, METRICS,
+  /* Lien reçu par e-mail : confirme l'adresse (type signup) ou ouvre une session de récupération (type recovery). */
+  const link = (email, type) => {
+    const u = users.get(email); if (!u) return '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired';
+    if (type === 'signup') { u.confirmed = true; profiles.set(u.id, profiles.get(u.id) || newProfile(u.id)); }
+    const sess = mkSession(u);
+    return `#access_token=${sess.access_token}&expires_in=3600&refresh_token=${sess.refresh_token}&token_type=bearer&type=${type}`;
+  };
+  return { fetch: fetchImpl, state, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), users, profiles, analyses, usage, tokens, refresh, log, GOALS, METRICS,
     removeProfile: id => profiles.delete(id) };
 }
 

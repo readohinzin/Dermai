@@ -117,6 +117,7 @@ function postJpeg(blob,onStatus,token){
       let j=null;try{j=JSON.parse(x.responseText)}catch(e){}
       if(x.status>=200&&x.status<300&&j&&j.ok)return resolve(j);
       if(x.status===401)return reject(Object.assign(userError(AUTH_NEEDED),{authRequired:true}));
+      if(x.status===429)return reject(Object.assign(userError(j&&typeof j.error===`string`&&j.error?j.error:SCAN_ERR_GENERIC),{quota:true}));
       reject(userError(j&&typeof j.error===`string`&&j.error?j.error:x.status===413?`La photo est trop volumineuse. Veuillez en choisir une plus légère.`:SCAN_ERR_GENERIC));
     };
     x.onerror=()=>reject(userError(`Connexion impossible. Vérifiez votre réseau et réessayez.`));
@@ -152,6 +153,7 @@ const Engine=window.DermaiEngine;
 const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},prev?{previous:prev.normalized}:undefined)};
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
+if(!DEMO_MODE){SCANS.length=0;state.cmpA=0;state.cmpB=1}   // mode réel : aucune analyse fictive n'existe, même en mémoire (la démo seule les utilise)
 
 /* ---------- 3. COMPOSANTS ---------- */
 const $app=document.getElementById(`app`),$ov=document.getElementById(`overlay`);
@@ -161,7 +163,7 @@ const $app=document.getElementById(`app`),$ov=document.getElementById(`overlay`)
    exclusions) est chargé UNE fois à la connexion puis tenu dans `state`, que tous les écrans lisent. Il n'est jamais copié dans le stockage local
    (seule la session d'authentification l'est). Mode démo : aucun compte. Aucune photo, aucun masque, aucun task_id n'est enregistré. */
 const ACCOUNT=(!DEMO_MODE&&window.DermaiAccount&&window.DERMAI_CONFIG)?DermaiAccount.create({url:window.DERMAI_CONFIG.supabaseUrl,anonKey:window.DERMAI_CONFIG.supabaseAnonKey,storage:(()=>{try{return window.localStorage}catch(e){return null}})()}):null;
-state.account={status:ACCOUNT&&ACCOUNT.available?`checking`:`off`,email:``,loading:false,busy:false,error:``,info:``,formEmail:``};   // off | checking | visitor | signedIn
+state.account={status:ACCOUNT&&ACCOUNT.available?`checking`:`off`,email:``,loading:false,busy:false,error:``,info:``,formEmail:``,recovery:false};   // off | checking | visitor | signedIn
 state.save={status:`idle`,message:``};                                                                                            // idle | saving | saved | error
 /* Historique des analyses (table skin_analyses, scores seulement) : état du chargement et de la dernière analyse enregistrée. */
 const HISTORY_PAGE=20;
@@ -311,13 +313,59 @@ async function deleteHistory(){
   state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};
   toast(`Historique supprimé.`);if(state.route===`privacy`||state.route===`analyses`)render(true);
 }
-async function bootAccount(arrivedWithoutPage){
+/* Retour d'un lien reçu par e-mail (confirmation d'adresse, mot de passe oublié). Les jetons du fragment d'adresse sont effacés de l'URL dès la lecture ;
+   la session est ouverte après vérification auprès de Supabase (l'identité n'est jamais déduite du lien lui-même). */
+async function handleAuthRedirect(redirect){
+  if(redirect.kind!==`session`){state.account.status=`visitor`;state.account.error=DermaiAccount.MSG.linkInvalid;state.account.info=``;go(`login`,null,{reset:true,replace:true});return}
+  const r=await ACCOUNT.acceptRedirect(redirect);
+  if(!r.ok){state.account.status=`visitor`;state.account.error=r.error;state.account.info=``;go(`login`,null,{reset:true,replace:true});return}
+  resetPrivateState();
+  await enterSession(r.user,false);
+  if(!signedIn())return;
+  if(r.type===`recovery`){state.account.recovery=true;go(`reset`,null,{reset:true,replace:true});return}
+  toast(DermaiAccount.MSG.emailConfirmed);go(`welcome`,null,{reset:true,replace:true});
+}
+async function bootAccount(arrivedWithoutPage,redirect){
   if(!ACCOUNT||!ACCOUNT.available)return;
+  if(redirect){await handleAuthRedirect(redirect);return}
   const u=await ACCOUNT.restoreSession();
   if(u)await enterSession(u,false);else{state.account.status=`visitor`;if(state.route===`scan`||state.route===`analyzing`){askLogin();return}}
   /* Connecté, arrivé à la racine du site (aucune page dans l'adresse) : on ouvre directement son espace. Une page choisie (ex. #landing) est respectée. */
   if(u&&arrivedWithoutPage&&state.route===`landing`){go(`home`,null,{reset:true,replace:true});return}
   if([`landing`,`profile`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`products`,`progress`,`analyses`,`privacy`].includes(state.route))render(true);
+}
+async function submitForgot(form){
+  const email=(form.querySelector(`[name=email]`).value||``).trim(),btn=form.querySelector(`button[type=submit]`);
+  state.account.formEmail=email;state.account.error=``;state.account.info=``;
+  if(btn){btn.disabled=true;btn.textContent=`Envoi…`}
+  const r=await ACCOUNT.requestPasswordReset(email);
+  if(r.ok)state.account.info=r.message;else state.account.error=r.error;
+  render();
+}
+async function submitReset(form){
+  const pw=form.querySelector(`[name=password]`).value||``,pw2=form.querySelector(`[name=password2]`).value||``,btn=form.querySelector(`button[type=submit]`);
+  state.account.error=``;state.account.info=``;
+  if(pw!==pw2){state.account.error=`Les deux mots de passe ne sont pas identiques.`;render();return}
+  if(btn){btn.disabled=true;btn.textContent=`Enregistrement…`}
+  const r=await ACCOUNT.updatePassword(pw);
+  form.querySelector(`[name=password]`).value=``;form.querySelector(`[name=password2]`).value=``;
+  if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}state.account.error=r.error;render();return}
+  state.account.recovery=false;toast(r.message);go(`home`,null,{reset:true});
+}
+async function resendConfirmation(){
+  const el=document.getElementById(`f-mail`),email=((el&&el.value)||state.account.formEmail||``).trim();
+  state.account.formEmail=email;state.account.error=``;state.account.info=``;
+  const r=await ACCOUNT.resendConfirmation(email);
+  if(r.ok)state.account.info=r.message;else state.account.error=r.error;
+  render();
+}
+async function deleteMyAccount(){
+  toast(`Suppression en cours…`);const epoch=authEpoch;
+  const r=await ACCOUNT.deleteAccount();
+  if(epoch!==authEpoch)return;
+  if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
+  authEpoch++;state.account.status=`visitor`;state.account.email=``;state.account.loading=false;state.account.recovery=false;
+  resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
 }
 async function submitAuth(kind,form){
   const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=form.querySelector(`[name=password]`).value||``;
@@ -570,14 +618,40 @@ const authForm=kind=>{
   <div class="body"><h1>${signup?`Créez votre compte`:`Content de vous revoir`}</h1><p style="margin:10px 0 22px">${signup?`Retrouvez vos objectifs et vos préférences sur vos prochains appareils.`:`Connectez-vous pour retrouver vos préférences.`}</p>
   ${A.info?`<div class="c-notice c-notice--success u-my-5" role="status">${ic(`check`)}<div>${A.info}</div></div>`:``}
   ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
+  ${A.error===DermaiAccount.MSG.notConfirmed||A.info===DermaiAccount.MSG.needsConfirmation?`<p style="margin:-6px 0 14px"><button class="link" type="button" data-act="resend-confirmation">Renvoyer l'e-mail de confirmation</button></p>`:``}
   <form class="stack" style="gap:16px" data-form="${kind}" novalidate>
     <div class="c-field"><label class="c-field__label" for="f-mail">Adresse e-mail</label><input class="c-input" id="f-mail" name="email" type="email" inputmode="email" enterkeyhint="next" autocomplete="email" autocapitalize="none" spellcheck="false" value="${esc(A.formEmail)}" required></div>
-    <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" name="password" type="password" enterkeyhint="go" autocomplete="${signup?`new-password`:`current-password`}" required>${signup?`<p class="c-field__hint">8 caractères au minimum.</p>`:``}</div>
+    <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" name="password" type="password" enterkeyhint="go" autocomplete="${signup?`new-password`:`current-password`}" required>${signup?`<p class="c-field__hint">8 caractères au minimum.</p>`:`<p style="margin-top:8px"><button class="link" type="button" data-go="forgot">Mot de passe oublié ?</button></p>`}</div>
     <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">${signup?`Créer mon compte`:`Se connecter`}</button>
   </form>
   <p style="margin-top:20px;text-align:center">${signup?`Déjà un compte ? <button class="link" data-go="login">Se connecter</button>`:`Pas encore de compte ? <button class="link" data-go="signup">Créer mon compte</button>`}</p>
   ${signup?`<p style="text-align:center"><button class="link" data-go="welcome">Continuer sans compte</button></p>`:``}
   <p class="muted" style="margin-top:14px">Seules vos préférences de personnalisation sont associées à votre compte. Vos photos ne sont pas enregistrées dans votre profil.</p></div></div>`;
+};
+/* Mot de passe oublié : un e-mail de Supabase contient un lien vers le site ; la réponse est la même que l'adresse existe ou non. */
+V.forgot=()=>{
+  const A=state.account;if(!accountOn())return V.login();
+  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="login" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
+  <div class="body"><h1>Mot de passe oublié</h1><p style="margin:10px 0 22px">Saisissez l'adresse de votre compte. Nous vous enverrons un lien pour choisir un nouveau mot de passe.</p>
+  ${A.info?`<div class="c-notice c-notice--success u-my-5" role="status">${ic(`check`)}<div>${A.info}</div></div>`:``}
+  ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
+  <form class="stack" style="gap:16px" data-form="forgot" novalidate>
+    <div class="c-field"><label class="c-field__label" for="f-mail">Adresse e-mail</label><input class="c-input" id="f-mail" name="email" type="email" inputmode="email" enterkeyhint="go" autocomplete="email" autocapitalize="none" spellcheck="false" value="${esc(A.formEmail)}" required></div>
+    <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">Envoyer le lien</button>
+  </form>
+  <p style="margin-top:20px;text-align:center"><button class="link" data-go="login">Retour à la connexion</button></p></div></div>`;
+};
+/* Nouveau mot de passe, après un lien de récupération : la session ouverte par le lien sert uniquement à cette modification. */
+V.reset=()=>{
+  const A=state.account;if(!signedIn()||!A.recovery)return V.login();
+  return `<div class="flow"><div class="flowtop"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
+  <div class="body"><h1>Nouveau mot de passe</h1><p style="margin:10px 0 22px">Choisissez un nouveau mot de passe pour ${esc(A.email)}.</p>
+  ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
+  <form class="stack" style="gap:16px" data-form="reset" novalidate>
+    <div class="c-field"><label class="c-field__label" for="f-npw">Nouveau mot de passe</label><input class="c-input" id="f-npw" name="password" type="password" enterkeyhint="next" autocomplete="new-password" required><p class="c-field__hint">8 caractères au minimum.</p></div>
+    <div class="c-field"><label class="c-field__label" for="f-npw2">Confirmer le mot de passe</label><input class="c-input" id="f-npw2" name="password2" type="password" enterkeyhint="go" autocomplete="new-password" required></div>
+    <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">Enregistrer</button>
+  </form></div></div>`;
 };
 V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div><div class="body"><h1>Bienvenue sur DERMAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
 V.login=()=>accountOn()?authForm(`login`):V.signup();
@@ -633,8 +707,8 @@ V.scan=()=>{
   const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn c-icon-btn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
   if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve pas.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
   if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Choisir une autre photo</button></div>`}
-   ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">Analyse impossible</span>${esc(state.scanError)}</div></div>`:`<div class="c-notice u-my-5">${ic(`check`)}<div><span class="c-notice__title">Photo prête</span>Le cadrage et la lumière sont vérifiés pendant l'analyse.</div></div>`}
-   <button class="c-btn c-btn--primary c-btn--block" data-go="analyzing">${state.scanError?`Réessayer`:`Analyser ma peau`}</button></div></div>`;
+   ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:`<div class="c-notice u-my-5">${ic(`check`)}<div><span class="c-notice__title">Photo prête</span>Le cadrage et la lumière sont vérifiés pendant l'analyse.</div></div>`}
+   ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:`<button class="c-btn c-btn--primary c-btn--block" data-go="analyzing">${state.scanError?`Réessayer`:`Analyser ma peau`}</button>`}</div></div>`;
   const s=SHOT[st-1];
   return `<div class="scan">${head}<div class="scan-grid"><div><div class="segs">${(DEMO_MODE?[1,2,3]:[1]).map(i=>`<i class="${i<=st?`on`:``}"></i>`).join(``)}</div>
    <h2 class="cam-h">${st===1?`Positionnez votre visage<br>au centre`:st===2?`Tournez doucement<br>la tête vers la droite`:`Tournez doucement<br>la tête vers la gauche`}</h2>
@@ -882,17 +956,18 @@ V.profile=()=>{
 V.privacy=()=>shell(`<div class="pagehead"><h1>Confidentialité</h1><p style="color:var(--ink);font-size:18px">${DEMO_MODE?`Vos photos sont utilisées pour analyser votre peau.`:`Votre photo sert uniquement à analyser votre peau. DERMAI ne la conserve pas.`}</p></div>
   <div class="grid2"><div class="col">
    <section><ul class="l-list" style="margin-top:0">${DEMO_MODE?`<li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li>`
-     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`layers`)}<span>Si vous êtes connecté, vos analyses peuvent être enregistrées dans votre compte pour afficher votre historique et votre progression. Seuls vos scores, vos priorités du moment et vos objectifs de ce jour sont conservés.</span></li><li>${ic(`camera`)}<span>Pour obtenir l'analyse, votre photo est transmise à notre service d'analyse. DERMAI n'en garde aucune copie.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil, et vos photos originales ne sont pas non plus enregistrées avec vos analyses.</span></li><li>${ic(`shield`)}<span>Ces données sont associées à votre compte : vous seul pouvez accéder à vos analyses.</span></li><li>${ic(`eye`)}<span>Une analyse nécessite un compte. Sans compte, rien n'est conservé d'une session à l'autre.</span></li>`}</ul></section>
+     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`layers`)}<span>Si vous êtes connecté, vos analyses peuvent être enregistrées dans votre compte pour afficher votre historique et votre progression. Seuls vos scores, vos priorités du moment et vos objectifs de ce jour sont conservés.</span></li><li>${ic(`camera`)}<span>Pour obtenir l'analyse, votre photo est transmise à notre service d'analyse. DERMAI n'en garde aucune copie.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil, et vos photos originales ne sont pas non plus enregistrées avec vos analyses.</span></li><li>${ic(`shield`)}<span>Ces données sont associées à votre compte : vous seul pouvez accéder à vos analyses.</span></li><li>${ic(`lock`)}<span>Votre adresse e-mail et votre mot de passe sont gérés par notre service d'authentification. DERMAI ne voit ni ne conserve votre mot de passe.</span></li><li>${ic(`trash`)}<span>Vous pouvez supprimer votre historique d'analyses, ou votre compte entier (profil et analyses compris), depuis « Gérer mes données ».</span></li><li>${ic(`eye`)}<span>Une analyse nécessite un compte. Sans compte, rien n'est conservé d'une session à l'autre.</span></li>`}</ul></section>
    ${DEMO_MODE?`<section>${sw(`keep`,`Conserver mes photos`,`Pour comparer avant et maintenant`)}</section>`:``}
   </div><div class="col"><section><div class="hd"><h2 class="h3">Gérer mes données</h2></div>
    ${DEMO_MODE?`<button class="rowlink" data-act="confirm" data-v="photos" style="border-top:1px solid var(--line)">${ic(`camera`)}<div class="grow"><b>Supprimer mes photos</b><span class="s">Les analyses restent disponibles</span></div>${ic(`chev`)}</button>`:``}
    <button class="rowlink" data-act="confirm" data-v="history" ${DEMO_MODE?``:`style="border-top:1px solid var(--line)"`}>${ic(`layers`)}<div class="grow"><b>Supprimer mon historique</b><span class="s">Analyses et progression</span></div>${ic(`chev`)}</button>
    <button class="rowlink" data-act="toast" data-v="L'export de vos données n'est pas encore disponible.">${ic(`download`)}<div class="grow"><b>Exporter mes données</b><span class="s">${DEMO_MODE?`Un fichier avec toutes vos informations`:`Pas encore disponible`}</span></div>${ic(`chev`)}</button>
-   ${DEMO_MODE?`<button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div>${ic(`chev`)}</button>`:`<button class="rowlink" data-act="toast" data-v="La suppression de compte n'est pas encore disponible.">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Pas encore disponible</span></div>${ic(`chev`)}</button>`}</section></div></div>`,{back:true,title:`Confidentialité`});
+   ${DEMO_MODE?`<button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div>${ic(`chev`)}</button>`:signedIn()?`<button class="rowlink" data-act="confirm" data-v="delete-account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Profil et analyses compris, action définitive</span></div>${ic(`chev`)}</button>`:``}</section></div></div>`,{back:true,title:`Confidentialité`});
 
 const CONFIRMS={
   photos:[`Supprimer vos photos ?`,`Vos photos seront effacées. Vos résultats d'analyse resteront disponibles.`,`Supprimer les photos`,`Photos supprimées (simulation)`],
   history:[`Supprimer votre historique ?`,`Vos analyses et votre progression seront effacées.`,`Supprimer l'historique`,`Historique supprimé (simulation)`],
+  'delete-account':[`Supprimer votre compte ?`,`Votre compte, votre profil et toutes vos analyses seront supprimés définitivement. Cette action est irréversible.`,`Supprimer mon compte`,`Compte supprimé`],
   account:[`Supprimer votre compte ?`,`Votre compte et toutes vos données seront supprimés. Cette action est définitive.`,`Supprimer mon compte`,`Compte supprimé (simulation)`]
 };
 
@@ -900,6 +975,7 @@ const CONFIRMS={
 let timers=[],anTok=0;
 const NOSTACK=new Set([`scan`,`analyzing`,`signup`,`login`,`welcome`,`onb`]);
 function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=false}={}){
+  if(route===`forgot`){state.account.error=``;state.account.info=``}
   if(route===`scan`&&needsLogin()){state.account.info=AUTH_NEEDED;state.account.error=``;route=`login`;param=null;reset=true}   // visiteur : pas d'analyse sans compte
   anTok++;timers.forEach(clearTimeout);timers=[];closeSheet();
   if(reset)state.stack=[];
@@ -913,7 +989,7 @@ function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=fa
    La page courante est écrite dans l'adresse (/profile, /concern/acne…). Vercel renvoie toute adresse inconnue vers index.html (vercel.json).
    La page d'accueil du site est /accueil ; la racine « / » veut dire « aucune page choisie ». Une page « en cours » (analyse) n'est jamais restaurée.
    Les anciens liens avec « # » (/#scan) sont encore compris et convertis. */
-const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`]);
+const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`,`forgot`]);
 const PATH_OF={landing:`accueil`};
 const ROUTE_OF=Object.fromEntries(Object.entries(PATH_OF).map(([k,v])=>[v,k]));
 const pathOf=(r,p)=>`/${PATH_OF[r]||r}${p!=null&&p!==``?`/${encodeURIComponent(p)}`:``}`;
@@ -989,7 +1065,7 @@ function setScanStatus(s){
 }
 function clearReal(){
   if(state.realPreview)URL.revokeObjectURL(state.realPreview);
-  state.realBlob=null;state.realPreview=``;state.scanError=``;state.scanStatus=`idle`;
+  state.realBlob=null;state.realPreview=``;state.scanError=``;state.scanQuota=false;state.scanStatus=`idle`;
 }
 function pickRealPhoto(){
   let inp=document.getElementById(`realPhotoInput`);
@@ -1058,7 +1134,7 @@ async function runRealAnalysis(){
   }catch(err){
     if(tok!==anTok)return;
     if(err&&err.authRequired){if(signedIn())expireSession();else askLogin();return}   // session refusée par le serveur : retour à la connexion, sans message technique
-    state.scanStatus=`error`;state.scanError=(err&&err.userMessage)||SCAN_ERR_GENERIC;
+    state.scanStatus=`error`;state.scanError=(err&&err.userMessage)||SCAN_ERR_GENERIC;state.scanQuota=!!(err&&err.quota);
     state.scanStep=4;state.retake=false;
     toast(state.scanError);
     go(`scan`,null,{replace:true,keepScan:true});
@@ -1088,6 +1164,7 @@ function act(a,v,el){
     case `gentle`:state.gentle=!state.gentle;render(true);persist();break;
     case `logout`:logout();break;
     case `retry-save`:persist();break;
+    case `resend-confirmation`:resendConfirmation();break;
     case `retry-analysis`:saveScan(state.analysisSave.scan);break;
     case `retry-history`:retryHistory();break;
     case `more-history`:loadMoreHistory();break;
@@ -1108,7 +1185,7 @@ function act(a,v,el){
     case `clear-photo`:state.photo=``;try{localStorage.removeItem(`dermai_demo_photo`)}catch(e){}render(true);toast(`Photo retirée`);break;
     case `toast`:closeSheet();toast(v);break;
     case `confirm`:{const c=CONFIRMS[v];sheet(`<h2 style="font-size:2rem;margin-bottom:10px">${c[0]}</h2><p style="margin-bottom:24px">${c[1]}</p><div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-act="do-confirm" data-v="${v}">${c[2]}</button><button class="c-btn c-btn--secondary c-btn--block" data-act="close">Annuler</button></div>`);break}
-    case `do-confirm`:closeSheet();if(v===`history`&&!DEMO_MODE){deleteHistory();break}toast(CONFIRMS[v][3]);if(v===`account`)timers.push(setTimeout(()=>go(`landing`,null,{reset:true}),1200));break;
+    case `do-confirm`:closeSheet();if(v===`history`&&!DEMO_MODE){deleteHistory();break}if(v===`delete-account`){deleteMyAccount();break}toast(CONFIRMS[v][3]);if(v===`account`)timers.push(setTimeout(()=>go(`landing`,null,{reset:true}),1200));break;
   }
 }
 document.addEventListener(`click`,e=>{
@@ -1123,11 +1200,13 @@ document.addEventListener(`change`,e=>{
   const k=e.target.dataset&&e.target.dataset.change;if(!k)return;
   state[k]=Number(e.target.value);render(true);
 });
-document.addEventListener(`submit`,e=>{const f=e.target&&e.target.dataset&&e.target.dataset.form;if(!f||!ACCOUNT)return;e.preventDefault();submitAuth(f,e.target)});
+document.addEventListener(`submit`,e=>{const f=e.target&&e.target.dataset&&e.target.dataset.form;if(!f||!ACCOUNT)return;e.preventDefault();if(f===`forgot`)submitForgot(e.target);else if(f===`reset`)submitReset(e.target);else submitAuth(f,e.target)});
 document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
 window.addEventListener(`popstate`,()=>{const h=readLocation();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
+const authRedirect=(!DEMO_MODE&&window.DermaiAccount)?DermaiAccount.readAuthRedirect(location.hash):null;
+if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}                                    // les jetons ne restent pas dans la barre d'adresse
 const initialRoute=readLocation();
 if(initialRoute&&location.hash)try{history.replaceState(null,``,pathOf(initialRoute.route,initialRoute.param))}catch(e){}
 if(initialRoute){state.route=initialRoute.route;state.param=initialRoute.param}
 render();
-bootAccount(!initialRoute);
+bootAccount(!initialRoute,authRedirect);

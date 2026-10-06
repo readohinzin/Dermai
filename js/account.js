@@ -33,7 +33,14 @@
     sessionExpired: 'Votre session a expiré. Reconnectez-vous.',
     analysisSaveFailed: 'Votre analyse est disponible, mais nous n\'avons pas pu l\'enregistrer dans votre historique. Réessayez.',
     historyLoadFailed: 'Votre historique n\'a pas pu être chargé. Réessayez.',
-    historyDeleteFailed: 'Votre historique n\'a pas pu être supprimé. Réessayez.'
+    historyDeleteFailed: 'Votre historique n\'a pas pu être supprimé. Réessayez.',
+    recoverySent: 'Si un compte existe pour cette adresse, un e-mail vient d\'être envoyé avec un lien pour choisir un nouveau mot de passe.',
+    confirmationResent: 'Si cette adresse attend une confirmation, un nouvel e-mail vient d\'être envoyé.',
+    passwordUpdated: 'Votre mot de passe a été mis à jour.',
+    passwordSame: 'Choisissez un mot de passe différent de l\'ancien.',
+    linkInvalid: 'Ce lien n\'est plus valide. Demandez-en un nouveau.',
+    emailConfirmed: 'Votre adresse e-mail est confirmée. Bienvenue !',
+    deleteFailed: 'Votre compte n\'a pas pu être supprimé. Réessayez.'
   };
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -103,6 +110,19 @@
       goals: Array.isArray(r.goals_snapshot) ? r.goals_snapshot.filter(g => GOAL_IDS.indexOf(g) !== -1) : [],
       engineVersion: typeof r.engine_version === 'string' ? r.engine_version : ''
     };
+  }
+
+  /* Retour d'un lien envoyé par e-mail (confirmation d'adresse, récupération de mot de passe) : Supabase redirige vers le site avec les jetons dans le
+     fragment d'adresse (#access_token=…&type=recovery) ou une erreur (#error_code=otp_expired…). Analyse pure, sans effet de bord. */
+  function readAuthRedirect(hash) {
+    const h = String(hash || '').replace(/^#/, '');
+    if (!/(^|&)(access_token|error_code|error)=/.test(h)) return null;
+    const q = new URLSearchParams(h);
+    if (q.get('access_token') && q.get('refresh_token')) {
+      const type = q.get('type') || '';
+      return { kind: 'session', type: type === 'recovery' ? 'recovery' : 'signup', access_token: q.get('access_token'), refresh_token: q.get('refresh_token'), expires_in: Number(q.get('expires_in')) || 3600 };
+    }
+    return { kind: 'error' };
   }
 
   function create(opts) {
@@ -233,6 +253,59 @@
       return { ok: true };
     }
 
+    /* ---------- Confirmation d'adresse, récupération et changement de mot de passe, suppression du compte ---------- */
+    /* Les mots de passe ne sont jamais écrits ni conservés par DERMAI : ils ne font que transiter vers Supabase Auth. */
+    async function requestPasswordReset(email) {
+      if (!available) return { ok: false, error: MSG.unavailable };
+      if (!EMAIL_RE.test(String(email || '').trim())) return { ok: false, error: MSG.emailInvalid };
+      const r = await call('/auth/v1/recover', { method: 'POST', body: JSON.stringify({ email: String(email).trim() }) }, false);
+      if (r.network) return { ok: false, error: MSG.network };
+      if (r.status === 429) return { ok: false, error: MSG.rateLimited };
+      if (r.status >= 500) return { ok: false, error: MSG.generic };
+      return { ok: true, message: MSG.recoverySent };               // même réponse que le compte existe ou non : aucune énumération d'adresses
+    }
+    async function resendConfirmation(email) {
+      if (!available) return { ok: false, error: MSG.unavailable };
+      if (!EMAIL_RE.test(String(email || '').trim())) return { ok: false, error: MSG.emailInvalid };
+      const r = await call('/auth/v1/resend', { method: 'POST', body: JSON.stringify({ type: 'signup', email: String(email).trim() }) }, false);
+      if (r.network) return { ok: false, error: MSG.network };
+      if (r.status === 429) return { ok: false, error: MSG.rateLimited };
+      if (r.status >= 500) return { ok: false, error: MSG.generic };
+      return { ok: true, message: MSG.confirmationResent };
+    }
+    /* Ouvre la session portée par un lien reçu par e-mail. L'identité est lue auprès de Supabase avec ce jeton (jamais déduite du fragment d'adresse). */
+    async function acceptRedirect(parsed) {
+      if (!available || !parsed || parsed.kind !== 'session') return { ok: false, error: MSG.linkInvalid };
+      const headers = { apikey: key, Authorization: 'Bearer ' + parsed.access_token, 'Content-Type': 'application/json' };
+      let res;
+      try { res = await doFetch(base + '/auth/v1/user', { method: 'GET', headers }); } catch (e) { return { ok: false, error: MSG.network }; }
+      let body = null;
+      try { body = JSON.parse(await res.text()); } catch (e) { body = null; }
+      if (!res.ok || !body || !body.id) return { ok: false, error: MSG.linkInvalid };
+      if (!setSession({ access_token: parsed.access_token, refresh_token: parsed.refresh_token, expires_in: parsed.expires_in, user: { id: body.id, email: body.email } })) return { ok: false, error: MSG.linkInvalid };
+      return { ok: true, type: parsed.type, user: { id: session.user.id, email: session.user.email } };
+    }
+    async function updatePassword(password) {
+      if (typeof password !== 'string' || password.length < 8) return { ok: false, error: MSG.passwordShort };
+      const r = await authed('/auth/v1/user', { method: 'PUT', body: JSON.stringify({ password }) });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (r.network) return { ok: false, error: MSG.network };
+      const code = String((r.body && (r.body.error_code || r.body.code)) || '') + String((r.body && (r.body.msg || r.body.message)) || '').toLowerCase();
+      if (/same_password|different from the old/.test(code)) return { ok: false, error: MSG.passwordSame };
+      if (/weak_password|password/.test(code) && !r.ok) return { ok: false, error: MSG.passwordShort };
+      if (!r.ok) return { ok: false, error: MSG.generic };
+      return { ok: true, message: MSG.passwordUpdated };
+    }
+    /* Supprime le compte de l'appelant (profil, analyses et quota partent en cascade). La fonction SQL n'a aucun paramètre : elle ne peut viser que
+       le compte du jeton. La session locale est supprimée au succès. */
+    async function deleteAccount() {
+      const r = await authed('/rest/v1/rpc/delete_my_account', { method: 'POST', body: '{}' });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (r.network || !r.ok) return { ok: false, error: MSG.deleteFailed };
+      clear();
+      return { ok: true };
+    }
+
     /* ---------- Historique des analyses ---------- */
     /* Ajoute une analyse au compte connecté. Idempotent : le même `id` envoyé deux fois ne crée qu'une ligne (réponse perdue, nouvel essai). */
     async function saveAnalysis(analysis) {
@@ -268,9 +341,9 @@
       return session ? session.access_token : null;
     }
 
-    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, saveAnalysis, listAnalyses, deleteAnalyses,
+    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 
-  return { create, toRow, fromRow, analysisToRow, analysisFromRow, METRIC_KEYS, MSG, SESSION_KEY, EMAIL_RE };
+  return { create, readAuthRedirect, toRow, fromRow, analysisToRow, analysisFromRow, METRIC_KEYS, MSG, SESSION_KEY, EMAIL_RE };
 });
