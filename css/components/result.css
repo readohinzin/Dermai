@@ -1,0 +1,25 @@
+/* Écran Résultat : carte principale, indicateurs compacts. Aucune valeur de score calculée ici (--value vient du code). */
+.c-result{padding:var(--s-4)}
+.c-result__hero{display:grid;grid-template-columns:minmax(0,9.5rem) minmax(0,1fr);gap:var(--s-4);align-items:center}
+.c-result__photo .portrait{border-radius:var(--r-md)}
+.c-result__kicker{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}
+.c-result__na{margin:0;font:400 var(--fs-h3)/var(--lh-tight) var(--font-serif);color:var(--ink-2)}
+.c-result__sentence{margin:var(--s-4) 0 0;color:var(--ink-2)}
+.c-result__age{margin:var(--s-4) 0 0;padding-top:var(--s-4);border-top:1px solid var(--line)}
+.c-result__age b{display:block}
+@media (min-width:600px){.c-result__hero{grid-template-columns:minmax(0,12rem) minmax(0,1fr);gap:var(--s-6)}}
+
+/* carte de préoccupation non cliquable (aucun détail n'existe encore derrière) */
+.c-concern-card--static{cursor:default}
+@media (hover:hover){.c-concern-card--static:hover{border-color:var(--line)}}
+.c-concern-card .c-card__text{margin:var(--s-2) 0 0}
+
+.c-indicators{list-style:none;margin:0;padding:0}
+.c-indicator{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s-2) var(--s-3);align-items:center;padding:var(--s-3) 0;border-bottom:1px solid var(--line)}
+.c-indicator:last-child{border-bottom:0}
+.c-indicator__name{font-weight:600}
+.c-indicator__value{display:flex;align-items:center;gap:var(--s-2);justify-self:end;font-variant-numeric:tabular-nums}
+.c-indicator__score{font-weight:700}
+.c-indicator__score small{font-weight:500;color:var(--ink-3)}
+.c-indicator .c-bar{grid-column:1 / -1;height:6px}
+.c-indicator--na .c-indicator__name{color:var(--ink-2);font-weight:500}

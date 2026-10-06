@@ -406,15 +406,15 @@ test('C3 display avec la fixture complète : global = all.score arrondi à l\'af
   assert.equal(v.skinType, 'Peau mixte');                                // whole = Combination
 });
 
-test('C4 libellé du type de peau : valeurs sans traduction établie (Dry & Redness…) ou inconnues → null, rien d\'inventé', () => {
+test('C4 libellé du type de peau : les 8 valeurs documentées sont traduites, une valeur inconnue → null, rien d\'inventé', () => {
   for (const [whole, attendu] of [['Oily', 'Peau grasse'], ['Dry', 'Peau sèche'], ['Normal', 'Peau normale'], ['Combination', 'Peau mixte'],
-    ['Dry & Redness', null], ['Oily & Redness', null], ['Redness', null], ['Zorglub', null]]) {
+    ['Dry & Redness', 'Peau sèche avec tendance aux rougeurs'], ['Oily & Redness', 'Peau grasse avec tendance aux rougeurs'],
+    ['Combination & Redness', 'Peau mixte avec tendance aux rougeurs'], ['Redness', 'Tendance aux rougeurs'], ['Zorglub', null]]) {
     const n = { ...normOf(METRIC_OUT), skinType: { whole, tZone: null, uZone: null } };
     assert.strictEqual(M.toDisplay(n, M.deriveConcern(n)).skinType, attendu, whole);
     assert.strictEqual(n.skinType.whole, whole);                         // le texte reçu est conservé tel quel dans normalized
   }
   assert.equal(M.SKIN_TYPE_LABELS.mixed, undefined);
-  assert.equal(M.SKIN_TYPE_LABELS.redness, undefined);
 });
 
 test('C5 display : les régions t_zone et u_zone ne servent pas à l\'affichage actuel', () => {

@@ -66,11 +66,29 @@
   /* Clés que l'interface actuelle affiche. Les autres restent dans le modèle seulement. */
   const UI_KEYS = ['acne', 'pigmentation', 'pores', 'oiliness', 'hydration', 'redness', 'texture', 'wrinkles'];
 
-  /* Libellés français. Valeur inconnue : aucun libellé (null), jamais inventé. */
-  /* Valeurs documentées de skin_type : Normal, Oily, Dry, Combination, Redness, Dry & Redness, Oily & Redness, Combination & Redness.
-     Seules les quatre premières ont un libellé ; les autres donnent null (aucune traduction inventée). Inutilisé tant que
-     normalized.skinType reste null avec format = "json". */
-  const SKIN_TYPE_LABELS = { oily: 'Peau grasse', dry: 'Peau sèche', normal: 'Peau normale', combination: 'Peau mixte' };
+  /* Libellés français des 8 valeurs documentées de skin_type (clé = valeur en minuscules, espaces simplifiés).
+     Valeur inconnue : aucun libellé (null), jamais inventé. `desc` : description neutre de l'aspect, sans conseil ni diagnostic. */
+  const SKIN_TYPE_LABELS = {
+    normal: 'Peau normale',
+    oily: 'Peau grasse',
+    dry: 'Peau sèche',
+    combination: 'Peau mixte',
+    redness: 'Tendance aux rougeurs',
+    'dry & redness': 'Peau sèche avec tendance aux rougeurs',
+    'oily & redness': 'Peau grasse avec tendance aux rougeurs',
+    'combination & redness': 'Peau mixte avec tendance aux rougeurs'
+  };
+  const SKIN_TYPE_DESC = {
+    normal: 'Aspect plutôt équilibré.',
+    oily: 'Aspect plutôt brillant.',
+    dry: 'Aspect plutôt sec.',
+    combination: 'Certaines zones du visage ont un aspect différent des autres.',
+    redness: 'Des rougeurs sont visibles.',
+    'dry & redness': 'Aspect plutôt sec, avec des rougeurs visibles.',
+    'oily & redness': 'Aspect plutôt brillant, avec des rougeurs visibles.',
+    'combination & redness': 'Zones d\'aspect différent, avec des rougeurs visibles.'
+  };
+  const skinTypeKey = v => (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').toLowerCase() : '');
 
   const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -193,11 +211,69 @@
   function toDisplay(normalized, derived, { goodWhenHigh = [] } = {}) {
     const n = normalized || {}, c = (derived && derived.concernScore) || {};
     const view = {};
-    const label = n.skinType && typeof n.skinType.whole === 'string' ? SKIN_TYPE_LABELS[n.skinType.whole.trim().toLowerCase()] : undefined;
+    const label = n.skinType ? SKIN_TYPE_LABELS[skinTypeKey(n.skinType.whole)] : undefined;
     view.skinType = label || null;
     for (const key of UI_KEYS) view[key] = goodWhenHigh.includes(key) ? (n[key] ? n[key].rawScore : null) : (c[key] === undefined ? null : c[key]);
     view.global = num(n.globalScore) === null ? null : Math.round(n.globalScore);
     return view;
+  }
+
+  /* ---------- 5. Modèle de score de l'interface (écran Résultat) ----------
+     Entrée : normalized seulement. Aucune connaissance de Perfect Corp au-delà des noms de champs déjà renommés.
+     Échelle unique : 0 à 100, 100 = meilleur état.
+       - métriques : uiScore, tel que reçu. rawScore n'est jamais lu ici (donnée technique, ni affichée, ni utilisée en repli).
+       - global    : globalScore, tel que reçu. Jamais recalculé à partir des métriques, jamais inversé.
+     Un score absent, non numérique ou hors de 0 à 100 est « indisponible » (score null) : jamais remplacé, jamais borné.
+     Seul l'arrondi à l'entier est appliqué, pour l'affichage. */
+  const BANDS = [
+    { key: 'good', label: 'Bien', min: 61 },
+    { key: 'mid', label: 'À soutenir', min: 31 },
+    { key: 'low', label: 'À surveiller', min: 0 }
+  ];
+  const METRIC_LABELS = {
+    acne: 'Acné', pores: 'Pores', oiliness: 'Sébum', texture: 'Texture', hydration: 'Hydratation', redness: 'Rougeurs',
+    pigmentation: 'Pigmentation', wrinkles: 'Rides', firmness: 'Fermeté', radiance: 'Radiance', eyeBag: 'Poches',
+    tearTrough: 'Vallée des larmes', darkCircle: 'Cernes', droopyUpperEyelid: 'Paupière supérieure', droopyLowerEyelid: 'Paupière inférieure'
+  };
+  const PRIORITY_COUNT = 3;
+
+  /* Score affichable : entier de 0 à 100, ou null. */
+  function displayScore(v) {
+    const n = num(v);
+    return n === null || n < 0 || n > 100 ? null : Math.round(n);
+  }
+  /* Bande du score affiché (même entier que celui montré à l'utilisateur) : 61 à 100 Bien, 31 à 60 À soutenir, 0 à 30 À surveiller. */
+  function scoreBand(v) {
+    const s = displayScore(v);
+    if (s === null) return null;
+    const b = BANDS.find(x => s >= x.min);
+    return { key: b.key, label: b.label };
+  }
+  const scoreView = v => { const score = displayScore(v), band = scoreBand(v); return { score, band: band ? band.key : null, bandLabel: band ? band.label : null }; };
+  /* Âge cutané : nombre fini entre 1 et 120, arrondi. Sinon null (aucune carte). */
+  function displayAge(v) {
+    const n = num(v);
+    return n === null || n < 1 || n > 120 ? null : Math.round(n);
+  }
+
+  /* Données de l'écran Résultat. Priorités : les PRIORITY_COUNT scores affichables les plus bas (100 = meilleur), égalités départagées par
+     l'ordre fixe de METRICS. C'est un tri des scores tels qu'affichés, sans score de sévérité caché. Les autres métriques suivent dans
+     l'ordre fixe de METRICS ; une métrique indisponible n'entre jamais dans les priorités. */
+  function toResultView(normalized) {
+    const n = isObj(normalized) ? normalized : {};
+    const metrics = METRIC_KEYS.map((key, order) => Object.assign({ key, order, label: METRIC_LABELS[key] },
+      scoreView(isObj(n[key]) ? n[key].uiScore : null)));
+    const ranked = metrics.filter(m => m.score !== null).sort((a, b) => a.score - b.score || a.order - b.order);
+    const priorities = ranked.slice(0, PRIORITY_COUNT);
+    const chosen = new Set(priorities.map(m => m.key));
+    const whole = isObj(n.skinType) ? skinTypeKey(n.skinType.whole) : '';
+    return {
+      global: scoreView(n.globalScore),
+      skinType: SKIN_TYPE_LABELS[whole] ? { label: SKIN_TYPE_LABELS[whole], description: SKIN_TYPE_DESC[whole] } : null,
+      skinAge: displayAge(n.skinAge),
+      priorities,
+      others: metrics.filter(m => !chosen.has(m.key))
+    };
   }
 
   /* Libellés de date de l'historique (« 5 octobre », « 5 OCT »). */
@@ -209,8 +285,9 @@
   }
 
   return {
-    SCHEMA_VERSION, METRICS, METRIC_KEYS, UI_KEYS, SKIN_TYPE_LABELS, OUTPUT_PATH,
+    SCHEMA_VERSION, METRICS, METRIC_KEYS, UI_KEYS, SKIN_TYPE_LABELS, OUTPUT_PATH, BANDS, METRIC_LABELS,
     parseSkinResponse, sanitizeNormalized,
-    concernScore, deriveConcern, toDisplay, scanLabels
+    concernScore, deriveConcern, toDisplay, scanLabels,
+    displayScore, scoreBand, displayAge, toResultView
   };
 });

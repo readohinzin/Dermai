@@ -62,6 +62,16 @@ const SCANS=[
   {id:1,date:`30 octobre`,short:`30 OCT`,day:30,global:64,skinType:`Peau mixte`,pigmentation:61,pores:57,hydration:73,acne:24,oiliness:49,redness:26,texture:36,wrinkles:21},
   {id:2,date:`30 novembre`,short:`30 NOV`,day:60,global:68,skinType:`Peau mixte`,pigmentation:52,pores:51,hydration:79,acne:18,oiliness:44,redness:22,texture:30,wrinkles:20}
 ];
+/* Démo seulement : l'écran Résultat lit un normalized. Les valeurs fictives existantes (flat, sens « préoccupation ») sont ramenées à
+   l'échelle 0-100, 100 = meilleur (l'hydratation est déjà dans ce sens). Les autres métriques restent indisponibles. */
+const demoNormalized=s=>{
+  const n={};
+  SkinModel.METRIC_KEYS.forEach(k=>{n[k]={rawScore:null,uiScore:null}});
+  SkinModel.UI_KEYS.forEach(k=>{if(Number.isFinite(s[k]))n[k].uiScore=k===`hydration`?s[k]:100-s[k]});
+  n.globalScore=s.global;n.skinType={whole:`Combination`,tZone:null,uZone:null};n.skinAge=null;
+  return n;
+};
+if(DEMO_MODE)SCANS.forEach(s=>{s.normalized=demoNormalized(s)});
 const CONCERNS={
   pigmentation:{label:`Pigmentation`,better:`lower`,zones:`Front et joues`,
     txt:{3:`DERMAI observe plusieurs zones plus pigmentées, surtout sur les joues et le front.`,2:`Quelques zones restent plus pigmentées, principalement sur les joues.`,1:`La pigmentation est peu visible sur l'ensemble du visage.`},
@@ -240,7 +250,7 @@ function portrait({on=[],spots=0,shift=0,cls=``,importBtn=false,detect=null,focu
   const src=live?(photo||(state.route===`scan`||state.route===`analyzing`?state.realPreview:``)):photoSrc(),st=shift?`transform:scale(1.14) translateX(${shift}%)`:``;
   const Zs=src?PHOTO_ZONES:PORTRAIT_ZONES,Bs=src?PHOTO_BADGES:PORTRAIT_BADGES,vb=src?`0 0 300 300`:`0 0 300 375`;
   const media=src?`<img src="${src}" alt="${live?`Votre photo`:`Photo de démonstration d'une personne fictive`}" style="${st}">`:live?`<div class="c-photo__placeholder">${ic(`image`)}<span>Votre photo apparaîtra ici</span></div>`:placeholderSVG(st);
-  const zs=Object.keys(Zs).map(k=>{const z=Zs[k];return `<g class="z ${on.includes(k)?`on`:``}" data-z="${k}"><ellipse cx="${z.cx}" cy="${z.cy}" rx="${z.rx}" ry="${z.ry}"/></g>`}).join(``);
+  const zs=live?``:Object.keys(Zs).map(k=>{const z=Zs[k];return `<g class="z ${on.includes(k)?`on`:``}" data-z="${k}"><ellipse cx="${z.cx}" cy="${z.cy}" rx="${z.rx}" ry="${z.ry}"/></g>`}).join(``);
   const sp=src?``:SPOTS.slice(0,spots).map(p=>`<circle class="sp" cx="${p[0]}" cy="${p[1]}" r="2.4"/>`).join(``);
   let defs=``,badges=``;
   if(detect){
@@ -493,26 +503,35 @@ V.analyzing=()=>`<div class="an"><p class="pill-up">Analyse en cours</p><div cla
   ${DEMO_MODE?`<p style="margin-top:26px">${demoTag()}</p>`:``}</div>`;
 
 /* Résultat */
+/* Écran Résultat : lit uniquement SkinModel.toResultView(normalized) (échelle 0-100, 100 = meilleur). Aucun repli, aucune zone du visage. */
+const SCORE_SENTENCE={good:`Votre peau présente un bon état apparent.`,mid:`Votre peau a besoin d'un peu de soutien.`,low:`Votre peau mérite une attention particulière.`};
+const PRIO_TXT={good:`Bon niveau. C'est l'un de vos scores les plus bas.`,mid:`Cet indicateur mérite davantage d'attention.`,low:`Cet indicateur demande une attention particulière.`};
+const scoreHtml=(v,size)=>v.score===null?`<span class="c-score c-score--${size} c-score--null"><span class="c-score__value">–</span></span>`
+  :`<span class="c-score c-score--${size} c-score--${v.band}"><span class="c-score__value">${v.score}</span><span class="c-score__unit">/100</span></span>`;
+const bandBadge=v=>v.band?`<span class="c-badge c-badge--${v.band}">${v.bandLabel}</span>`:`<span class="c-badge c-badge--outline">Donnée indisponible</span>`;
+const barHtml=v=>v.score===null?``:`<span class="c-bar c-bar--${v.band}" role="img" aria-label="${v.score} sur 100" style="--value:${v.score}"><span class="c-bar__fill"></span></span>`;
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
-  const s=SCANS[state.view],rk=ranked(s),on=ZONES_BY[state.sel]||ZONES_BY.all;
-  const caption=state.sel===`all`?`Touchez une préoccupation pour voir les zones concernées.`:`${CONCERNS[state.sel].label} : ${CONCERNS[state.sel].zones.toLowerCase()}.`;
-  const ex=EXTRA.filter(e=>have(s,e[0]));
+  const s=SCANS[state.view],r=SkinModel.toResultView(s.normalized),g=r.global;
+  const hero=`<div class="c-card c-card--result c-result"><div class="c-result__hero"><div class="c-result__photo">${portrait({photo:s.photo})}</div>
+      <div class="c-score-block"><span class="c-result__kicker">Score global</span>${g.score===null?`<p class="c-result__na">Score global indisponible</p>`:`${scoreHtml(g,`xl`)}${bandBadge(g)}`}</div></div>
+      ${g.score===null?``:`<p class="c-result__sentence">${SCORE_SENTENCE[g.band]}</p>`}</div>`;
+  const type=`<div class="c-card"><p class="c-disclaimer">Type de peau</p>${r.skinType?`<h2 class="c-card__title">${r.skinType.label}</h2><p class="c-card__text">${r.skinType.description}</p>`:`<p class="c-card__text">Type de peau indisponible.</p>`}
+      ${r.skinAge===null?``:`<div class="c-result__age"><b>Âge cutané estimé : ${r.skinAge} ans</b><p class="c-disclaimer">Estimation cosmétique, ce n'est pas un âge biologique.</p></div>`}</div>`;
+  const prio=r.priorities.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
+      <div class="c-concern-card__foot">${bandBadge(m)}</div><p class="c-card__text">${PRIO_TXT[m.band]}</p></div>`).join(``);
+  const others=r.others.map(m=>m.score===null
+    ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
+    :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
   return shell(`
-  <div class="pagehead"><p class="kicker">Analyse du ${s.date}</p><h1>Votre analyse</h1></div>
+  <div class="pagehead"><p class="kicker">Analyse du ${s.date}</p><h1>Votre analyse</h1><p>Une analyse cosmétique de l'état apparent de votre peau.</p></div>
   <div class="grid2 lw">
-   <div class="col sticky-d">
-    <div class="rcard">${portrait({on,detect:s,focus:state.sel,photo:s.photo})}
-      <div class="rc-row"><div><p class="kicker">Votre peau aujourd'hui</p><p class="rc-type">${s.skinType||`Profil cutané`}</p></div>${have(s,`global`)?`<div class="rc-score"><b>${s.global}</b><span>Équilibre cutané</span></div>`:``}</div>
-      ${DEMO_MODE?`<p class="facecap" style="padding:0 12px 14px;text-align:left">${caption} Notes de 0 à 10 : plus le chiffre est élevé, plus la zone demande d'attention.</p>`:``}</div>
-    ${DEMO_MODE?`<div class="chips" style="justify-content:center"><button class="c-chip" data-act="zone" data-v="all" aria-pressed="${state.sel===`all`}">Tout</button>${CIDS.filter(c=>have(s,c)).map(c=>`<button class="c-chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>`:``}
-   </div>
+   <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
-    <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>
-      <div>${rk.map((id,i)=>{const t=tierOf(id,s);return `<button class="prio" data-go="concern:${id}"><div class="prio-top"><span class="n">${pad(i+1)}</span><span class="nm">${CONCERNS[id].label}</span><span class="lvl t${t}">${LV[t]}</span></div>${lbar(t)}<div class="prio-sub"><span>Besoin d'attention</span><span>Voir le détail</span></div></button>`}).join(``)}</div>
-      ${ex.length?`<div class="ex">${ex.map(e=>{const t=tierOf(e[0],s);return `<div class="mini"><span class="nm">${e[1]}</span><span class="lvl t${t}">${LV[t]}</span></div>`}).join(``)}</div>`:``}
-      <div class="note">${ic(`info`)}<span>Un niveau élevé signifie davantage de besoin d'attention. Ces indicateurs sont cosmétiques, pas un diagnostic médical.</span></div></section>
-    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="actives">Voir ce qui peut aider</button><button class="c-btn c-btn--secondary c-btn--block" data-go="routine">Ma routine personnalisée</button></div>
+    ${prio?`<section><div class="hd"><h2 class="h3">Vos priorités</h2></div><p class="muted" style="margin-bottom:14px">Vos trois scores les plus bas. 100 correspond au meilleur état.</p><div class="stack" style="gap:12px">${prio}</div></section>`:``}
+    <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul></section>
+    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--secondary c-btn--block" data-go="analyses">Mes analyses</button></div>
+    <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
   </div>`,{back:true,title:`Analyse`});
 };
