@@ -112,7 +112,7 @@ const PM=[
 ];
 const GOALS=[[`acne`,`Réduire l'acné`],[`pigmentation`,`Réduire les taches`],[`texture`,`Améliorer la texture`],[`hydration`,`Hydrater ma peau`],[`oiliness`,`Contrôler la peau grasse`],[`wrinkles`,`Prévenir les signes du vieillissement`],[`global`,`Améliorer globalement ma peau`]];
 const CATS=[[`cleanser`,`Nettoyant`],[`serum`,`Sérum`],[`moisturizer`,`Hydratant`],[`spf`,`Protection solaire`],[`exfoliant`,`Exfoliant`],[`mask`,`Masque`]];
-const state={route:`landing`,param:null,stack:[],user:{name:`Amina`,email:`amina@exemple.com`},
+const state={route:`landing`,param:null,stack:[],user:DEMO_MODE?{name:`Amina`,email:`amina@exemple.com`}:{name:``,email:``},
   goals:[`pigmentation`,`pores`,`hydration`],level:`simple`,cats:[`cleanser`,`moisturizer`],
   scanStep:0,shots:[false,false,false],retake:false,run:0,latest:0,view:0,tab:`am`,done:{},filter:`all`,
   period:1,cmpA:0,cmpB:1,sel:`all`,prefs:{reminder:true,tips:true,keep:false},photo:``,
@@ -181,11 +181,14 @@ function toScan(normalized){
 /* Premier scan réel réussi : les analyses fictives sont retirées, démo et réel ne sont jamais mélangés dans l'historique. */
 function commitRealScan(r){
   if(SCANS.some(s=>!s.real))SCANS.length=0;
+  r.photo=state.realPreview;state.realPreview=``;   // l'aperçu passe de la photo en attente à l'analyse qu'il a produite
   r.id=SCANS.length;SCANS.push(r);
   const last=SCANS.length-1;
   state.latest=r.id;state.view=r.id;state.period=Math.min(Math.max(state.period,1),Math.max(last,0));state.cmpA=0;state.cmpB=last;
 }
 const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
+/* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
+const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 
 /* ---------- 3. COMPOSANTS ---------- */
 const $app=document.getElementById(`app`),$ov=document.getElementById(`overlay`);
@@ -229,10 +232,14 @@ function placeholderSVG(style){
    <path d="M132 208q18 9 36 0q-18 12-36 0z" class="ph-lip"/>
   </svg>`;
 }
-function portrait({on=[],spots=0,shift=0,cls=``,importBtn=false,detect=null,focus=`all`}={}){
-  const src=photoSrc(),st=shift?`transform:scale(1.14) translateX(${shift}%)`:``;
+function portrait({on=[],spots=0,shift=0,cls=``,importBtn=false,detect=null,focus=`all`,photo,decor=false}={}){
+  /* Mode réel : seule la photo de l'utilisateur est affichée (celle de l'analyse, ou la photo en attente pendant le scan). Ni zones ni pastilles :
+     le backend ne renvoie aucune localisation. `decor` : visuel d'illustration de la page d'accueil uniquement. */
+  const live=!DEMO_MODE&&!decor;
+  if(live){on=[];detect=null;spots=0}
+  const src=live?(photo||(state.route===`scan`||state.route===`analyzing`?state.realPreview:``)):photoSrc(),st=shift?`transform:scale(1.14) translateX(${shift}%)`:``;
   const Zs=src?PHOTO_ZONES:PORTRAIT_ZONES,Bs=src?PHOTO_BADGES:PORTRAIT_BADGES,vb=src?`0 0 300 300`:`0 0 300 375`;
-  const media=src?`<img src="${src}" alt="Photo de démonstration d'une personne fictive" style="${st}">`:placeholderSVG(st);
+  const media=src?`<img src="${src}" alt="${live?`Votre photo`:`Photo de démonstration d'une personne fictive`}" style="${st}">`:placeholderSVG(st);
   const zs=Object.keys(Zs).map(k=>{const z=Zs[k];return `<g class="z ${on.includes(k)?`on`:``}" data-z="${k}"><ellipse cx="${z.cx}" cy="${z.cy}" rx="${z.rx}" ry="${z.ry}"/></g>`}).join(``);
   const sp=src?``:SPOTS.slice(0,spots).map(p=>`<circle class="sp" cx="${p[0]}" cy="${p[1]}" r="2.4"/>`).join(``);
   let defs=``,badges=``;
@@ -275,6 +282,17 @@ function gchart(list){
    ${P.map((p,i)=>`<circle class="gl-dot" cx="${p[0]}" cy="${p[1]}" r="5.5"/><text class="gv" x="${p[0]}" y="${p[1]-15}" text-anchor="middle">${list[i].global}</text><text class="gd" x="${p[0]}" y="${h-12}" text-anchor="middle">${list[i].short}</text>`).join(``)}</svg>`;
 }
 const have=(s,id)=>Number.isFinite(s[id]);
+const emptyScan=(title,msg,opt={})=>shell(`<div class="pagehead"><h1>${title}</h1><p>${msg}</p></div><div style="max-width:420px"><button class="btn btn-primary btn-block" data-go="scan">Faire une analyse</button></div>`,opt);
+/* Mode réel : la progression n'existe qu'à partir de deux vraies analyses, avec leurs vraies valeurs. */
+const realTrend=()=>{
+  const g=SCANS.filter(x=>x.real&&Number.isFinite(x.global));
+  if(g.length<2)return ``;
+  return `<section><div class="hd"><h2 class="h3">Progression</h2></div>
+      <button class="mcard" data-go="progress" style="width:100%"><div class="r1"><b>Équilibre cutané</b><span class="tagx">${g.length} analyses</span></div><div class="r3"><span class="v">${g[0].global} → ${g[g.length-1].global}</span>${spark(g.map(x=>x.global))}</div></button></section>`;
+};
+/* Mode réel : le backend ne localise rien, les phrases décrivant des zones du visage sont réservées à la démonstration. */
+const REAL_TXT={3:`Cet indicateur demande une attention particulière.`,2:`Cet indicateur demande une attention modérée.`,1:`Cet indicateur demande peu d'attention.`};
+const EMPTY_MSG=`Aucune analyse pour le moment. Faites votre première analyse pour voir vos résultats ici.`;
 const LV={3:`Élevé`,2:`Modéré`,1:`Faible`};
 /* Un niveau élevé signifie toujours davantage de besoin d'attention. Les scores bruts restent dans les données. */
 const amount=(id,s)=>(CONCERNS[id]&&CONCERNS[id].better===`higher`)?100-s[id]:s[id];
@@ -284,7 +302,7 @@ const lvl=(id,s)=>{const t=tierOf(id,s);return `<span class="lvl t${t}">${LV[t]}
 const lbar=t=>`<span class="lb t${t}" aria-hidden="true"><i></i><i></i><i></i></span>`;
 const disc=()=>`<div class="note">${ic(`info`)}<span>Analyse cosmétique visuelle et conseils de soin. Ce n'est pas un diagnostic médical.</span></div>`;
 const inRoutine=id=>[...AM,...PM].some(s=>s.p===id);
-const initial=()=>esc((state.user.name||`A`).trim().charAt(0).toUpperCase());
+const initial=()=>state.user.name.trim()?esc(state.user.name.trim().charAt(0).toUpperCase()):DEMO_MODE?`A`:ic(`user`);
 const pad=n=>String(n).padStart(2,`0`);
 const verdict=(id,a,b)=>{const x=amount(id,a),y=amount(id,b);return y<x-2?[`Plus équilibrée`,`t2`]:y>x+2?[`À observer`,`t3`]:[`Stable`,`t1`]};
 const activeCard=(a,i)=>`<div class="acard"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${ACTIVES[a].name}</b><div class="chips">${ACTIVES[a].for.map(f=>`<span class="tagx">${f}</span>`).join(``)}</div></div><button class="btn btn-soft btn-sm" data-go="active:${a}">Découvrir</button></div>`;
@@ -316,7 +334,7 @@ V.landing=()=>{
       ${DEMO_MODE?`<div style="margin-top:20px">${demoTag()}</div>`:``}
     </div>
     <div class="hero-art">
-      <div class="facebox">${portrait({on:ZONES_BY.all,detect:SCANS[0],importBtn:true})}</div>
+      <div class="facebox">${portrait({on:ZONES_BY.all,detect:SCANS[0],importBtn:true,decor:true})}</div>
     </div>
   </div>
   <div class="wrap"><div class="flowstrip" aria-label="Le principe">
@@ -344,7 +362,7 @@ V.landing=()=>{
       </div>
     </div>
     <div>
-      <div class="facebox">${portrait({on,detect:SCANS[0],focus:state.sel})}<div class="facecap">${state.sel===`all`?`Touchez une préoccupation pour voir les zones concernées.`:`Zones concernées : ${CONCERNS[state.sel].zones.toLowerCase()}.`}</div></div>
+      <div class="facebox">${portrait({on,detect:SCANS[0],focus:state.sel,decor:true})}<div class="facecap">${state.sel===`all`?`Touchez une préoccupation pour voir les zones concernées.`:`Zones concernées : ${CONCERNS[state.sel].zones.toLowerCase()}.`}</div></div>
       <div class="chips" style="margin-top:16px;justify-content:center">${CIDS.map(c=>`<button class="chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
     </div>
   </div></section>
@@ -403,7 +421,7 @@ V.signup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn" dat
     <button class="btn btn-ghost btn-block" data-act="signup">Continuer avec Google</button>
     <button class="btn btn-ghost btn-block" data-act="signup">Continuer avec Apple</button>
   </div><p class="muted" style="margin-top:22px">Maquette : aucun compte réel n'est créé.</p></div></div>`;
-V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><span class="brand" style="margin-bottom:34px">DERMAI</span><h1>Bienvenue sur DERMAI, ${esc(state.user.name)}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="btn btn-primary" data-go="onb:1">Commencer</button></div>`;
+V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><span class="brand" style="margin-bottom:34px">DERMAI</span><h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="btn btn-primary" data-go="onb:1">Commencer</button></div>`;
 
 /* Onboarding */
 V.onb=n=>{
@@ -419,14 +437,15 @@ V.onb=n=>{
 
 /* Accueil */
 V.home=()=>{
+  if(noReal())return emptyScan(`Votre peau aujourd'hui`,EMPTY_MSG);
   const s=SCANS[state.latest],rk=ranked(s),steps=state.tab===`am`?AM:PM,key=state.tab;
   const doneN=steps.filter((_,i)=>state.done[key+i]).length;
   const top2=rk.slice(0,2).map(id=>CONCERNS[id].label.toLowerCase());
   return shell(`
-  <header class="hello"><div><p class="kicker">Bonjour ${esc(state.user.name)}</p><h1>Votre peau aujourd'hui</h1></div><button class="avatar" data-go="profile" data-reset="1" aria-label="Mon profil">${initial()}</button></header>
+  <header class="hello"><div><p class="kicker">Bonjour${state.user.name?` ${esc(state.user.name)}`:``}</p><h1>Votre peau aujourd'hui</h1></div><button class="avatar" data-go="profile" data-reset="1" aria-label="Mon profil">${initial()}</button></header>
   <div class="grid2">
    <div class="col">
-    <section class="skin-now"><div class="mf">${portrait({on:rk.length?ZONES_BY[rk[0]]:[]})}</div>
+    <section class="skin-now"><div class="mf">${portrait({on:rk.length?ZONES_BY[rk[0]]:[],photo:s.photo})}</div>
       <div class="txt"><p class="kicker">Profil cutané</p><p class="big" style="font-size:2.9rem;margin:6px 0 10px">${s.skinType||`Profil en cours`}</p>${have(s,`global`)?`<p class="muted">Équilibre cutané <b style="color:var(--ink)">${s.global}</b></p>`:``}${top2.length?`<p class="muted" style="margin-top:4px">Priorités : ${top2.join(` et `)}.</p>`:``}</div>
       <button class="btn btn-primary btn-sm" data-go="result" data-act="setview" data-v="${state.latest}">Voir mon analyse</button></section>
     <section><div class="hd"><h2 class="h3">Préoccupations</h2></div>${rk.slice(0,3).map(id=>`<button class="mini" data-go="concern:${id}"><span class="nm"><b>${CONCERNS[id].label}</b></span>${lvl(id,s)}<span style="margin-left:8px">${ic(`chev`)}</span></button>`).join(``)}</section>
@@ -439,9 +458,10 @@ V.home=()=>{
       <div class="seg" role="group" aria-label="Moment de la journée"><button data-act="tab" data-v="am" aria-pressed="${state.tab===`am`}">${ic(`sun`)}Matin</button><button data-act="tab" data-v="pm" aria-pressed="${state.tab===`pm`}">${ic(`moon`)}Soir</button></div>
       <div style="margin-top:10px">${steps.map((st,i)=>`<div class="rowlink"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${st.step}</b><span class="s">${PRODUCTS.find(p=>p.id===st.p).name}</span></div><button class="check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${st.step} comme fait">${ic(`check`)}</button></div>`).join(``)}</div>
       <button class="link" data-go="routine">Voir toute la routine</button></section>
-    <section><div class="hd"><h2 class="h3">Progression</h2></div>
+    ${DEMO_MODE?`<section><div class="hd"><h2 class="h3">Progression</h2></div>
       <button class="mcard" data-go="progress" style="width:100%"><div class="r1"><b>Équilibre cutané</b><span class="tagx">Jour 1 à jour 30</span></div><div class="r3"><span class="v">61 → 64</span>${spark([61,62,64])}</div></button></section>
-    <section class="next"><div class="cal"><div><b>30</b><small>oct.</small></div></div><div style="flex:1"><b>Prochain scan</b><p class="muted">Dans 31 jours</p></div><button class="btn btn-soft btn-sm" data-go="scan">Analyser</button></section>
+    <section class="next"><div class="cal"><div><b>30</b><small>oct.</small></div></div><div style="flex:1"><b>Prochain scan</b><p class="muted">Dans 31 jours</p></div><button class="btn btn-soft btn-sm" data-go="scan">Analyser</button></section>`:`${realTrend()}
+    <section class="next"><div style="flex:1"><b>Nouvelle analyse</b><p class="muted">Refaites un scan quand vous le souhaitez.</p></div><button class="btn btn-soft btn-sm" data-go="scan">Analyser</button></section>`}
    </div>
   </div>`);
 };
@@ -456,7 +476,7 @@ V.scan=()=>{
   if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="btn btn-primary btn-block" data-act="scan-start" style="margin-top:26px">Commencer le scan</button><p class="muted" style="margin-top:14px;text-align:center">Vos photos servent à analyser votre peau.</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
   if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto"><div class="thumbs">${(DEMO_MODE?SHOT:SHOT.slice(0,1)).map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>
    <div class="panel" style="margin:22px 0;display:flex;gap:14px;align-items:center"><span style="color:var(--accent)">${ic(DEMO_MODE||!state.scanError?`check`:`info`)}</span>${DEMO_MODE?`<div><b>Qualité de l'image : excellente</b><p class="muted">Lumière et cadrage corrects sur les trois photos.</p></div>`:state.scanError?`<div role="alert"><b>Analyse impossible</b><p class="muted">${esc(state.scanError)}</p></div>`:`<div><b>Photo prête</b><p class="muted">Le cadrage et la lumière sont vérifiés pendant l'analyse.</p></div>`}</div>
-   <button class="btn btn-primary btn-block" data-go="analyzing">Analyser ma peau</button></div></div>`;
+   <button class="btn btn-primary btn-block" data-go="analyzing">${state.scanError?`Réessayer`:`Analyser ma peau`}</button></div></div>`;
   const s=SHOT[st-1];
   return `<div class="scan">${head}<div class="scan-grid"><div><div class="segs">${(DEMO_MODE?[1,2,3]:[1]).map(i=>`<i class="${i<=st?`on`:``}"></i>`).join(``)}</div>
    <h2 class="cam-h">${st===1?`Positionnez votre visage<br>au centre`:st===2?`Tournez doucement<br>la tête vers la droite`:`Tournez doucement<br>la tête vers la gauche`}</h2>
@@ -474,6 +494,7 @@ V.analyzing=()=>`<div class="an"><p class="pill-up">Analyse en cours</p><div cla
 
 /* Résultat */
 V.result=()=>{
+  if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
   const s=SCANS[state.view],rk=ranked(s),on=ZONES_BY[state.sel]||ZONES_BY.all;
   const caption=state.sel===`all`?`Touchez une préoccupation pour voir les zones concernées.`:`${CONCERNS[state.sel].label} : ${CONCERNS[state.sel].zones.toLowerCase()}.`;
   const ex=EXTRA.filter(e=>have(s,e[0]));
@@ -481,10 +502,10 @@ V.result=()=>{
   <div class="pagehead"><p class="kicker">Analyse du ${s.date}</p><h1>Votre analyse</h1></div>
   <div class="grid2 lw">
    <div class="col sticky-d">
-    <div class="rcard">${portrait({on,detect:s,focus:state.sel})}
+    <div class="rcard">${portrait({on,detect:s,focus:state.sel,photo:s.photo})}
       <div class="rc-row"><div><p class="kicker">Votre peau aujourd'hui</p><p class="rc-type">${s.skinType||`Profil cutané`}</p></div>${have(s,`global`)?`<div class="rc-score"><b>${s.global}</b><span>Équilibre cutané</span></div>`:``}</div>
-      <p class="facecap" style="padding:0 12px 14px;text-align:left">${caption} Notes de 0 à 10 : plus le chiffre est élevé, plus la zone demande d'attention.</p></div>
-    <div class="chips" style="justify-content:center"><button class="chip" data-act="zone" data-v="all" aria-pressed="${state.sel===`all`}">Tout</button>${CIDS.filter(c=>have(s,c)).map(c=>`<button class="chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
+      ${DEMO_MODE?`<p class="facecap" style="padding:0 12px 14px;text-align:left">${caption} Notes de 0 à 10 : plus le chiffre est élevé, plus la zone demande d'attention.</p>`:``}</div>
+    ${DEMO_MODE?`<div class="chips" style="justify-content:center"><button class="chip" data-act="zone" data-v="all" aria-pressed="${state.sel===`all`}">Tout</button>${CIDS.filter(c=>have(s,c)).map(c=>`<button class="chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>`:``}
    </div>
    <div class="col">
     <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>
@@ -498,15 +519,17 @@ V.result=()=>{
 
 /* Préoccupation */
 V.concern=id=>{
-  id=CONCERNS[id]?id:`pigmentation`;const c=CONCERNS[id],s=SCANS[state.view];
+  id=CONCERNS[id]?id:`pigmentation`;const c=CONCERNS[id];
+  if(noReal())return emptyScan(c.label,EMPTY_MSG,{back:true,title:c.label});
+  const s=SCANS[state.view];
   if(!have(s,id))return shell(`<div class="pagehead"><h1>${c.label}</h1><p>Cette information n'est pas disponible pour cette analyse.</p></div>`,{back:true,title:c.label});
   const t=tierOf(id,s);
   return shell(`
   <div class="chips" style="margin-bottom:22px">${CIDS.filter(k=>have(s,k)).map(k=>`<button class="chip" data-go="concern:${k}" aria-pressed="${k===id}">${CONCERNS[k].label}</button>`).join(``)}</div>
   <div class="grid2">
    <div class="col">
-    <section><h1>${c.label}</h1><div style="display:flex;gap:12px;align-items:center;margin:16px 0 12px"><span class="lvl t${t}">${LV[t]}</span><span class="muted">Besoin d'attention</span></div>${lbar(t)}<p style="margin-top:18px;font-size:18px;color:var(--ink)">${c.txt[t]}</p></section>
-    <section class="facebox">${portrait({on:ZONES_BY[id],spots:id===`pigmentation`?Math.round(s.pigmentation/8):0})}<div class="facecap" style="padding-bottom:6px">Zones : ${c.zones.toLowerCase()}</div></section>
+    <section><h1>${c.label}</h1><div style="display:flex;gap:12px;align-items:center;margin:16px 0 12px"><span class="lvl t${t}">${LV[t]}</span><span class="muted">Besoin d'attention</span></div>${lbar(t)}<p style="margin-top:18px;font-size:18px;color:var(--ink)">${DEMO_MODE?c.txt[t]:REAL_TXT[t]}</p></section>
+    <section class="facebox">${portrait({on:ZONES_BY[id],spots:id===`pigmentation`?Math.round(s.pigmentation/8):0,photo:s.photo})}${DEMO_MODE?`<div class="facecap" style="padding-bottom:6px">Zones : ${c.zones.toLowerCase()}</div>`:``}</section>
    </div>
    <div class="col">
     <section><div class="hd"><h2 class="h3">Ce qui peut aider</h2></div><p class="muted" style="margin-bottom:14px">Recommandations cosmétiques générales, pas un traitement.</p><div class="stack" style="gap:12px">${c.actives.map((a,i)=>activeCard(a,i)).join(``)}</div></section>
@@ -566,19 +589,21 @@ function productSheet(id){
 
 /* Progression */
 V.progress=()=>{
-  const lastIdx=SCANS.length-1,end=Math.min(state.period,lastIdx),A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)],range=SCANS.slice(0,end+1),first=SCANS[0],last=SCANS[end];
+  if(noReal())return emptyScan(`Votre progression`,EMPTY_MSG);
+  if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre progression`,`Une seule analyse pour le moment. La progression apparaîtra dès votre deuxième analyse.`);
+  const lastIdx=SCANS.length-1,end=DEMO_MODE?Math.min(state.period,lastIdx):lastIdx,A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)],range=SCANS.slice(0,end+1),first=SCANS[0],last=SCANS[end];
   const opt=(sel)=>SCANS.map(s=>`<option value="${s.id}" ${s.id===sel?`selected`:``}>${s.date}</option>`).join(``);
   const ids=CIDS.filter(id=>have(first,id)&&have(last,id));
   return shell(`<div class="pagehead"><h1>Votre peau évolue.</h1><p>Votre analyse est comparée à vos précédentes observations. Ce sont des indicateurs de suivi cosmétique.</p></div>
-  <div class="seg" role="group" aria-label="Période" style="margin-bottom:22px"><button data-act="period" data-v="1" aria-pressed="${end===1}">30 jours</button><button data-act="period" data-v="2" aria-pressed="${end===2}">60 jours</button></div>
+  ${DEMO_MODE?`<div class="seg" role="group" aria-label="Période" style="margin-bottom:22px"><button data-act="period" data-v="1" aria-pressed="${end===1}">30 jours</button><button data-act="period" data-v="2" aria-pressed="${end===2}">60 jours</button></div>`:``}
   <div class="panel" style="margin-bottom:14px"><p class="kicker">Équilibre cutané</p>${gchart(range)}</div>
   <div class="mcards">${ids.map(id=>{const t0=tierOf(id,first),t1=tierOf(id,last),v=verdict(id,first,last);return `<div class="mcard"><div class="r1"><b>${CONCERNS[id].label}</b><span class="lvl ${v[1]}">${v[0]}</span></div><div class="lv-change"><span class="lvl t${t0}">${LV[t0]}</span>${ic(`arrow`)}<span class="lvl t${t1}">${LV[t1]}</span></div><div class="r3"><span class="muted">Besoin d'attention</span>${spark(range.map(s=>amount(id,s)))}</div></div>`}).join(``)}</div>
   <div class="grid2" style="margin-top:44px"><section><div class="hd"><h2 class="h3">Avant, maintenant</h2></div>
    <div class="cmp" id="cmpbox"><span class="tagl" style="left:14px">Avant</span><span class="tagl" style="right:14px">Maintenant</span>
-    <div class="layer">${portrait({on:[`jg`,`jd`],spots:have(B,`pigmentation`)?Math.round(B.pigmentation/8):0})}</div>
-    <div class="layer top" id="cmpTop">${portrait({on:[`jg`,`jd`],spots:have(A,`pigmentation`)?Math.round(A.pigmentation/8):0})}</div>
+    <div class="layer">${portrait({on:[`jg`,`jd`],spots:have(B,`pigmentation`)?Math.round(B.pigmentation/8):0,photo:B.photo})}</div>
+    <div class="layer top" id="cmpTop">${portrait({on:[`jg`,`jd`],spots:have(A,`pigmentation`)?Math.round(A.pigmentation/8):0,photo:A.photo})}</div>
     <div class="handle" id="cmpH"></div><input type="range" id="cmp" min="0" max="100" value="50" aria-label="Faire glisser pour comparer avant et maintenant"></div>
-   <p class="muted" style="margin-top:10px">Démonstration : les deux côtés montrent la même photo tant qu'il n'y a qu'une seule image. Vos vraies photos apparaîtront ici.</p></section>
+   ${DEMO_MODE?`<p class="muted" style="margin-top:10px">Démonstration : les deux côtés montrent la même photo tant qu'il n'y a qu'une seule image. Vos vraies photos apparaîtront ici.</p>`:``}</section>
    <section><div class="hd"><h2 class="h3">Comparer deux analyses</h2></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px"><label class="sr" for="sa">Avant</label><select class="sel" id="sa" data-change="cmpA">${opt(state.cmpA)}</select><label class="sr" for="sb">Maintenant</label><select class="sel" id="sb" data-change="cmpB">${opt(state.cmpB)}</select></div>
     <table class="t"><thead><tr><th></th><th>${A.date}</th><th>${B.date}</th></tr></thead><tbody>${CIDS.filter(id=>have(A,id)&&have(B,id)).map(id=>`<tr><td>${CONCERNS[id].label}</td><td>${LV[tierOf(id,A)]}</td><td>${LV[tierOf(id,B)]}</td></tr>`).join(``)}${have(A,`global`)&&have(B,`global`)?`<tr><td><b>Équilibre cutané</b></td><td>${A.global}</td><td>${B.global}</td></tr>`:``}</tbody></table>
@@ -586,20 +611,20 @@ V.progress=()=>{
 };
 
 /* Historique */
-V.analyses=()=>shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
+V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
   <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const rk=ranked(s);return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b><p class="muted" style="margin:4px 0 10px">${s.skinType||`Profil cutané`}${have(s,`global`)?`, équilibre cutané ${s.global}`:``}</p><div class="chips">${rk.slice(0,2).map(id=>`<span class="tagx">${CONCERNS[id].label}</span>`).join(``)}</div></div><button class="btn btn-soft btn-sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
 
 /* Profil */
 const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
 V.profile=()=>{
-  const s=SCANS[state.latest],goals=GOALS.filter(g=>state.goals.includes(g[0]));
-  return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)}</h1><p class="muted">${esc(state.user.email)}</p></div></div></div>
+  const none=noReal(),s=none?{}:SCANS[state.latest],goals=GOALS.filter(g=>state.goals.includes(g[0]));
+  return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
-   <section class="sand"><p class="kicker">Profil cutané</p><p class="big" style="font-size:2.6rem;margin:6px 0 14px">${s.skinType||`Profil en cours`}</p><div class="chips">${ranked(s).slice(0,4).map(c=>`<span class="tagx">${CONCERNS[c].label}</span>`).join(``)}</div></section>
+   <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:2.6rem;margin:6px 0 14px">${s.skinType||`Profil en cours`}</p><div class="chips">${ranked(s).slice(0,4).map(c=>`<span class="tagx">${CONCERNS[c].label}</span>`).join(``)}</div>`}</section>
    <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><div class="chips">${goals.length?goals.map(g=>`<span class="tagx">${g[1]}</span>`).join(``):`<span class="muted">Aucun objectif choisi.</span>`}</div></section>
    <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}${sw(`tips`,`Conseils personnalisés`,`Selon votre profil et votre routine`)}</section>
   </div><div class="col">
-   <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${SCANS.length} analyses</span></div>${ic(`chev`)}</button>
+   <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
    <button class="rowlink" data-go="privacy">${ic(`shield`)}<div class="grow"><b>Confidentialité et données</b><span class="s">Photos, historique, compte</span></div>${ic(`chev`)}</button>
    ${DEMO_MODE?`<button class="rowlink" data-act="pick-photo">${ic(`image`)}<div class="grow"><b>Photo de démonstration</b><span class="s">${photoSrc()?`Importée. Touchez pour la remplacer.`:`Importer une image générée par IA (personne fictive)`}</span></div>${ic(`chev`)}</button>${state.photo?`<button class="rowlink" data-act="clear-photo">${ic(`trash`)}<div class="grow"><b>Retirer la photo de démonstration</b></div></button>`:``}`:``}
    <button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div></button>
@@ -632,6 +657,7 @@ function go(route,param=null,{reset=false,replace=false,keepScan=false}={}){
   if(reset)state.stack=[];
   else if(!replace&&!NOSTACK.has(state.route)&&state.route!==route)state.stack.push({route:state.route,param:state.param});
   if(route===`scan`&&state.route!==`scan`&&!keepScan){state.scanStep=0;state.shots=[false,false,false];state.retake=false;if(!DEMO_MODE)clearReal()}
+  if(!DEMO_MODE&&route!==`scan`&&route!==`analyzing`)clearReal();
   state.route=route;state.param=param;render();scrollTo(0,0);
 }
 function back(){const p=state.stack.pop();if(p){go(p.route,p.param,{replace:true})}else go(`home`,null,{replace:true})}
@@ -783,7 +809,7 @@ function act(a,v,el){
     case `back`:back();break;
     case `close`:closeSheet();break;
     case `scroll`:document.getElementById(v).scrollIntoView({behavior:`smooth`});break;
-    case `signup`:{const n=document.getElementById(`f-name`),m=document.getElementById(`f-mail`);state.user.name=(n&&n.value.trim())||`Amina`;state.user.email=(m&&m.value.trim())||`amina@exemple.com`;go(`welcome`);break}
+    case `signup`:{const n=document.getElementById(`f-name`),m=document.getElementById(`f-mail`);state.user.name=(n&&n.value.trim())||(DEMO_MODE?`Amina`:``);state.user.email=(m&&m.value.trim())||(DEMO_MODE?`amina@exemple.com`:``);go(`welcome`);break}
     case `goal`:toggle(state.goals,v);render(true);break;
     case `level`:state.level=v;render(true);break;
     case `cat`:if(v===`none`)state.cats=state.cats.includes(`none`)?[]:[`none`];else{state.cats=state.cats.filter(c=>c!==`none`);toggle(state.cats,v)}render(true);break;
