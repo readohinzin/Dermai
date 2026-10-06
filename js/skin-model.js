@@ -15,15 +15,14 @@
      L'OpenAPI documente ces formes avec « hd_skin_type » ; la documentation décrit la même structure pour l'action SD `skin_type`.
      Tout autre type (dont resize_image) est ignoré. mask_urls, url et tout champ non listé ne sont jamais lus.
 
-   TROIS COUCHES, JAMAIS MÉLANGÉES
+   DEUX COUCHES
    1. normalized : donnée Perfect Corp renommée. Aucun calcul DERMAI.
         { <métrique>: { rawScore, uiScore }, globalScore, skinType: { whole, tZone, uZone }, skinAge }
-   2. derived    : transformations DERMAI. concernScore = 100 − rawScore (pour toute métrique ayant un rawScore).
-   3. display    : adaptation à l'interface actuelle (valeurs à plat). C'est le seul endroit qui suit la convention
-                   de l'interface (par exemple l'hydratation lue « plus haut = mieux »).
+   2. affichage  : toResultView, compareScans, globalSeries (section « Modèle de score de l'interface »). Une seule échelle,
+        0 à 100, 100 = meilleur, lue dans uiScore (métriques) et globalScore (global). rawScore n'est jamais utilisé à l'affichage.
 
    RÈGLES
-   - rawScore n'est jamais modifié, arrondi ni remplacé. uiScore reste indépendant, jamais utilisé à la place de rawScore.
+   - rawScore n'est jamais modifié, arrondi ni remplacé : donnée technique, ni affichée ni utilisée en repli de uiScore.
    - Perfect Corp : score élevé = meilleure condition cutanée : globalScore ne serait jamais inversé.
    - mask_urls et url sont ignorés : aucune URL ne quitte le serveur.
    - globalScore (all.score), skinAge (skin_age.score) et skinType : alimentés seulement par les formes ci-dessus. Absents ou invalides,
@@ -62,9 +61,6 @@
   ];
   const METRIC_KEYS = METRICS.map(m => m[1]);
   const PC_KEYS = new Set(METRICS.map(m => m[0]));
-
-  /* Clés que l'interface actuelle affiche. Les autres restent dans le modèle seulement. */
-  const UI_KEYS = ['acne', 'pigmentation', 'pores', 'oiliness', 'hydration', 'redness', 'texture', 'wrinkles'];
 
   /* Libellés français des 8 valeurs documentées de skin_type (clé = valeur en minuscules, espaces simplifiés).
      Valeur inconnue : aucun libellé (null), jamais inventé. `desc` : description neutre de l'aspect, sans conseil ni diagnostic. */
@@ -194,31 +190,7 @@
     return n;
   }
 
-  /* ---------- 3. Couche derived : transformation DERMAI, explicite et séparée ---------- */
-  /* concernScore = 100 − rawScore : plus la valeur est haute, plus la préoccupation est importante. */
-  const concernScore = rawScore => (num(rawScore) === null ? null : 100 - rawScore);
-
-  function deriveConcern(normalized) {
-    const concern = {};
-    for (const key of METRIC_KEYS) concern[key] = concernScore(normalized && normalized[key] ? normalized[key].rawScore : null);
-    return { concernScore: concern };
-  }
-
-  /* ---------- 4. Couche display : adaptation à l'interface actuelle ----------
-     `goodWhenHigh` : clés que l'interface lit déjà en « plus haut = mieux » (elle les inverse elle-même, ex. l'hydratation).
-     Elles reçoivent le rawScore tel quel ; les autres reçoivent le concernScore. normalized et derived ne sont pas modifiés.
-     globalScore n'est jamais inversé ; il n'est arrondi qu'ici, pour l'affichage. */
-  function toDisplay(normalized, derived, { goodWhenHigh = [] } = {}) {
-    const n = normalized || {}, c = (derived && derived.concernScore) || {};
-    const view = {};
-    const label = n.skinType ? SKIN_TYPE_LABELS[skinTypeKey(n.skinType.whole)] : undefined;
-    view.skinType = label || null;
-    for (const key of UI_KEYS) view[key] = goodWhenHigh.includes(key) ? (n[key] ? n[key].rawScore : null) : (c[key] === undefined ? null : c[key]);
-    view.global = num(n.globalScore) === null ? null : Math.round(n.globalScore);
-    return view;
-  }
-
-  /* ---------- 5. Modèle de score de l'interface (écran Résultat) ----------
+  /* ---------- 3. Modèle de score de l'interface (écran Résultat) ----------
      Entrée : normalized seulement. Aucune connaissance de Perfect Corp au-delà des noms de champs déjà renommés.
      Échelle unique : 0 à 100, 100 = meilleur état.
        - métriques : uiScore, tel que reçu. rawScore n'est jamais lu ici (donnée technique, ni affichée, ni utilisée en repli).
@@ -276,6 +248,30 @@
     };
   }
 
+  /* ---------- 4. Évolution entre deux analyses (écran Progression) ----------
+     Même échelle et même validité que ci-dessus. Évolution = après − avant, sur les entiers affichés (100 = meilleur : + = mieux).
+     Plus de TREND_STEP : Amélioration ; entre −TREND_STEP et +TREND_STEP inclus : Stable ; moins de −TREND_STEP : Baisse.
+     TREND_STEP = 2 est une convention d'interface DERMAI, pas une règle Perfect Corp.
+     Si le score manque dans l'une des deux analyses (absent, invalide ou hors plage) : indisponible, jamais 0 ni autre valeur. */
+  const TREND_STEP = 2;
+  const TREND_LABELS = { up: 'Amélioration', same: 'Stable', down: 'Baisse' };
+  function compareScores(before, after) {
+    const b = displayScore(before), a = displayScore(after);
+    if (b === null || a === null) return { available: false, before: b, after: a, delta: null, trend: null, trendLabel: null };
+    const delta = a - b, trend = delta > TREND_STEP ? 'up' : delta < -TREND_STEP ? 'down' : 'same';
+    return { available: true, before: b, after: a, delta, trend, trendLabel: TREND_LABELS[trend] };
+  }
+  function compareScans(from, to) {
+    const A = isObj(from) ? from : {}, B = isObj(to) ? to : {};
+    return {
+      global: compareScores(A.globalScore, B.globalScore),
+      metrics: METRIC_KEYS.map(key => Object.assign({ key, label: METRIC_LABELS[key] },
+        compareScores(isObj(A[key]) ? A[key].uiScore : null, isObj(B[key]) ? B[key].uiScore : null)))
+    };
+  }
+  /* Score global de chaque analyse, dans l'ordre reçu : entier 0-100, ou null. Un null reste null (jamais 0, jamais un point inventé). */
+  const globalSeries = list => (Array.isArray(list) ? list : []).map(n => displayScore(isObj(n) ? n.globalScore : null));
+
   /* Libellés de date de l'historique (« 5 octobre », « 5 OCT »). */
   function scanLabels(date) {
     const d = date instanceof Date ? date : new Date();
@@ -285,9 +281,9 @@
   }
 
   return {
-    SCHEMA_VERSION, METRICS, METRIC_KEYS, UI_KEYS, SKIN_TYPE_LABELS, OUTPUT_PATH, BANDS, METRIC_LABELS,
+    SCHEMA_VERSION, METRICS, METRIC_KEYS, SKIN_TYPE_LABELS, OUTPUT_PATH, BANDS, METRIC_LABELS,
     parseSkinResponse, sanitizeNormalized,
-    concernScore, deriveConcern, toDisplay, scanLabels,
-    displayScore, scoreBand, displayAge, toResultView
+    scanLabels,
+    displayScore, scoreBand, displayAge, toResultView, TREND_STEP, compareScores, compareScans, globalSeries
   };
 });

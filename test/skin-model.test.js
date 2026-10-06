@@ -20,7 +20,6 @@ const SPEC = {
   age_spot: 'pigmentation', wrinkle: 'wrinkles', firmness: 'firmness', radiance: 'radiance', eye_bag: 'eyeBag',
   tear_trough: 'tearTrough', dark_circle_v2: 'darkCircle', droopy_upper_eyelid: 'droopyUpperEyelid', droopy_lower_eyelid: 'droopyLowerEyelid'
 };
-const UI_KEYS = ['acne', 'pigmentation', 'pores', 'oiliness', 'hydration', 'redness', 'texture', 'wrinkles'];
 const clone = o => JSON.parse(JSON.stringify(o));
 const OUT = JSON_RESP.data.results.output;                          // 20 éléments : 15 métriques + 3 skin_type + all + skin_age
 const METRIC_OUT = OUT.filter(e => SPEC[e.type]);                   // les 15 métriques seules
@@ -159,9 +158,10 @@ test('K6 absence de ces éléments : valeurs nulles, sans NaN ni valeur inventé
   for (const v of [r.normalized.globalScore, r.normalized.skinAge]) assert.ok(v === null && !Number.isNaN(v));
   assert.ok(!JSON.stringify(r.normalized.skinType).includes('NaN'));
   assert.deepEqual(r.types.sort(), Object.keys(SPEC).sort());
-  const d = M.deriveConcern(r.normalized), v = M.toDisplay(r.normalized, d);
-  assert.strictEqual(v.global, null);
+  const v = M.toResultView(r.normalized);
+  assert.strictEqual(v.global.score, null);
   assert.strictEqual(v.skinType, null);
+  assert.strictEqual(v.skinAge, null);
 });
 
 test('K7 valeurs invalides pour all et skin_age : null, sans crash', () => {
@@ -209,7 +209,7 @@ test('K10 resize_image : toujours ignoré, quelle que soit sa forme', () => {
 
 test('K11 les 15 métriques restent strictement inchangées avec ou sans skin_type / all / skin_age', () => {
   assert.deepEqual(metricsOf(normOf(OUT)), metricsOf(normOf(METRIC_OUT)));
-  assert.deepEqual(M.deriveConcern(normOf(OUT)), M.deriveConcern(normOf(METRIC_OUT)));
+  assert.deepEqual(M.toResultView(normOf(OUT)).priorities, M.toResultView(normOf(METRIC_OUT)).priorities);
   for (const [type, key] of Object.entries(SPEC)) {
     const n = normOf(OUT);
     assert.strictEqual(n[key].rawScore, item(type).raw_score);
@@ -317,18 +317,19 @@ test('A18 métriques absentes : null, jamais copiées d\'une autre métrique ni 
   const n = normOf([{ type: 'acne', raw_score: 30, ui_score: 40 }]);
   assert.deepEqual(n.acne, { rawScore: 30, uiScore: 40 });
   for (const key of Object.values(SPEC).filter(k => k !== 'acne')) assert.deepEqual(n[key], { rawScore: null, uiScore: null }, key);
-  assert.strictEqual(M.deriveConcern(n).concernScore.pores, null);
+  const pores = M.toResultView(n).others.find(m => m.key === 'pores');
+  assert.strictEqual(pores.score, null);                               // absente : indisponible, jamais copiée ni calculée
 });
 
 test('A19 mapping dynamique : jeux synthétiques (dont hors plage), valeurs suivies exactement', () => {
   for (const [seed, outOfRange] of [[1, false], [7, false], [42, false], [2024, true], [99999, true]]) {
     const els = synthetic(seed, { outOfRange });
-    const n = normOf(els), d = M.deriveConcern(n);
+    const n = normOf(els), view = M.toResultView(n), shown = [...view.priorities, ...view.others];
     for (const e of els) {
       const key = SPEC[e.type];
       assert.strictEqual(n[key].rawScore, e.raw_score, `seed ${seed} ${e.type}`);
       assert.strictEqual(n[key].uiScore, e.ui_score);
-      assert.strictEqual(d.concernScore[key], 100 - e.raw_score);
+      assert.strictEqual(shown.find(m => m.key === key).score, e.ui_score, 'affichage = ui_score, jamais le raw_score');
     }
     assert.ok(!JSON.stringify(n).includes('example.invalid'));
   }
@@ -353,73 +354,35 @@ test('A20 entrées hostiles : aucune exception', () => {
   for (const x of hostiles) assert.doesNotThrow(() => M.parseSkinResponse(x));
 });
 
-/* ================= B. couche derived (transformation DERMAI) ================= */
-test('B1 concernScore = 100 − rawScore pour TOUTES les métriques ayant un rawScore', () => {
-  const d = M.deriveConcern(normOf(OUT));
-  assert.equal(Object.keys(d.concernScore).length, 15);
-  for (const [type, key] of Object.entries(SPEC)) assert.strictEqual(d.concernScore[key], 100 - item(type).raw_score, key);
+/* ================= B. plus d'ancien système de score ================= */
+test('B1 le modèle n\'expose plus concernScore, deriveConcern ni toDisplay (aucune formule 100 − rawScore)', () => {
+  for (const name of ['concernScore', 'deriveConcern', 'toDisplay', 'UI_KEYS']) assert.equal(M[name], undefined, name);
 });
 
-test('B2 derived ne modifie jamais normalized et ne dépend jamais de uiScore', () => {
-  const n = normOf(OUT), before = JSON.stringify(n), d1 = M.deriveConcern(n);
-  assert.equal(JSON.stringify(n), before);
-  const autre = clone(OUT).map(e => (SPEC[e.type] ? { ...e, ui_score: 1 } : e));
-  assert.deepEqual(M.deriveConcern(normOf(autre)), d1);
+/* ================= C. données d'affichage depuis la fixture complète ================= */
+test('C1 score global = all.score (jamais recalculé), type de peau whole en français', () => {
+  const n = normOf(OUT), v = M.toResultView(n);
+  assert.strictEqual(v.global.score, Math.round(item('all').score));
+  assert.strictEqual(n.globalScore, item('all').score);                  // normalized garde la valeur exacte
+  assert.notStrictEqual(v.global.score, 100 - Math.round(item('all').score));
+  assert.equal(v.skinType.label, 'Peau mixte');                          // whole = Combination
 });
 
-test('B3 concernScore sur valeurs hors plage : 100 − rawScore sans correction', () => {
-  assert.equal(M.concernScore(120), -20);
-  assert.equal(M.concernScore(-5), 105);
-  assert.equal(M.concernScore(0), 100);
-  for (const bad of [null, undefined, '50', NaN, Infinity]) assert.equal(M.concernScore(bad), null);
-});
-
-test('B4 derived ne contient aucun calcul sur globalScore, skinAge ni skinType', () => {
-  const d = M.deriveConcern(normOf(OUT));
-  assert.deepEqual(Object.keys(d), ['concernScore']);
-  assert.deepEqual(Object.keys(d.concernScore).sort(), Object.values(SPEC).sort());
-});
-
-/* ================= C. couche display (adaptation à l'interface) ================= */
-test('C1 display : concernScore pour les préoccupations, rawScore pour l\'hydratation (convention actuelle de l\'interface)', () => {
-  const n = normOf(OUT), d = M.deriveConcern(n), v = M.toDisplay(n, d, { goodWhenHigh: ['hydration'] });
-  for (const key of UI_KEYS) {
-    const type = Object.keys(SPEC).find(t => SPEC[t] === key);
-    assert.strictEqual(v[key], key === 'hydration' ? item(type).raw_score : 100 - item(type).raw_score, key);
-  }
-  assert.strictEqual(M.toDisplay(n, d, { goodWhenHigh: [] }).hydration, 100 - item('moisture').raw_score);
-});
-
-test('C2 hydratation : rawScore, uiScore et concernScore restent séparés et intacts malgré la convention d\'affichage', () => {
-  const n = normOf(OUT), d = M.deriveConcern(n);
-  M.toDisplay(n, d, { goodWhenHigh: ['hydration'] });
-  assert.strictEqual(n.hydration.rawScore, item('moisture').raw_score);
-  assert.strictEqual(n.hydration.uiScore, item('moisture').ui_score);
-  assert.strictEqual(d.concernScore.hydration, 100 - n.hydration.rawScore);
-});
-
-test('C3 display avec la fixture complète : global = all.score arrondi à l\'affichage seulement ; type de peau (région whole) en français', () => {
-  const n = normOf(OUT), v = M.toDisplay(n, M.deriveConcern(n));
-  assert.strictEqual(v.global, Math.round(item('all').score));
-  assert.strictEqual(n.globalScore, item('all').score);                  // la couche normalized garde la valeur exacte
-  assert.notStrictEqual(v.global, 100 - Math.round(item('all').score));
-  assert.equal(v.skinType, 'Peau mixte');                                // whole = Combination
-});
-
-test('C4 libellé du type de peau : les 8 valeurs documentées sont traduites, une valeur inconnue → null, rien d\'inventé', () => {
+test('C2 libellé du type de peau : les 8 valeurs documentées sont traduites, une valeur inconnue → aucun libellé, rien d\'inventé', () => {
   for (const [whole, attendu] of [['Oily', 'Peau grasse'], ['Dry', 'Peau sèche'], ['Normal', 'Peau normale'], ['Combination', 'Peau mixte'],
     ['Dry & Redness', 'Peau sèche avec tendance aux rougeurs'], ['Oily & Redness', 'Peau grasse avec tendance aux rougeurs'],
     ['Combination & Redness', 'Peau mixte avec tendance aux rougeurs'], ['Redness', 'Tendance aux rougeurs'], ['Zorglub', null]]) {
     const n = { ...normOf(METRIC_OUT), skinType: { whole, tZone: null, uZone: null } };
-    assert.strictEqual(M.toDisplay(n, M.deriveConcern(n)).skinType, attendu, whole);
+    const label = M.toResultView(n).skinType;
+    assert.strictEqual(label ? label.label : null, attendu, whole);
     assert.strictEqual(n.skinType.whole, whole);                         // le texte reçu est conservé tel quel dans normalized
   }
   assert.equal(M.SKIN_TYPE_LABELS.mixed, undefined);
 });
 
-test('C5 display : les régions t_zone et u_zone ne servent pas à l\'affichage actuel', () => {
+test('C3 les régions t_zone et u_zone ne servent pas à l\'affichage du type de peau', () => {
   const n = { ...normOf(METRIC_OUT), skinType: { whole: null, tZone: 'Oily', uZone: 'Dry' } };
-  assert.strictEqual(M.toDisplay(n, M.deriveConcern(n)).skinType, null);
+  assert.strictEqual(M.toResultView(n).skinType, null);
 });
 
 /* ================= D. contrôle côté navigateur ================= */
