@@ -9,7 +9,11 @@
 
    MODÈLE D'UN PRODUIT (voir validateProduct) :
      éditorial (décidé par DERMAI) : id, name, brand, category, ingredients [{ activeId | null, label }], skinTypes, targets, description, active, demo
-     commercial (jamais inventé, nul tant qu'il n'est pas vérifié) : availability, price { amount, currency }, priceSource, priceCheckedAt, vendor, url, image
+     identité vérifiée (produits réels) : status ('validated' | 'to_verify'), format, inci, sources [{ kind, label, url, checkedAt, method }], verification
+     commercial, produits RÉELS : `offers` [{ market, retailer, type, currency, price, availability, url, source, checkedAt, shipping }]. UN produit, PLUSIEURS offres,
+       chacune propre à UN pays (code ISO), avec SA devise, SON prix, SA disponibilité, SON vendeur, SA source et SA date. Aucun prix ni aucune disponibilité global(e),
+       aucune conversion de devise, aucun pays déduit d'un autre. Les champs commerciaux « plats » (price, vendor, url, availability) sont réservés à la démonstration.
+     commercial, produits de démonstration : availability, price { amount, currency }, priceSource, priceCheckedAt, vendor, url, image
    Les données commerciales n'entrent JAMAIS dans la sélection : un produit sans prix, sans vendeur ni lien reste recommandable, et un produit sans
    donnée commerciale s'affiche « Données à venir ». */
 (function (root, factory) {
@@ -28,7 +32,24 @@
   const CATEGORIES = ['cleanser', 'serum', 'moisturizer', 'spf'];           // alignées sur les étapes de la routine (cleanse, treatment, moisturize, spf)
   const SKIN_TYPES = ['all', 'normal', 'oily', 'dry', 'combination'];
   const AVAILABILITY = ['available', 'unavailable', 'coming_soon'];         // absent ou autre = « Données à venir »
-  const CURRENCIES = ['XOF', 'EUR'];                                        // XOF = FCFA (marché cible) ; aucune conversion entre devises
+  const CURRENCIES = ['XOF', 'EUR'];                                        // démonstration (champs plats) ; aucune conversion entre devises
+
+  /* ---- Offres commerciales par pays (produits réels) : l'Afrique entière, aucun pays par défaut ---- */
+  const MARKETS = { DZ: 'Algérie', AO: 'Angola', BJ: 'Bénin', BW: 'Botswana', BF: 'Burkina Faso', BI: 'Burundi', CV: 'Cap-Vert', CM: 'Cameroun', CF: 'Centrafrique', TD: 'Tchad', KM: 'Comores',
+    CG: 'Congo', CD: 'RD Congo', CI: 'Côte d\'Ivoire', DJ: 'Djibouti', EG: 'Égypte', GQ: 'Guinée équatoriale', ER: 'Érythrée', SZ: 'Eswatini', ET: 'Éthiopie', GA: 'Gabon', GM: 'Gambie',
+    GH: 'Ghana', GN: 'Guinée', GW: 'Guinée-Bissau', KE: 'Kenya', LS: 'Lesotho', LR: 'Liberia', LY: 'Libye', MG: 'Madagascar', MW: 'Malawi', ML: 'Mali', MR: 'Mauritanie', MU: 'Maurice',
+    MA: 'Maroc', MZ: 'Mozambique', NA: 'Namibie', NE: 'Niger', NG: 'Nigeria', RW: 'Rwanda', ST: 'Sao Tomé-et-Principe', SN: 'Sénégal', SC: 'Seychelles', SL: 'Sierra Leone', SO: 'Somalie',
+    ZA: 'Afrique du Sud', SS: 'Soudan du Sud', SD: 'Soudan', TZ: 'Tanzanie', TG: 'Togo', TN: 'Tunisie', UG: 'Ouganda', ZM: 'Zambie', ZW: 'Zimbabwe' };
+  const OFFER_CURRENCIES = ['XOF', 'XAF', 'NGN', 'GHS', 'KES', 'ZAR', 'MAD', 'TND', 'DZD', 'EGP', 'RWF', 'TZS', 'UGX', 'CDF', 'GNF', 'MGA', 'MUR', 'ETB', 'ZMW', 'BWP', 'NAD', 'AOA', 'MZN',
+    'GMD', 'SLE', 'LRD', 'MWK', 'SCR', 'DJF', 'KMF', 'CVE', 'STN', 'MRU', 'SDG', 'SSP', 'SOS', 'LYD', 'ERN', 'LSL', 'SZL', 'ZWL', 'BIF', 'EUR', 'USD', 'GBP'];
+  /* Une devise propre à une zone n'est acceptée que dans cette zone : un prix en FCFA hors zone FCFA (ou en naira hors Nigeria) est une erreur de saisie ou une conversion. */
+  const CURRENCY_HOME = { XOF: ['BJ', 'BF', 'CI', 'GW', 'ML', 'NE', 'SN', 'TG'], XAF: ['CM', 'CF', 'TD', 'CG', 'GQ', 'GA'], NGN: ['NG'], GHS: ['GH'], KES: ['KE'], MAD: ['MA'], ZAR: ['ZA', 'LS', 'NA', 'SZ'],
+    TND: ['TN'], DZD: ['DZ'], EGP: ['EG'], RWF: ['RW'], TZS: ['TZ'], UGX: ['UG'] };
+  const OFFER_AVAILABILITY = ['in_stock', 'out_of_stock', 'coming_soon', 'unknown'];
+  const OFFER_TYPES = ['brand_site', 'retailer', 'pharmacy', 'marketplace', 'importer'];
+  const OFFER_SHIPPING = ['local', 'international'];
+  const PRODUCT_STATUS = ['validated', 'to_verify'];
+  const SOURCE_KINDS = ['manufacturer', 'retailer', 'regulator', 'other'];
 
   const byId = (id, catalog) => (catalog || PRODUCTS).find(p => p.id === id) || null;
   const ids = p => p.ingredients.map(i => i.activeId).filter(Boolean);
@@ -36,12 +57,36 @@
   const strong = id => { const a = actives.byId(id); return !!a && a.groups.length > 0; };
   const skinOk = (p, base) => !base || p.skinTypes.includes('all') || p.skinTypes.includes(base);
   /* Un produit désactivé (`active: false`) n'est ni recommandé ni listé. */
-  const usable = catalog => (catalog || PRODUCTS).filter(p => p && p.active !== false);
+  const usable = catalog => (catalog || PRODUCTS).filter(p => p && p.active !== false && p.status !== 'to_verify');
 
   /* ---------- Validation du modèle ---------- */
   const isHttps = u => { try { const x = new URL(u); return x.protocol === 'https:' && u.length <= 500; } catch (e) { return false; } };
   const isDate = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d) && !Number.isNaN(Date.parse(d));
   const text = (v, max) => typeof v === 'string' && v.trim().length > 0 && v.length <= max;
+  const FAKE_HOST = /(^|\.)example\.(com|org|net)$|\.(example|test|invalid|localhost|local)$|^localhost$|^(\d{1,3}\.){3}\d{1,3}$/i;
+  const isRealLink = u => { if (!isHttps(u)) return false; try { return !FAKE_HOST.test(new URL(u).hostname); } catch (e) { return false; } };
+  function validateOffer(o, demo) {
+    const e = [];
+    if (!o || typeof o !== 'object') return ['offre invalide'];
+    if (!Object.prototype.hasOwnProperty.call(MARKETS, o.market)) e.push('offre : pays inconnu (code ISO attendu)');
+    if (!text(o.retailer, 80)) e.push('offre : vendeur manquant');
+    if (!OFFER_TYPES.includes(o.type)) e.push('offre : type de vendeur invalide');
+    if (!OFFER_AVAILABILITY.includes(o.availability)) e.push('offre : disponibilité invalide');
+    if (o.shipping != null && !OFFER_SHIPPING.includes(o.shipping)) e.push('offre : livraison invalide');
+    if (!text(o.source, 160)) e.push('offre : source manquante');
+    if (!isDate(o.checkedAt)) e.push('offre : date de vérification manquante');
+    if (o.url != null && !isRealLink(o.url)) e.push('offre : lien d\'achat invalide (https réel obligatoire)');
+    if (o.price != null) {
+      if (!(typeof o.price === 'number' && Number.isFinite(o.price) && o.price > 0)) e.push('offre : prix invalide');
+      if (!OFFER_CURRENCIES.includes(o.currency)) e.push('offre : un prix exige sa devise');
+    }
+    if (o.currency != null) {
+      if (!OFFER_CURRENCIES.includes(o.currency)) e.push('offre : devise inconnue');
+      else if (CURRENCY_HOME[o.currency] && Object.prototype.hasOwnProperty.call(MARKETS, o.market) && !CURRENCY_HOME[o.currency].includes(o.market)) e.push('offre : devise ' + o.currency + ' impossible dans ce pays (aucune conversion)');
+    }
+    for (const k of Object.keys(o)) if (/^(match|score|compat|percent|pourcent|converted|conversion)/i.test(k)) e.push('offre : champ interdit : ' + k);
+    return e;
+  }
   function validateProduct(p) {
     const e = [];
     if (!p || typeof p !== 'object') return ['produit absent'];
@@ -63,13 +108,46 @@
     if (typeof p.demo !== 'boolean') e.push('demo doit être vrai ou faux');
     for (const k of Object.keys(p)) if (/^(match|score|compat|percent|pourcent)/i.test(k)) e.push('champ interdit : ' + k);   // aucun score de correspondance
     for (const v of [p.name, p.description, ...(Array.isArray(p.ingredients) ? p.ingredients.map(i => i && i.label) : [])]) if (typeof v === 'string' && /\d\s?%\s?(de )?(correspondance|compatib)/i.test(v)) e.push('pourcentage de correspondance interdit');
-    // données commerciales : nulles tant qu'elles ne sont pas vérifiées
-    if (p.availability != null && !AVAILABILITY.includes(p.availability)) e.push('disponibilité invalide');
-    if (p.vendor != null && !text(p.vendor, 80)) e.push('vendeur invalide');
-    if (p.url != null && !isHttps(p.url)) e.push('lien d\'achat invalide (https obligatoire)');
-    if (p.price != null) {
-      if (typeof p.price !== 'object' || !(Number.isFinite(p.price.amount) && p.price.amount > 0) || !CURRENCIES.includes(p.price.currency)) e.push('prix invalide');
-      else if (p.demo !== true && !(text(p.priceSource, 120) && isDate(p.priceCheckedAt))) e.push('un prix réel exige sa source et sa date de relevé');
+    // offres par pays (produits réels) : chacune porte son pays, sa devise, son prix, sa disponibilité, sa source et sa date
+    if (p.offers != null) {
+      if (!Array.isArray(p.offers)) e.push('offres invalides');
+      else {
+        if (p.demo === true && p.offers.length) e.push('un produit de démonstration n\'a pas d\'offre réelle');
+        const seenOffers = new Set();
+        for (const o of p.offers) {
+          for (const m of validateOffer(o, p.demo === true)) e.push(m);
+          if (o && typeof o === 'object') { const k = [o.market, o.retailer, o.url || ''].join('|'); if (seenOffers.has(k)) e.push('offre en double'); seenOffers.add(k); }
+        }
+      }
+    }
+    if (p.demo !== true) {
+      // produit réel : aucun champ commercial global, identité vérifiée obligatoire
+      for (const k of ['availability', 'price', 'priceSource', 'priceCheckedAt', 'vendor', 'url']) if (p[k] != null) e.push('champ commercial global interdit pour un produit réel : ' + k + ' (utiliser offers)');
+      if (!PRODUCT_STATUS.includes(p.status)) e.push('statut invalide (validated ou to_verify)');
+      if (p.format != null && !text(p.format, 30)) e.push('format invalide');
+      if (p.inci != null && !(Array.isArray(p.inci) && p.inci.length && p.inci.every(x => text(x, 80)))) e.push('INCI invalide');
+      if (p.inciNote != null && !text(p.inciNote, 400)) e.push('note INCI invalide');
+      if (!Array.isArray(p.sources)) e.push('sources manquantes');
+      else for (const s of p.sources) {
+        if (!s || !SOURCE_KINDS.includes(s.kind) || !text(s.label, 120) || !isRealLink(s.url) || !isDate(s.checkedAt) || !text(s.method, 200)) e.push('source invalide (type, libellé, lien https, date et méthode obligatoires)');
+      }
+      if (p.status === 'validated') {
+        if (!text(p.format, 30)) e.push('un produit validé exige son format');
+        if (!Array.isArray(p.inci) || !p.inci.length) e.push('un produit validé exige sa liste d\'ingrédients (INCI)');
+        if (!Array.isArray(p.sources) || !p.sources.some(s => s && s.kind === 'manufacturer')) e.push('un produit validé exige une source fabricant');
+      }
+      if (p.status === 'to_verify') {
+        if (p.active !== false) e.push('un produit à vérifier ne doit pas être actif');
+        if (!(p.verification && Array.isArray(p.verification.missing) && p.verification.missing.length && p.verification.missing.every(x => text(x, 200)))) e.push('un produit à vérifier liste ce qui manque (verification.missing)');
+        if (Array.isArray(p.offers) && p.offers.length) e.push('un produit à vérifier n\'a aucune offre');
+      }
+      if (p.skinTypesDocumented != null && typeof p.skinTypesDocumented !== 'boolean') e.push('skinTypesDocumented doit être un booléen');
+    } else {
+      // démonstration : champs commerciaux plats (anciens), nuls tant qu'ils ne sont pas renseignés
+      if (p.availability != null && !AVAILABILITY.includes(p.availability)) e.push('disponibilité invalide');
+      if (p.vendor != null && !text(p.vendor, 80)) e.push('vendeur invalide');
+      if (p.url != null && !isHttps(p.url)) e.push('lien d\'achat invalide (https obligatoire)');
+      if (p.price != null && (typeof p.price !== 'object' || !(Number.isFinite(p.price.amount) && p.price.amount > 0) || !CURRENCIES.includes(p.price.currency))) e.push('prix invalide');
     }
     if (p.image != null) {
       const okSrc = p.image && typeof p.image.src === 'string' && (/^img\/products\/[\w.-]+\.(jpe?g|png|webp)$/i.test(p.image.src) || isHttps(p.image.src));
@@ -88,14 +166,28 @@
   }
 
   /* ---------- Données commerciales, sous une forme sûre à afficher ---------- */
+  /* Offres d'un produit réel, sous une forme sûre à afficher. Chaque offre reste liée à SON pays, SA devise, SON prix et SA date : aucune conversion,
+     aucune moyenne, aucune offre « globale ». Trié par pays (ordre alphabétique français) puis vendeur : l'ordre n'exprime aucune préférence. */
+  function offersOf(p) {
+    if (!p || p.demo === true || !Array.isArray(p.offers)) return [];
+    return p.offers.filter(o => validateOffer(o, false).length === 0).map(o => {
+      const link = o.url && isRealLink(o.url) ? o.url : null;
+      return { market: o.market, country: MARKETS[o.market], retailer: o.retailer, type: o.type, typeLabel: copy.OFFER_TYPE_LABELS[o.type],
+        marketplace: o.type === 'marketplace', currency: o.price != null ? o.currency : (o.currency || null), price: o.price != null ? o.price : null,
+        availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null,
+        url: link, buyable: !!(link && o.availability === 'in_stock'), linkOnly: !!(link && o.availability === 'unknown'), source: o.source, checkedAt: o.checkedAt };
+    }).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
+  }
+  /* Données commerciales d'un produit. Réel : uniquement `offers` (les champs plats sont nuls). Démonstration : anciens champs plats, jamais de prix réel. */
   function commerceOf(p) {
     const real = p && p.demo !== true;
-    const availability = p && AVAILABILITY.includes(p.availability) ? p.availability : null;
-    const price = real && p.price && Number.isFinite(p.price.amount) && p.price.amount > 0 && CURRENCIES.includes(p.price.currency) && p.priceSource && isDate(p.priceCheckedAt)
-      ? { amount: p.price.amount, currency: p.price.currency, source: p.priceSource, checkedAt: p.priceCheckedAt } : null;
-    const url = real && p.url && isHttps(p.url) ? p.url : null;
-    return { availability, availabilityLabel: copy.AVAILABILITY_LABELS[availability || 'unknown'], price, vendor: real && p.vendor ? p.vendor : null, url,
-      buyable: !!(url && availability === 'available') };
+    const offers = offersOf(p);
+    const availability = !real && p && AVAILABILITY.includes(p.availability) ? p.availability : null;
+    const price = null;                                                     // aucun prix « global » : les prix vivent dans les offres, par pays
+    const url = !real && p && p.url && isHttps(p.url) ? p.url : null;
+    return { availability, availabilityLabel: copy.AVAILABILITY_LABELS[availability || 'unknown'], price, vendor: !real && p && p.vendor ? p.vendor : null, url,
+      buyable: !!(url && availability === 'available'), offers, markets: [...new Set(offers.map(o => o.market))], hasOffers: offers.length > 0,
+      anyBuyable: offers.some(o => o.buyable) };
   }
   /* Actif principal : celui du soin ciblé (explicite, sinon le premier actif de traitement), sinon le premier actif relié ; null si aucun. */
   function primaryActive(p) {
@@ -193,6 +285,6 @@
       price: null, currency: null, vendor: p.vendor || null, availability: p.availability || null, url: p.url || null };
   }
 
-  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, byId, ids, usable, match, whyOf, catalogView, commerceOf, primaryActive, validateProduct, validateCatalog,
+  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, catalogView, commerceOf, offersOf, validateOffer, primaryActive, validateProduct, validateCatalog,
     stepCategory, CATALOG_FIELDS, toCatalogEntry };
 });

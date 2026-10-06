@@ -112,6 +112,16 @@
     owned: 'Vous avez indiqué utiliser déjà un produit pour cette étape.',
     no_step: 'Cette étape n\'existe pas dans votre routine actuelle.'
   };
+  /* Offres par pays : libellés neutres, jamais un pays par défaut. */
+  const OFFER_AVAILABILITY_LABELS = { in_stock: 'En stock', out_of_stock: 'Rupture de stock', coming_soon: 'Bientôt disponible', unknown: 'Disponibilité à vérifier' };
+  const OFFER_TYPE_LABELS = { brand_site: 'Site de la marque', retailer: 'Revendeur en ligne', pharmacy: 'Pharmacie en ligne', marketplace: 'Place de marché', importer: 'Importateur ou distributeur' };
+  const OFFER_TEXTS = {
+    neutral: 'Options d\'achat en ligne. La disponibilité et la livraison dépendent de votre pays.',
+    international: 'Disponible en ligne : livraison selon votre pays (frais et douane possibles).',
+    marketplace: 'Annonce d\'une place de marché : le vendeur est un tiers, DERMAI ne garantit pas l\'authenticité du produit.',
+    none: 'Aucune offre vérifiée pour le moment.',
+    priceToCheck: 'Prix à vérifier'
+  };
   const AVAILABILITY_LABELS = { available: 'Disponible', unavailable: 'Indisponible', coming_soon: 'Bientôt disponible', unknown: 'Données à venir' };
 
   /* ---- personnalisation : explications structurées (pourquoi, pourquoi maintenant, pourquoi pas autre chose) ---- */
@@ -176,6 +186,6 @@
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, AVAILABILITY_LABELS
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });

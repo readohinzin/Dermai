@@ -30,3 +30,17 @@
 .pcard .pr{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:6px 10px}
 .pcard .why{font-size:13px;margin:8px 0 0}
 .pgrid{align-items:start}
+
+/* Offres par pays (étape 14B) : une carte par offre, regroupées sous le nom du pays. */
+.offers{margin:18px 0}
+.offers .ofc{margin-top:16px}
+.offers .ofc>h4{font-size:15px;margin-bottom:8px}
+.offer{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;display:grid;gap:6px}
+.offer .ofh{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}
+.offer .ofp{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.offer .pv{font-weight:600;color:var(--ink)}
+.offer .s{font-size:13px}
+.offer .c-btn{margin-top:4px}
+/* Étroit (360 px) : l'étiquette « Dans ma routine » reste sur une ligne et ne recouvre pas le cadre « Image à venir ». */
+.pgrid .pimg .badge{white-space:nowrap;font-size:11px;padding:3px 8px;top:8px;left:8px}
+.pgrid .pimg .pimg-ph{padding-top:26px}

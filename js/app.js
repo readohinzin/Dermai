@@ -866,6 +866,25 @@ V.routine=()=>{
 const SKIN_FR={all:`tous types de peau`,normal:`peau normale`,oily:`peau grasse`,dry:`peau sèche`,combination:`peau mixte`};
 const CAT_FILTERS=[[`all`,`Tous`],[`cleanser`,`Nettoyants`],[`serum`,`Soins ciblés`],[`moisturizer`,`Hydratants`],[`spf`,`Protection solaire`]];
 const fmtPrice=pr=>pr.currency===`XOF`?fmt(pr.amount):`${pr.amount.toLocaleString(`fr-FR`)}${NB}€`;
+/* Prix d'une OFFRE : toujours dans la devise du pays de l'offre, jamais converti. Le franc CFA (XOF ou XAF) s'écrit FCFA ; les autres devises suivent la norme d'affichage. */
+const fmtMoney=(amount,cur)=>{if(cur===`XOF`||cur===`XAF`)return fmt(amount);try{return new Intl.NumberFormat(`fr-FR`,{style:`currency`,currency:cur,maximumFractionDigits:amount%1?2:0}).format(amount).replace(/[\u202f\u00a0\s]/g,NB)}catch(e){return `${amount.toLocaleString(`fr-FR`)}${NB}${cur}`}};
+const dFr=d=>new Date(d).toLocaleDateString(`fr-FR`,{day:`numeric`,month:`long`,year:`numeric`});
+const offerRow=o=>`<div class="offer"><div class="ofh"><b>${esc(o.retailer)}</b><span class="muted">${esc(o.typeLabel)}</span></div>
+  <div class="ofp"><span class="pv">${o.price!=null?fmtMoney(o.price,o.currency):`<span class="muted">${Engine.copy.OFFER_TEXTS.priceToCheck}</span>`}</span><span class="c-badge${o.availability===`in_stock`?` c-badge--good`:` c-badge--outline`}">${o.availabilityLabel}</span></div>
+  ${o.shipping===`international`?`<p class="muted s">${Engine.copy.OFFER_TEXTS.international}</p>`:``}${o.marketplace?`<p class="muted s">${Engine.copy.OFFER_TEXTS.marketplace}</p>`:``}
+  <p class="muted s">Relevé le ${dFr(o.checkedAt)} (${esc(o.source)}).</p>
+  ${o.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Acheter en ligne</a>`:o.linkOnly?`<a class="c-btn c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Voir l'offre</a>`:``}</div>`;
+/* Offres groupées par pays : un pays n'est jamais déduit d'un autre, aucun pays par défaut. Texte neutre tant que le pays de l'utilisatrice n'est pas connu. */
+const offersBlock=c=>{
+  const by=new Map();c.offers.forEach(o=>{if(!by.has(o.market))by.set(o.market,[]);by.get(o.market).push(o)});
+  return `<section class="offers" aria-label="Où l'acheter"><h3 class="h3" style="margin-bottom:6px">Où l'acheter</h3><p class="muted" style="margin-bottom:12px">${Engine.copy.OFFER_TEXTS.neutral}</p>
+  ${c.hasOffers?[...by.entries()].map(([m,l])=>`<div class="ofc"><h4>${esc(l[0].country)}</h4>${l.map(offerRow).join(``)}</div>`).join(``):`<p class="muted">${Engine.copy.OFFER_TEXTS.none}</p>`}</section>`;
+};
+const offerSummary=c=>{
+  if(!c.hasOffers)return `<span class="c-badge c-badge--outline">Offres à venir</span>`;
+  const names=[...new Set(c.offers.map(o=>o.country))];
+  return `<span class="c-badge c-badge--outline">${c.offers.length} offre${c.offers.length>1?`s`:``}</span><span class="muted">${names.length>2?`${names.length} pays`:esc(names.join(`, `))}</span>`;
+};
 const priceLine=p=>{const c=Engine.products.commerceOf(p);return c.price?fmtPrice(c.price):`<span class="muted">Prix à venir</span>`};
 const availBadge=c=>`<span class="c-badge${c.availability===`available`?` c-badge--good`:` c-badge--outline`}">${c.availabilityLabel}</span>`;
 const mainActiveLabel=p=>{const id=Engine.products.primaryActive(p),a=id&&Engine.actives.byId(id);return a?a.label:null};
@@ -875,9 +894,9 @@ const slotsOf=steps=>[...new Set(steps.map(s=>s.stepId.startsWith(`morning`)?`Ma
 function productCard(p,o={}){
   const c=Engine.products.commerceOf(p),act=mainActiveLabel(p);
   return `<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${o.inPlan?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${productMedia(p)}</div>
-   <div class="pb"><div class="br">${esc(p.brand)}</div><div class="nm">${esc(p.name)}</div>
+   <div class="pb"><div class="br">${esc(p.brand)}${p.format?` · ${esc(p.format)}`:``}</div><div class="nm">${esc(p.name)}</div>
    <div class="role muted">${o.slots?`${o.slots} · `:``}${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}${act?` · ${act}`:``}</div>
-   <div class="pr">${availBadge(c)}<span>${priceLine(p)}</span></div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}</div></button>`;
+   <div class="pr">${p.demo?`${availBadge(c)}<span>${priceLine(p)}</span>`:offerSummary(c)}</div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}</div></button>`;
 }
 V.products=()=>{
   const f=state.filter,list=Engine.products.usable(catalogNow()),inF=p=>f===`all`||p.category===f;
@@ -896,8 +915,14 @@ V.products=()=>{
    <section><div class="hd"><h2 class="h3">Recommandés pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit recommandé dans cette catégorie.`:`Aucun produit du catalogue ne correspond encore aux étapes de votre routine.`}</p>`}</section>
    ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${foot}`,{back:true,title:`Produits`});
 };
+/* Identité vérifiée d'un produit réel : INCI (avec ses divergences éventuelles) et source fabricant datée. Jamais d'INCI inventé : sans liste, aucune ligne. */
+const productIdentity=p=>{
+  const src=(p.sources||[]).filter(x=>x.kind===`manufacturer`);
+  return `${Array.isArray(p.inci)&&p.inci.length?`<details class="c-card" style="margin:18px 0"><summary><b>Liste d'ingrédients (INCI)</b></summary><p class="muted s" style="margin-top:8px;overflow-wrap:anywhere">${p.inci.map(esc).join(`, `)}.</p>${p.inciNote?`<p class="muted s" style="margin-top:8px">${esc(p.inciNote)}</p>`:``}</details>`:``}
+  ${src.length?`<p class="muted s" style="margin:12px 0 18px">Fiche produit relevée le ${dFr(src[0].checkedAt)} : ${src.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.label)}</a>`).join(`, `)}. La composition peut varier selon le pays : vérifiez l'emballage.</p>`:``}`;
+};
 function productSheet(id){
-  const p=Engine.products.byId(id,catalogNow());if(!p)return `<p class="muted">Ce produit n'est plus disponible dans le catalogue.</p><button class="link" data-act="close">Fermer</button>`;
+  const p=Engine.products.byId(id,catalogNow());if(!p||!Engine.products.usable(catalogNow()).includes(p))return `<p class="muted">Ce produit n'est plus disponible dans le catalogue.</p><button class="link" data-act="close">Fermer</button>`;
   const A=Engine.actives,c=Engine.products.commerceOf(p);
   let why=`Produit de démonstration, non lié à votre analyse.`;
   if(!noReal()){
@@ -909,11 +934,11 @@ function productSheet(id){
   const act=mainActiveLabel(p),secondary=Engine.products.ids(p).filter(i=>i!==Engine.products.primaryActive(p));
   return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:18px">${productMedia(p)}</div>
   <p class="muted">${esc(p.brand)}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${esc(p.name)}</h2>
-  <p style="color:var(--ink);display:flex;gap:10px;align-items:center;flex-wrap:wrap">${availBadge(c)}<span>${priceLine(p)}</span></p>
-  ${c.price?`<p class="muted" style="font-size:13px">Prix relevé le ${new Date(c.price.checkedAt).toLocaleDateString(`fr-FR`,{day:`numeric`,month:`long`,year:`numeric`})} (${esc(c.price.source)}).</p>`:``}
-  <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p>${p.description?`<p class="muted" style="margin-top:8px">${esc(p.description)}</p>`:``}<p class="muted" style="margin-top:8px">${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}. Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.</p></div>
-  <div class="kv" style="margin-bottom:18px">${act?`<div><h4>Actif principal</h4><p>${act}</p></div>`:``}${secondary.length?`<div><h4>Autres actifs</h4><p>${secondary.map(i=>A.byId(i).label).join(`, `)}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${esc(i.label)}</span>`).join(``)}</div></div><div><h4>Vendeur</h4><p class="muted">${c.vendor?esc(c.vendor):`Données à venir.`}</p></div></div>
-  <div class="stack">${c.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Voir où l'acheter</a>`:``}<button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
+  ${p.demo?`<p style="color:var(--ink);display:flex;gap:10px;align-items:center;flex-wrap:wrap">${availBadge(c)}<span>${priceLine(p)}</span></p>`:(p.format?`<p class="muted">${esc(p.format)}</p>`:``)}
+  <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p>${p.description?`<p class="muted" style="margin-top:8px">${esc(p.description)}</p>`:``}<p class="muted" style="margin-top:8px">${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}.${p.demo||p.skinTypesDocumented?` Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.`:``}</p></div>
+  <div class="kv" style="margin-bottom:18px">${act?`<div><h4>Actif principal</h4><p>${act}</p></div>`:``}${secondary.length?`<div><h4>Autres actifs</h4><p>${secondary.map(i=>A.byId(i).label).join(`, `)}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${esc(i.label)}</span>`).join(``)}</div></div>${p.demo?`<div><h4>Vendeur</h4><p class="muted">${c.vendor?esc(c.vendor):`Données à venir.`}</p></div>`:``}</div>
+  ${p.demo?``:`${offersBlock(c)}${productIdentity(p)}`}
+  <div class="stack">${p.demo&&c.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Voir où l'acheter</a>`:``}<button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
 }
 
 /* Progression */

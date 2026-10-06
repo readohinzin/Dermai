@@ -13,13 +13,18 @@ const actives = require('../js/engine/actives.js');
 const copy = require('../js/engine/copy.fr.js');
 
 const ing = (activeId, label) => ({ activeId, label: label || activeId });
-const P = (id, category, ingredients, extra) => Object.assign({ id, name: 'Produit de test ' + id, brand: 'Marque de test', category, ingredients, skinTypes: ['all'], targets: ['acne'], active: true, demo: false }, extra || {});
-const FULL = { description: 'Fiche de test.', availability: 'available', vendor: 'Boutique de test', url: 'https://boutique.example/produit', price: { amount: 9500, currency: 'XOF' }, priceSource: 'Relevé de test', priceCheckedAt: '2026-10-01', image: { src: 'img/products/test.jpg', alt: 'Produit de test' } };
+/* Produit RÉEL de test : depuis l'étape 14B, tout produit réel porte son identité vérifiée (status, format, INCI, source fabricant) et ses données commerciales
+   uniquement sous forme d'offres par pays (`offers`). Les champs commerciaux plats ne sont plus valides que pour la démonstration. */
+const TSRC = [{ kind: 'manufacturer', label: 'Fiche de test', url: 'https://fabricant-de-test.com/fiche', checkedAt: '2026-10-01', method: 'Jeu de test' }];
+const P = (id, category, ingredients, extra) => Object.assign({ id, name: 'Produit de test ' + id, brand: 'Marque de test', category, ingredients, skinTypes: ['all'], targets: ['acne'], active: true, demo: false,
+  status: 'validated', format: '30 ml', inci: ['Aqua / Water'], sources: TSRC, offers: [] }, extra || {});
+const OFFER = (extra) => Object.assign({ market: 'BJ', retailer: 'Boutique de test', type: 'retailer', currency: 'XOF', price: 9500, availability: 'in_stock', url: 'https://vendeur-de-test.shop/produit', shipping: 'local', source: 'Relevé de test', checkedAt: '2026-10-01' }, extra || {});
+const FULL = { description: 'Fiche de test.', offers: [OFFER()], image: { src: 'img/products/test.jpg', alt: 'Produit de test' } };
 const FIX = [
   P('cl-a', 'cleanser', [ing('glycerin')]),
   P('cl-strong', 'cleanser', [ing('glycerin'), ing('salicylic')]),
   P('s-aze', 'serum', [ing('azelaic')], FULL),
-  P('s-nia', 'serum', [ing('niacinamide')], { availability: 'coming_soon' }),
+  P('s-nia', 'serum', [ing('niacinamide')], { offers: [OFFER({ availability: 'coming_soon', price: null, url: null })] }),
   P('s-nia-aze', 'serum', [ing('niacinamide'), ing('azelaic')]),
   P('s-sal', 'serum', [ing('salicylic')]),
   P('s-vitc', 'serum', [ing('vitamin_c')]),
@@ -36,7 +41,7 @@ const steps = r => [...r.routinePlan.slots.morning, ...r.routinePlan.slots.eveni
 const WEAK = { acne: 30, pigmentation: 40, hydration: 45, pores: 50 };
 
 test('PC1 le catalogue réel est vide et valide ; le catalogue de démonstration est valide et entièrement marqué demo', () => {
-  assert.deepEqual(realData.PRODUCTS, []);
+  assert.ok(realData.PRODUCTS.length > 0, 'le catalogue réel contient sa première sélection (étape 14B)');
   assert.deepEqual(products.validateCatalog(realData.PRODUCTS), []);
   assert.deepEqual(products.validateCatalog(demoData.PRODUCTS), []);
   assert.ok(demoData.PRODUCTS.length > 0 && demoData.PRODUCTS.every(p => p.demo === true));
@@ -54,12 +59,14 @@ test('PC2 le modèle exige un produit complet et refuse les données douteuses',
   bad(P('x6', 'serum', [ing('azelaic')], { match: 87 }), /champ interdit/);
   bad(P('x7', 'serum', [ing('azelaic')], { score: 3 }), /champ interdit/);
   bad(P('x8', 'serum', [ing('azelaic')], { name: '94 % de correspondance' }), /pourcentage/);
-  bad(P('x9', 'serum', [ing('azelaic')], { price: { amount: 5000, currency: 'XOF' } }), /source et sa date/);
-  bad(P('y1', 'serum', [ing('azelaic')], { price: { amount: -1, currency: 'XOF' }, priceSource: 's', priceCheckedAt: '2026-10-01' }), /prix invalide/);
-  bad(P('y2', 'serum', [ing('azelaic')], { price: { amount: 100, currency: 'JPY' }, priceSource: 's', priceCheckedAt: '2026-10-01' }), /prix invalide/);
-  bad(P('y3', 'serum', [ing('azelaic')], { url: 'http://boutique.example' }), /https/);
-  bad(P('y4', 'serum', [ing('azelaic')], { url: 'javascript:alert(1)' }), /https/);
-  bad(P('y5', 'serum', [ing('azelaic')], { availability: 'en stock' }), /disponibilité/);
+  bad(P('x9', 'serum', [ing('azelaic')], { price: { amount: 5000, currency: 'XOF' } }), /champ commercial global interdit/);   // produit réel : plus de prix global
+  bad(P('x10', 'serum', [ing('azelaic')], { vendor: 'V', url: 'https://vendeur-de-test.shop', availability: 'available' }), /champ commercial global interdit/);
+  const D = (extra) => P('d1', 'serum', [ing('azelaic')], Object.assign({ demo: true, status: undefined, format: undefined, inci: undefined, sources: undefined, offers: undefined }, extra));
+  bad(D({ price: { amount: -1, currency: 'XOF' } }), /prix invalide/);                     // démonstration : anciens champs plats conservés
+  bad(D({ price: { amount: 100, currency: 'JPY' } }), /prix invalide/);
+  bad(D({ url: 'http://boutique.example' }), /https/);
+  bad(D({ url: 'javascript:alert(1)' }), /https/);
+  bad(D({ availability: 'en stock' }), /disponibilité/);
   bad(P('y6', 'serum', [ing('azelaic')], { image: { src: 'http://x/y.jpg', alt: 'a' } }), /image/);
   bad(P('y7', 'serum', [ing('azelaic')], { image: { src: 'img/products/a.jpg', alt: '' } }), /image/);
   bad(P('y8', 'serum', [ing('azelaic')], { demo: undefined }), /demo/);
@@ -67,6 +74,10 @@ test('PC2 le modèle exige un produit complet et refuse les données douteuses',
   bad(P('Z Z', 'serum', [ing('azelaic')]), /id invalide/);
   assert.ok(products.validateCatalog([P('dup', 'spf', [ing(null, 'UV')]), P('dup', 'spf', [ing(null, 'UV')])]).some(m => /double/.test(m)));
   assert.deepEqual(products.validateProduct(P('ok', 'serum', [ing('azelaic')], FULL)), [], 'une fiche réelle complète et sourcée est valide');
+  bad(P('z1', 'serum', [ing('azelaic')], { status: undefined }), /statut/);
+  bad(P('z2', 'serum', [ing('azelaic')], { format: null }), /format/);
+  bad(P('z3', 'serum', [ing('azelaic')], { inci: null }), /INCI/);
+  bad(P('z4', 'serum', [ing('azelaic')], { sources: [] }), /source fabricant/);
   assert.deepEqual(products.validateProduct(P('ok2', 'spf', [ing(null, 'UV')])), [], 'un produit sans aucune donnée commerciale est valide (champs nuls)');
 });
 
@@ -134,17 +145,24 @@ test('PC6 E : approche douce — jamais de produit qui ajoute un actif plus exig
 
 test('PC7 F/G : prix et disponibilité absents → « Prix à venir » / « Données à venir », sans bouton d\'achat ; ils n\'influencent jamais la sélection', () => {
   const bare = products.commerceOf(FIX.find(p => p.id === 's-nia-aze'));
-  assert.deepEqual(bare, { availability: null, availabilityLabel: 'Données à venir', price: null, vendor: null, url: null, buyable: false });
+  assert.deepEqual(bare, { availability: null, availabilityLabel: 'Données à venir', price: null, vendor: null, url: null, buyable: false, offers: [], markets: [], hasOffers: false, anyBuyable: false });
   const full = products.commerceOf(FIX.find(p => p.id === 's-aze'));
-  assert.equal(full.buyable, true); assert.equal(full.availabilityLabel, 'Disponible'); assert.deepEqual(full.price, { amount: 9500, currency: 'XOF', source: 'Relevé de test', checkedAt: '2026-10-01' });
-  assert.equal(products.commerceOf(FIX.find(p => p.id === 's-nia')).availabilityLabel, 'Bientôt disponible');
-  assert.equal(products.commerceOf({ ...FIX[2], availability: 'unavailable' }).buyable, false);
-  assert.equal(products.commerceOf({ ...FIX[2], url: null }).buyable, false, 'pas de lien : pas d\'achat');
-  assert.equal(products.commerceOf({ ...FIX[2], priceSource: null }).price, null, 'prix sans source : jamais affiché');
-  assert.equal(products.commerceOf({ ...FIX[2], demo: true }).price, null, 'prix de démonstration : jamais affiché');
+  assert.equal(full.anyBuyable, true); assert.equal(full.price, null, 'aucun prix global : le prix est dans l\'offre');
+  assert.equal(full.offers.length, 1); assert.equal(full.offers[0].availabilityLabel, 'En stock'); assert.equal(full.offers[0].price, 9500); assert.equal(full.offers[0].currency, 'XOF');
+  assert.equal(full.offers[0].country, 'Bénin'); assert.equal(full.offers[0].checkedAt, '2026-10-01'); assert.equal(full.offers[0].source, 'Relevé de test');
+  assert.equal(products.commerceOf(FIX.find(p => p.id === 's-nia')).offers[0].availabilityLabel, 'Bientôt disponible');
+  const one = (extra) => products.commerceOf({ ...FIX[2], offers: [OFFER(extra)] });
+  assert.equal(one({ availability: 'out_of_stock' }).anyBuyable, false);
+  assert.equal(one({ url: null }).anyBuyable, false, 'pas de lien : pas d\'achat');
+  assert.equal(one({ availability: 'unknown' }).anyBuyable, false, 'disponibilité inconnue : pas de bouton « Acheter », lien seulement');
+  assert.equal(one({ availability: 'unknown' }).offers[0].linkOnly, true);
+  assert.deepEqual(products.commerceOf({ ...FIX[2], offers: [OFFER({ source: null })] }).offers, [], 'offre sans source : jamais affichée');
+  assert.deepEqual(products.commerceOf({ ...FIX[2], offers: [OFFER({ checkedAt: null })] }).offers, [], 'offre sans date : jamais affichée');
+  assert.deepEqual(products.commerceOf({ ...FIX[2], demo: true }).offers, [], 'démonstration : aucune offre réelle');
+  assert.equal(products.commerceOf({ ...FIX[2], demo: true }).price, null);
   assert.equal(products.commerceOf({ ...FIX[2], demo: true }).buyable, false);
-  const stripped = FIX.map(p => ({ ...p, price: null, priceSource: null, priceCheckedAt: null, availability: null, vendor: null, url: null, image: null }));
-  const maxed = FIX.map(p => ({ ...p, ...FULL, availability: 'unavailable' }));
+  const stripped = FIX.map(p => ({ ...p, offers: [], image: null }));
+  const maxed = FIX.map(p => ({ ...p, ...FULL, offers: [OFFER({ availability: 'out_of_stock' }), OFFER({ market: 'NG', currency: 'NGN', price: 14000, retailer: 'Autre boutique' })] }));
   for (let seed = 1; seed <= 100; seed++) {
     const c = randomCase(seed), a = Engine.run(norm(c.ui, c.o), c.profile, { catalog: stripped }), b = Engine.run(norm(c.ui, c.o), c.profile, { catalog: FIX }), d = Engine.run(norm(c.ui, c.o), c.profile, { catalog: maxed });
     assert.deepEqual(a.productMatches, b.productMatches, 'seed ' + seed); assert.deepEqual(a.productMatches, d.productMatches, 'seed ' + seed);
@@ -159,7 +177,8 @@ test('PC8 principe : le catalogue ne modifie ni mesure, ni interprétation, ni p
       const x = Engine.run(n, c.profile, cat ? { catalog: cat } : undefined);
       for (const part of ['interpretation', 'priorities', 'personalization', 'activePlan', 'routinePlan', 'explanations', 'profile']) assert.deepEqual(x[part], base[part], `seed ${seed} ${part}`);
     }
-    assert.deepEqual(base.productMatches, [], 'catalogue réel vide : aucun produit');
+    assert.ok(base.productMatches.every(m => m.demo === false && realData.PRODUCTS.some(q => q.id === m.productId && q.status === 'validated')), 'catalogue réel : uniquement des produits validés, jamais de démonstration');
+    assert.deepEqual(Engine.run(n, c.profile, { catalog: [] }).productMatches, [], 'catalogue vide : aucun produit');
   }
 });
 
@@ -221,7 +240,8 @@ test('PC12 K/L : mode réel = catalogue réel seulement ; démonstration sépar�
   assert.doesNotMatch(app, /Les liens d'achat ne sont pas encore disponibles/);
   const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
   assert.ok(html.indexOf('data/catalog.js') > html.indexOf('data/products.js') && html.indexOf('data/catalog.js') < html.indexOf('copy.fr.js'));
-  assert.deepEqual(Engine.run(norm({ acne: 30 }), { goals: [], level: 'full', cats: [] }, { catalog: realData.PRODUCTS }).productMatches, []);
+  assert.ok(Engine.run(norm({ acne: 30 }), { goals: [], level: 'full', cats: [] }, { catalog: realData.PRODUCTS }).productMatches.every(m => m.demo === false));
+  assert.deepEqual(Engine.run(norm({ acne: 30 }), { goals: [], level: 'full', cats: [] }, { catalog: [] }).productMatches, []);
   assert.ok(Engine.run(norm({ acne: 30 }), { goals: [], level: 'full', cats: [] }, { catalog: demoData.PRODUCTS }).productMatches.every(m => m.demo === true));
 });
 
