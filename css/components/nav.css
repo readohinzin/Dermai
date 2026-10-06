@@ -19,3 +19,11 @@
 
 /* Dans l'application, la barre du bas (.nav, positionnée par la feuille historique) laisse la place au rail latéral dès 920 px. */
 @media (min-width:920px){.nav.c-bottomnav{display:none}}
+
+/* Logo DERMAI : bouton vers la page d'accueil (apparence du texte, zone tactile 44 px). */
+button.brand{appearance:none;background:none;border:0;cursor:pointer;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s-2);color:var(--ink)}
+button.brand:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--r-sm,8px)}
+
+/* Logo en tête des pages de l'application sur mobile (la colonne latérale du bureau porte déjà le logo). */
+.m-brand{display:flex;justify-content:center;padding-top:var(--s-1)}
+@media (min-width:920px){.m-brand{display:none}}

@@ -194,10 +194,12 @@ async function enterSession(user,fresh){
   if(r.ok){if(r.profile)applyProfile(r.profile);else applyProfile({});state.save={status:`idle`,message:``}}
   else{state.save={status:`error`,message:r.error}}
 }
-async function bootAccount(){
+async function bootAccount(arrivedWithoutPage){
   if(!ACCOUNT||!ACCOUNT.available)return;
   const u=await ACCOUNT.restoreSession();
   if(u)await enterSession(u,false);else state.account.status=`visitor`;
+  /* Connecté, arrivé à la racine du site (aucune page dans l'adresse) : on ouvre directement son espace. Une page choisie (ex. #landing) est respectée. */
+  if(u&&arrivedWithoutPage&&state.route===`landing`){go(`home`,null,{reset:true,replace:true});return}
   if([`landing`,`profile`,`home`,`result`,`routine`,`actives`,`progress`,`analyses`,`privacy`].includes(state.route))render(true);
 }
 async function submitAuth(kind,form){
@@ -331,8 +333,8 @@ function shell(inner,{title=``,back=false}={}){
   const tab=TAB_OF[state.route];
   const navBtns=cls=>NAV.map(n=>`<button ${cls?`class="${cls}" `:``}data-go="${n[0]}" data-reset="1" ${tab===n[0]?`aria-current="page"`:``}>${ic(n[2])}<span>${n[1]}</span></button>`).join(``);
   return `<div class="app">
-    <aside class="rail"><span class="brand">DERMAI</span><nav aria-label="Navigation principale">${navBtns()}</nav><small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></aside>
-    <main class="main">${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
+    <aside class="rail"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil">DERMAI</button><nav aria-label="Navigation principale">${navBtns()}</nav><small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></aside>
+    <main class="main"><div class="m-brand"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil">DERMAI</button></div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
     <nav class="nav c-bottomnav" aria-label="Navigation principale">${navBtns(`c-bottomnav__item`)}</nav>
   </div>`;
 }
@@ -340,7 +342,7 @@ const V={};
 
 /* Landing */
 V.landing=()=>{
-  return `<header class="l-top"><span class="brand">DERMAI</span>${signedIn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Mon espace</button>`:accountOn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="login">Se connecter</button>`:`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button>`}</header>
+  return `<header class="l-top"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil">DERMAI</button>${signedIn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Mon espace</button>`:accountOn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="login">Se connecter</button>`:`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button>`}</header>
   <section class="hero"><div class="wrap hero-grid">
     <div>
       <p class="tagline">${ic(`sparkle`)} Analyse cosmétique assistée par IA</p>
@@ -422,7 +424,7 @@ V.landing=()=>{
 };
 
 /* Inscription */
-const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div>
+const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
   <div class="body"><h1>Créez votre compte</h1><p style="margin:10px 0 26px">Une minute suffit pour personnaliser votre expérience.</p>
   <div class="stack" style="gap:16px">
     <div class="c-field"><label class="c-field__label" for="f-name">Prénom</label><input class="c-input" id="f-name" autocomplete="given-name" value="${DEMO_MODE?`Amina`:``}"></div>
@@ -435,7 +437,7 @@ const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="icon
   </div><p class="muted" style="margin-top:22px">Maquette : aucun compte réel n'est créé.</p></div></div>`;
 const authForm=kind=>{
   const signup=kind===`signup`,A=state.account;
-  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div>
+  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
   <div class="body"><h1>${signup?`Créez votre compte`:`Content de vous revoir`}</h1><p style="margin:10px 0 22px">${signup?`Retrouvez vos objectifs et vos préférences sur vos prochains appareils.`:`Connectez-vous pour retrouver vos préférences.`}</p>
   ${A.info?`<div class="c-notice c-notice--success u-my-5" role="status">${ic(`check`)}<div>${A.info}</div></div>`:``}
   ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
@@ -448,9 +450,9 @@ const authForm=kind=>{
   ${signup?`<p style="text-align:center"><button class="link" data-go="welcome">Continuer sans compte</button></p>`:``}
   <p class="muted" style="margin-top:14px">Seules vos préférences de personnalisation sont associées à votre compte. Vos photos ne sont pas enregistrées dans votre profil.</p></div></div>`;
 };
-V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div><div class="body"><h1>Bienvenue sur DERMAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
+V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div><div class="body"><h1>Bienvenue sur DERMAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
 V.login=()=>accountOn()?authForm(`login`):V.signup();
-V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><span class="brand" style="margin-bottom:34px">DERMAI</span><h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
+V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="margin-bottom:34px">DERMAI</button><h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
 
 /* Onboarding */
 V.onb=n=>{
@@ -753,13 +755,29 @@ const CONFIRMS={
 /* ---------- 5. NAVIGATION ET ACTIONS ---------- */
 let timers=[],anTok=0;
 const NOSTACK=new Set([`scan`,`analyzing`,`signup`,`login`,`welcome`,`onb`]);
-function go(route,param=null,{reset=false,replace=false,keepScan=false}={}){
+function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=false}={}){
   anTok++;timers.forEach(clearTimeout);timers=[];closeSheet();
   if(reset)state.stack=[];
   else if(!replace&&!NOSTACK.has(state.route)&&state.route!==route)state.stack.push({route:state.route,param:state.param});
   if(route===`scan`&&state.route!==`scan`&&!keepScan){state.scanStep=0;state.shots=[false,false,false];state.retake=false;if(!DEMO_MODE)clearReal()}
   if(!DEMO_MODE&&route!==`scan`&&route!==`analyzing`)clearReal();
   state.route=route;state.param=param;render();scrollTo(0,0);
+  if(!noHash)syncHash(replace);
+}
+/* ---------- Adresse = page (rechargement et boutons précédent / suivant du navigateur) ----------
+   La page courante est écrite dans l'adresse (#profile, #concern:acne…). Une page « en cours » (analyse) n'est jamais restaurée : on revient à l'accueil de l'application. */
+const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`]);
+const hashOf=(r,p)=>`#${r}${p!=null&&p!==``?`:${encodeURIComponent(p)}`:``}`;
+function readHash(){
+  const h=(location.hash||``).replace(/^#/,``);if(!h)return null;
+  const i=h.indexOf(`:`),r=i<0?h:h.slice(0,i);let p=null;
+  if(i>=0){try{p=decodeURIComponent(h.slice(i+1))}catch(e){return null}}
+  if(r===`analyzing`)return{route:`home`,param:null};
+  return RESTORABLE.has(r)&&V[r]?{route:r,param:p}:null;
+}
+function syncHash(replace){
+  const h=hashOf(state.route,state.param);if(location.hash===h)return;
+  try{(replace?history.replaceState:history.pushState).call(history,null,``,h)}catch(e){/* adresse non modifiable : la navigation interne continue de fonctionner */}
 }
 function back(){const p=state.stack.pop();if(p){go(p.route,p.param,{replace:true})}else go(`home`,null,{replace:true})}
 function render(keep){
@@ -950,5 +968,8 @@ document.addEventListener(`change`,e=>{
 });
 document.addEventListener(`submit`,e=>{const f=e.target&&e.target.dataset&&e.target.dataset.form;if(!f||!ACCOUNT)return;e.preventDefault();submitAuth(f,e.target)});
 document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
+window.addEventListener(`popstate`,()=>{const h=readHash();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
+const initialRoute=readHash();
+if(initialRoute){state.route=initialRoute.route;state.param=initialRoute.param}
 render();
-bootAccount();
+bootAccount(!initialRoute);
