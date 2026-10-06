@@ -9,7 +9,7 @@
   'use strict';
 
   const DOMAIN_LABELS = {
-    hydration: 'Hydratation', oil_pores: 'Sébum et pores', blemishes: 'Imperfections', tone: 'Teint et taches',
+    hydration: 'Hydratation', oil_pores: 'Niveau d\'huile et pores', blemishes: 'Imperfections', tone: 'Teint et taches',
     redness_comfort: 'Rougeurs et confort', texture: 'Texture', aging: 'Rides et fermeté', eye_contour: 'Contour des yeux'
   };
   const GOAL_LABELS = Object.assign({}, DOMAIN_LABELS, { maintenance: 'Entretien global' });
@@ -24,7 +24,7 @@
   /* ---- priorités ---- */
   function priorityReason({ band, objectiveMatch }) {
     const base = band === 'low'
-      ? 'Cet indicateur est actuellement nettement plus faible : il mérite une attention particulière.'
+      ? 'Cet indicateur est actuellement nettement plus faible : il peut être soutenu en priorité.'
       : 'Cet indicateur est actuellement plus faible : il mérite davantage d\'attention.';
     return objectiveMatch ? base + ' Il correspond à votre objectif.' : base;
   }
@@ -38,9 +38,9 @@
   const INFO_LABEL = 'À titre d\'information';
   const INFO_TEXT = 'Cet indicateur est donné à titre d\'information. Il n\'appelle pas de recommandation automatique.';
   const INDICATOR_NOTES = {
-    acne: 'Imperfections visibles', pigmentation: 'Taches et uniformité du teint', pores: 'Visibilité des pores', oiliness: 'Brillance de la peau',
-    hydration: 'Hydratation apparente', redness: 'Rougeurs visibles', texture: 'Grain de peau', wrinkles: 'Rides et ridules', firmness: 'Fermeté apparente',
-    radiance: 'Éclat du teint', eyeBag: 'Poches sous les yeux', tearTrough: 'Creux sous les yeux', darkCircle: 'Cernes',
+    acne: 'Imperfections visibles', pigmentation: 'Taches et uniformité du teint', pores: 'Visibilité des pores', oiliness: 'Niveau d\'huile de la peau',
+    hydration: 'Hydratation apparente', redness: 'Rougeurs visibles', texture: 'Texture globale', wrinkles: 'Rides et ridules', firmness: 'Fermeté apparente',
+    radiance: 'Éclat visible', eyeBag: 'Poches sous les yeux', tearTrough: 'Creux sous les yeux', darkCircle: 'Cernes',
     droopyUpperEyelid: 'Paupière supérieure', droopyLowerEyelid: 'Paupière inférieure'
   };
   const EYE_NOTE = 'Cet indicateur est donné à titre d\'information : aucun actif n\'est proposé automatiquement.';
@@ -56,6 +56,7 @@
     duplicate: 'Mis de côté : un actif au rôle équivalent est déjà dans votre plan.',
     comfort: 'Mis de côté pour l\'instant : votre analyse suggère de privilégier le confort avant les actifs plus exigeants.',
     gentle: 'Mis de côté pour l\'instant : la routine privilégie une approche plus douce.',
+    minimal: 'Mis de côté pour l\'instant : cette routine reste volontairement minimale.',
     cap: 'Mis de côté : votre plan reste volontairement court.',
     owned: 'Mis de côté : vous utilisez déjà un exfoliant.',
     slot: 'Mis de côté : le créneau est déjà chargé.'
@@ -77,7 +78,7 @@
     oneStrong: 'Un seul exfoliant ou rétinoïde par soir.',
     comfort: 'Votre analyse suggère de privilégier le confort : actifs doux d\'abord, hydratation et protection solaire.',
     dry: 'Votre type de peau suggère d\'espacer davantage les actifs plus exigeants.',
-    marks: 'Si votre peau garde facilement des marques après une irritation, avancez encore plus doucement.',
+    marks: 'Une peau qui marque facilement peut bénéficier d\'une introduction progressive des actifs plus demandants.',
     demoProducts: 'Les produits cités sont des exemples de démonstration.',
     level: { none: 'Routine volontairement minimale pour démarrer.', simple: 'Routine courte.', full: 'Routine plus structurée.' }
   };

@@ -17,11 +17,11 @@ test('AC1 intégrité du catalogue : statuts, sources, cautions, préférences c
   for (const a of data.ACTIVES) {
     assert.ok(!seen.has(a.id), 'id unique ' + a.id); seen.add(a.id);
     assert.ok(['validated', 'à_valider'].includes(a.status), a.id);
-    for (const f of ['id', 'label', 'targets', 'objectives', 'confidence', 'status', 'source', 'cautions', 'conflicts', 'when', 'introduction', 'kind', 'role', 'irritation'])
+    for (const f of ['id', 'label', 'targets', 'objectives', 'confidence', 'status', 'source', 'cautions', 'when', 'introduction', 'kind', 'role', 'irritation'])
       assert.ok(f in a, `${a.id}.${f}`);
     assert.ok(typeof a.source === 'string' && a.source.length > 0);
     assert.ok(a.targets.every(t => M.METRIC_KEYS.includes(t)), a.id);
-    assert.ok(a.conflicts.every(c => data.ACTIVES.some(x => x.id === c)), a.id);
+    assert.ok(!('conflicts' in a) && !('pairsWith' in a), a.id + ' : champs non exécutés retirés');
     if (a.status === 'validated') assert.ok(a.cautions.length > 0, a.id + ' : précautions requises');
   }
   for (const [ind, list] of Object.entries(data.PREFERENCE)) {
@@ -126,9 +126,9 @@ test('AC8c invariant : en mode confort, jamais d\'actif à irritation forte (100
 
 test('AC9 exfoliant déjà utilisé : aucun exfoliant ni rétinoïde ajouté', () => {
   const r = sel(['acne'], {}, { cats: ['exfoliant'] });
-  assert.deepEqual(tids(r), ['niacinamide']);
+  assert.deepEqual(tids(r), ['azelaic']);   // ni exfoliant ni rétinoïde : plus écarté comme tel
   assert.ok(r.deferred.some(d => d.activeId === 'salicylic' && d.kind === 'owned'));
-  assert.ok(r.deferred.some(d => d.activeId === 'azelaic' && d.kind === 'owned'));
+  assert.ok(!r.deferred.some(d => d.activeId === 'azelaic' && d.kind === 'owned'), 'azélaïque n\'est ni exfoliant ni rétinoïde');
 });
 
 test('AC10 priorité d\'hydratation : un humectant et une barrière (rôles distincts, pas de doublon)', () => {

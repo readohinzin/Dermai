@@ -38,6 +38,15 @@ test('UI4 conseils statiques : ni causalité médicale ni mots interdits', () =>
 test('UI5 descriptions d\'actifs : acide salicylique et AHA/PHA sans « doux » ; précaution peaux qui marquent', () => {
   for (const id of ['salicylic']) assert.ok(!/doux/i.test(adata.ACTIVES.find(a => a.id === id).description), id);
   for (const a of adata.ACTIVES.filter(a => a.irritation !== 'low' && a.status === 'validated'))
-    assert.ok(a.cautions.some(c => /marques/.test(c)), a.id);
+    assert.ok(a.cautions.some(c => /marque facilement/.test(c)), a.id);
   assert.ok(!/zones/i.test(M.SKIN_TYPE_DESC ? M.SKIN_TYPE_DESC.combination : 'ok'));
+});
+
+test('UI6 aucune formulation de diagnostic ni affirmation Perfect Corp non résolue dans l\'interface et les textes du moteur', () => {
+  const engine = ['copy.fr.js', 'data/actives.js', 'data/products.js'].map(f => fs.readFileSync(path.join(__dirname, '../js/engine', f), 'utf8')).join('\n');
+  const txt = app + engine;
+  for (const bad of [/Vous avez (?:une|un|des)\b/, /souffre/i, /prouve/i, /Votre peau est inflamm/i, /pathologi/i, /Perfect Corp recommande/i, /À éviter en même temps/, /S'associe bien avec/, /Correspondance avec votre profil/])
+    assert.ok(!bad.test(txt), String(bad));
+  assert.ok(!/Sébum|Brillance de la peau|Grain de peau/.test(copy.INDICATOR_NOTES.oiliness + copy.INDICATOR_NOTES.texture + M.METRIC_LABELS.oiliness));
+  assert.match(app, /Suggestion de départ/);
 });

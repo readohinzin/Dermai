@@ -199,7 +199,7 @@ test('RO17 créneaux : vitamine C matin, exfoliants et rétinoïde soir, un seul
 
 test('RO18 précaution « peaux qui marquent » dès qu\'un actif exigeant est placé', () => {
   const r = run({ acne: 30 });
-  assert.ok(r.routinePlan.notes.some(n => /garde facilement des marques/.test(n)));
+  assert.ok(r.routinePlan.notes.some(n => /marque facilement/.test(n)));
   const soft = run({ hydration: 20 });
-  assert.ok(!soft.routinePlan.notes.some(n => /garde facilement des marques/.test(n)));
+  assert.ok(!soft.routinePlan.notes.some(n => /marque facilement/.test(n)));
 });

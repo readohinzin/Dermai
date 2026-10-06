@@ -26,6 +26,7 @@
   function select(items, interp, profile) {
     const ctx = interp.context, limits = data.LIMITS[profile.level] || data.LIMITS[data.DEFAULT_LEVEL];
     const owned = new Set(profile.cats || []);
+    const level = data.LIMITS[profile.level] ? profile.level : data.DEFAULT_LEVEL;
     const strongRule = activeRule('strong_evening'), ownedRule = activeRule('owned_exfoliant');
     const treatments = [], supports = [], deferred = [];
     const defer = (a, kind, indicator) => {
@@ -41,10 +42,13 @@
 
       /* Soins ciblés. */
       let pool = tr, blocked = [];
-      if (ctx.comfortMode) {
-        /* Mode confort : aucun actif à irritation « high » (rétinoïde) n'est sélectionné automatiquement, même sans alternative douce. */
+      /* Aucun actif à irritation « high » (rétinoïde) n'est sélectionné automatiquement en mode confort, ni dans la routine minimale (niveau « none »). */
+      const minimal = level === 'none';
+      if (ctx.comfortMode || minimal) {
         blocked = tr.filter(a => a.irritation === 'high');
         pool = tr.filter(a => a.irritation !== 'high');
+      }
+      if (ctx.comfortMode) {
         const gentle = pool.filter(a => a.irritation === 'low');
         if (gentle.length) {                       // actifs doux d'abord ; l'actif plus exigeant est mis de côté, pas supprimé sans raison
           const skipped = pool.find(a => a.irritation !== 'low');
@@ -74,7 +78,7 @@
       }
       /* Les actifs « high » écartés en mode confort sont expliqués seulement s'ils passaient avant l'actif retenu (ou s'il n'y en a aucun). */
       const rank = id => tr.findIndex(x => x.id === id);
-      for (const b of blocked) if (chosenId === null || rank(b.id) < rank(chosenId)) defer(b, 'gentle', it.indicator);
+      for (const b of blocked) if (chosenId === null || rank(b.id) < rank(chosenId)) defer(b, ctx.comfortMode ? 'gentle' : 'minimal', it.indicator);
 
       /* Ingrédients de l'hydratant : au plus un par rôle, deux au maximum pour cette priorité. */
       let added = 0;

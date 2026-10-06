@@ -197,13 +197,15 @@
        - global    : globalScore, tel que reçu. Jamais recalculé à partir des métriques, jamais inversé.
      Un score absent, non numérique ou hors de 0 à 100 est « indisponible » (score null) : jamais remplacé, jamais borné.
      Seul l'arrondi à l'entier est appliqué, pour l'affichage. */
+  /* Editorial DERMAI thresholds (61 / 31) : NOT supplied by Perfect Corp. Perfect Corp documente un ui_score entier, plus haut = mieux,
+     sans bande ni seuil. Ces bandes servent uniquement à l'affichage et à l'éligibilité des priorités. */
   const BANDS = [
     { key: 'good', label: 'Bien', min: 61 },
     { key: 'mid', label: 'À soutenir', min: 31 },
     { key: 'low', label: 'À surveiller', min: 0 }
   ];
   const METRIC_LABELS = {
-    acne: 'Acné', pores: 'Pores', oiliness: 'Sébum', texture: 'Texture', hydration: 'Hydratation', redness: 'Rougeurs',
+    acne: 'Acné', pores: 'Pores', oiliness: 'Niveau d\'huile', texture: 'Texture', hydration: 'Hydratation', redness: 'Rougeurs',
     pigmentation: 'Pigmentation', wrinkles: 'Rides', firmness: 'Fermeté', radiance: 'Radiance', eyeBag: 'Poches',
     tearTrough: 'Vallée des larmes', darkCircle: 'Cernes', droopyUpperEyelid: 'Paupière supérieure', droopyLowerEyelid: 'Paupière inférieure'
   };

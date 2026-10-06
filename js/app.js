@@ -430,11 +430,13 @@ V.analyzing=()=>`<div class="an"><p class="pill-up">Analyse en cours</p><div cla
 
 /* Résultat */
 /* Écran Résultat : lit uniquement SkinModel.toResultView(normalized) (échelle 0-100, 100 = meilleur). Aucun repli, aucune zone du visage. */
-const SCORE_SENTENCE={good:`Votre peau présente un bon état apparent.`,mid:`Votre peau a besoin d'un peu de soutien.`,low:`Votre peau mérite une attention particulière.`};
+/* Les fréquences sont une suggestion de départ DERMAI (introduction progressive, selon la tolérance), jamais une recommandation du fournisseur d'analyse. */
+const startHint=i=>`Suggestion de départ : ${i.frequency?i.frequency.charAt(0).toLowerCase()+i.frequency.slice(1):`selon votre tolérance`}.${i.note?` ${i.note}`:``} À adapter selon la tolérance de votre peau.`;
+const SCORE_SENTENCE={good:`Votre analyse indique un état apparent plutôt favorable.`,mid:`Votre analyse indique quelques repères à soutenir.`,low:`Votre analyse indique plusieurs repères plus faibles.`};
 /* Indicateurs informatifs (contour des yeux) : jamais de bande d'alerte ni d'incitation à l'action, un libellé neutre à la place. */
 const infoBadge=()=>`<span class="c-badge c-badge--outline">${Engine.copy.INFO_LABEL}</span>`;
 const isInfo=m=>m.actionability===`informative`;
-const IND_TXT={good:`Cet indicateur est dans une bonne zone.`,mid:`Cet indicateur mérite davantage d'attention.`,low:`Cet indicateur demande une attention particulière.`};
+const IND_TXT={good:`Ce repère est dans une bonne zone.`,mid:`Ce repère est plus faible : il peut être soutenu.`,low:`Ce repère est nettement plus faible : il peut être soutenu en priorité.`};
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
   const s=SCANS[state.view],r=viewOf(s),g=r.global,eng=engineFor(s),P=eng.priorities;
@@ -504,15 +506,12 @@ const WHEN_FR={morning:`Matin`,evening:`Soir`,both:`Matin et soir`};
 V.active=id=>{
   const A=Engine.actives;
   let a=A.byId(id);if(!a||!A.isValidated(a))a=A.validated()[0];
-  const lab=ids=>ids.map(x=>(A.byId(x)||{label:x}).label);
   return shell(`<div class="grid2 lw"><div class="col sticky-d"><div class="sand"><p class="kicker">${a.summary}</p><h1 style="margin:10px 0 12px">${a.label}</h1><p>${a.description}</p></div>${disc()}</div>
   <div class="col"><div class="kv">
    <div><h4>Indicateurs ciblés</h4><div class="chips" style="margin-top:8px">${a.targets.map(t=>`<span class="c-badge">${SkinModel.METRIC_LABELS[t]}</span>`).join(``)}</div></div>
    <div><h4>Moment d'utilisation</h4><p>${WHEN_FR[a.when]}</p></div>
-   <div><h4>Fréquence indicative</h4><p>${a.introduction.frequency}${a.introduction.note?`. ${a.introduction.note}`:``}</p></div>
+   <div><h4>Introduction progressive</h4><p>${startHint(a.introduction)}</p></div>
    <div><h4>Précautions générales</h4><ul>${a.cautions.map(x=>`<li>${x}</li>`).join(``)}</ul></div>
-   ${a.pairsWith.length?`<div><h4>S'associe bien avec</h4><p>${lab(a.pairsWith).join(`, `)}</p></div>`:``}
-   <div><h4>À éviter en même temps</h4><p>${a.conflicts.length?lab(a.conflicts).join(`, `):`Aucune incompatibilité majeure connue`}</p></div>
   </div><button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir des exemples de produits</button></div></div>`,{back:true,title:a.label});
 };
 
@@ -523,7 +522,7 @@ V.routine=()=>{
   const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId);
     return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>
-      ${st.kind===`treatment`?`<p class="c-routine-step__role">${st.introduction.frequency}. ${st.introduction.note}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>`:``}
+      ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>`:``}
       ${p?`<button class="link" data-act="product" data-v="${p.id}">Exemple (démonstration) : ${p.name}</button>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>Suivez l'ordre indiqué. Cochez chaque étape une fois faite.</p></div>

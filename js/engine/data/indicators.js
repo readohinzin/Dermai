@@ -12,6 +12,9 @@
 
   const DOMAINS = ['hydration', 'oil_pores', 'blemishes', 'tone', 'redness_comfort', 'texture', 'aging', 'eye_contour'];
 
+  /* Les indicateurs du contour des yeux sont informatifs seulement : aucun actif automatique, aucune priorité d'action.
+     La direction exacte de oiliness, texture et radiance n'est pas documentée par Perfect Corp : ne pas en déduire d'affirmation
+     (huile en excès, rugosité, teint terne…) ni d'actif exfoliant à partir d'un de ces indicateurs seul. */
   /* Ordre = ordre fixe de départage (identique à METRICS de skin-model.js). */
   const INDICATORS = {
     acne:              { domain: 'blemishes',       actionability: 'actionable',  confidence: 'medium' },
