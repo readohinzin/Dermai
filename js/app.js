@@ -215,7 +215,7 @@ const ICONS={
 };
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||``}</svg>`;
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
-const demoTag=()=>DEMO_MODE?`<span class="demo">Mode démonstration</span>`:``;
+const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
 /* Portrait : photo fictive de démonstration (ou illustration d'attente) + zones d'analyse */
 const SPOTS=[[92,176],[116,196],[100,204],[204,190],[188,204],[200,168],[132,94],[168,88],[150,110],[176,160],[86,164],[212,206],[140,240],[162,232]];
@@ -239,7 +239,7 @@ function portrait({on=[],spots=0,shift=0,cls=``,importBtn=false,detect=null,focu
   if(live){on=[];detect=null;spots=0}
   const src=live?(photo||(state.route===`scan`||state.route===`analyzing`?state.realPreview:``)):photoSrc(),st=shift?`transform:scale(1.14) translateX(${shift}%)`:``;
   const Zs=src?PHOTO_ZONES:PORTRAIT_ZONES,Bs=src?PHOTO_BADGES:PORTRAIT_BADGES,vb=src?`0 0 300 300`:`0 0 300 375`;
-  const media=src?`<img src="${src}" alt="${live?`Votre photo`:`Photo de démonstration d'une personne fictive`}" style="${st}">`:placeholderSVG(st);
+  const media=src?`<img src="${src}" alt="${live?`Votre photo`:`Photo de démonstration d'une personne fictive`}" style="${st}">`:live?`<div class="c-photo__placeholder">${ic(`image`)}<span>Votre photo apparaîtra ici</span></div>`:placeholderSVG(st);
   const zs=Object.keys(Zs).map(k=>{const z=Zs[k];return `<g class="z ${on.includes(k)?`on`:``}" data-z="${k}"><ellipse cx="${z.cx}" cy="${z.cy}" rx="${z.rx}" ry="${z.ry}"/></g>`}).join(``);
   const sp=src?``:SPOTS.slice(0,spots).map(p=>`<circle class="sp" cx="${p[0]}" cy="${p[1]}" r="2.4"/>`).join(``);
   let defs=``,badges=``;
@@ -282,17 +282,17 @@ function gchart(list){
    ${P.map((p,i)=>`<circle class="gl-dot" cx="${p[0]}" cy="${p[1]}" r="5.5"/><text class="gv" x="${p[0]}" y="${p[1]-15}" text-anchor="middle">${list[i].global}</text><text class="gd" x="${p[0]}" y="${h-12}" text-anchor="middle">${list[i].short}</text>`).join(``)}</svg>`;
 }
 const have=(s,id)=>Number.isFinite(s[id]);
-const emptyScan=(title,msg,opt={})=>shell(`<div class="pagehead"><h1>${title}</h1><p>${msg}</p></div><div style="max-width:420px"><button class="btn btn-primary btn-block" data-go="scan">Faire une analyse</button></div>`,opt);
+const emptyScan=(title,msg,opt={})=>shell(`<div class="pagehead"><h1>${title}</h1></div><div class="c-card c-card--empty"><div class="c-empty">${ic(`chart`)}<h2 class="c-empty__title">${msg[0]}</h2><p class="c-empty__text">${msg[1]}</p><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Faire une analyse</button></div></div>`,opt);
 /* Mode réel : la progression n'existe qu'à partir de deux vraies analyses, avec leurs vraies valeurs. */
 const realTrend=()=>{
   const g=SCANS.filter(x=>x.real&&Number.isFinite(x.global));
   if(g.length<2)return ``;
   return `<section><div class="hd"><h2 class="h3">Progression</h2></div>
-      <button class="mcard" data-go="progress" style="width:100%"><div class="r1"><b>Équilibre cutané</b><span class="tagx">${g.length} analyses</span></div><div class="r3"><span class="v">${g[0].global} → ${g[g.length-1].global}</span>${spark(g.map(x=>x.global))}</div></button></section>`;
+      <button class="mcard" data-go="progress" style="width:100%"><div class="r1"><b>Équilibre cutané</b><span class="c-badge">${g.length} analyses</span></div><div class="r3"><span class="v">${g[0].global} → ${g[g.length-1].global}</span>${spark(g.map(x=>x.global))}</div></button></section>`;
 };
 /* Mode réel : le backend ne localise rien, les phrases décrivant des zones du visage sont réservées à la démonstration. */
 const REAL_TXT={3:`Cet indicateur demande une attention particulière.`,2:`Cet indicateur demande une attention modérée.`,1:`Cet indicateur demande peu d'attention.`};
-const EMPTY_MSG=`Aucune analyse pour le moment. Faites votre première analyse pour voir vos résultats ici.`;
+const EMPTY_MSG=[`Aucune analyse pour le moment`,`Faites votre première analyse pour voir vos résultats ici.`];
 const LV={3:`Élevé`,2:`Modéré`,1:`Faible`};
 /* Un niveau élevé signifie toujours davantage de besoin d'attention. Les scores bruts restent dans les données. */
 const amount=(id,s)=>(CONCERNS[id]&&CONCERNS[id].better===`higher`)?100-s[id]:s[id];
@@ -305,18 +305,18 @@ const inRoutine=id=>[...AM,...PM].some(s=>s.p===id);
 const initial=()=>state.user.name.trim()?esc(state.user.name.trim().charAt(0).toUpperCase()):DEMO_MODE?`A`:ic(`user`);
 const pad=n=>String(n).padStart(2,`0`);
 const verdict=(id,a,b)=>{const x=amount(id,a),y=amount(id,b);return y<x-2?[`Plus équilibrée`,`t2`]:y>x+2?[`À observer`,`t3`]:[`Stable`,`t1`]};
-const activeCard=(a,i)=>`<div class="acard"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${ACTIVES[a].name}</b><div class="chips">${ACTIVES[a].for.map(f=>`<span class="tagx">${f}</span>`).join(``)}</div></div><button class="btn btn-soft btn-sm" data-go="active:${a}">Découvrir</button></div>`;
+const activeCard=(a,i)=>`<div class="acard"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${ACTIVES[a].name}</b><div class="chips">${ACTIVES[a].for.map(f=>`<span class="c-badge">${f}</span>`).join(``)}</div></div><button class="c-btn c-btn--tonal c-btn--sm" data-go="active:${a}">Découvrir</button></div>`;
 
 /* ---------- 4. ÉCRANS ---------- */
 const NAV=[[`home`,`Accueil`,`home`],[`scan`,`Analyser`,`scan`],[`routine`,`Routine`,`routine`],[`progress`,`Progression`,`chart`],[`profile`,`Profil`,`user`]];
 const TAB_OF={home:`home`,result:`home`,concern:`home`,scan:`scan`,routine:`routine`,actives:`routine`,active:`routine`,products:`routine`,progress:`progress`,profile:`profile`,analyses:`profile`,privacy:`profile`};
 function shell(inner,{title=``,back=false}={}){
   const tab=TAB_OF[state.route];
-  const navBtns=()=>NAV.map(n=>`<button data-go="${n[0]}" data-reset="1" ${tab===n[0]?`aria-current="page"`:``}>${ic(n[2])}<span>${n[1]}</span></button>`).join(``);
+  const navBtns=cls=>NAV.map(n=>`<button ${cls?`class="${cls}" `:``}data-go="${n[0]}" data-reset="1" ${tab===n[0]?`aria-current="page"`:``}>${ic(n[2])}<span>${n[1]}</span></button>`).join(``);
   return `<div class="app">
     <aside class="rail"><span class="brand">DERMAI</span><nav aria-label="Navigation principale">${navBtns()}</nav><small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></aside>
-    <main class="main">${back?`<header class="top"><button class="iconbtn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
-    <nav class="nav" aria-label="Navigation principale">${navBtns()}</nav>
+    <main class="main">${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
+    <nav class="nav c-bottomnav" aria-label="Navigation principale">${navBtns(`c-bottomnav__item`)}</nav>
   </div>`;
 }
 const V={};
@@ -324,13 +324,13 @@ const V={};
 /* Landing */
 V.landing=()=>{
   const on=ZONES_BY[state.sel]||ZONES_BY.all;
-  return `<header class="l-top"><span class="brand">DERMAI</span><button class="btn btn-soft btn-sm" data-go="home" data-reset="1">Se connecter</button></header>
+  return `<header class="l-top"><span class="brand">DERMAI</span><button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button></header>
   <section class="hero"><div class="wrap hero-grid">
     <div>
       <p class="tagline">${ic(`sparkle`)} Analyse cosmétique assistée par IA</p>
       <h1 class="hero-h">Votre peau.<br>Votre analyse.<br>Votre routine.</h1>
       <p class="lead">Analysez visuellement votre peau et découvrez une routine personnalisée adaptée à vos besoins.</p>
-      <div class="cta-row"><button class="btn btn-primary" data-go="signup">Analyser ma peau</button><button class="btn btn-ghost" data-act="scroll" data-v="how">En savoir plus</button></div>
+      <div class="cta-row"><button class="c-btn c-btn--primary" data-go="signup">Analyser ma peau</button><button class="c-btn c-btn--secondary" data-act="scroll" data-v="how">En savoir plus</button></div>
       ${DEMO_MODE?`<div style="margin-top:20px">${demoTag()}</div>`:``}
     </div>
     <div class="hero-art">
@@ -363,14 +363,14 @@ V.landing=()=>{
     </div>
     <div>
       <div class="facebox">${portrait({on,detect:SCANS[0],focus:state.sel,decor:true})}<div class="facecap">${state.sel===`all`?`Touchez une préoccupation pour voir les zones concernées.`:`Zones concernées : ${CONCERNS[state.sel].zones.toLowerCase()}.`}</div></div>
-      <div class="chips" style="margin-top:16px;justify-content:center">${CIDS.map(c=>`<button class="chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
+      <div class="chips" style="margin-top:16px;justify-content:center">${CIDS.map(c=>`<button class="c-chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
     </div>
   </div></section>
 
   <section class="sec alt"><div class="wrap two rev">
-    <div class="panel">
+    <div class="c-card">
       <p class="kicker">Exemple : Amina, peau mixte</p>
-      <div class="chips" style="margin:14px 0 22px"><span class="tagx">Réduire les taches</span><span class="tagx">Contrôler les pores</span></div>
+      <div class="chips" style="margin:14px 0 22px"><span class="c-badge">Réduire les taches</span><span class="c-badge">Contrôler les pores</span></div>
       <div class="rowlink" style="border-top:1px solid var(--line)"><div class="grow"><b>Priorité : pigmentation</b><span class="s">Acide azélaïque le soir, vitamine C le matin</span></div></div>
       <div class="rowlink"><div class="grow"><b>Priorité : pores</b><span class="s">Niacinamide et nettoyage doux</span></div></div>
     </div>
@@ -385,14 +385,14 @@ V.landing=()=>{
       <h2>Une routine claire, matin et soir</h2>
       <p style="margin-top:14px;max-width:30em">Chaque étape a un produit, un rôle et un ordre. Vous cochez au fil de la journée.</p>
     </div>
-    <div class="panel">
+    <div class="c-card">
       <p class="kicker" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">${ic(`sun`)} Matin</p>
       ${AM.map((s,i)=>`<div class="rowlink" ${i===0?`style="border-top:1px solid var(--line)"`:``}><span class="idx">${pad(i+1)}</span><div class="grow"><b>${s.step}</b><span class="s">${s.active}</span></div></div>`).join(``)}
     </div>
   </div></section>
 
   <section class="sec alt"><div class="wrap two rev">
-    <div class="panel"><p class="kicker">Équilibre cutané</p>${gchart(SCANS)}<p class="muted" style="margin-top:6px">Données fictives de démonstration.</p></div>
+    <div class="c-card"><p class="kicker">Équilibre cutané</p>${gchart(SCANS)}<p class="muted" style="margin-top:6px">Données fictives de démonstration.</p></div>
     <div><h2>Votre peau évolue.</h2><p style="margin-top:14px;max-width:30em">Refaites une analyse quand vous voulez. DERMAI la compare à vos observations précédentes.</p></div>
   </div></section>
 
@@ -405,33 +405,33 @@ V.landing=()=>{
     </ul>
   </div></section>
 
-  <section class="sec alt" style="text-align:center"><div class="wrap"><h2>Commencez par une analyse</h2><div class="cta-row" style="justify-content:center;margin-top:26px"><button class="btn btn-primary" data-go="signup">Analyser ma peau</button></div></div></section>
+  <section class="sec alt" style="text-align:center"><div class="wrap"><h2>Commencez par une analyse</h2><div class="cta-row" style="justify-content:center;margin-top:26px"><button class="c-btn c-btn--primary" data-go="signup">Analyser ma peau</button></div></div></section>
   <footer class="foot"><div class="wrap">DERMAI fournit une analyse cosmétique visuelle et des recommandations de soin. Il ne remplace pas l'avis d'un professionnel de santé.</div></footer>`;
 };
 
 /* Inscription */
-V.signup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div>
+V.signup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div>
   <div class="body"><h1>Créez votre compte</h1><p style="margin:10px 0 26px">Une minute suffit pour personnaliser votre expérience.</p>
   <div class="stack" style="gap:16px">
-    <div class="field"><label for="f-name">Prénom</label><input id="f-name" autocomplete="given-name" value="Amina"></div>
-    <div class="field"><label for="f-mail">Email</label><input id="f-mail" type="email" autocomplete="email" value="amina@exemple.com"></div>
-    <div class="field"><label for="f-pw">Mot de passe</label><input id="f-pw" type="password" autocomplete="new-password" value="motdepasse"></div>
-    <button class="btn btn-primary btn-block" data-act="signup" style="margin-top:6px">Créer mon compte</button>
+    <div class="c-field"><label class="c-field__label" for="f-name">Prénom</label><input class="c-input" id="f-name" autocomplete="given-name" value="${DEMO_MODE?`Amina`:``}"></div>
+    <div class="c-field"><label class="c-field__label" for="f-mail">Email</label><input class="c-input" id="f-mail" type="email" autocomplete="email" value="${DEMO_MODE?`amina@exemple.com`:``}"></div>
+    <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" type="password" autocomplete="new-password" value="${DEMO_MODE?`motdepasse`:``}"></div>
+    <button class="c-btn c-btn--primary c-btn--block" data-act="signup" style="margin-top:6px">Créer mon compte</button>
     <div class="or">ou</div>
-    <button class="btn btn-ghost btn-block" data-act="signup">Continuer avec Google</button>
-    <button class="btn btn-ghost btn-block" data-act="signup">Continuer avec Apple</button>
+    <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Google</button>
+    <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Apple</button>
   </div><p class="muted" style="margin-top:22px">Maquette : aucun compte réel n'est créé.</p></div></div>`;
-V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><span class="brand" style="margin-bottom:34px">DERMAI</span><h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="btn btn-primary" data-go="onb:1">Commencer</button></div>`;
+V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><span class="brand" style="margin-bottom:34px">DERMAI</span><h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
 
 /* Onboarding */
 V.onb=n=>{
   n=Number(n)||1;
-  const top=`<div class="flowtop"><button class="iconbtn" data-go="${n===1?`welcome`:`onb:`+(n-1)}" aria-label="Retour">${ic(`back`)}</button><div class="dots" aria-label="Question ${n} sur 3">${[1,2,3].map(i=>`<i class="${i<=n?`on`:``}"></i>`).join(``)}</div></div>`;
+  const top=`<div class="flowtop"><button class="iconbtn c-icon-btn" data-go="${n===1?`welcome`:`onb:`+(n-1)}" aria-label="Retour">${ic(`back`)}</button><div class="dots" aria-label="Question ${n} sur 3">${[1,2,3].map(i=>`<i class="${i<=n?`on`:``}"></i>`).join(``)}</div></div>`;
   let body=``;
   if(n===1) body=`<h1>Quel est votre objectif principal ?</h1><p style="margin:10px 0 22px">Vous pouvez en choisir plusieurs.</p><div class="stack" style="gap:10px">${GOALS.map(g=>`<button class="opt" data-act="goal" data-v="${g[0]}" aria-pressed="${state.goals.includes(g[0])}"><span class="grow"><b>${g[1]}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}</div>`;
   if(n===2) body=`<h1>Quelle est votre routine actuelle ?</h1><p style="margin:10px 0 22px">Pas de mauvaise réponse.</p><div class="stack" style="gap:10px">${[[`none`,`Aucune routine`,`Je n'ai pas de soins réguliers.`],[`simple`,`Routine simple`,`Je nettoie et j'hydrate.`],[`full`,`Routine complète`,`J'utilise plusieurs soins, dont des sérums.`]].map(o=>`<button class="opt" data-act="level" data-v="${o[0]}" aria-pressed="${state.level===o[0]}"><span class="grow"><b>${o[1]}</b><span class="s">${o[2]}</span></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}</div>`;
   if(n===3) body=`<h1>Quels produits utilisez-vous ?</h1><p style="margin:10px 0 22px">Choisissez les catégories que vous utilisez déjà.</p><div class="stack" style="gap:10px">${CATS.map(c=>`<button class="opt" data-act="cat" data-v="${c[0]}" aria-pressed="${state.cats.includes(c[0])}"><span class="grow"><b>${c[1]}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}<button class="opt" data-act="cat" data-v="none" aria-pressed="${state.cats.includes(`none`)}"><span class="grow"><b>Aucun produit pour l'instant</b></span><span class="tick">${ic(`check`)}</span></button></div>`;
-  const next=n<3?`<button class="btn btn-primary btn-block" data-go="onb:${n+1}">Continuer</button>`:`<button class="btn btn-primary btn-block" data-act="finish-onb">Terminer</button>`;
+  const next=n<3?`<button class="c-btn c-btn--primary c-btn--block" data-go="onb:${n+1}">Continuer</button>`:`<button class="c-btn c-btn--primary c-btn--block" data-act="finish-onb">Terminer</button>`;
   return `<div class="flow">${top}<div class="body">${body}</div><div class="stack" style="margin-top:26px">${next}${n===3?`<button class="link" data-act="finish-onb" style="justify-content:center">Passer</button>`:``}</div></div>`;
 };
 
@@ -447,7 +447,7 @@ V.home=()=>{
    <div class="col">
     <section class="skin-now"><div class="mf">${portrait({on:rk.length?ZONES_BY[rk[0]]:[],photo:s.photo})}</div>
       <div class="txt"><p class="kicker">Profil cutané</p><p class="big" style="font-size:2.9rem;margin:6px 0 10px">${s.skinType||`Profil en cours`}</p>${have(s,`global`)?`<p class="muted">Équilibre cutané <b style="color:var(--ink)">${s.global}</b></p>`:``}${top2.length?`<p class="muted" style="margin-top:4px">Priorités : ${top2.join(` et `)}.</p>`:``}</div>
-      <button class="btn btn-primary btn-sm" data-go="result" data-act="setview" data-v="${state.latest}">Voir mon analyse</button></section>
+      <button class="c-btn c-btn--primary c-btn--sm" data-go="result" data-act="setview" data-v="${state.latest}">Voir mon analyse</button></section>
     <section><div class="hd"><h2 class="h3">Préoccupations</h2></div>${rk.slice(0,3).map(id=>`<button class="mini" data-go="concern:${id}"><span class="nm"><b>${CONCERNS[id].label}</b></span>${lvl(id,s)}<span style="margin-left:8px">${ic(`chev`)}</span></button>`).join(``)}</section>
     <section><div class="hd"><h2 class="h3">Explorer</h2></div>
       <button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Ce qui peut aider votre peau</span></div>${ic(`chev`)}</button>
@@ -455,13 +455,13 @@ V.home=()=>{
    </div>
    <div class="col">
     <section><div class="hd"><h2 class="h3">Ma routine du jour</h2><span class="muted">${doneN} sur ${steps.length}</span></div>
-      <div class="seg" role="group" aria-label="Moment de la journée"><button data-act="tab" data-v="am" aria-pressed="${state.tab===`am`}">${ic(`sun`)}Matin</button><button data-act="tab" data-v="pm" aria-pressed="${state.tab===`pm`}">${ic(`moon`)}Soir</button></div>
-      <div style="margin-top:10px">${steps.map((st,i)=>`<div class="rowlink"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${st.step}</b><span class="s">${PRODUCTS.find(p=>p.id===st.p).name}</span></div><button class="check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${st.step} comme fait">${ic(`check`)}</button></div>`).join(``)}</div>
+      <div class="c-seg" role="group" aria-label="Moment de la journée"><button class="c-seg__btn" data-act="tab" data-v="am" aria-pressed="${state.tab===`am`}">${ic(`sun`)}Matin</button><button class="c-seg__btn" data-act="tab" data-v="pm" aria-pressed="${state.tab===`pm`}">${ic(`moon`)}Soir</button></div>
+      <div style="margin-top:10px">${steps.map((st,i)=>`<div class="rowlink"><span class="idx">${pad(i+1)}</span><div class="grow"><b>${st.step}</b><span class="s">${PRODUCTS.find(p=>p.id===st.p).name}</span></div><button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${st.step} comme fait">${ic(`check`)}</button></div>`).join(``)}</div>
       <button class="link" data-go="routine">Voir toute la routine</button></section>
     ${DEMO_MODE?`<section><div class="hd"><h2 class="h3">Progression</h2></div>
-      <button class="mcard" data-go="progress" style="width:100%"><div class="r1"><b>Équilibre cutané</b><span class="tagx">Jour 1 à jour 30</span></div><div class="r3"><span class="v">61 → 64</span>${spark([61,62,64])}</div></button></section>
-    <section class="next"><div class="cal"><div><b>30</b><small>oct.</small></div></div><div style="flex:1"><b>Prochain scan</b><p class="muted">Dans 31 jours</p></div><button class="btn btn-soft btn-sm" data-go="scan">Analyser</button></section>`:`${realTrend()}
-    <section class="next"><div style="flex:1"><b>Nouvelle analyse</b><p class="muted">Refaites un scan quand vous le souhaitez.</p></div><button class="btn btn-soft btn-sm" data-go="scan">Analyser</button></section>`}
+      <button class="mcard" data-go="progress" style="width:100%"><div class="r1"><b>Équilibre cutané</b><span class="c-badge">Jour 1 à jour 30</span></div><div class="r3"><span class="v">61 → 64</span>${spark([61,62,64])}</div></button></section>
+    <section class="next"><div class="cal"><div><b>30</b><small>oct.</small></div></div><div style="flex:1"><b>Prochain scan</b><p class="muted">Dans 31 jours</p></div><button class="c-btn c-btn--tonal c-btn--sm" data-go="scan">Analyser</button></section>`:`${realTrend()}
+    <section class="next"><div style="flex:1"><b>Nouvelle analyse</b><p class="muted">Refaites un scan quand vous le souhaitez.</p></div><button class="c-btn c-btn--tonal c-btn--sm" data-go="scan">Analyser</button></section>`}
    </div>
   </div>`);
 };
@@ -472,15 +472,15 @@ const tipsHtml=()=>TIPS.map(t=>`<div class="tip"><span class="ico">${ic(t[0])}</
 const SHOT=[[`De face`,0],[`Profil gauche`,-7],[`Profil droit`,7]];
 V.scan=()=>{
   const st=state.scanStep;
-  const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
-  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="btn btn-primary btn-block" data-act="scan-start" style="margin-top:26px">Commencer le scan</button><p class="muted" style="margin-top:14px;text-align:center">Vos photos servent à analyser votre peau.</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
-  if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto"><div class="thumbs">${(DEMO_MODE?SHOT:SHOT.slice(0,1)).map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>
-   <div class="panel" style="margin:22px 0;display:flex;gap:14px;align-items:center"><span style="color:var(--accent)">${ic(DEMO_MODE||!state.scanError?`check`:`info`)}</span>${DEMO_MODE?`<div><b>Qualité de l'image : excellente</b><p class="muted">Lumière et cadrage corrects sur les trois photos.</p></div>`:state.scanError?`<div role="alert"><b>Analyse impossible</b><p class="muted">${esc(state.scanError)}</p></div>`:`<div><b>Photo prête</b><p class="muted">Le cadrage et la lumière sont vérifiés pendant l'analyse.</p></div>`}</div>
-   <button class="btn btn-primary btn-block" data-go="analyzing">${state.scanError?`Réessayer`:`Analyser ma peau`}</button></div></div>`;
+  const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn c-icon-btn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
+  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">Commencer le scan</button><p class="muted" style="margin-top:14px;text-align:center">Vos photos servent à analyser votre peau.</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
+  if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Reprendre la photo</button></div>`}
+   ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">Analyse impossible</span>${esc(state.scanError)}</div></div>`:`<div class="c-notice u-my-5">${ic(`check`)}<div><span class="c-notice__title">Photo prête</span>Le cadrage et la lumière sont vérifiés pendant l'analyse.</div></div>`}
+   <button class="c-btn c-btn--primary c-btn--block" data-go="analyzing">${state.scanError?`Réessayer`:`Analyser ma peau`}</button></div></div>`;
   const s=SHOT[st-1];
   return `<div class="scan">${head}<div class="scan-grid"><div><div class="segs">${(DEMO_MODE?[1,2,3]:[1]).map(i=>`<i class="${i<=st?`on`:``}"></i>`).join(``)}</div>
    <h2 class="cam-h">${st===1?`Positionnez votre visage<br>au centre`:st===2?`Tournez doucement<br>la tête vers la droite`:`Tournez doucement<br>la tête vers la gauche`}</h2>
-   <div class="cam" id="cam"><div class="feed">${portrait({shift:s[1]})}</div><div class="frame"></div><div class="scanline"></div><div class="label"><span>${s[0]}</span></div><div class="qual"><span class="qd"><i></i><i></i><i></i></span><span id="qt">Vérification de la lumière…</span></div><div class="flash" id="flash"></div></div>
+   <div class="cam" id="cam"><div class="feed">${portrait({shift:s[1]})}</div><div class="frame"></div>${DEMO_MODE?`<div class="scanline"></div>`:``}<div class="label"><span>${s[0]}</span></div><div class="qual"><span class="qd"><i></i><i></i><i></i></span><span id="qt">Vérification de la lumière…</span></div><div class="flash" id="flash"></div></div>
    <p class="muted" style="text-align:center;margin:12px 0 18px">${DEMO_MODE?`Caméra simulée, photo de démonstration.`:`Touchez le bouton pour prendre ou choisir votre photo.`}</p>
    <button class="shutter" data-act="shutter" aria-label="Prendre la photo"><i></i></button></div>
    <aside class="scan-side"><h2>Pour une bonne analyse</h2><div style="margin-top:14px">${tipsHtml()}</div></aside></div></div>`;
@@ -505,14 +505,14 @@ V.result=()=>{
     <div class="rcard">${portrait({on,detect:s,focus:state.sel,photo:s.photo})}
       <div class="rc-row"><div><p class="kicker">Votre peau aujourd'hui</p><p class="rc-type">${s.skinType||`Profil cutané`}</p></div>${have(s,`global`)?`<div class="rc-score"><b>${s.global}</b><span>Équilibre cutané</span></div>`:``}</div>
       ${DEMO_MODE?`<p class="facecap" style="padding:0 12px 14px;text-align:left">${caption} Notes de 0 à 10 : plus le chiffre est élevé, plus la zone demande d'attention.</p>`:``}</div>
-    ${DEMO_MODE?`<div class="chips" style="justify-content:center"><button class="chip" data-act="zone" data-v="all" aria-pressed="${state.sel===`all`}">Tout</button>${CIDS.filter(c=>have(s,c)).map(c=>`<button class="chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>`:``}
+    ${DEMO_MODE?`<div class="chips" style="justify-content:center"><button class="c-chip" data-act="zone" data-v="all" aria-pressed="${state.sel===`all`}">Tout</button>${CIDS.filter(c=>have(s,c)).map(c=>`<button class="c-chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>`:``}
    </div>
    <div class="col">
     <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>
       <div>${rk.map((id,i)=>{const t=tierOf(id,s);return `<button class="prio" data-go="concern:${id}"><div class="prio-top"><span class="n">${pad(i+1)}</span><span class="nm">${CONCERNS[id].label}</span><span class="lvl t${t}">${LV[t]}</span></div>${lbar(t)}<div class="prio-sub"><span>Besoin d'attention</span><span>Voir le détail</span></div></button>`}).join(``)}</div>
       ${ex.length?`<div class="ex">${ex.map(e=>{const t=tierOf(e[0],s);return `<div class="mini"><span class="nm">${e[1]}</span><span class="lvl t${t}">${LV[t]}</span></div>`}).join(``)}</div>`:``}
       <div class="note">${ic(`info`)}<span>Un niveau élevé signifie davantage de besoin d'attention. Ces indicateurs sont cosmétiques, pas un diagnostic médical.</span></div></section>
-    <div class="stack"><button class="btn btn-primary btn-block" data-go="actives">Voir ce qui peut aider</button><button class="btn btn-ghost btn-block" data-go="routine">Ma routine personnalisée</button></div>
+    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="actives">Voir ce qui peut aider</button><button class="c-btn c-btn--secondary c-btn--block" data-go="routine">Ma routine personnalisée</button></div>
    </div>
   </div>`,{back:true,title:`Analyse`});
 };
@@ -525,7 +525,7 @@ V.concern=id=>{
   if(!have(s,id))return shell(`<div class="pagehead"><h1>${c.label}</h1><p>Cette information n'est pas disponible pour cette analyse.</p></div>`,{back:true,title:c.label});
   const t=tierOf(id,s);
   return shell(`
-  <div class="chips" style="margin-bottom:22px">${CIDS.filter(k=>have(s,k)).map(k=>`<button class="chip" data-go="concern:${k}" aria-pressed="${k===id}">${CONCERNS[k].label}</button>`).join(``)}</div>
+  <div class="chips" style="margin-bottom:22px">${CIDS.filter(k=>have(s,k)).map(k=>`<button class="c-chip" data-go="concern:${k}" aria-pressed="${k===id}">${CONCERNS[k].label}</button>`).join(``)}</div>
   <div class="grid2">
    <div class="col">
     <section><h1>${c.label}</h1><div style="display:flex;gap:12px;align-items:center;margin:16px 0 12px"><span class="lvl t${t}">${LV[t]}</span><span class="muted">Besoin d'attention</span></div>${lbar(t)}<p style="margin-top:18px;font-size:18px;color:var(--ink)">${DEMO_MODE?c.txt[t]:REAL_TXT[t]}</p></section>
@@ -534,7 +534,7 @@ V.concern=id=>{
    <div class="col">
     <section><div class="hd"><h2 class="h3">Ce qui peut aider</h2></div><p class="muted" style="margin-bottom:14px">Recommandations cosmétiques générales, pas un traitement.</p><div class="stack" style="gap:12px">${c.actives.map((a,i)=>activeCard(a,i)).join(``)}</div></section>
     <section><div class="hd"><h2 class="h3">Au quotidien</h2></div><ul class="l-list" style="margin-top:0">${c.tips.map(x=>`<li>${ic(`check`)}<span>${x}</span></li>`).join(``)}</ul></section>
-    ${disc()}<button class="btn btn-primary btn-block" data-go="actives">Voir tous mes actifs</button>
+    ${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="actives">Voir tous mes actifs</button>
    </div>
   </div>`,{back:true,title:c.label});
 };
@@ -544,29 +544,29 @@ V.actives=()=>{
   const rec=[`azelaic`,`niacinamide`,`vitc`,`hyaluronic`],lib=[`salicylic`,`retinol`];
   return shell(`<div class="pagehead"><h1>Les actifs recommandés</h1><p>Les ingrédients qui correspondent aux préoccupations observées.</p></div>
   <div class="grid2"><section><div class="stack" style="gap:12px">${rec.map((a,i)=>activeCard(a,i)).join(``)}</div></section>
-  <div class="col"><section><div class="hd"><h2 class="h3">À connaître</h2></div><div class="stack" style="gap:12px">${lib.map((a,i)=>activeCard(a,i+rec.length)).join(``)}</div></section>${disc()}<button class="btn btn-primary btn-block" data-go="routine">Voir ma routine</button></div></div>`,{back:true,title:`Actifs`});
+  <div class="col"><section><div class="hd"><h2 class="h3">À connaître</h2></div><div class="stack" style="gap:12px">${lib.map((a,i)=>activeCard(a,i+rec.length)).join(``)}</div></section>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button></div></div>`,{back:true,title:`Actifs`});
 };
 V.active=id=>{
   id=ACTIVES[id]?id:`azelaic`;const a=ACTIVES[id];
   const targeted=CIDS.filter(c=>CONCERNS[c].actives.includes(id));
   return shell(`<div class="grid2 lw"><div class="col sticky-d"><div class="sand"><p class="kicker">${a.short}</p><h1 style="margin:10px 0 12px">${a.name}</h1><p>${a.role}</p></div>${disc()}</div>
   <div class="col"><div class="kv">
-   <div><h4>Préoccupations ciblées</h4><div class="chips" style="margin-top:8px">${a.for.map(f=>`<span class="tagx">${f}</span>`).join(``)}</div>${targeted.length?`<p class="muted" style="margin-top:10px">Utile pour : ${targeted.map(c=>CONCERNS[c].label.toLowerCase()).join(`, `)}.</p>`:``}</div>
+   <div><h4>Préoccupations ciblées</h4><div class="chips" style="margin-top:8px">${a.for.map(f=>`<span class="c-badge">${f}</span>`).join(``)}</div>${targeted.length?`<p class="muted" style="margin-top:10px">Utile pour : ${targeted.map(c=>CONCERNS[c].label.toLowerCase()).join(`, `)}.</p>`:``}</div>
    <div><h4>Moment d'utilisation</h4><p>${a.when}</p></div>
    <div><h4>Fréquence indicative</h4><p>${a.freq}</p></div>
    <div><h4>Précautions générales</h4><ul>${a.cautions.map(x=>`<li>${x}</li>`).join(``)}</ul></div>
    <div><h4>S'associe bien avec</h4><p>${a.good.join(`, `)}</p></div>
    <div><h4>À éviter en même temps</h4><p>${a.avoid.join(`, `)}</p></div>
-  </div><button class="btn btn-primary btn-block" data-go="products">Voir les produits correspondants</button></div></div>`,{back:true,title:a.name});
+  </div><button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir les produits correspondants</button></div></div>`,{back:true,title:a.name});
 };
 
 /* Routine */
 V.routine=()=>{
-  const list=(steps,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${steps.map((st,i)=>{const p=PRODUCTS.find(x=>x.id===st.p);return `<div class="step"><span class="ord">${pad(i+1)}</span><button class="pimg-s" data-act="product" data-v="${p.id}" aria-label="Voir ${p.name}">${bottle(p.type,p.color)}</button><div class="info"><div class="st">${st.step}</div><div class="pn">${p.name}</div><div class="st">${p.brand}, actif principal : ${st.active}</div><p class="role">${st.role}</p></div><button class="check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${st.step} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
+  const list=(steps,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${steps.map((st,i)=>{const p=PRODUCTS.find(x=>x.id===st.p);return `<div class="step"><span class="ord">${pad(i+1)}</span><button class="pimg-s" data-act="product" data-v="${p.id}" aria-label="Voir ${p.name}">${bottle(p.type,p.color)}</button><div class="info"><div class="st">${st.step}</div><div class="pn">${p.name}</div><div class="st">${p.brand}, actif principal : ${st.active}</div><p class="role">${st.role}</p></div><button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${st.step} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>Suivez l'ordre indiqué. Cochez chaque étape une fois faite.</p></div>
   <div class="grid2">${list(AM,`am`,`sun`,`Matin`)}${list(PM,`pm`,`moon`,`Soir`)}</div>
   <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">Pourquoi cette routine ?</h2><p style="color:var(--ink)">Vos deux priorités sont la pigmentation et les pores. Le matin, la vitamine C et la protection solaire aident à uniformiser le teint et évitent que les taches ne s'accentuent, pendant que la niacinamide affine le grain de peau. Le soir, l'acide azélaïque agit sur la pigmentation. Les hydratants soutiennent le confort de la peau.</p><p class="muted" style="margin-top:12px">Introduisez les nouveaux produits un par un, à quelques jours d'intervalle.</p></section>
-  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Les actifs recommandés</b><span class="s">Comprendre chaque ingrédient</span></div>${ic(`chev`)}</button>${disc()}<button class="btn btn-primary btn-block" data-go="products">Voir les produits recommandés</button></div></div>`);
+  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Les actifs recommandés</b><span class="s">Comprendre chaque ingrédient</span></div>${ic(`chev`)}</button>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir les produits recommandés</button></div></div>`);
 };
 
 /* Produits */
@@ -574,29 +574,29 @@ V.products=()=>{
   const f=state.filter,items=PRODUCTS.filter(p=>f===`all`||p.concerns.includes(f)).sort((a,b)=>b.match-a.match);
   return shell(`<div class="pagehead"><h1>Produits recommandés</h1><p>Choisis selon les actifs dont votre peau a besoin.</p></div>
   <div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>
-  <div class="chips" style="margin-bottom:24px"><button class="chip" data-act="filter" data-v="all" aria-pressed="${f===`all`}">Tous</button>${CIDS.map(c=>`<button class="chip" data-act="filter" data-v="${c}" aria-pressed="${f===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
+  <div class="chips" style="margin-bottom:24px"><button class="c-chip" data-act="filter" data-v="all" aria-pressed="${f===`all`}">Tous</button>${CIDS.map(c=>`<button class="c-chip" data-act="filter" data-v="${c}" aria-pressed="${f===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
   <div class="pgrid">${items.map(p=>`<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${inRoutine(p.id)?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${bottle(p.type,p.color)}</div><div class="pb"><div class="br">${p.brand}</div><div class="nm">${p.name}</div><div class="pr"><span>${fmt(p.price)}</span><b>${p.match} %</b></div></div></button>`).join(``)}</div>
-  <div style="margin-top:32px;max-width:520px">${disc()}<button class="btn btn-primary btn-block" data-go="progress">Suivre ma progression</button></div>`,{back:true,title:`Produits`});
+  <div style="margin-top:32px;max-width:520px">${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="progress">Suivre ma progression</button></div>`,{back:true,title:`Produits`});
 };
 function productSheet(id){
   const p=PRODUCTS.find(x=>x.id===id);
   return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:18px">${bottle(p.type,p.color)}</div>
   <p class="muted">${p.brand}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${p.name}</h2><p style="color:var(--ink)">${fmt(p.price)} <span class="muted">prix indicatif</span></p>
-  <div class="panel" style="margin:18px 0"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b>Correspondance avec votre profil</b><b style="color:var(--accent)">${p.match} %</b></div><div class="meter"><i style="width:${p.match}%"></i></div><p class="muted" style="margin-top:10px">Cible : ${p.concerns.map(c=>CONCERNS[c].label.toLowerCase()).join(`, `)}. Type de peau : ${p.skinType.toLowerCase()}.</p></div>
-  <div class="kv" style="margin-bottom:18px"><div><h4>Actif principal</h4><p>${p.mainActive}</p></div><div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.actives.map(a=>`<span class="tagx">${a}</span>`).join(``)}</div></div><div><h4>Vendeur et disponibilité</h4><p class="muted">${p.vendor||`Vendeur`}, ${p.availability||`disponibilité`} : à venir.</p></div></div>
-  <div class="stack"><button class="btn btn-primary btn-block" data-act="toast" data-v="Ajouté à votre routine (simulation)">Ajouter à ma routine</button><button class="btn btn-ghost btn-block" data-act="toast" data-v="Liens d'achat au Bénin : prévus à l'étape suivante">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
+  <div class="c-card" style="margin:18px 0"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b>Correspondance avec votre profil</b><b style="color:var(--accent)">${p.match} %</b></div><div class="meter"><i style="width:${p.match}%"></i></div><p class="muted" style="margin-top:10px">Cible : ${p.concerns.map(c=>CONCERNS[c].label.toLowerCase()).join(`, `)}. Type de peau : ${p.skinType.toLowerCase()}.</p></div>
+  <div class="kv" style="margin-bottom:18px"><div><h4>Actif principal</h4><p>${p.mainActive}</p></div><div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.actives.map(a=>`<span class="c-badge">${a}</span>`).join(``)}</div></div><div><h4>Vendeur et disponibilité</h4><p class="muted">${p.vendor||`Vendeur`}, ${p.availability||`disponibilité`} : à venir.</p></div></div>
+  <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-act="toast" data-v="Ajouté à votre routine (simulation)">Ajouter à ma routine</button><button class="c-btn c-btn--secondary c-btn--block" data-act="toast" data-v="Liens d'achat au Bénin : prévus à l'étape suivante">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
 }
 
 /* Progression */
 V.progress=()=>{
   if(noReal())return emptyScan(`Votre progression`,EMPTY_MSG);
-  if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre progression`,`Une seule analyse pour le moment. La progression apparaîtra dès votre deuxième analyse.`);
+  if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre progression`,[`Une seule analyse pour le moment`,`La progression apparaîtra dès votre deuxième analyse.`]);
   const lastIdx=SCANS.length-1,end=DEMO_MODE?Math.min(state.period,lastIdx):lastIdx,A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)],range=SCANS.slice(0,end+1),first=SCANS[0],last=SCANS[end];
   const opt=(sel)=>SCANS.map(s=>`<option value="${s.id}" ${s.id===sel?`selected`:``}>${s.date}</option>`).join(``);
   const ids=CIDS.filter(id=>have(first,id)&&have(last,id));
   return shell(`<div class="pagehead"><h1>Votre peau évolue.</h1><p>Votre analyse est comparée à vos précédentes observations. Ce sont des indicateurs de suivi cosmétique.</p></div>
-  ${DEMO_MODE?`<div class="seg" role="group" aria-label="Période" style="margin-bottom:22px"><button data-act="period" data-v="1" aria-pressed="${end===1}">30 jours</button><button data-act="period" data-v="2" aria-pressed="${end===2}">60 jours</button></div>`:``}
-  <div class="panel" style="margin-bottom:14px"><p class="kicker">Équilibre cutané</p>${gchart(range)}</div>
+  ${DEMO_MODE?`<div class="c-seg" role="group" aria-label="Période" style="margin-bottom:22px"><button class="c-seg__btn" data-act="period" data-v="1" aria-pressed="${end===1}">30 jours</button><button class="c-seg__btn" data-act="period" data-v="2" aria-pressed="${end===2}">60 jours</button></div>`:``}
+  <div class="c-card" style="margin-bottom:14px"><p class="kicker">Équilibre cutané</p>${gchart(range)}</div>
   <div class="mcards">${ids.map(id=>{const t0=tierOf(id,first),t1=tierOf(id,last),v=verdict(id,first,last);return `<div class="mcard"><div class="r1"><b>${CONCERNS[id].label}</b><span class="lvl ${v[1]}">${v[0]}</span></div><div class="lv-change"><span class="lvl t${t0}">${LV[t0]}</span>${ic(`arrow`)}<span class="lvl t${t1}">${LV[t1]}</span></div><div class="r3"><span class="muted">Besoin d'attention</span>${spark(range.map(s=>amount(id,s)))}</div></div>`}).join(``)}</div>
   <div class="grid2" style="margin-top:44px"><section><div class="hd"><h2 class="h3">Avant, maintenant</h2></div>
    <div class="cmp" id="cmpbox"><span class="tagl" style="left:14px">Avant</span><span class="tagl" style="right:14px">Maintenant</span>
@@ -607,21 +607,21 @@ V.progress=()=>{
    <section><div class="hd"><h2 class="h3">Comparer deux analyses</h2></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px"><label class="sr" for="sa">Avant</label><select class="sel" id="sa" data-change="cmpA">${opt(state.cmpA)}</select><label class="sr" for="sb">Maintenant</label><select class="sel" id="sb" data-change="cmpB">${opt(state.cmpB)}</select></div>
     <table class="t"><thead><tr><th></th><th>${A.date}</th><th>${B.date}</th></tr></thead><tbody>${CIDS.filter(id=>have(A,id)&&have(B,id)).map(id=>`<tr><td>${CONCERNS[id].label}</td><td>${LV[tierOf(id,A)]}</td><td>${LV[tierOf(id,B)]}</td></tr>`).join(``)}${have(A,`global`)&&have(B,`global`)?`<tr><td><b>Équilibre cutané</b></td><td>${A.global}</td><td>${B.global}</td></tr>`:``}</tbody></table>
-    ${disc()}<div class="stack"><button class="btn btn-primary btn-block" data-go="scan">Nouvelle analyse</button><button class="btn btn-ghost btn-block" data-go="analyses">Mes analyses</button></div></section></div>`);
+    ${disc()}<div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Nouvelle analyse</button><button class="c-btn c-btn--secondary c-btn--block" data-go="analyses">Mes analyses</button></div></section></div>`);
 };
 
 /* Historique */
 V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
-  <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const rk=ranked(s);return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b><p class="muted" style="margin:4px 0 10px">${s.skinType||`Profil cutané`}${have(s,`global`)?`, équilibre cutané ${s.global}`:``}</p><div class="chips">${rk.slice(0,2).map(id=>`<span class="tagx">${CONCERNS[id].label}</span>`).join(``)}</div></div><button class="btn btn-soft btn-sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
+  <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const rk=ranked(s);return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b><p class="muted" style="margin:4px 0 10px">${s.skinType||`Profil cutané`}${have(s,`global`)?`, équilibre cutané ${s.global}`:``}</p><div class="chips">${rk.slice(0,2).map(id=>`<span class="c-badge">${CONCERNS[id].label}</span>`).join(``)}</div></div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
 
 /* Profil */
-const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
+const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="c-switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
 V.profile=()=>{
   const none=noReal(),s=none?{}:SCANS[state.latest],goals=GOALS.filter(g=>state.goals.includes(g[0]));
   return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
-   <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:2.6rem;margin:6px 0 14px">${s.skinType||`Profil en cours`}</p><div class="chips">${ranked(s).slice(0,4).map(c=>`<span class="tagx">${CONCERNS[c].label}</span>`).join(``)}</div>`}</section>
-   <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><div class="chips">${goals.length?goals.map(g=>`<span class="tagx">${g[1]}</span>`).join(``):`<span class="muted">Aucun objectif choisi.</span>`}</div></section>
+   <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:2.6rem;margin:6px 0 14px">${s.skinType||`Profil en cours`}</p><div class="chips">${ranked(s).slice(0,4).map(c=>`<span class="c-badge">${CONCERNS[c].label}</span>`).join(``)}</div>`}</section>
+   <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><div class="chips">${goals.length?goals.map(g=>`<span class="c-badge">${g[1]}</span>`).join(``):`<span class="muted">Aucun objectif choisi.</span>`}</div></section>
    <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}${sw(`tips`,`Conseils personnalisés`,`Selon votre profil et votre routine`)}</section>
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
@@ -830,7 +830,7 @@ function act(a,v,el){
     case `pick-photo`:document.getElementById(`photoInput`).click();break;
     case `clear-photo`:state.photo=``;try{localStorage.removeItem(`dermai_demo_photo`)}catch(e){}render(true);toast(`Photo retirée`);break;
     case `toast`:closeSheet();toast(v);break;
-    case `confirm`:{const c=CONFIRMS[v];sheet(`<h2 style="font-size:2rem;margin-bottom:10px">${c[0]}</h2><p style="margin-bottom:24px">${c[1]}</p><div class="stack"><button class="btn btn-primary btn-block" data-act="do-confirm" data-v="${v}">${c[2]}</button><button class="btn btn-ghost btn-block" data-act="close">Annuler</button></div>`);break}
+    case `confirm`:{const c=CONFIRMS[v];sheet(`<h2 style="font-size:2rem;margin-bottom:10px">${c[0]}</h2><p style="margin-bottom:24px">${c[1]}</p><div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-act="do-confirm" data-v="${v}">${c[2]}</button><button class="c-btn c-btn--secondary c-btn--block" data-act="close">Annuler</button></div>`);break}
     case `do-confirm`:closeSheet();toast(CONFIRMS[v][3]);if(v===`account`)timers.push(setTimeout(()=>go(`landing`,null,{reset:true}),1200));break;
   }
 }

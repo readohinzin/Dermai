@@ -26,6 +26,6 @@
 .c-check:focus-visible::before{box-shadow:var(--focus-ring)}
 
 .c-seg{display:inline-flex;gap:var(--s-1);padding:var(--s-1);border-radius:var(--r-pill);background:var(--tint)}
-.c-seg__btn{min-height:var(--tap);padding:0 var(--s-5);border:0;border-radius:var(--r-pill);background:transparent;color:var(--ink-2);font:600 var(--fs-sm)/1 var(--font-sans);cursor:pointer}
+.c-seg__btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);min-height:var(--tap);padding:0 var(--s-5);border:0;border-radius:var(--r-pill);background:transparent;color:var(--ink-2);font:600 var(--fs-sm)/1 var(--font-sans);cursor:pointer}
 .c-seg__btn[aria-pressed="true"],.c-seg__btn[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-1)}
 .c-seg__btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}

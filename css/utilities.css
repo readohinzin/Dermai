@@ -8,3 +8,4 @@
 .u-grow{flex:1 1 auto;min-width:0}
 .u-hide-mobile{display:none}
 @media (min-width:600px){.u-hide-mobile{display:revert}}
+.u-my-5{margin-block:var(--s-5)}

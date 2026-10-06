@@ -8,6 +8,21 @@
 .c-score--m .c-score__value{font-size:var(--fs-score-m)}
 .c-score--s .c-score__value{font-size:var(--fs-score-s)}
 .c-score--null .c-score__value{color:var(--ink-3)}
+/* Bandes : la couleur renforce un libellé (Bien, À soutenir, À surveiller), elle ne le remplace jamais. */
+.c-score--good .c-score__value{color:var(--good-ink)}
+.c-score--mid .c-score__value{color:var(--mid-ink)}
+.c-score--low .c-score__value{color:var(--low-ink)}
+.c-score--xl .c-score__unit{font-size:var(--fs-md)}
+/* bloc score : valeur, libellé de bande, légende. Indépendant de la source des données. */
+.c-score-block{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-2)}
+.c-score-block__caption{font-size:var(--fs-sm);color:var(--ink-2)}
+/* carte de préoccupation : une ligne cliquable avec nom, score, barre et libellé de bande */
+.c-concern-card{display:block;width:100%;padding:var(--s-4) var(--s-5);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.c-concern-card:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+@media (hover:hover){.c-concern-card:hover{border-color:var(--line-strong)}}
+.c-concern-card__head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);margin-bottom:var(--s-3)}
+.c-concern-card__name{font:400 var(--fs-h3)/var(--lh-tight) var(--font-serif)}
+.c-concern-card__foot{display:flex;justify-content:space-between;gap:var(--s-3);margin-top:var(--s-3);font-size:var(--fs-sm);color:var(--ink-2)}
 
 .c-bar{display:block;height:8px;border-radius:var(--r-pill);background:var(--track);overflow:hidden}
 .c-bar__fill{display:block;height:100%;width:calc(var(--value,0)*1%);border-radius:inherit;background:var(--accent)}

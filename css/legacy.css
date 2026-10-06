@@ -50,6 +50,7 @@ svg.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;str
 .top b{font-weight:600;font-size:16px}
 .brand{font-family:var(--serif);font-size:1.7rem;letter-spacing:.14em;display:inline-flex;align-items:center;gap:10px;color:var(--ink)}
 .grid2{display:grid;gap:28px}
+.grid2>*,.app>.main{min-width:0}   /* un élément de grille ne doit pas imposer sa largeur minimale (débordement 360 px et 1024 px) */
 .col{display:flex;flex-direction:column;gap:32px;min-width:0}
 section+section{margin-top:0}
 .hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
@@ -57,8 +58,8 @@ section+section{margin-top:0}
 .pagehead{margin:8px 0 26px}
 .pagehead p{margin-top:10px}
 @media (min-width:920px){
-  .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
-  .rail{display:flex;flex-direction:column;position:sticky;top:0;height:100vh;padding:36px 26px;border-right:1px solid var(--line);gap:36px}
+  .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh;min-height:100svh}
+  .rail{display:flex;flex-direction:column;position:sticky;top:0;height:100vh;height:100svh;padding:36px 26px;border-right:1px solid var(--line);gap:36px}
   .rail nav{display:flex;flex-direction:column;gap:4px}
   .rail nav button{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;font-weight:500;color:var(--ink-2);min-height:48px}
   .rail nav button[aria-current="page"]{background:var(--surface-2);color:var(--ink);font-weight:600}
@@ -103,7 +104,7 @@ section+section{margin-top:0}
 /* visage */
 
 /* onboarding */
-.flow{min-height:100vh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:22px 22px 32px}
+.flow{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:22px 22px 32px}
 .flow .body{flex:1;padding-top:8px}
 .dots{display:flex;gap:6px;flex:1;max-width:160px}
 .dots i{height:3px;flex:1;border-radius:9px;background:var(--line)}
@@ -127,7 +128,7 @@ section+section{margin-top:0}
 .or::before,.or::after{content:"";height:1px;background:var(--line);flex:1}
 
 /* scan */
-.scan{max-width:1000px;margin:0 auto;padding:16px 20px 28px;min-height:100vh}
+.scan{max-width:1000px;margin:0 auto;padding:16px 20px 28px;min-height:100vh;min-height:100svh}
 .scan-grid{display:grid;gap:24px}
 .scan-side{display:none}
 @media (min-width:920px){.scan-grid{grid-template-columns:minmax(0,460px) 1fr;gap:64px;align-items:start}.scan-side{display:block}.scan{padding-top:36px}}
@@ -158,7 +159,7 @@ section+section{margin-top:0}
 .thumb small{display:block;margin-top:8px;font-size:13px;color:var(--ink-2)}
 
 /* analyse */
-.an{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;max-width:520px;margin:0 auto}
+.an{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;max-width:520px;margin:0 auto}
 .an-steps{list-style:none;padding:0;margin:28px 0 0;text-align:left;display:flex;flex-direction:column;gap:14px;min-width:min(320px,100%)}
 .an-steps li{display:flex;align-items:center;gap:14px;color:var(--ink-3);transition:color .3s}
 .an-steps .dot{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;flex:none}
@@ -382,7 +383,8 @@ h2{font-size:clamp(1.8rem,6vw,2.4rem);line-height:1.1}
 .cam-h{font-size:1.7rem;text-align:center;margin:0 0 16px}
 .shutter{border-color:var(--btn)}.shutter i{background:var(--btn)}
 .thumb .tf{padding:0;aspect-ratio:4/5;border-radius:20px;overflow:hidden;display:block}
-.thumb .tf .portrait{border-radius:0;height:100%;aspect-ratio:auto}
+.thumb .tf{position:relative}
+.thumb .tf .portrait{position:absolute;inset:0;border-radius:0;height:auto;aspect-ratio:auto}
 
 /* accueil */
 .skin-now{background:var(--surface-3);border-radius:32px}
@@ -437,7 +439,7 @@ h2{font-size:clamp(1.8rem,6vw,2.4rem);line-height:1.1}
 .mcard .v{color:var(--ink)}
 .cmp{aspect-ratio:4/5;border-radius:28px}
 .cmp .layer{padding:0;display:block}
-.cmp .layer .portrait{height:100%;aspect-ratio:auto;border-radius:0}
+.cmp .layer .portrait{position:absolute;inset:0;height:auto;aspect-ratio:auto;border-radius:0}
 .cmp .tagl{background:var(--btn);color:var(--on-btn)}
 .cmp .handle{background:var(--surface)}.cmp .handle::after{background:var(--btn);border-color:var(--surface)}
 

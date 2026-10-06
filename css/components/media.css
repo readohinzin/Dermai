@@ -7,7 +7,7 @@
 .c-photo__caption{position:absolute;left:var(--s-3);right:var(--s-3);bottom:var(--s-3);padding:var(--s-2) var(--s-3);border-radius:var(--r-pill);background:rgba(33,27,29,.72);color:#fff;font-size:var(--fs-xs);text-align:center;z-index:2}
 
 .c-preview{display:flex;flex-direction:column;gap:var(--s-3)}
-.c-preview .c-photo{max-width:320px;width:100%;margin-inline:auto}
+.c-preview .c-photo,.c-preview .portrait{max-width:320px;width:100%;margin-inline:auto}
 
 .c-chart{width:100%;height:auto;display:block;overflow:visible}
 .c-chart__line{fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}

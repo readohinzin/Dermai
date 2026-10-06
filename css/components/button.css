@@ -9,6 +9,7 @@
 .c-btn--primary{background:var(--accent);color:var(--on-accent)}
 .c-btn--secondary{background:var(--surface);color:var(--accent);border-color:var(--accent)}
 .c-btn--ghost{color:var(--accent)}
+.c-btn--tonal{background:var(--tint);color:var(--accent)}
 .c-btn--danger{background:var(--error);color:#fff}
 .c-btn--danger-quiet{color:var(--error-ink);border-color:var(--error)}
 .c-btn--link{min-height:var(--tap);padding:0 var(--s-1);color:var(--accent);text-decoration:underline;text-underline-offset:3px;border-radius:var(--r-sm)}
@@ -16,6 +17,7 @@
 @media (hover:hover){
   .c-btn--primary:hover{background:var(--accent-hover)}
   .c-btn--secondary:hover,.c-btn--ghost:hover{background:var(--tint)}
+  .c-btn--tonal:hover{background:var(--tint-strong)}
   .c-btn--danger:hover{background:var(--error-ink)}
   .c-btn--danger-quiet:hover{background:var(--error-bg)}
 }

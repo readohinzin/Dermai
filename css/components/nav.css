@@ -16,3 +16,6 @@
 .c-scrim{position:fixed;inset:0;z-index:var(--z-sheet);background:var(--overlay)}
 .c-sheet{position:relative;max-height:88vh;max-height:88dvh;overflow:auto;padding:var(--s-4) var(--s-5) calc(var(--s-6) + env(safe-area-inset-bottom,0px));background:var(--bg);border-radius:var(--r-lg) var(--r-lg) 0 0}
 .c-sheet::before{content:"";display:block;width:44px;height:4px;margin:0 auto var(--s-4);border-radius:var(--r-pill);background:var(--line-strong);opacity:.5}
+
+/* Dans l'application, la barre du bas (.nav, positionnée par la feuille historique) laisse la place au rail latéral dès 920 px. */
+@media (min-width:920px){.nav.c-bottomnav{display:none}}
