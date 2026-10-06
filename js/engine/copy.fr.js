@@ -96,6 +96,8 @@
 
   /* ---- personnalisation : explications structurées (pourquoi, pourquoi maintenant, pourquoi pas autre chose) ---- */
   const LEVEL_LABELS = { none: 'Aucune routine', simple: 'Routine simple', full: 'Routine complète' };
+  /* Libellés courts pour le profil (« Mon niveau de routine »). */
+  const LEVEL_SHORT = { none: 'Minimal', simple: 'Simple', full: 'Complète' };
   const PERSONAL = {
     measured: labels => 'Votre analyse indique des repères plus faibles sur : ' + joinList(labels.map(lower)) + '.',
     measuredNone: 'Votre analyse ne fait pas ressortir de priorité forte. Nous privilégions une routine d\'entretien.',
@@ -139,6 +141,10 @@
       unavailable: 'Les données de votre analyse ne permettent pas de rattacher cet objectif à un repère.',
       maintenance: 'Une routine d\'entretien est privilégiée : aucun actif n\'est ajouté pour cet objectif.'
     },
+    trend: { up: 'Amélioration', stable: 'Stable', down: 'Baisse' },
+    approachNote: 'DERMAI privilégie ici une routine plus progressive.',
+    notRetained: reason => 'Non retenu actuellement : ' + reason + '.',
+    notValidated: 'Non retenu actuellement : cet actif n\'est pas validé pour la recommandation automatique de DERMAI.',
     result: labels => 'Nous avons donc privilégié : ' + joinList(labels.map(lower)) + '.',
     resultNone: 'Nous avons donc gardé une routine simple : nettoyage, hydratation et protection solaire.',
     evolution: {
@@ -148,7 +154,7 @@
   };
 
   return {
-    LEVEL_LABELS, PERSONAL,
+    LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
     priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause
   };

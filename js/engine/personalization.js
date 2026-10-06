@@ -110,6 +110,20 @@
     const excludedActives = deferred.map(d => ({ activeId: d.activeId, label: activeLabel(d.activeId), kind: d.kind, indicators: d.indicators,
       text: copy.DEFERRED[d.kind] || null }));
 
+    /* « Autres actifs » : consultables mais non retenus. Raisons lisibles seulement (pas de raison technique interne). */
+    const seen = new Set(selectedActives.map(s => s.activeId));
+    const otherActives = [];
+    for (const d of excludedActives) {
+      if (seen.has(d.activeId) || !P.whyNot[d.kind] || d.kind === 'slot') continue;
+      seen.add(d.activeId);
+      otherActives.push({ activeId: d.activeId, label: d.label, kind: d.kind, text: P.notRetained(P.whyNot[d.kind]) });
+    }
+    for (const a of A.ACTIVES) {
+      if (!a.consultable || actives.isValidated(a) || seen.has(a.id)) continue;
+      seen.add(a.id);
+      otherActives.push({ activeId: a.id, label: a.label, kind: 'not_validated', text: P.notValidated });
+    }
+
     const rationale = [];
     if (prios.items.length) rationale.push({ code: 'measured', text: P.measured(prios.items.map(i => i.label)), facts: measuredOf(prios.items.map(i => i.indicator)) });
     else rationale.push({ code: 'measured', text: P.measuredNone, facts: [] });
@@ -124,7 +138,8 @@
       treatLabels.length ? P.result(treatLabels) : P.resultNone].filter(Boolean).join(' ');
 
     return {
-      goals: pers.goals, priorities: prios.items, selectedActives, excludedActives, rationale, headline,
+      goals: pers.goals, priorities: prios.items, selectedActives, excludedActives, otherActives, rationale, headline,
+      approachNote: pers.context.comfortMode ? P.approachNote : null,
       routineLevel: level, routineLevelLabel: pers.context.routineLevelLabel, exclusions: pers.exclusions, context: pers.context,
       evolution: evolution(previous, interp, prios, activePlan)
     };

@@ -68,7 +68,7 @@ const CATS=[[`cleanser`,`Nettoyant`],[`serum`,`Sérum`],[`moisturizer`,`Hydratan
 const state={route:`landing`,param:null,stack:[],user:DEMO_MODE?{name:`Amina`,email:`amina@exemple.com`}:{name:``,email:``},
   goals:DEMO_MODE?[`tone`,`oil_pores`,`hydration`]:[],noGoal:false,level:DEMO_MODE?`simple`:``,cats:DEMO_MODE?[`cleanser`,`moisturizer`]:[],
   scanStep:0,shots:[false,false,false],retake:false,run:0,latest:0,view:0,tab:`am`,done:{},filter:`all`,
-  gentle:false,cmpA:0,cmpB:1,prefs:{reminder:true,tips:true,keep:false},photo:``,
+  gentle:false,exclusions:[],cmpA:0,cmpB:1,prefs:{reminder:true,tips:true,keep:false},photo:``,
   scanStatus:`idle`,scanError:``,realBlob:null,realPreview:``};   // scanStatus : idle | capturing | uploading | processing | success | error
 if(DEMO_MODE)try{state.photo=localStorage.getItem(`dermai_demo_photo`)||``}catch(e){}
 
@@ -141,7 +141,7 @@ const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
 const Engine=window.DermaiEngine;
 /* Profil courant → moteur. Rien n'est mis en cache : toute modification (objectifs, niveau, confort) recalcule la routine à l'affichage suivant.
    L'analyse précédente (si elle existe) sert seulement à comparer, jamais de référence courante. */
-const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:[]},prev?{previous:prev.normalized}:undefined)};
+const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},prev?{previous:prev.normalized}:undefined)};
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 
@@ -226,7 +226,7 @@ function gchart(points){
    <path d="${area}" fill="url(#gg)"/><path class="gl-line" d="${d}"/>
    ${P.map((p,i)=>`<circle class="gl-dot" cx="${p[0]}" cy="${p[1]}" r="5.5"/><text class="gv" x="${p[0]}" y="${p[1]-15}" text-anchor="middle">${points[i].v}</text><text class="gd" x="${p[0]}" y="${h-12}" text-anchor="middle">${points[i].label}</text>`).join(``)}</svg>`;
 }
-const emptyScan=(title,msg,opt={})=>shell(`<div class="pagehead"><h1>${title}</h1></div><div class="c-card c-card--empty"><div class="c-empty">${ic(`chart`)}<h2 class="c-empty__title">${msg[0]}</h2><p class="c-empty__text">${msg[1]}</p><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Faire une analyse</button></div></div>`,opt);
+const emptyScan=(title,msg,opt={})=>shell(`<div class="pagehead"><h1>${title}</h1></div><div class="c-card c-card--empty"><div class="c-empty">${ic(`chart`)}<h2 class="c-empty__title">${msg[0]}</h2><p class="c-empty__text">${msg[1]}</p><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Analyser ma peau</button></div></div>`,opt);
 const EMPTY_MSG=[`Aucune analyse pour le moment`,`Faites votre première analyse pour voir vos résultats ici.`];
 /* Scores : toute l'interface lit SkinModel (normalized → uiScore / globalScore, échelle 0-100, 100 = meilleur). Aucun calcul de score ici. */
 const viewOf=s=>SkinModel.toResultView(s.normalized);
@@ -439,6 +439,11 @@ const SCORE_SENTENCE={good:`Votre analyse indique un état apparent plutôt favo
 const infoBadge=()=>`<span class="c-badge c-badge--outline">${Engine.copy.INFO_LABEL}</span>`;
 const isInfo=m=>m.actionability===`informative`;
 const IND_TXT={good:`Ce repère est dans une bonne zone.`,mid:`Ce repère est plus faible : il peut être soutenu.`,low:`Ce repère est nettement plus faible : il peut être soutenu en priorité.`};
+/* Objectifs : affichage commun (résultat, profil). Les libellés viennent du moteur, jamais les identifiants techniques. */
+const goalCount=()=>`${state.goals.length}/3 objectifs sélectionnés`;
+const goalBadges=()=>state.goals.length?`<div class="chips" style="margin-bottom:10px">${state.goals.map(id=>`<span class="c-badge">${Engine.copy.GOAL_LABELS[id]}</span>`).join(``)}</div>`:``;
+/* Exclusions : architecture prête (état, moteur, recalcul), volontairement sans interface pour l'instant. Aucune information de santé n'est demandée. */
+const exclusionsSection=()=>``;
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
   const s=SCANS[state.view],r=viewOf(s),g=r.global,eng=engineFor(s),P=eng.priorities;
@@ -448,7 +453,7 @@ V.result=()=>{
   const type=`<div class="c-card"><p class="c-disclaimer">Type de peau</p>${r.skinType?`<h2 class="c-card__title">${r.skinType.label}</h2><p class="c-card__text">${r.skinType.description}</p>`:`<p class="c-card__text">Type de peau indisponible.</p>`}
       ${r.skinAge===null?``:`<div class="c-result__age"><b>Âge cutané estimé : ${r.skinAge} ans</b><p class="c-disclaimer">Estimation cosmétique, ce n'est pas un âge biologique.</p></div>`}</div>`;
   const prio=P.items.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
-      <div class="c-concern-card__foot">${bandBadge(m)}${m.objectiveMatch?`<span class="c-badge c-badge--outline">Votre objectif</span>`:``}</div><p class="c-card__text"><b>Pourquoi cette priorité ?</b> ${m.reason}</p></div>`).join(``);
+      <div class="c-concern-card__foot">${bandBadge(m)}${m.objectiveMatch?`<span class="c-badge c-badge--outline">Votre objectif</span>`:``}</div><p class="c-card__text"><b>Pourquoi cette priorité ?</b> ${m.reason}</p><button class="link" data-go="concern:${m.indicator}">Voir le détail</button></div>`).join(``);
   const others=eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :isInfo(m)?`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${infoBadge()}</span><span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span></li>`
@@ -458,13 +463,19 @@ V.result=()=>{
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
-    <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length
-      ?`<p class="muted" style="margin-bottom:14px">Vos principaux repères à soutenir, d'après votre analyse${eng.profile.goals.length?`. Vos objectifs aident seulement à départager des repères comparables`:``}. 100 correspond au meilleur état.</p><div class="stack" style="gap:12px">${prio}</div>`
+    <section><p class="kicker">Ce que DERMAI observe</p><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length
+      ?`<p class="muted" style="margin-bottom:14px">Vos principaux repères à soutenir, d'après votre analyse. 100 correspond au meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
     ${P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
-    ${eng.personalization.goals.length?`<section><div class="hd"><h2 class="h3">Vos objectifs</h2></div><p class="muted" style="margin-bottom:10px">Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><ul class="l-list" style="margin-top:0">${eng.personalization.goals.map(g=>`<li>${ic(`check`)}<span><b>${g.label}</b> : ${g.text}</span></li>`).join(``)}</ul></section>`:``}
     <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul></section>
-    <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
+    <section><p class="kicker">Ce que vous souhaitez travailler</p><div class="hd"><h2 class="h3">Vos objectifs</h2></div>
+      ${eng.personalization.goals.length?`${goalBadges()}<p class="muted" style="margin-bottom:10px">${goalCount()}. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><ul class="l-list" style="margin-top:0">${eng.personalization.goals.map(g=>`<li>${ic(`check`)}<span><b>${g.label}</b> : ${g.text}</span></li>`).join(``)}</ul>`
+        :`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi. Les objectifs sont facultatifs.</p>`}
+      <button class="link" data-go="profile">${eng.personalization.goals.length?`Modifier mes objectifs`:`Choisir mes objectifs`}</button></section>
+    <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
+      <p style="color:var(--ink);margin-bottom:14px">${eng.personalization.headline}</p>
+      <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>
+    <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
   </div>`,{back:true,title:`Analyse`});
@@ -497,13 +508,13 @@ V.concern=id=>{
 
 /* Actifs : ceux du plan (moteur), avec la raison de chaque choix, et ceux mis de côté. */
 V.actives=()=>{
-  if(noReal())return emptyScan(`Mes actifs`,[`Aucun actif pour le moment`,`Faites une analyse pour voir les actifs retenus d'après vos résultats.`],{back:true,title:`Actifs`});
-  const eng=engineFor(SCANS[state.latest]),ap=eng.activePlan,chosen=[...ap.treatments,...ap.supports];
-  const side=`${ap.deferred.length?`<section><div class="hd"><h2 class="h3">Mis de côté pour l'instant</h2></div><div class="stack" style="gap:10px">${ap.deferred.map(d=>`<div class="c-card"><b>${Engine.actives.byId(d.activeId).label}</b><p class="c-card__text">${Engine.copy.DEFERRED[d.kind]}</p></div>`).join(``)}</div></section>`:``}`;
-  return shell(`<div class="pagehead"><h1>Mes actifs</h1><p>Les actifs retenus d'après votre analyse, vos objectifs et votre niveau de routine.</p></div>
-  <div class="grid2"><section>${chosen.length?`<div class="stack" style="gap:12px">${chosen.map((a,i)=>activeCard(a.activeId,i,whyOf(eng,a.activeId))).join(``)}</div>`
-    :`<div class="c-notice">${ic(`info`)}<div>Votre analyse n'indique pas de soin ciblé à ajouter pour l'instant.</div></div>`}</section>
-  <div class="col">${side}${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button></div></div>`,{back:true,title:`Actifs`});
+  if(noReal())return emptyScan(`Mes actifs`,[`Aucun actif pour le moment`,`Vos recommandations apparaîtront après votre analyse.`],{back:true,title:`Actifs`});
+  const eng=engineFor(SCANS[state.latest]),ap=eng.activePlan,chosen=[...ap.treatments,...ap.supports],others=eng.personalization.otherActives;
+  const side=`<section><div class="hd"><h2 class="h3">Autres actifs</h2></div><p class="muted" style="margin-bottom:10px">Consultables, mais non retenus automatiquement.</p>${others.length?`<div class="stack" style="gap:10px">${others.map(d=>`<div class="c-card"><b>${d.label}</b><p class="c-card__text">${d.text}</p><button class="link" data-go="active:${d.activeId}">Découvrir cet actif</button></div>`).join(``)}</div>`:`<p class="muted">Aucun autre actif à signaler pour l'instant.</p>`}</section>`;
+  return shell(`<div class="pagehead"><h1>Mes actifs</h1><p>Les actifs retenus d'après votre analyse, vos objectifs et votre niveau de routine. Ce sont des options cosmétiques, pas des soins médicaux.</p></div>
+  <div class="grid2"><section><div class="hd"><h2 class="h3">Vos actifs recommandés</h2></div>${chosen.length?`<div class="stack" style="gap:12px">${chosen.map((a,i)=>activeCard(a.activeId,i,whyOf(eng,a.activeId))).join(``)}</div>`
+    :`<div class="c-notice">${ic(`info`)}<div>Votre analyse ne fait pas ressortir de soin ciblé à ajouter pour l'instant.</div></div>`}</section>
+  <div class="col">${side}${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></div></div>`,{back:true,title:`Actifs`});
 };
 const WHEN_FR={morning:`Matin`,evening:`Soir`,both:`Matin et soir`};
 V.active=id=>{
@@ -520,21 +531,21 @@ V.active=id=>{
 
 /* Routine : générée par le moteur (priorités, actifs, type de peau, niveau de routine). */
 V.routine=()=>{
-  if(noReal())return emptyScan(`Ma routine`,[`Aucune routine pour le moment`,`Faites une analyse pour obtenir une routine adaptée à vos résultats.`],{back:true,title:`Routine`});
+  if(noReal())return emptyScan(`Ma routine`,[`Aucune routine pour le moment`,`Faites votre première analyse pour obtenir une routine personnalisée.`],{back:true,title:`Routine`});
   const eng=engineFor(SCANS[state.latest]),R=eng.routinePlan,PZ=eng.personalization,pm=Object.fromEntries(eng.productMatches.map(m=>[m.stepId,m]));
   const sel=Object.fromEntries(PZ.selectedActives.map(x=>[x.activeId,x]));
   const whyBlock=st=>{const x=sel[st.activeId];if(!x)return ``;return `<details class="c-why"><summary>Pourquoi cet actif ?</summary><p>${x.why}</p><p>${x.whyNow}</p>${x.whyNot.map(n=>`<p>${n.text}</p>`).join(``)}</details>`};
   const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId);
     return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>
-      ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}`:``}
+      ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}<button class="link" data-go="active:${st.activeId}">Découvrir cet actif</button>`:``}
       ${p?`<button class="link" data-act="product" data-v="${p.id}">Exemple (démonstration) : ${p.name}</button>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   const cautions=[...new Set(R.slots.morning.concat(R.slots.evening).filter(s=>s.kind===`treatment`).flatMap(s=>s.cautions))];
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>${R.summary}</p></div>
   <section class="sand" style="margin-bottom:28px"><h2 class="h3" style="margin-bottom:10px">Pourquoi cette routine ?</h2>
     <ul class="l-list" style="margin-top:0">${PZ.rationale.slice(0,3).map(r=>`<li>${ic(`check`)}<span>${r.text}</span></li>`).join(``)}</ul>
-    ${PZ.evolution.note?`<p class="muted" style="margin-top:10px">${PZ.evolution.note}</p>`:``}</section>
+    ${PZ.approachNote?`<p class="muted" style="margin-top:10px">${PZ.approachNote}</p>`:``}${PZ.evolution.note?`<p class="muted" style="margin-top:10px">${PZ.evolution.note}</p>`:``}</section>
   <div class="grid2">${list(`morning`,`am`,`sun`,`Matin`)}${list(`evening`,`pm`,`moon`,`Soir`)}</div>
   <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">À retenir</h2>
     <ul class="l-list" style="margin-top:0">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${cautions.map(c=>`<li>${ic(`info`)}<span>${c}</span></li>`).join(``)}${eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
@@ -548,16 +559,18 @@ V.products=()=>{
   return shell(`<div class="pagehead"><h1>Exemples de produits</h1><p>Un catalogue de démonstration, qui n'est pas personnalisé. Ceux de votre routine sont repérés.</p></div>
   <div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>
   <div class="chips" style="margin-bottom:24px"><button class="c-chip" data-act="filter" data-v="all" aria-pressed="${f===`all`}">Tous</button>${CIDS.map(c=>`<button class="c-chip" data-act="filter" data-v="${c}" aria-pressed="${f===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
-  <div class="pgrid">${items.map(p=>`<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${inPlan.has(p.id)?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${bottle(p.type,p.color)}</div><div class="pb"><div class="br">${p.brand}</div><div class="nm">${p.name}</div><div class="pr"><span>${fmt(p.price.amount)}</span></div></div></button>`).join(``)}</div>
+  <div class="pgrid">${items.map(p=>`<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${inPlan.has(p.id)?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${bottle(p.type,p.color)}</div><div class="pb"><div class="br">${p.brand}</div><div class="nm">${p.name}</div><div class="pr"><span>${priceLine(p)}</span></div></div></button>`).join(``)}</div>
   <div style="margin-top:32px;max-width:520px">${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="progress">Suivre ma progression</button></div>`,{back:true,title:`Produits`});
 };
+/* Prix : jamais un prix de démonstration présenté comme réel. Un produit réel (demo faux, prix renseigné) affichera son prix. */
+const priceLine=p=>(!p.demo&&p.price&&p.price.amount!=null)?fmt(p.price.amount):`<span class="muted">Prix à venir</span>`;
 function productSheet(id){
   const p=Engine.products.byId(id),A=Engine.actives;
   const eng=noReal()?null:engineFor(SCANS[state.latest]),steps=eng?eng.productMatches.filter(m=>m.productId===id):[];
   const why=steps.length?`Proposé comme exemple pour votre routine${steps[0].because?` : ${steps[0].because.charAt(0).toLowerCase()+steps[0].because.slice(1)}`:`.`}`:`Produit de démonstration, non lié à votre analyse.`;
   const main=p.ingredients.find(i=>i.activeId);
   return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:18px">${bottle(p.type,p.color)}</div>
-  <p class="muted">${p.brand}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${p.name}</h2><p style="color:var(--ink)">${fmt(p.price.amount)} <span class="muted">prix indicatif</span></p>
+  <p class="muted">${p.brand}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${p.name}</h2><p style="color:var(--ink)">${priceLine(p)}</p>
   <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p><p class="muted" style="margin-top:8px">Cible : ${p.targets.map(c=>SkinModel.METRIC_LABELS[c].toLowerCase()).join(`, `)}. Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.</p></div>
   <div class="kv" style="margin-bottom:18px">${main?`<div><h4>Actif principal</h4><p>${A.byId(main.activeId).label}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${i.label}</span>`).join(``)}</div></div><div><h4>Vendeur et disponibilité</h4><p class="muted">À venir.</p></div></div>
   <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-act="toast" data-v="Les liens d'achat ne sont pas encore disponibles.">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
@@ -568,12 +581,13 @@ const cmpRow=(m,label)=>m.available
   ?`<li class="c-indicator"><span class="c-indicator__name">${label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.before} → ${m.after}<small>/100</small></span><span class="c-delta c-delta--${m.trend===`up`?`up`:m.trend===`down`?`down`:`flat`}">${m.trendLabel}${m.delta>0?` +${m.delta}`:m.delta<0?` −${-m.delta}`:``}</span></span></li>`
   :`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${label}</span><span class="c-indicator__value"><span class="c-badge c-badge--outline">Donnée indisponible</span></span></li>`;
 V.progress=()=>{
-  if(noReal())return emptyScan(`Votre progression`,EMPTY_MSG);
-  if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre progression`,[`Une seule analyse pour le moment`,`La progression apparaîtra dès votre deuxième analyse.`]);
+  if(noReal())return emptyScan(`Votre évolution`,[`Aucune analyse pour le moment`,`Faites votre première analyse : vous pourrez ensuite suivre votre évolution.`]);
+  if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre évolution`,[`Votre première analyse est enregistrée.`,`Faites une nouvelle analyse plus tard pour suivre votre évolution.`]);
   const lastIdx=SCANS.length-1,A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)];
   const opt=(sel)=>SCANS.map(s=>`<option value="${s.id}" ${s.id===sel?`selected`:``}>${s.date}</option>`).join(``);
   const pts=globalPoints(),cmp=SkinModel.compareScans(A.normalized,B.normalized);
-  return shell(`<div class="pagehead"><h1>Votre peau évolue.</h1><p>Vos scores sont comparés d'une analyse à l'autre. 100 correspond au meilleur état. Ce sont des indicateurs de suivi cosmétique.</p></div>
+  return shell(`<div class="pagehead"><h1>Votre évolution</h1><p>Vos scores sont comparés d'une analyse à l'autre. 100 correspond au meilleur état. Ce sont des indicateurs de suivi cosmétique.</p></div>
+  ${(ev=>ev.available&&ev.indicators.length?`<section class="sand" style="margin-bottom:24px"><div class="hd"><h2 class="h3">Vos priorités actuelles, depuis l'analyse précédente</h2></div><ul class="c-indicators">${ev.indicators.map(i=>`<li class="c-indicator"><span class="c-indicator__name">${i.label}</span><span class="c-indicator__value">${i.delta===null?`<span class="muted">Comparaison indisponible</span>`:`<span class="c-indicator__score">${i.previous} → ${i.current}<small>/100</small></span><span class="c-delta c-delta--${i.trend===`up`?`up`:i.trend===`down`?`down`:`flat`}">${Engine.copy.PERSONAL.trend[i.trend]}</span>`}</span></li>`).join(``)}</ul><p class="muted" style="margin-top:10px">${ev.note}</p></section>`:``)(engineFor(SCANS[SCANS.length-1]).personalization.evolution)}
   ${pts.length>=2?`<div class="c-card" style="margin-bottom:14px"><p class="kicker">Score global</p>${gchart(pts)}</div>`:`<div class="c-notice u-my-5">${ic(`info`)}<div>Pas assez de scores globaux valides pour tracer une courbe.</div></div>`}
   <div class="grid2" style="margin-top:30px"><section><div class="hd"><h2 class="h3">Avant, maintenant</h2></div>
    <div class="cmp" id="cmpbox"><span class="tagl" style="left:14px">Avant</span><span class="tagl" style="right:14px">Maintenant</span>
@@ -590,7 +604,7 @@ V.progress=()=>{
 
 /* Historique */
 V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
-  <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b><p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(s).priorities.items)}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
+  <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b>${s.id===state.latest?` <span class="c-badge c-badge--outline">Analyse actuelle</span>`:``}<p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">${s.id===state.latest?`Priorités actuelles`:`Repères à soutenir à cette date`}</p><div class="chips">${pi.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(s).priorities.items)}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
 
 /* Profil */
 const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="c-switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
@@ -599,11 +613,15 @@ V.profile=()=>{
   return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
    <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(SCANS[state.latest]).priorities.items)}`}</section>
-   <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><p class="muted" style="margin-bottom:10px">Facultatif, trois au maximum. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau. Votre routine se recalcule aussitôt.</p>
+   <section><div class="hd"><h2 class="h3">Mes objectifs</h2><span class="muted">${goalCount()}</span></div><p class="muted" style="margin-bottom:10px">Facultatif, trois au maximum. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p>
      <div class="chips">${Engine.goalList().map(g=>`<button class="c-chip" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}">${g.label}</button>`).join(``)}<button class="c-chip" data-act="goal" data-v="none" aria-pressed="${state.noGoal}">${Engine.copy.NO_GOAL}</button></div></section>
-   <section><div class="hd"><h2 class="h3">Ma routine actuelle</h2></div><p class="muted" style="margin-bottom:10px">Ce n'est pas un niveau de gravité : cela règle seulement le nombre de soins proposés.${state.level?``:` Par défaut : routine simple.`}</p>
-     <div class="chips">${[`none`,`simple`,`full`].map(l=>`<button class="c-chip" data-act="level" data-v="${l}" aria-pressed="${state.level===l}">${Engine.copy.LEVEL_LABELS[l]}</button>`).join(``)}</div>
-     <div style="margin-top:12px"><div class="rowlink"><div class="grow"><b>Privilégier une approche douce</b><span class="s">Actifs doux, hydratation, barrière et protection solaire d'abord</span></div><button class="c-switch" role="switch" aria-checked="${state.gentle}" data-act="gentle" aria-label="Privilégier une approche douce"></button></div></div></section>
+   <section><div class="hd"><h2 class="h3">Mon niveau de routine</h2></div><p class="muted" style="margin-bottom:10px">Ce n'est pas un niveau de gravité : cela règle seulement le nombre de soins proposés.${state.level?``:` Par défaut : simple.`}</p>
+     <div class="chips">${[`none`,`simple`,`full`].map(l=>`<button class="c-chip" data-act="level" data-v="${l}" aria-pressed="${state.level===l}">${Engine.copy.LEVEL_SHORT[l]}</button>`).join(``)}</div></section>
+   <section><div class="hd"><h2 class="h3">Mon approche</h2></div>
+     <div class="rowlink" style="border-top:1px solid var(--line)"><div class="grow"><b>Privilégier une approche douce</b><span class="s">Actifs doux, hydratation, barrière et protection solaire d'abord</span></div><button class="c-switch" role="switch" aria-checked="${state.gentle}" data-act="gentle" aria-label="Privilégier une approche douce"></button></div>
+     ${exclusionsSection()}
+     <p class="muted" style="margin-top:12px">Ma routine est recalculée automatiquement lorsque je modifie ces préférences. Elles ne sont pas enregistrées définitivement pour l'instant.</p>
+     ${none?``:`<div style="margin-top:12px"><p style="color:var(--ink);margin-bottom:10px">${engineFor(SCANS[state.latest]).routinePlan.summary}</p><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></div>`}</section>
    <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>

@@ -179,7 +179,7 @@ test('P18 aucun actif « à_valider » ni P19 aucun médicament ni P20 aucun fau
 test('S1 structure de sortie : objectifs, priorités, actifs retenus et écartés, raisons, niveau, contexte', () => {
   const r = run({ pores: 40, acne: 45, hydration: 35 }, { skin: 'Combination' }, { goals: ['oil_pores'], level: 'full', cats: ['exfoliant'] });
   const p = r.personalization;
-  assert.deepEqual(Object.keys(p).sort(), ['context', 'evolution', 'exclusions', 'excludedActives', 'goals', 'headline', 'priorities', 'rationale', 'routineLevel', 'routineLevelLabel', 'selectedActives'].sort());
+  assert.deepEqual(Object.keys(p).sort(), ['approachNote', 'context', 'evolution', 'exclusions', 'excludedActives', 'goals', 'headline', 'otherActives', 'priorities', 'rationale', 'routineLevel', 'routineLevelLabel', 'selectedActives'].sort());
   assert.equal(p.routineLevel, 'full');
   assert.ok(p.rationale.length >= 2 && p.rationale.every(x => x.code && x.text));
   assert.match(p.headline, /^Votre analyse indique des repères plus faibles sur/);
