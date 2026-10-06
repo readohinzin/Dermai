@@ -17,6 +17,10 @@
   const D = dep.indicators, A = dep.activesData, copy = dep.copy;
   const GOAL_IDS = D.GOALS.map(g => g.id);
 
+  /* Version des règles cosmétiques (priorités, personnalisation, actifs, routine). Enregistrée avec chaque analyse de l'historique pour que
+     l'on sache avec quelles règles elle a été produite. À changer dès qu'une règle modifie une priorité ou une recommandation. */
+  const VERSION = '1.0.0';
+
   /* Profil : objectifs connus (3 au maximum), niveau de routine connu (sinon « simple »), catégories de produits déjà utilisées,
      confort demandé par l'utilisateur (préférence cosmétique) et exclusions (actifs que l'utilisateur ne souhaite pas, jamais une donnée de santé).
      Le type de peau n'est pas saisi : il vient de l'analyse (contexte). Aucune persistance ici : l'état courant de l'application suffit. */
@@ -95,5 +99,5 @@
     return { profile: prof, interpretation, priorities, personalization, activePlan, routinePlan, productMatches, explanations };
   }
 
-  return { run, normalizeProfile, toggleGoal, goalList, MAX_GOALS: D.MAX_GOALS };
+  return { run, normalizeProfile, toggleGoal, goalList, MAX_GOALS: D.MAX_GOALS, VERSION };
 });

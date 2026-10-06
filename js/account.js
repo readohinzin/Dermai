@@ -3,7 +3,9 @@
    Sécurité : seule la clé publique (anon) est utilisée. L'identité vient du jeton de session ; `user_id` n'est JAMAIS envoyé par le navigateur
    (la base le déduit de auth.uid() et RLS limite chaque lecture et écriture à la ligne de l'utilisateur connecté).
    Aucun mot de passe n'est conservé. Seule la session d'authentification (jetons) est mémorisée dans le navigateur, pour survivre à un
-   rechargement ; le profil, lui, n'est jamais copié dans le stockage local. Aucune photo, aucun masque, aucun task_id n'est concerné. */
+   rechargement ; le profil, lui, n'est jamais copié dans le stockage local. Aucune photo, aucun masque, aucun task_id n'est concerné.
+   Historique des analyses (table `skin_analyses`) : scores seulement (0 à 100, 100 = meilleur), priorités et objectifs à la date de l'analyse,
+   version du moteur. Jamais de photo, de masque, d'URL, de task_id, de JSON brut du fournisseur ni de rawScore : toute clé inconnue est écartée ici. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -28,7 +30,10 @@
     generic: 'Une erreur est survenue. Veuillez réessayer.',
     saveFailed: 'Vos modifications n\'ont pas pu être enregistrées. Réessayez.',
     loadFailed: 'Votre profil n\'a pas pu être chargé. Réessayez.',
-    sessionExpired: 'Votre session a expiré. Reconnectez-vous.'
+    sessionExpired: 'Votre session a expiré. Reconnectez-vous.',
+    analysisSaveFailed: 'Votre analyse est disponible, mais nous n\'avons pas pu l\'enregistrer dans votre historique. Réessayez.',
+    historyLoadFailed: 'Votre historique n\'a pas pu être chargé. Réessayez.',
+    historyDeleteFailed: 'Votre historique n\'a pas pu être supprimé. Réessayez.'
   };
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -49,6 +54,54 @@
       level: ['none', 'simple', 'full'].includes(row.routine_level) ? row.routine_level : '',
       comfort: { preferGentle: row.prefer_gentle === true },
       exclusions: Array.isArray(row.exclusions) ? row.exclusions.filter(x => typeof x === 'string') : []
+    };
+  }
+
+  /* ---------- Analyses : forme de l'application ↔ ligne de la table ---------- */
+  /* Mêmes 15 clés que SkinModel.METRIC_KEYS et que la migration (un test vérifie l'égalité). */
+  const METRIC_KEYS = ['acne', 'pores', 'oiliness', 'texture', 'hydration', 'redness', 'pigmentation', 'wrinkles', 'firmness', 'radiance',
+    'eyeBag', 'tearTrough', 'darkCircle', 'droopyUpperEyelid', 'droopyLowerEyelid'];
+  const GOAL_IDS = ['hydration', 'oil_pores', 'blemishes', 'tone', 'redness_comfort', 'texture', 'aging', 'maintenance'];
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const score = v => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100 ? v : null);
+  const BANDS = ['good', 'mid', 'low'];
+  const shortText = (v, n) => (typeof v === 'string' && v.trim() && v.trim().length <= n ? v.trim() : null);
+  const known = k => METRIC_KEYS.indexOf(k) !== -1;
+
+  /* Enregistrement : liste blanche stricte, aucune clé inconnue, aucun identifiant d'utilisateur. Renvoie null si la forme est inutilisable. */
+  function analysisToRow(a) {
+    if (!a || typeof a !== 'object' || !a.metrics || typeof a.metrics !== 'object' || typeof a.engineVersion !== 'string' || !a.engineVersion) return null;
+    const metrics = {};
+    for (const k of METRIC_KEYS) if (Object.prototype.hasOwnProperty.call(a.metrics, k)) metrics[k] = score(a.metrics[k]);
+    const row = {
+      metrics,
+      priorities: (Array.isArray(a.priorities) ? a.priorities : []).filter(p => p && known(p.id)).slice(0, 15).map(p => ({ id: p.id, label: shortText(p.label, 60), score: score(p.score), band: BANDS.indexOf(p.band) !== -1 ? p.band : null })).filter(p => p.label),
+      goals_snapshot: (Array.isArray(a.goals) ? a.goals : []).filter((g, i, arr) => GOAL_IDS.indexOf(g) !== -1 && arr.indexOf(g) === i).slice(0, 3),
+      engine_version: a.engineVersion.slice(0, 40),
+      global_score: score(a.globalScore),
+      skin_type: typeof a.skinType === 'string' && a.skinType.trim() && a.skinType.length <= 40 ? a.skinType.trim() : null,
+      skin_age: typeof a.skinAge === 'number' && Number.isInteger(a.skinAge) && a.skinAge >= 1 && a.skinAge <= 120 ? a.skinAge : null
+    };
+    if (typeof a.id === 'string' && UUID_RE.test(a.id)) row.id = a.id;       // identifiant choisi par l'application : un nouvel essai ne crée jamais de doublon
+    if (typeof a.analyzedAt === 'string' && !Number.isNaN(Date.parse(a.analyzedAt))) row.analyzed_at = new Date(a.analyzedAt).toISOString();
+    return row;
+  }
+  /* Lecture : reconstruit la forme de l'application depuis une ligne ; renvoie null si la ligne est inutilisable (elle est alors ignorée). */
+  function analysisFromRow(r) {
+    if (!r || typeof r !== 'object' || typeof r.id !== 'string' || !r.metrics || typeof r.metrics !== 'object' || Array.isArray(r.metrics)) return null;
+    const t = Date.parse(r.analyzed_at);
+    if (Number.isNaN(t)) return null;
+    const metrics = {};
+    for (const k of METRIC_KEYS) metrics[k] = score(r.metrics[k]);
+    return {
+      id: r.id, analyzedAt: new Date(t).toISOString(),
+      globalScore: score(r.global_score),
+      skinType: typeof r.skin_type === 'string' && r.skin_type ? r.skin_type : null,
+      skinAge: typeof r.skin_age === 'number' ? r.skin_age : null,
+      metrics,
+      priorities: (Array.isArray(r.priorities) ? r.priorities : []).filter(p => p && known(p.id) && shortText(p.label, 60)).map(p => ({ id: p.id, label: p.label.trim(), score: score(p.score), band: BANDS.indexOf(p.band) !== -1 ? p.band : null })),
+      goals: Array.isArray(r.goals_snapshot) ? r.goals_snapshot.filter(g => GOAL_IDS.indexOf(g) !== -1) : [],
+      engineVersion: typeof r.engine_version === 'string' ? r.engine_version : ''
     };
   }
 
@@ -180,9 +233,36 @@
       return { ok: true };
     }
 
-    return { available, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile,
+    /* ---------- Historique des analyses ---------- */
+    /* Ajoute une analyse au compte connecté. Idempotent : le même `id` envoyé deux fois ne crée qu'une ligne (réponse perdue, nouvel essai). */
+    async function saveAnalysis(analysis) {
+      const row = analysisToRow(analysis);
+      if (!row) return { ok: false, error: MSG.analysisSaveFailed };
+      const r = await authed('/rest/v1/skin_analyses?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(row) });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (r.network || !r.ok) return { ok: false, error: MSG.analysisSaveFailed };
+      return { ok: true };
+    }
+    /* Une page de l'historique du compte connecté, de la plus récente à la plus ancienne (20 par défaut, jamais plus de 50). Seules les colonnes
+       utiles à l'affichage sont lues. `hasMore` : il en reste de plus anciennes. Les lignes inutilisables sont ignorées, jamais inventées. */
+    async function listAnalyses(o) {
+      const limit = Math.min(Math.max(parseInt(o && o.limit, 10) || 20, 1), 50), offset = Math.max(parseInt(o && o.offset, 10) || 0, 0);
+      const r = await authed('/rest/v1/skin_analyses?select=id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version&order=analyzed_at.desc,id.desc&limit=' + (limit + 1) + '&offset=' + offset, { method: 'GET' });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (r.network || !r.ok || !Array.isArray(r.body)) return { ok: false, error: MSG.historyLoadFailed };
+      return { ok: true, hasMore: r.body.length > limit, analyses: r.body.slice(0, limit).map(analysisFromRow).filter(Boolean) };
+    }
+    /* Supprime tout l'historique du compte connecté. `id=not.is.null` n'est qu'une formalité exigée par Supabase : la RLS limite aux lignes de l'utilisateur. */
+    async function deleteAnalyses() {
+      const r = await authed('/rest/v1/skin_analyses?id=not.is.null', { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (r.network || !r.ok) return { ok: false, error: MSG.historyDeleteFailed };
+      return { ok: true };
+    }
+
+    return { available, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, saveAnalysis, listAnalyses, deleteAnalyses,
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 
-  return { create, toRow, fromRow, MSG, SESSION_KEY, EMAIL_RE };
+  return { create, toRow, fromRow, analysisToRow, analysisFromRow, METRIC_KEYS, MSG, SESSION_KEY, EMAIL_RE };
 });

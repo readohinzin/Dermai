@@ -27,5 +27,10 @@ Une valeur absente reste `null` et l'indicateur est masqué, jamais inventé.
 - Authentification : e-mail + mot de passe (Supabase Auth). Aucun mot de passe n'est stocké par DERMAI ; seule la session d'authentification est mémorisée dans le navigateur (clé `dermai.session`).
 - Profil : table `public.profiles` (objectifs, niveau de routine, approche douce, exclusions). Migration : `supabase/migrations/20261006120000_create_profiles.sql`
   (à appliquer avec `supabase db push` ou en l'exécutant dans l'éditeur SQL du projet). RLS activée : chaque utilisateur ne lit et ne modifie que sa propre ligne ; `user_id` vient de `auth.uid()`.
-- Rien d'autre n'est enregistré : ni photo, ni masque, ni `task_id`, ni donnée brute du fournisseur d'analyse. Les analyses ne sont pas persistantes.
+- Historique : table `public.skin_analyses` (une ligne par analyse réelle réussie d'un utilisateur connecté). Migration : `supabase/migrations/20261007120000_create_skin_analyses.sql`
+  (à appliquer **avant** de promouvoir cette version en production, comme la précédente). Elle conserve ce que DERMAI a mesuré et recommandé à la date de l'analyse : score global, type de peau, âge cutané,
+  les 15 `uiScore` (entiers 0-100, 100 = meilleur ; `null` = indisponible), priorités (id, libellé, score, bande), objectifs du moment, version des règles (`engine_version`, `Engine.VERSION`).
+  Une analyse enregistrée est figée (aucune modification possible côté client) et n'est jamais recalculée. RLS : lecture, ajout et suppression de ses propres lignes seulement.
+  Pas d'enregistrement en mode démo, pour un visiteur non connecté, ni pour une analyse échouée.
+- Rien d'autre n'est enregistré : ni photo, ni masque, ni `task_id`, ni `rawScore`, ni donnée brute du fournisseur d'analyse.
 - Réglages Supabase à vérifier : confirmation par e-mail (si activée, l'inscription demande de confirmer l'adresse avant la connexion), longueur minimale du mot de passe.

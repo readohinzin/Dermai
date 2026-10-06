@@ -98,5 +98,5 @@ test('U10 la suppression de compte factice n\'est plus proposée lorsque les com
 test('U11 session expirée : retour visiteur, état privé effacé, invitation à se reconnecter', () => {
   assert.match(app, /function expireSession\(\)\{[\s\S]*resetPrivateState\(\);go\(`login`/);
   assert.match(app, /r\.error===DermaiAccount\.MSG\.sessionExpired\)\{expireSession\(\)/);
-  assert.match(app, /else if\(r\.error===DermaiAccount\.MSG\.sessionExpired\)\{expireSession\(\)\}/);
+  assert.match(app, /else if\(r\.error===DermaiAccount\.MSG\.sessionExpired\)\{expireSession\(\);return\}/);
 });

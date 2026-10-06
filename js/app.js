@@ -126,7 +126,8 @@ function normalizeSkinResult(result){return SkinModel.sanitizeNormalized(result)
 /* Un scan = normalized (Perfect Corp renommé, contrôlé par sanitizeNormalized) + libellés de date. Aucun score n'est précalculé :
    les écrans lisent SkinModel (toResultView, compareScans, globalSeries), échelle unique 0-100 où 100 = meilleur. */
 function toScan(normalized){
-  return Object.assign({id:null,real:true,day:null},SkinModel.scanLabels(new Date()),{normalized});
+  const now=new Date();
+  return Object.assign({id:null,real:true,saved:false,day:null,analyzedAt:now.toISOString()},SkinModel.scanLabels(now),{normalized});
 }
 /* Premier scan réel réussi : les analyses fictives sont retirées, démo et réel ne sont jamais mélangés dans l'historique. */
 function commitRealScan(r){
@@ -134,14 +135,16 @@ function commitRealScan(r){
   r.photo=state.realPreview;state.realPreview=``;   // l'aperçu passe de la photo en attente à l'analyse qu'il a produite
   r.id=SCANS.length;SCANS.push(r);
   const last=SCANS.length-1;
-  state.latest=r.id;state.view=r.id;state.cmpA=0;state.cmpB=last;
+  state.latest=r.id;state.view=r.id;state.cmpA=Math.max(last-1,0);state.cmpB=last;   // la progression compare la dernière analyse à la précédente
+  r.rec=recordOfScan(r);                                                              // photo, masque, task_id et rawScore n'en font jamais partie
+  saveScan(r);                                                                        // sans attendre : le résultat s'affiche d'abord
 }
 const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
 /* Moteur d'interprétation cosmétique (js/engine) : l'interface appelle run() et affiche. Aucune règle de priorité, d'actif ou de routine ici. */
 const Engine=window.DermaiEngine;
 /* Profil courant → moteur. Rien n'est mis en cache : toute modification (objectifs, niveau, confort) recalcule la routine à l'affichage suivant.
    L'analyse précédente (si elle existe) sert seulement à comparer, jamais de référence courante. */
-const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},prev?{previous:prev.normalized}:undefined)};
+const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},prev?{previous:prev.normalized}:undefined)};
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 
@@ -155,6 +158,10 @@ const $app=document.getElementById(`app`),$ov=document.getElementById(`overlay`)
 const ACCOUNT=(!DEMO_MODE&&window.DermaiAccount&&window.DERMAI_CONFIG)?DermaiAccount.create({url:window.DERMAI_CONFIG.supabaseUrl,anonKey:window.DERMAI_CONFIG.supabaseAnonKey,storage:(()=>{try{return window.localStorage}catch(e){return null}})()}):null;
 state.account={status:ACCOUNT&&ACCOUNT.available?`checking`:`off`,email:``,loading:false,busy:false,error:``,info:``,formEmail:``};   // off | checking | visitor | signedIn
 state.save={status:`idle`,message:``};                                                                                            // idle | saving | saved | error
+/* Historique des analyses (table skin_analyses, scores seulement) : état du chargement et de la dernière analyse enregistrée. */
+const HISTORY_PAGE=20;
+state.history={status:`idle`,hasMore:false,loadingMore:false,error:``,moreError:``};   // idle | loading | ready | error
+state.analysisSave={scan:null,status:`idle`,message:``};                              // idle | visitor | saving | saved | error | skipped
 const accountOn=()=>state.account.status!==`off`;
 const signedIn=()=>state.account.status===`signedIn`;
 let authEpoch=0;
@@ -165,6 +172,7 @@ function applyProfile(p){const n=Engine.normalizeProfile(p||{});state.goals=n.go
 function resetPrivateState(){
   state.goals=[];state.noGoal=false;state.level=``;state.gentle=false;state.exclusions=[];state.cats=[];state.done={};
   state.user.name=``;state.user.email=``;state.save={status:`idle`,message:``};
+  state.history={status:`idle`,hasMore:false,loadingMore:false,error:``,moreError:``};state.analysisSave={scan:null,status:`idle`,message:``};
   if(!DEMO_MODE){SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;clearReal()}
 }
 const softStatus=()=>{const el=document.getElementById(`saveStatus`);if(el)el.textContent=state.save.message};
@@ -198,8 +206,102 @@ async function enterSession(user,fresh){
   if(epoch!==authEpoch)return;
   state.account.loading=false;
   if(r.ok){if(r.profile)applyProfile(r.profile);else applyProfile({});state.save={status:`idle`,message:``}}
-  else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession()}
+  else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
   else{state.save={status:`error`,message:r.error}}
+  if(fresh)state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};   // compte tout juste créé : aucun historique à charger
+  else await loadHistory();
+}
+/* ---------- Historique persistant ---------- */
+const newAnalysisId=()=>{try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}
+  return `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c===`x`?r:(r&3|8)).toString(16)})};
+const tsOf=s=>s.rec?Date.parse(s.rec.analyzedAt):s.id;
+/* Une ligne enregistrée → un scan de l'application. Seuls les scores enregistrés sont relus (uiScore, 0-100) : aucune photo, aucun rawScore. */
+function scanOfRecord(a){
+  const n=SkinModel.sanitizeNormalized({schemaVersion:SkinModel.SCHEMA_VERSION,normalized:Object.assign({globalScore:a.globalScore,skinAge:a.skinAge,skinType:{whole:a.skinType}},
+    Object.fromEntries(SkinModel.METRIC_KEYS.map(k=>[k,{uiScore:a.metrics[k]}])))});
+  return n?Object.assign({id:null,real:true,saved:true,day:null,rec:a},SkinModel.scanLabels(new Date(a.analyzedAt)),{normalized:n}):null;
+}
+const reindex=()=>SCANS.forEach((s,i)=>{s.id=i});
+/* Chargement de la première page (les plus récentes). Les analyses du compte remplacent celles de la session : jamais de mélange entre comptes. */
+async function loadHistory(){
+  const epoch=authEpoch;
+  state.history={status:`loading`,hasMore:false,loadingMore:false,error:``,moreError:``};
+  const r=await ACCOUNT.listAnalyses({limit:HISTORY_PAGE});
+  if(epoch!==authEpoch)return;
+  if(!r.ok){
+    if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
+    state.history={status:`error`,hasMore:false,loadingMore:false,error:r.error,moreError:``};
+    return;
+  }
+  SCANS.length=0;
+  r.analyses.slice().sort((a,b)=>Date.parse(a.analyzedAt)-Date.parse(b.analyzedAt)||(a.id<b.id?-1:1)).forEach(a=>{const sc=scanOfRecord(a);if(sc)SCANS.push(sc)});   // ordre chronologique explicite
+  reindex();
+  const last=SCANS.length-1;
+  state.latest=Math.max(last,0);state.view=state.latest;state.cmpA=Math.max(last-1,0);state.cmpB=Math.max(last,0);
+  state.history={status:`ready`,hasMore:r.hasMore,loadingMore:false,error:``,moreError:``};
+}
+async function retryHistory(){
+  if(!signedIn())return;
+  render(true);                                   // « Chargement de votre historique… »
+  await loadHistory();
+  if(signedIn())render(true);
+}
+/* « Voir plus » : page suivante, plus anciennes. Doublons écartés par identifiant ; les repères (analyse actuelle, comparaison) suivent leurs analyses. */
+async function loadMoreHistory(){
+  const H=state.history;
+  if(!signedIn()||H.loadingMore||!H.hasMore)return;
+  const epoch=authEpoch;H.loadingMore=true;H.moreError=``;render(true);
+  const r=await ACCOUNT.listAnalyses({limit:HISTORY_PAGE,offset:SCANS.filter(s=>s.saved).length});
+  if(epoch!==authEpoch)return;
+  H.loadingMore=false;
+  if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}H.moreError=r.error;render(true);return}
+  const have=new Set(SCANS.filter(s=>s.rec).map(s=>s.rec.id));
+  const older=r.analyses.filter(a=>!have.has(a.id)).sort((a,b)=>Date.parse(a.analyzedAt)-Date.parse(b.analyzedAt)).map(scanOfRecord).filter(Boolean);
+  SCANS.unshift(...older);reindex();
+  const k=older.length;state.latest+=k;state.view+=k;state.cmpA+=k;state.cmpB+=k;
+  H.hasMore=r.hasMore;render(true);
+}
+/* Enregistrement d'une analyse réelle réussie. Ne bloque jamais l'affichage du résultat ; une panne ne fait jamais perdre le résultat.
+   Un identifiant propre à l'analyse (créé ici, pas le task_id du fournisseur) rend le nouvel essai et le double clic sans effet de doublon. */
+const SAVE_FAIL=DermaiAccount.MSG.analysisSaveFailed;
+const inflight=new Set();
+const softAnalysisStatus=()=>{if(state.route===`result`)render(true)};
+function recordOfScan(sc){
+  const n=sc.normalized,r=viewOf(sc),metrics={};
+  SkinModel.METRIC_KEYS.forEach(k=>{metrics[k]=SkinModel.displayScore(n[k]&&n[k].uiScore)});
+  return{id:newAnalysisId(),analyzedAt:sc.analyzedAt,globalScore:r.global.score,skinType:(n.skinType&&n.skinType.whole)||null,skinAge:r.skinAge,metrics,
+    priorities:engineFor(sc).priorities.items.map(m=>({id:m.indicator,label:m.label,score:m.score,band:m.band})),goals:[...state.goals],engineVersion:Engine.VERSION};
+}
+/* Une analyse n'est enregistrée que si tous ses scores présents sont exploitables (0-100) et qu'au moins un indicateur l'est : rien d'inventé. */
+function isRecordable(sc){
+  const n=sc.normalized,bad=v=>v!==null&&v!==undefined&&SkinModel.displayScore(v)===null;
+  return SkinModel.METRIC_KEYS.some(k=>SkinModel.displayScore(n[k]&&n[k].uiScore)!==null)&&!SkinModel.METRIC_KEYS.some(k=>bad(n[k]&&n[k].uiScore))&&!bad(n.globalScore);
+}
+async function saveScan(sc){
+  if(DEMO_MODE||!ACCOUNT||!ACCOUNT.available||!sc||sc.saved)return;
+  if(!isRecordable(sc)){state.analysisSave={scan:sc,status:`skipped`,message:`Votre analyse est disponible, mais elle n'a pas été ajoutée à votre historique : certaines valeurs ne sont pas exploitables.`};softAnalysisStatus();return}
+  if(!signedIn()){state.analysisSave={scan:sc,status:`visitor`,message:`Cette analyse n'est pas enregistrée : elle disparaîtra quand vous quitterez cette session. Créez un compte ou connectez-vous avant votre prochaine analyse pour conserver votre historique.`};softAnalysisStatus();return}
+  if(!sc.rec)sc.rec=recordOfScan(sc);
+  if(inflight.has(sc.rec.id))return;                                  // double clic ou événement répété : un seul envoi à la fois
+  inflight.add(sc.rec.id);const epoch=authEpoch;
+  state.analysisSave={scan:sc,status:`saving`,message:`Enregistrement de votre analyse…`};softAnalysisStatus();
+  const r=await ACCOUNT.saveAnalysis(sc.rec);
+  inflight.delete(sc.rec.id);
+  if(epoch!==authEpoch||!signedIn())return;                           // déconnexion ou changement de compte pendant l'enregistrement
+  if(r.ok){sc.saved=true;state.analysisSave={scan:sc,status:`saved`,message:`Analyse enregistrée dans votre historique.`}}
+  else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
+  else state.analysisSave={scan:sc,status:`error`,message:SAVE_FAIL};
+  softAnalysisStatus();
+}
+async function deleteHistory(){
+  if(!DEMO_MODE&&signedIn()){
+    const epoch=authEpoch,r=await ACCOUNT.deleteAnalyses();
+    if(epoch!==authEpoch)return;
+    if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
+  }
+  SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;state.analysisSave={scan:null,status:`idle`,message:``};
+  state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};
+  toast(`Historique supprimé.`);if(state.route===`privacy`||state.route===`analyses`)render(true);
 }
 async function bootAccount(arrivedWithoutPage){
   if(!ACCOUNT||!ACCOUNT.available)return;
@@ -207,7 +309,7 @@ async function bootAccount(arrivedWithoutPage){
   if(u)await enterSession(u,false);else state.account.status=`visitor`;
   /* Connecté, arrivé à la racine du site (aucune page dans l'adresse) : on ouvre directement son espace. Une page choisie (ex. #landing) est respectée. */
   if(u&&arrivedWithoutPage&&state.route===`landing`){go(`home`,null,{reset:true,replace:true});return}
-  if([`landing`,`profile`,`home`,`result`,`routine`,`actives`,`progress`,`analyses`,`privacy`].includes(state.route))render(true);
+  if([`landing`,`profile`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`products`,`progress`,`analyses`,`privacy`].includes(state.route))render(true);
 }
 async function submitAuth(kind,form){
   const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=form.querySelector(`[name=password]`).value||``;
@@ -307,10 +409,17 @@ function gchart(points){
    <path d="${area}" fill="url(#gg)"/><path class="gl-line" d="${d}"/>
    ${P.map((p,i)=>`<circle class="gl-dot" cx="${p[0]}" cy="${p[1]}" r="5.5"/><text class="gv" x="${p[0]}" y="${p[1]-15}" text-anchor="middle">${points[i].v}</text><text class="gd" x="${p[0]}" y="${h-12}" text-anchor="middle">${points[i].label}</text>`).join(``)}</svg>`;
 }
-const emptyScan=(title,msg,opt={})=>shell(`<div class="pagehead"><h1>${title}</h1></div><div class="c-card c-card--empty"><div class="c-empty">${ic(`chart`)}<h2 class="c-empty__title">${msg[0]}</h2><p class="c-empty__text">${msg[1]}</p><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Analyser ma peau</button></div></div>`,opt);
+const emptyScan=(title,msg,opt={})=>{
+  const H=state.history,loading=state.account.status===`checking`||H.status===`loading`;
+  const body=loading?`<div class="c-empty">${ic(`chart`)}<h2 class="c-empty__title">Chargement de votre historique…</h2><p class="c-empty__text" role="status">Un instant.</p></div>`
+    :H.status===`error`?`<div class="c-empty">${ic(`info`)}<h2 class="c-empty__title">${H.error}</h2><button class="c-btn c-btn--primary c-btn--block" data-act="retry-history">Réessayer</button></div>`
+    :`<div class="c-empty">${ic(`chart`)}<h2 class="c-empty__title">${msg[0]}</h2><p class="c-empty__text">${msg[1]}</p><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Analyser ma peau</button></div>`;
+  return shell(`<div class="pagehead"><h1>${title}</h1></div><div class="c-card c-card--empty">${body}</div>`,opt);
+};
 const EMPTY_MSG=[`Aucune analyse pour le moment`,`Faites votre première analyse pour voir vos résultats ici.`];
 /* Scores : toute l'interface lit SkinModel (normalized → uiScore / globalScore, échelle 0-100, 100 = meilleur). Aucun calcul de score ici. */
 const viewOf=s=>SkinModel.toResultView(s.normalized);
+const skinLabelOf=s=>{const r=viewOf(s);return r.skinType?r.skinType.label:null};
 const skinLabel=r=>r.skinType?r.skinType.label:`Type de peau indisponible`;
 const scoreHtml=(v,size)=>v.score===null?`<span class="c-score c-score--${size} c-score--null"><span class="c-score__value">–</span></span>`
   :`<span class="c-score c-score--${size} c-score--${v.band}"><span class="c-score__value">${v.score}</span><span class="c-score__unit">/100</span></span>`;
@@ -545,34 +654,46 @@ const exclusionsSection=()=>``;
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
   const s=SCANS[state.view],r=viewOf(s),g=r.global,eng=engineFor(s),P=eng.priorities;
-  const hero=`<div class="c-card c-card--result c-result"><div class="c-result__hero"><div class="c-result__photo">${portrait({photo:s.photo})}</div>
+  /* Analyse plus ancienne : on montre ce qui avait été relevé à cette date (priorités et objectifs enregistrés), jamais recalculé avec les règles ou le profil d'aujourd'hui. */
+  const H=!!s.rec&&s.id!==state.latest,noPhoto=!DEMO_MODE&&!s.photo;
+  const stored=m=>Object.assign({},m,{bandLabel:(SkinModel.BANDS.find(b=>b.key===m.band)||{}).label});
+  const hero=`<div class="c-card c-card--result c-result"><div class="c-result__hero">${noPhoto?``:`<div class="c-result__photo">${portrait({photo:s.photo})}</div>`}
       <div class="c-score-block"><span class="c-result__kicker">Score global</span>${g.score===null?`<p class="c-result__na">Score global indisponible</p>`:`${scoreHtml(g,`xl`)}${bandBadge(g)}`}</div></div>
       ${g.score===null?``:`<p class="c-result__sentence">${SCORE_SENTENCE[g.band]}</p>`}</div>`;
   const type=`<div class="c-card"><p class="c-disclaimer">Type de peau</p>${r.skinType?`<h2 class="c-card__title">${r.skinType.label}</h2><p class="c-card__text">${r.skinType.description}</p>`:`<p class="c-card__text">Type de peau indisponible.</p>`}
       ${r.skinAge===null?``:`<div class="c-result__age"><b>Âge cutané estimé : ${r.skinAge} ans</b><p class="c-disclaimer">Estimation cosmétique, ce n'est pas un âge biologique.</p></div>`}</div>`;
-  const prio=P.items.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
+  const prio=H?s.rec.priorities.map(stored).map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}<div class="c-concern-card__foot">${bandBadge(m)}</div></div>`).join(``):P.items.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
       <div class="c-concern-card__foot">${bandBadge(m)}${m.objectiveMatch?`<span class="c-badge c-badge--outline">Votre objectif</span>`:``}</div><p class="c-card__text"><b>Pourquoi cette priorité ?</b> ${m.reason}</p><button class="link" data-go="concern:${m.indicator}">Voir le détail</button></div>`).join(``);
-  const others=eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(m=>m.score===null
+  const othersH=[...r.priorities,...r.others].sort((a,b)=>a.order-b.order).filter(m=>!s.rec||!H||!s.rec.priorities.some(p=>p.id===m.key)).map(m=>m.score===null
+    ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
+    :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
+  const others=H?othersH:eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :isInfo(m)?`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${infoBadge()}</span><span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span></li>`
     :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
+  const sv=state.analysisSave,svBox=!DEMO_MODE&&sv.scan===s&&sv.status!==`idle`?`<div class="c-notice${sv.status===`saved`?` c-notice--success`:``}" role="status" aria-live="polite">${ic(sv.status===`saved`?`check`:`info`)}<div>${sv.message}${sv.status===`error`?` <button class="link" data-act="retry-analysis">Réessayer</button>`:``}</div></div>`:``;
   return shell(`
-  <div class="pagehead"><p class="kicker">Analyse du ${s.date}</p><h1>Votre analyse</h1><p>Une analyse cosmétique de l'état apparent de votre peau.</p></div>
+  <div class="pagehead"><p class="kicker">Analyse du ${s.date}${H?` · analyse précédente`:``}</p><h1>${H?`Votre analyse du ${s.date}`:`Votre analyse`}</h1><p>Une analyse cosmétique de l'état apparent de votre peau.</p></div>
+  ${svBox?`<div style="margin-bottom:18px">${svBox}</div>`:``}
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
-    <section><p class="kicker">Ce que DERMAI observe</p><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length
-      ?`<p class="muted" style="margin-bottom:14px">Vos principaux repères à soutenir, d'après votre analyse. 100 correspond au meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
+    <section><p class="kicker">Ce que DERMAI observe</p><div class="hd"><h2 class="h3">${H?`Repères à soutenir à cette date`:`Vos priorités`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
+      ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.`:`Vos principaux repères à soutenir, d'après votre analyse.`} 100 correspond au meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
-    ${P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
+    ${!H&&P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
     <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul></section>
-    <section><p class="kicker">Ce que vous souhaitez travailler</p><div class="hd"><h2 class="h3">Vos objectifs</h2></div>
+    ${H?`<section><p class="kicker">Ce que vous souhaitiez travailler</p><div class="hd"><h2 class="h3">Vos objectifs à cette date</h2></div>
+      ${s.rec.goals.length?`<div class="chips" style="margin-bottom:10px">${s.rec.goals.map(id=>`<span class="c-badge">${Engine.copy.GOAL_LABELS[id]}</span>`).join(``)}</div>`:`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi à cette date.</p>`}</section>
+    <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine actuelle</h2></div>
+      <p class="muted" style="margin-bottom:14px">La routine affichée dans l'application correspond à votre analyse la plus récente.</p>
+      <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine actuelle</button></section>`:`    <section><p class="kicker">Ce que vous souhaitez travailler</p><div class="hd"><h2 class="h3">Vos objectifs</h2></div>
       ${eng.personalization.goals.length?`${goalBadges()}<p class="muted" style="margin-bottom:10px">${goalCount()}. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><ul class="l-list" style="margin-top:0">${eng.personalization.goals.map(g=>`<li>${ic(`check`)}<span><b>${g.label}</b> : ${g.text}</span></li>`).join(``)}</ul>`
         :`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi. Les objectifs sont facultatifs.</p>`}
       <button class="link" data-go="profile">${eng.personalization.goals.length?`Modifier mes objectifs`:`Choisir mes objectifs`}</button></section>
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
       <p style="color:var(--ink);margin-bottom:14px">${eng.personalization.headline}</p>
-      <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>
+      <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>`}
     <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
@@ -680,7 +801,7 @@ const cmpRow=(m,label)=>m.available
   :`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${label}</span><span class="c-indicator__value"><span class="c-badge c-badge--outline">Donnée indisponible</span></span></li>`;
 V.progress=()=>{
   if(noReal())return emptyScan(`Votre évolution`,[`Aucune analyse pour le moment`,`Faites votre première analyse : vous pourrez ensuite suivre votre évolution.`]);
-  if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre évolution`,[`Votre première analyse est enregistrée.`,`Faites une nouvelle analyse plus tard pour suivre votre évolution.`]);
+  if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre évolution`,SCANS[0].saved||state.account.status===`off`?[`Votre première analyse est enregistrée.`,`Faites une nouvelle analyse plus tard pour suivre votre évolution.`]:[`Votre première analyse n'est pas enregistrée.`,`Connectez-vous avant votre prochaine analyse : vous pourrez ensuite suivre votre évolution.`]);
   const lastIdx=SCANS.length-1,A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)];
   const opt=(sel)=>SCANS.map(s=>`<option value="${s.id}" ${s.id===sel?`selected`:``}>${s.date}</option>`).join(``);
   const pts=globalPoints(),cmp=SkinModel.compareScans(A.normalized,B.normalized);
@@ -688,21 +809,24 @@ V.progress=()=>{
   ${(ev=>ev.available&&ev.indicators.length?`<section class="sand" style="margin-bottom:24px"><div class="hd"><h2 class="h3">Vos priorités actuelles, depuis l'analyse précédente</h2></div><ul class="c-indicators">${ev.indicators.map(i=>`<li class="c-indicator"><span class="c-indicator__name">${i.label}</span><span class="c-indicator__value">${i.delta===null?`<span class="muted">Comparaison indisponible</span>`:`<span class="c-indicator__score">${i.previous} → ${i.current}<small>/100</small></span><span class="c-delta c-delta--${i.trend===`up`?`up`:i.trend===`down`?`down`:`flat`}">${Engine.copy.PERSONAL.trend[i.trend]}</span>`}</span></li>`).join(``)}</ul><p class="muted" style="margin-top:10px">${ev.note}</p></section>`:``)(engineFor(SCANS[SCANS.length-1]).personalization.evolution)}
   ${pts.length>=2?`<div class="c-card" style="margin-bottom:14px"><p class="kicker">Score global</p>${gchart(pts)}</div>`:`<div class="c-notice u-my-5">${ic(`info`)}<div>Pas assez de scores globaux valides pour tracer une courbe.</div></div>`}
   <div class="grid2" style="margin-top:30px"><section><div class="hd"><h2 class="h3">Avant, maintenant</h2></div>
-   <div class="cmp" id="cmpbox"><span class="tagl" style="left:14px">Avant</span><span class="tagl" style="right:14px">Maintenant</span>
+   ${!DEMO_MODE&&!(A.photo&&B.photo)?`<div class="c-notice">${ic(`info`)}<div>Vos photos ne sont pas conservées avec vos analyses : la comparaison porte sur vos scores.</div></div>`:`<div class="cmp" id="cmpbox"><span class="tagl" style="left:14px">Avant</span><span class="tagl" style="right:14px">Maintenant</span>
     <div class="layer">${portrait({photo:B.photo})}</div>
     <div class="layer top" id="cmpTop">${portrait({photo:A.photo})}</div>
-    <div class="handle" id="cmpH"></div><input type="range" id="cmp" min="0" max="100" value="50" aria-label="Faire glisser pour comparer avant et maintenant"></div>
+    <div class="handle" id="cmpH"></div><input type="range" id="cmp" min="0" max="100" value="50" aria-label="Faire glisser pour comparer avant et maintenant"></div>`}
    ${DEMO_MODE?`<p class="muted" style="margin-top:10px">Démonstration : les deux côtés montrent la même photo tant qu'il n'y a qu'une seule image. Vos vraies photos apparaîtront ici.</p>`:``}</section>
    <section><div class="hd"><h2 class="h3">Comparer deux analyses</h2></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px"><label class="sr" for="sa">Avant</label><select class="sel" id="sa" data-change="cmpA">${opt(state.cmpA)}</select><label class="sr" for="sb">Maintenant</label><select class="sel" id="sb" data-change="cmpB">${opt(state.cmpB)}</select></div>
     <p class="muted" style="margin-bottom:8px">Du ${A.date} au ${B.date}. Stable : variation de 2 points ou moins.</p>
+    ${(()=>{const x=skinLabelOf(A),y=skinLabelOf(B);return x&&y&&x!==y?`<p class="muted" style="margin-bottom:8px">Profil de peau indiqué par l'analyse : ${x} → ${y}</p>`:``})()}
+    <p class="muted" style="margin-bottom:8px">Le score global est une information séparée de vos priorités : sa hausse ne signifie pas que tous vos repères se sont améliorés.</p>
     <ul class="c-indicators">${cmpRow(cmp.global,`<b>Score global</b>`)}${cmp.metrics.map(m=>cmpRow(m,m.label)).join(``)}</ul>
     ${disc()}<div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="scan">Nouvelle analyse</button><button class="c-btn c-btn--secondary c-btn--block" data-go="analyses">Mes analyses</button></div></section></div>`);
 };
 
-/* Historique */
-V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
-  <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b>${s.id===state.latest?` <span class="c-badge c-badge--outline">Analyse actuelle</span>`:``}<p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">${s.id===state.latest?`Priorités actuelles`:`Repères à soutenir à cette date`}</p><div class="chips">${pi.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(s).priorities.items)}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
+/* Historique : une page de 20 analyses à la fois, les plus récentes d'abord. */
+const historyMore=()=>{const H=state.history;return !DEMO_MODE&&H.hasMore?`<div style="padding-top:18px;border-top:1px solid var(--line)">${H.moreError?`<p class="c-notice" role="status" style="margin-bottom:10px">${H.moreError}</p>`:``}<button class="c-btn c-btn--secondary c-btn--block" data-act="more-history" ${H.loadingMore?`disabled`:``}>${H.loadingMore?`Chargement…`:`Voir plus d'analyses`}</button></div>`:``};
+V.analyses=()=>noReal()?emptyScan(`Mes analyses`,signedIn()?[`Votre historique apparaîtra après votre première analyse.`,`Faites votre première analyse pour la retrouver ici.`]:EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
+  <div style="max-width:640px">${[...SCANS].sort((a,b)=>tsOf(b)-tsOf(a)||b.id-a.id).map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b>${s.id===state.latest?` <span class="c-badge c-badge--outline">Analyse actuelle</span>`:``}<p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">${s.id===state.latest?`Priorités actuelles`:`Repères à soutenir à cette date`}</p><div class="chips">${pi.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(s.rec&&s.id!==state.latest?s.rec.priorities:engineFor(s).priorities.items)}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}${historyMore()}</div>`,{back:true,title:`Mes analyses`});
 
 /* Profil */
 /* Bloc compte de la page Profil : visiteur, connecté (e-mail, état d'enregistrement, déconnexion) ou vérification en cours. Rien en mode démo. */
@@ -745,7 +869,7 @@ V.profile=()=>{
 V.privacy=()=>shell(`<div class="pagehead"><h1>Confidentialité</h1><p style="color:var(--ink);font-size:18px">Vos photos sont utilisées pour analyser votre peau.</p></div>
   <div class="grid2"><div class="col">
    <section><ul class="l-list" style="margin-top:0">${DEMO_MODE?`<li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li>`
-     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil, et vos analyses ne sont pas conservées d'une session à l'autre.</span></li>`}</ul></section>
+     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`layers`)}<span>Si vous êtes connecté, vos analyses peuvent être enregistrées dans votre compte pour afficher votre historique et votre progression. Seuls vos scores, vos priorités du moment et vos objectifs de ce jour sont conservés.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil. Vos photos originales ne sont pas non plus enregistrées avec vos analyses.</span></li><li>${ic(`shield`)}<span>Ces données sont associées à votre compte : vous seul pouvez accéder à vos analyses.</span></li><li>${ic(`eye`)}<span>Sans compte, vos analyses ne sont pas conservées d'une session à l'autre.</span></li>`}</ul></section>
    <section>${sw(`keep`,`Conserver mes photos`,`Pour comparer avant et maintenant`)}</section>
   </div><div class="col"><section><div class="hd"><h2 class="h3">Gérer mes données</h2></div>
    <button class="rowlink" data-act="confirm" data-v="photos" style="border-top:1px solid var(--line)">${ic(`camera`)}<div class="grow"><b>Supprimer mes photos</b><span class="s">Les analyses restent disponibles</span></div>${ic(`chev`)}</button>
@@ -948,6 +1072,9 @@ function act(a,v,el){
     case `gentle`:state.gentle=!state.gentle;render(true);persist();break;
     case `logout`:logout();break;
     case `retry-save`:persist();break;
+    case `retry-analysis`:saveScan(state.analysisSave.scan);break;
+    case `retry-history`:retryHistory();break;
+    case `more-history`:loadMoreHistory();break;
     case `cat`:if(v===`none`)state.cats=state.cats.includes(`none`)?[]:[`none`];else{state.cats=state.cats.filter(c=>c!==`none`);toggle(state.cats,v)}render(true);break;
     case `finish-onb`:go(`home`,null,{reset:true});break;
     case `scan-start`:state.scanStep=1;render();scrollTo(0,0);break;
@@ -965,7 +1092,7 @@ function act(a,v,el){
     case `clear-photo`:state.photo=``;try{localStorage.removeItem(`dermai_demo_photo`)}catch(e){}render(true);toast(`Photo retirée`);break;
     case `toast`:closeSheet();toast(v);break;
     case `confirm`:{const c=CONFIRMS[v];sheet(`<h2 style="font-size:2rem;margin-bottom:10px">${c[0]}</h2><p style="margin-bottom:24px">${c[1]}</p><div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-act="do-confirm" data-v="${v}">${c[2]}</button><button class="c-btn c-btn--secondary c-btn--block" data-act="close">Annuler</button></div>`);break}
-    case `do-confirm`:closeSheet();toast(CONFIRMS[v][3]);if(v===`account`)timers.push(setTimeout(()=>go(`landing`,null,{reset:true}),1200));break;
+    case `do-confirm`:closeSheet();if(v===`history`&&!DEMO_MODE){deleteHistory();break}toast(CONFIRMS[v][3]);if(v===`account`)timers.push(setTimeout(()=>go(`landing`,null,{reset:true}),1200));break;
   }
 }
 document.addEventListener(`click`,e=>{
