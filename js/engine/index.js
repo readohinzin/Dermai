@@ -56,7 +56,7 @@
     }
     for (const t of activePlan.treatments) {
       const a = dep.actives.byId(t.activeId);
-      explanations.push({ kind: 'active', activeId: t.activeId, text: copy.activeReason(t.indicators.map(i => dep.skin.METRIC_LABELS[i]), t.gentleFallback),
+      explanations.push({ kind: 'active', activeId: t.activeId, text: copy.activeReason(t.indicators.map(i => dep.skin.METRIC_LABELS[i]), t.gentleFallback, t.indicators.filter(i => a.evidence.editorial.includes(i)).map(i => dep.skin.METRIC_LABELS[i])),
         trace: { source: t.indicators.map(idx).join(', '), rule: 'préférence éditoriale validée (' + a.status + ')', result: 'soin ciblé ' + a.id } });
     }
     for (const s of activePlan.supports) {

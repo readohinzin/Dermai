@@ -24,6 +24,8 @@
     const slots = { morning: [], evening: [] };
     const extraDeferred = [];
     const labelOf = id => skin.METRIC_LABELS[id];
+    /* Rougeurs apparentes « À soutenir » sans mode confort : prudence renforcée (introduction plus lente) pour les actifs plus demandants. */
+    const rednessSoft = ((interp.indicators || []).find(i => i.id === 'redness') || {}).band === 'mid';
 
     for (const slot of ['morning', 'evening']) {
       slots[slot].push({ id: slot + ':cleanse', slot, kind: 'cleanse', label: copy.STEP_LABELS.cleanse, owned: owned.has('cleanser'),
@@ -50,9 +52,9 @@
       const slot = chosenSlot.get(t.activeId);
       if (!slot) continue;
       slots[slot].push({ id: slot + ':treatment:' + a.id, slot, kind: 'treatment', label: copy.STEP_LABELS.treatment, activeId: a.id, activeLabel: a.label,
-        reason: copy.activeReason(t.indicators.map(labelOf), t.gentleFallback), indicators: t.indicators,
+        reason: copy.activeReason(t.indicators.map(labelOf), t.gentleFallback, t.indicators.filter(i => a.evidence.editorial.includes(i)).map(labelOf)), indicators: t.indicators,
         introduction: { frequency: a.introduction.frequency, note: a.introduction.note, order: t.introductionOrder },
-        cautions: a.cautions, slowDown: (ctx.comfortMode || ctx.skinBase === 'dry') && a.irritation !== 'low' });
+        cautions: a.cautions, slowDown: (ctx.comfortMode || ctx.skinBase === 'dry' || rednessSoft) && a.irritation !== 'low' });
     }
     for (const slot of ['morning', 'evening']) {
       slots[slot].push({ id: slot + ':moisturize', slot, kind: 'moisturize', label: copy.STEP_LABELS.moisturize, owned: owned.has('moisturizer'), supportIds, texture,

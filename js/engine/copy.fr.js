@@ -46,7 +46,10 @@
   const EYE_NOTE = 'Cet indicateur est donné à titre d\'information : aucun actif n\'est proposé automatiquement.';
 
   /* ---- actifs ---- */
-  const activeReason = (labels, fallbackSoft) => 'Choisi pour : ' + joinList(labels.map(lower)) + '.' +
+  /* `editorial` : libellés d'indicateurs pour lesquels le choix de l'actif est une règle DERMAI prudente, sans source directe retenue.
+     Ils sont signalés comme « option courante » : jamais présentés comme une relation établie, ni attribués au fournisseur d'analyse. */
+  const activeReason = (labels, fallbackSoft, editorial) => 'Choisi pour : ' +
+    joinList(labels.map(l => lower(l) + ((editorial || []).includes(l) ? ' (option cosmétique courante)' : ''))) + '.' +
     (fallbackSoft ? ' Introduisez-le très doucement : votre analyse suggère de privilégier le confort.' : '');
   const supportReason = labels => labels.length
     ? 'Ingrédient recherché dans votre hydratant, pour : ' + joinList(labels.map(lower)) + '.'
