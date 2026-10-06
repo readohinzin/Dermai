@@ -29,15 +29,26 @@
       slots[slot].push({ id: slot + ':cleanse', slot, kind: 'cleanse', label: copy.STEP_LABELS.cleanse, owned: owned.has('cleanser'),
         reason: owned.has('cleanser') ? copy.stepReason.owned : copy.stepReason.cleanse });
     }
-    for (const t of plan.treatments) {
-      const a = actives.byId(t.activeId);
-      let slot = a.defaultSlot;
-      const full = s => slots[s].filter(x => x.kind === 'treatment').length >= limits.perSlot;
-      if (full(slot)) {
-        const alt = slot === 'morning' ? 'evening' : 'morning';
-        if (a.when === 'both' && !full(alt)) slot = alt;
-        else { extraDeferred.push({ activeId: t.activeId, kind: 'slot', indicators: t.indicators }); continue; }
-      }
+    /* Allocation des créneaux : d'abord les actifs contraints (un seul créneau possible), puis les flexibles, qui prennent leur créneau
+       habituel s'il reste de la place, sinon l'autre. L'ordre d'affichage reste celui du plan. */
+    const taken = { morning: 0, evening: 0 };
+    const chosenSlot = new Map();
+    const full = s => taken[s] >= limits.perSlot;
+    const entries = plan.treatments.map(t => ({ t, a: actives.byId(t.activeId) }));
+    for (const { t, a } of entries.filter(e => e.a.when !== 'both')) {
+      const slot = a.defaultSlot;
+      if (full(slot)) { extraDeferred.push({ activeId: t.activeId, kind: 'slot', indicators: t.indicators }); continue; }
+      taken[slot]++; chosenSlot.set(t.activeId, slot);
+    }
+    for (const { t, a } of entries.filter(e => e.a.when === 'both')) {
+      const alt = a.defaultSlot === 'morning' ? 'evening' : 'morning';
+      const slot = !full(a.defaultSlot) ? a.defaultSlot : !full(alt) ? alt : null;
+      if (!slot) { extraDeferred.push({ activeId: t.activeId, kind: 'slot', indicators: t.indicators }); continue; }
+      taken[slot]++; chosenSlot.set(t.activeId, slot);
+    }
+    for (const { t, a } of entries) {
+      const slot = chosenSlot.get(t.activeId);
+      if (!slot) continue;
       slots[slot].push({ id: slot + ':treatment:' + a.id, slot, kind: 'treatment', label: copy.STEP_LABELS.treatment, activeId: a.id, activeLabel: a.label,
         reason: copy.activeReason(t.indicators.map(labelOf), t.gentleFallback), indicators: t.indicators,
         introduction: { frequency: a.introduction.frequency, note: a.introduction.note, order: t.introductionOrder },
@@ -55,6 +66,7 @@
     const notes = [copy.NOTES.level[profile.level] || copy.NOTES.level.simple];
     if (placed.length > 1 || placed.some(s => s.slowDown)) notes.push(copy.NOTES.oneAtATime);
     if (deferred.some(d => d.kind === 'conflict') || placed.filter(s => s.slot === 'evening').length > 0) notes.push(copy.NOTES.oneStrong);
+    if (placed.some(s => { const a = actives.byId(s.activeId); return a.irritation !== 'low'; })) notes.push(copy.NOTES.marks);
     if (ctx.comfortMode) notes.push(copy.NOTES.comfort);
     if (ctx.skinBase === 'dry') notes.push(copy.NOTES.dry);
     return {

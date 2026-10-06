@@ -78,7 +78,7 @@
     normal: 'Aspect plutôt équilibré.',
     oily: 'Aspect plutôt brillant.',
     dry: 'Aspect plutôt sec.',
-    combination: 'Certaines zones du visage ont un aspect différent des autres.',
+    combination: 'Un aspect qui varie selon les parties du visage.',
     redness: 'Des rougeurs sont visibles.',
     'dry & redness': 'Aspect plutôt sec, avec des rougeurs visibles.',
     'oily & redness': 'Aspect plutôt brillant, avec des rougeurs visibles.',

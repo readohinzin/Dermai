@@ -50,24 +50,25 @@ const SCANS=[
   demoScan(1,`30 octobre`,`30 OCT`,30,64,{pigmentation:39,pores:43,hydration:73,acne:76,oiliness:51,redness:74,texture:64,wrinkles:79}),
   demoScan(2,`30 novembre`,`30 NOV`,60,68,{pigmentation:48,pores:49,hydration:79,acne:82,oiliness:56,redness:78,texture:70,wrinkles:80})
 ];
-/* Contenu éditorial statique de 4 indicateurs (zones pour l'illustration de la page d'accueil, conseils, actifs). Aucun score ici. */
+/* Contenu éditorial statique de 4 indicateurs (conseils généraux). Aucun score ici. */
 const CONCERNS={
-  pigmentation:{label:`Pigmentation`,zones:`Front et joues`,
-    tips:[`Appliquez une protection solaire chaque matin, même par temps couvert.`,`Évitez de toucher ou de gratter les zones concernées.`]},
-  pores:{label:`Pores`,zones:`Nez, joues et menton`,
-    tips:[`Nettoyez le visage matin et soir avec un produit doux.`,`Ne pressez pas les pores : cela les agrandit visuellement.`]},
-  hydration:{label:`Hydratation`,zones:`Joues et contour des yeux`,
+  pigmentation:{label:`Pigmentation`,
+    tips:[`Appliquez une protection solaire chaque matin, même par temps couvert.`,`Évitez de frotter ou de gratter la peau.`]},
+  pores:{label:`Pores`,
+    tips:[`Nettoyez le visage matin et soir avec un produit doux.`,`Évitez de presser ou de frotter la peau, cela peut l'irriter.`]},
+  hydration:{label:`Hydratation`,
     tips:[`Appliquez votre hydratant sur peau légèrement humide.`,`Évitez les eaux de nettoyage trop chaudes.`]},
-  acne:{label:`Acné`,zones:`Menton et front`,
-    tips:[`Changez régulièrement de taie d'oreiller et nettoyez votre téléphone.`,`Préférez des textures légères, non comédogènes.`]}
+  acne:{label:`Acné`,
+    tips:[`Laver régulièrement sa taie d'oreiller et nettoyer son téléphone fait partie d'une routine soignée.`,`Préférez des textures légères, non comédogènes.`]}
 };
 const CIDS=[`pigmentation`,`pores`,`hydration`,`acne`];
-const ZONES_BY={pigmentation:[`front`,`jg`,`jd`],pores:[`nez`,`jg`,`jd`,`menton`],hydration:[`jg`,`jd`,`yg`,`yd`],acne:[`menton`,`front`],all:[`front`,`jg`,`jd`,`nez`,`menton`,`yg`,`yd`]};
+/* Exemple illustratif de la page d'accueil : trois scores globaux fictifs, passés par le même chemin que les vrais (SkinModel.globalSeries). */
+const LANDING_EXAMPLE=(()=>{const g=SkinModel.globalSeries([61,64,68].map(v=>({globalScore:v})));return [`29 SEPT`,`30 OCT`,`30 NOV`].map((label,i)=>({v:g[i],label})).filter(p=>p.v!==null)})();
 const CATS=[[`cleanser`,`Nettoyant`],[`serum`,`Sérum`],[`moisturizer`,`Hydratant`],[`spf`,`Protection solaire`],[`exfoliant`,`Exfoliant`],[`mask`,`Masque`]];
 const state={route:`landing`,param:null,stack:[],user:DEMO_MODE?{name:`Amina`,email:`amina@exemple.com`}:{name:``,email:``},
   goals:DEMO_MODE?[`tone`,`oil_pores`,`hydration`]:[],noGoal:false,level:DEMO_MODE?`simple`:``,cats:DEMO_MODE?[`cleanser`,`moisturizer`]:[],
   scanStep:0,shots:[false,false,false],retake:false,run:0,latest:0,view:0,tab:`am`,done:{},filter:`all`,
-  cmpA:0,cmpB:1,sel:`all`,prefs:{reminder:true,tips:true,keep:false},photo:``,
+  cmpA:0,cmpB:1,prefs:{reminder:true,tips:true,keep:false},photo:``,
   scanStatus:`idle`,scanError:``,realBlob:null,realPreview:``};   // scanStatus : idle | capturing | uploading | processing | success | error
 if(DEMO_MODE)try{state.photo=localStorage.getItem(`dermai_demo_photo`)||``}catch(e){}
 
@@ -265,7 +266,6 @@ const V={};
 
 /* Landing */
 V.landing=()=>{
-  const on=ZONES_BY[state.sel]||ZONES_BY.all;
   return `<header class="l-top"><span class="brand">DERMAI</span><button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button></header>
   <section class="hero"><div class="wrap hero-grid">
     <div>
@@ -276,7 +276,7 @@ V.landing=()=>{
       ${DEMO_MODE?`<div style="margin-top:20px">${demoTag()}</div>`:``}
     </div>
     <div class="hero-art">
-      <div class="facebox">${portrait({on:ZONES_BY.all,importBtn:true,decor:true})}</div>
+      <div class="facebox">${portrait({importBtn:true,decor:true})}</div>
     </div>
   </div>
   <div class="wrap"><div class="flowstrip" aria-label="Le principe">
@@ -295,26 +295,22 @@ V.landing=()=>{
   <section class="sec"><div class="wrap two">
     <div>
       <h2>Ce que DERMAI observe</h2>
-      <p style="margin-top:14px">Huit repères visibles, lus sur l'ensemble du visage.</p>
+      <p style="margin-top:14px">Quinze indicateurs visibles, lus sur l'ensemble du visage.</p>
       <div class="plist">
-        <div><b>Acné</b><span>Imperfections visibles</span></div><div><b>Pigmentation</b><span>Zones plus pigmentées</span></div>
-        <div><b>Pores</b><span>Taille et visibilité</span></div><div><b>Sébum</b><span>Brillance de la peau</span></div>
-        <div><b>Hydratation</b><span>Souplesse et éclat</span></div><div><b>Rougeurs</b><span>Zones plus rosées</span></div>
-        <div><b>Texture</b><span>Grain de peau</span></div><div><b>Signes du vieillissement</b><span>Ridules et rides</span></div>
+        ${SkinModel.METRIC_KEYS.map(k=>`<div><b>${SkinModel.METRIC_LABELS[k]}</b><span>${Engine.copy.INDICATOR_NOTES[k]||``}</span></div>`).join(``)}
       </div>
     </div>
     <div>
-      <div class="facebox">${portrait({on,decor:true})}<div class="facecap">${state.sel===`all`?`Touchez une préoccupation pour voir les zones concernées.`:`Zones concernées : ${CONCERNS[state.sel].zones.toLowerCase()}.`}</div></div>
-      <div class="chips" style="margin-top:16px;justify-content:center">${CIDS.map(c=>`<button class="c-chip" data-act="zone" data-v="${c}" aria-pressed="${state.sel===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
+      <div class="facebox">${portrait({decor:true})}</div>
     </div>
   </div></section>
 
   <section class="sec alt"><div class="wrap two rev">
     <div class="c-card">
-      <p class="kicker">Exemple : Amina, peau mixte</p>
-      <div class="chips" style="margin:14px 0 22px"><span class="c-badge">Réduire les taches</span><span class="c-badge">Contrôler les pores</span></div>
-      <div class="rowlink" style="border-top:1px solid var(--line)"><div class="grow"><b>Priorité : pigmentation</b><span class="s">Acide azélaïque le soir, vitamine C le matin</span></div></div>
-      <div class="rowlink"><div class="grow"><b>Priorité : pores</b><span class="s">Niacinamide et nettoyage doux</span></div></div>
+      <p class="kicker">Comment votre routine est construite</p>
+      <div class="rowlink" style="border-top:1px solid var(--line);margin-top:14px"><span class="idx">01</span><div class="grow"><b>Vos indicateurs les plus bas passent en priorité</b><span class="s">Trois priorités au maximum.</span></div></div>
+      <div class="rowlink"><span class="idx">02</span><div class="grow"><b>Des actifs cosmétiques en lien avec ces priorités</b><span class="s">Introduits un par un, avec leurs précautions.</span></div></div>
+      <div class="rowlink"><span class="idx">03</span><div class="grow"><b>Des étapes classées matin et soir</b><span class="s">Nettoyage, soin ciblé, hydratation, protection solaire.</span></div></div>
     </div>
     <div>
       <h2>Deux peaux ne se ressemblent pas</h2>
@@ -334,7 +330,7 @@ V.landing=()=>{
   </div></section>
 
   <section class="sec alt"><div class="wrap two rev">
-    <div class="c-card"><p class="kicker">Équilibre cutané</p>${gchart(SCANS)}<p class="muted" style="margin-top:6px">Données fictives de démonstration.</p></div>
+    <div class="c-card"><p class="kicker">Score global</p>${gchart(LANDING_EXAMPLE)}<p class="muted" style="margin-top:6px">Exemple illustratif, données fictives.</p></div>
     <div><h2>Votre peau évolue.</h2><p style="margin-top:14px;max-width:30em">Refaites une analyse quand vous voulez. DERMAI la compare à vos observations précédentes.</p></div>
   </div></section>
 
@@ -435,6 +431,9 @@ V.analyzing=()=>`<div class="an"><p class="pill-up">Analyse en cours</p><div cla
 /* Résultat */
 /* Écran Résultat : lit uniquement SkinModel.toResultView(normalized) (échelle 0-100, 100 = meilleur). Aucun repli, aucune zone du visage. */
 const SCORE_SENTENCE={good:`Votre peau présente un bon état apparent.`,mid:`Votre peau a besoin d'un peu de soutien.`,low:`Votre peau mérite une attention particulière.`};
+/* Indicateurs informatifs (contour des yeux) : jamais de bande d'alerte ni d'incitation à l'action, un libellé neutre à la place. */
+const infoBadge=()=>`<span class="c-badge c-badge--outline">${Engine.copy.INFO_LABEL}</span>`;
+const isInfo=m=>m.actionability===`informative`;
 const IND_TXT={good:`Cet indicateur est dans une bonne zone.`,mid:`Cet indicateur mérite davantage d'attention.`,low:`Cet indicateur demande une attention particulière.`};
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
@@ -448,6 +447,7 @@ V.result=()=>{
       <div class="c-concern-card__foot">${bandBadge(m)}${m.objectiveMatch?`<span class="c-badge c-badge--outline">Votre objectif</span>`:``}</div><p class="c-card__text"><b>Pourquoi cette priorité ?</b> ${m.reason}</p></div>`).join(``);
   const others=eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
+    :isInfo(m)?`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${infoBadge()}</span><span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span></li>`
     :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
   return shell(`
   <div class="pagehead"><p class="kicker">Analyse du ${s.date}</p><h1>Votre analyse</h1><p>Une analyse cosmétique de l'état apparent de votre peau.</p></div>
@@ -470,7 +470,7 @@ V.concern=id=>{
   id=SkinModel.METRIC_KEYS.includes(id)?id:`pigmentation`;
   const label=SkinModel.METRIC_LABELS[id],c=CONCERNS[id];   // c : conseils statiques, seulement pour 4 indicateurs
   if(noReal())return emptyScan(label,EMPTY_MSG,{back:true,title:label});
-  const s=SCANS[state.view],r=viewOf(s),all=[...r.priorities,...r.others].sort((a,b)=>a.order-b.order),m=all.find(x=>x.key===id);
+  const s=SCANS[state.view],r=viewOf(s),all=[...r.priorities,...r.others].sort((a,b)=>a.order-b.order),m=all.find(x=>x.key===id),info=(eng=>{const i=eng.interpretation.indicators.find(x=>x.id===id);return !!i&&isInfo(i)})(engineFor(s));
   const nav=`<div class="chips" style="margin-bottom:22px">${all.filter(x=>x.score!==null).map(x=>`<button class="c-chip" data-go="concern:${x.key}" aria-pressed="${x.key===id}">${x.label}</button>`).join(``)}</div>`;
   if(m.score===null)return shell(`${nav}<div class="pagehead"><h1>${label}</h1><p>Donnée indisponible pour cette analyse.</p></div>`,{back:true,title:label});
   const levers=Engine.actives.leversFor(id);
@@ -478,14 +478,14 @@ V.concern=id=>{
   ${nav}
   <div class="grid2">
    <div class="col">
-    <section><h1>${label}</h1><div class="c-score-block" style="margin:16px 0 12px">${scoreHtml(m,`xl`)}${bandBadge(m)}</div>${barHtml(m)}<p style="margin-top:18px;font-size:18px;color:var(--ink)">${IND_TXT[m.band]}</p></section>
+    <section><h1>${label}</h1><div class="c-score-block" style="margin:16px 0 12px">${info?`<span class="c-score c-score--xl"><span class="c-score__value">${m.score}</span><span class="c-score__unit">/100</span></span>${infoBadge()}`:`${scoreHtml(m,`xl`)}${bandBadge(m)}`}</div>${info?`<span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span>`:barHtml(m)}<p style="margin-top:18px;font-size:18px;color:var(--ink)">${info?Engine.copy.INFO_TEXT:IND_TXT[m.band]}</p></section>
     <section class="facebox">${portrait({photo:s.photo})}</section>
    </div>
    <div class="col">
     ${levers.length?`<section><div class="hd"><h2 class="h3">Ce qui peut aider</h2></div><p class="muted" style="margin-bottom:14px">Actifs cosmétiques souvent utilisés pour cet indicateur. Ceux de votre plan sont dans « Ma routine ».</p><div class="stack" style="gap:12px">${levers.map((a,i)=>activeCard(a.id,i)).join(``)}</div></section>`
       :`<div class="c-notice">${ic(`info`)}<div>${Engine.copy.EYE_NOTE}</div></div>`}
     ${c?`<section><div class="hd"><h2 class="h3">Au quotidien</h2></div><ul class="l-list" style="margin-top:0">${c.tips.map(x=>`<li>${ic(`check`)}<span>${x}</span></li>`).join(``)}</ul></section>`:``}
-    ${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button>
+    ${disc()}${info?`<button class="c-btn c-btn--primary c-btn--block" data-go="result">Voir mon analyse</button>`:`<button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine</button>`}
    </div>
   </div>`,{back:true,title:label});
 };
@@ -552,7 +552,7 @@ function productSheet(id){
   <p class="muted">${p.brand}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${p.name}</h2><p style="color:var(--ink)">${fmt(p.price.amount)} <span class="muted">prix indicatif</span></p>
   <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p><p class="muted" style="margin-top:8px">Cible : ${p.targets.map(c=>SkinModel.METRIC_LABELS[c].toLowerCase()).join(`, `)}. Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.</p></div>
   <div class="kv" style="margin-bottom:18px">${main?`<div><h4>Actif principal</h4><p>${A.byId(main.activeId).label}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${i.label}</span>`).join(``)}</div></div><div><h4>Vendeur et disponibilité</h4><p class="muted">À venir.</p></div></div>
-  <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-act="toast" data-v="Liens d'achat au Bénin : prévus à l'étape suivante">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
+  <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-act="toast" data-v="Les liens d'achat ne sont pas encore disponibles.">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
 }
 
 /* Progression */
@@ -582,7 +582,7 @@ V.progress=()=>{
 
 /* Historique */
 V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
-  <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b><p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${r.priorities.length?`<p class="c-disclaimer" style="margin-bottom:6px">Scores les plus bas</p><div class="chips">${r.priorities.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
+  <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b><p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(s).priorities.items)}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
 
 /* Profil */
 const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="c-switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
@@ -590,7 +590,7 @@ V.profile=()=>{
   const none=noReal(),r=none?null:viewOf(SCANS[state.latest]),goals=state.goals.map(id=>Engine.copy.GOAL_LABELS[id]).filter(Boolean);
   return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
-   <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${r.priorities.length?`<p class="c-disclaimer" style="margin-bottom:6px">Scores les plus bas</p><div class="chips">${r.priorities.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``}`}</section>
+   <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(SCANS[state.latest]).priorities.items)}`}</section>
    <section><div class="hd"><h2 class="h3">Mes objectifs</h2></div><div class="chips">${goals.length?goals.map(g=>`<span class="c-badge">${g}</span>`).join(``):`<span class="muted">Aucun objectif choisi.</span>`}</div></section>
    <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>
   </div><div class="col">
@@ -604,13 +604,12 @@ V.profile=()=>{
 };
 V.privacy=()=>shell(`<div class="pagehead"><h1>Confidentialité</h1><p style="color:var(--ink);font-size:18px">Vos photos sont utilisées pour analyser votre peau.</p></div>
   <div class="grid2"><div class="col">
-   <section><ul class="l-list" style="margin-top:0"><li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li></ul>
-   <div class="note">${ic(`info`)}<span>Textes provisoires, en attente de vérification des conditions du fournisseur d'analyse.</span></div></section>
+   <section><ul class="l-list" style="margin-top:0"><li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li></ul></section>
    <section>${sw(`keep`,`Conserver mes photos`,`Pour comparer avant et maintenant`)}</section>
   </div><div class="col"><section><div class="hd"><h2 class="h3">Gérer mes données</h2></div>
    <button class="rowlink" data-act="confirm" data-v="photos" style="border-top:1px solid var(--line)">${ic(`camera`)}<div class="grow"><b>Supprimer mes photos</b><span class="s">Les analyses restent disponibles</span></div>${ic(`chev`)}</button>
    <button class="rowlink" data-act="confirm" data-v="history">${ic(`layers`)}<div class="grow"><b>Supprimer mon historique</b><span class="s">Analyses et progression</span></div>${ic(`chev`)}</button>
-   <button class="rowlink" data-act="toast" data-v="Export de vos données prêt (simulation)">${ic(`download`)}<div class="grow"><b>Exporter mes données</b><span class="s">Un fichier avec toutes vos informations</span></div>${ic(`chev`)}</button>
+   <button class="rowlink" data-act="toast" data-v="L'export de vos données n'est pas encore disponible.">${ic(`download`)}<div class="grow"><b>Exporter mes données</b><span class="s">Un fichier avec toutes vos informations</span></div>${ic(`chev`)}</button>
    <button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div>${ic(`chev`)}</button></section></div></div>`,{back:true,title:`Confidentialité`});
 
 const CONFIRMS={
@@ -667,7 +666,7 @@ function runAnalysis(){
       timers.push(setTimeout(()=>prom.then(r=>{
         if(tok!==anTok)return;
         if(r.id==null){r.id=SCANS.length;SCANS.push(r)}   // mode réel : le résultat normalisé rejoint l'historique
-        state.latest=Math.max(state.latest,r.id);state.view=r.id;state.run++;state.sel=`all`;go(`result`,null,{replace:true});
+        state.latest=Math.max(state.latest,r.id);state.view=r.id;state.run++;go(`result`,null,{replace:true});
       }).catch(()=>{toast(`Analyse indisponible pour le moment`);go(`home`,null,{replace:true})}),700));
     }
   };
@@ -751,7 +750,7 @@ async function runRealAnalysis(){
     setScanStatus(`success`);
     state.realBlob=null;   // la photo envoyée n'est plus conservée : seul l'aperçu reste en mémoire
     commitRealScan(r);
-    state.run++;state.sel=`all`;
+    state.run++;
     timers.push(setTimeout(()=>go(`result`,null,{replace:true}),500));
   }catch(err){
     if(tok!==anTok)return;
@@ -788,13 +787,12 @@ function act(a,v,el){
     case `scan-back`:if(!DEMO_MODE&&state.scanStep===4){state.scanStep=1;render()}else if(state.scanStep>=2&&state.scanStep<=3){state.scanStep--;render()}else if(state.scanStep===4&&!state.retake){state.scanStep=3;render()}else if(state.scanStep===1){state.scanStep=0;render()}else back();break;
     case `shutter`:{if(!DEMO_MODE){pickRealPhoto();break}const i=state.scanStep-1;document.getElementById(`flash`).classList.add(`go`);state.shots[i]=true;timers.push(setTimeout(()=>{state.scanStep=state.retake?4:(i<2?i+2:4);state.retake=false;render()},430));break}
     case `retake`:if(!DEMO_MODE){pickRealPhoto();break}state.shots[Number(v)]=false;state.scanStep=Number(v)+1;state.retake=true;render();scrollTo(0,0);break;
-    case `zone`:state.sel=v;render(true);break;
     case `tab`:state.tab=v;render(true);break;
     case `tick`:state.done[v]=!state.done[v];render(true);break;
     case `filter`:state.filter=v;render(true);break;
     case `product`:sheet(productSheet(v));break;
     case `setview`:state.view=Number(v);break;
-    case `viewscan`:state.view=Number(v);state.sel=`all`;go(`result`);break;
+    case `viewscan`:state.view=Number(v);go(`result`);break;
     case `pref`:state.prefs[v]=!state.prefs[v];render(true);break;
     case `pick-photo`:document.getElementById(`photoInput`).click();break;
     case `clear-photo`:state.photo=``;try{localStorage.removeItem(`dermai_demo_photo`)}catch(e){}render(true);toast(`Photo retirée`);break;

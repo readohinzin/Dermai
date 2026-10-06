@@ -103,7 +103,9 @@ test('RUN9 aucune règle métier du moteur dans app.js : ni catalogue, ni confli
 
 test('RUN10 textes qui prétendaient à une personnalisation : retirés de l\'interface', () => {
   const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
-  for (const bad of ['Vos deux priorités sont la pigmentation', 'Choisis selon les actifs dont votre peau a besoin', 'Choisis selon votre profil', 'Correspondance avec votre profil', 'Les ingrédients qui correspondent aux préoccupations observées'])
+  for (const bad of ['Vos deux priorités sont la pigmentation', 'Choisis selon les actifs dont votre peau a besoin', 'Choisis selon votre profil', 'Correspondance avec votre profil', 'Les ingrédients qui correspondent aux préoccupations observées',
+    'Touchez une préoccupation pour voir les zones concernées', 'Zones concernées', 'Huit repères visibles', 'Exemple : Amina', 'Priorité : pigmentation', 'Acide azélaïque le soir, vitamine C le matin',
+    'Évitez de toucher ou de gratter les zones concernées', 'cela les agrandit visuellement', 'Changez régulièrement de taie d\'oreiller', 'Liens d\'achat au Bénin', 'Textes provisoires', 'prêt (simulation)'])
     assert.ok(!app.includes(bad), bad);
 });
 

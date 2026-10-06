@@ -9,6 +9,7 @@ const { interpret } = require('../js/engine/interpret.js');
 
 const ctxOf = (ui, o) => interpret(norm(ui, o));
 const sel = (items, o = {}, profile = {}) => actives.select(items.map(indicator => ({ indicator })), ctxOf({}, o), { level: 'simple', cats: [], ...profile });
+const copyText = k => require('../js/engine/copy.fr.js').DEFERRED[k];
 const tids = r => r.treatments.map(t => t.activeId);
 
 test('AC1 intégrité du catalogue : statuts, sources, cautions, préférences cohérentes', () => {
@@ -94,12 +95,33 @@ test('AC7 mode confort : actifs doux d\'abord, l\'actif plus exigeant est mis de
   assert.equal(low.context.comfortMode, true);
 });
 
-test('AC8 mode confort sans alternative douce : l\'actif exigeant reste possible mais signalé « à introduire très doucement »', () => {
+test('AC8 mode confort : un rétinoïde (irritation forte) n\'est jamais sélectionné, il est mis de côté avec une explication', () => {
+  const cases = [
+    [['wrinkles'], { skin: 'Dry & Redness' }], [['wrinkles'], { skin: 'Redness' }], [['firmness'], { skin: 'Redness' }],
+    [['texture'], { skin: 'Redness' }], [['texture', 'wrinkles', 'firmness'], { skin: 'Redness' }], [['wrinkles'], {}, { redness: 5 }]
+  ];
+  for (const [items, o, ui] of cases) {
+    const r = actives.select(items.map(indicator => ({ indicator })), ctxOf(ui || {}, o), { level: 'full', cats: [] });
+    assert.equal(r.treatments.some(t => data.ACTIVES.find(a => a.id === t.activeId).irritation === 'high'), false, items.join());
+    if (items[0] !== 'texture') assert.ok(r.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'gentle'), items.join());
+  }
   const r = sel(['wrinkles'], { skin: 'Dry & Redness' });
-  assert.deepEqual(tids(r), ['retinoid']);
-  assert.equal(r.treatments[0].gentleFallback, true);
-  const std = sel(['wrinkles']);
-  assert.equal(std.treatments[0].gentleFallback, false);
+  assert.ok(tids(r).every(id => id !== 'retinoid'));
+  assert.match(copyText('gentle'), /approche plus douce/);
+});
+
+test('AC8b hors mode confort : le rétinoïde reste disponible au catalogue et sélectionnable', () => {
+  assert.ok(actives.byId('retinoid'));
+  for (const ind of ['wrinkles', 'firmness']) assert.ok(tids(sel([ind])).includes('retinoid'), ind);
+  assert.equal(sel(['wrinkles']).treatments[0].gentleFallback, false);
+});
+
+test('AC8c invariant : en mode confort, jamais d\'actif à irritation forte (1000 jeux)', () => {
+  for (let seed = 1; seed <= 1000; seed++) {
+    const c = randomCase(seed), r = run(c.ui, c.o, c.profile);
+    if (!r.routinePlan.comfortMode) continue;
+    for (const t of r.activePlan.treatments) assert.notEqual(actives.byId(t.activeId).irritation, 'high', 'seed ' + seed);
+  }
 });
 
 test('AC9 exfoliant déjà utilisé : aucun exfoliant ni rétinoïde ajouté', () => {

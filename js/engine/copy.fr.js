@@ -35,6 +35,14 @@
   const eyeInfo = labels => 'Votre analyse montre un indicateur plus faible au niveau du contour des yeux (' + joinList(labels.map(lower)) +
     '). C\'est une information : aucun actif n\'est proposé automatiquement pour cet indicateur.';
 
+  const INFO_LABEL = 'À titre d\'information';
+  const INFO_TEXT = 'Cet indicateur est donné à titre d\'information. Il n\'appelle pas de recommandation automatique.';
+  const INDICATOR_NOTES = {
+    acne: 'Imperfections visibles', pigmentation: 'Taches et uniformité du teint', pores: 'Visibilité des pores', oiliness: 'Brillance de la peau',
+    hydration: 'Hydratation apparente', redness: 'Rougeurs visibles', texture: 'Grain de peau', wrinkles: 'Rides et ridules', firmness: 'Fermeté apparente',
+    radiance: 'Éclat du teint', eyeBag: 'Poches sous les yeux', tearTrough: 'Creux sous les yeux', darkCircle: 'Cernes',
+    droopyUpperEyelid: 'Paupière supérieure', droopyLowerEyelid: 'Paupière inférieure'
+  };
   const EYE_NOTE = 'Cet indicateur est donné à titre d\'information : aucun actif n\'est proposé automatiquement.';
 
   /* ---- actifs ---- */
@@ -47,6 +55,7 @@
     conflict: 'Mis de côté : un seul exfoliant ou rétinoïde par soir.',
     duplicate: 'Mis de côté : un actif au rôle équivalent est déjà dans votre plan.',
     comfort: 'Mis de côté pour l\'instant : votre analyse suggère de privilégier le confort avant les actifs plus exigeants.',
+    gentle: 'Mis de côté pour l\'instant : la routine privilégie une approche plus douce.',
     cap: 'Mis de côté : votre plan reste volontairement court.',
     owned: 'Mis de côté : vous utilisez déjà un exfoliant.',
     slot: 'Mis de côté : le créneau est déjà chargé.'
@@ -68,6 +77,7 @@
     oneStrong: 'Un seul exfoliant ou rétinoïde par soir.',
     comfort: 'Votre analyse suggère de privilégier le confort : actifs doux d\'abord, hydratation et protection solaire.',
     dry: 'Votre type de peau suggère d\'espacer davantage les actifs plus exigeants.',
+    marks: 'Si votre peau garde facilement des marques après une irritation, avancez encore plus doucement.',
     demoProducts: 'Les produits cités sont des exemples de démonstration.',
     level: { none: 'Routine volontairement minimale pour démarrer.', simple: 'Routine courte.', full: 'Routine plus structurée.' }
   };
@@ -79,6 +89,6 @@
 
   return {
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause
   };
 });

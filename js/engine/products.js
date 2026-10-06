@@ -23,7 +23,7 @@
   function match(routine) {
     const out = [];
     const comfort = routine.comfortMode;
-    const strongEvening = routine.slots.evening.some(st => st.kind === 'treatment' && strong(st.activeId));
+    const planned = new Set([...routine.slots.morning, ...routine.slots.evening].filter(st => st.kind === 'treatment').map(st => st.activeId));
     for (const slot of ['morning', 'evening']) {
       routine.slots[slot].forEach(step => {
         if (step.owned) return;
@@ -33,8 +33,17 @@
           if (step.kind === 'moisturize') return p.category === 'moisturizer';
           return p.category === 'serum' && ids(p).includes(step.activeId);
         }).filter(({ p }) => !comfort || !ids(p).some(id => demanding(id) && id !== step.activeId))
-          /* Pas d'exfoliant ou de rétinoïde caché dans un autre produit le soir où le plan en contient déjà un. */
-          .filter(({ p }) => step.kind === 'treatment' || !(slot === 'evening' && strongEvening) || !ids(p).some(id => strong(id)));
+          /* Composition vérifiée : un produit ne doit jamais introduire un actif que le plan n'a pas prévu. Un nettoyant, un hydratant
+             ou une protection solaire ne contient aucun actif de traitement ; un sérum ne contient que son actif et des actifs de soutien
+             ou des soins prévus et non forts. Jamais d'exfoliant ou de rétinoïde caché. */
+          .filter(({ p }) => ids(p).every(id => {
+            if (id === step.activeId) return true;
+            const a = actives.byId(id);
+            if (!a) return true;
+            if (strong(id)) return false;
+            if (a.kind === 'support') return true;
+            return step.kind === 'treatment' && planned.has(id);
+          }));
         let wanted = [];
         if (step.kind === 'treatment') wanted = [step.activeId];
         if (step.kind === 'moisturize') wanted = step.supportIds;

@@ -17,6 +17,7 @@
   'use strict';
 
   const SRC = 'Connaissance cosmétique générale. Aucune référence externe citée : relecture éditoriale requise avant lancement public.';
+  const MARKS = 'Si votre peau garde facilement des marques après une irritation, introduisez-le encore plus doucement.';
   const PREGNANCY = 'En cas de grossesse, demandez conseil à un professionnel de santé avant utilisation.';
 
   const ACTIVES = [
@@ -34,8 +35,8 @@
       id: 'salicylic', label: 'Acide salicylique', kind: 'treatment', role: 'exfoliation', irritation: 'moderate', groups: ['evening_strong'],
       targets: ['acne', 'pores', 'oiliness', 'texture'], objectives: ['blemishes', 'oil_pores', 'texture'],
       confidence: 'medium', status: 'validated', source: SRC,
-      summary: 'Purifie les pores', description: 'Exfoliant doux qui aide à désobstruer les pores et à limiter l\'aspect brillant.',
-      cautions: ['Peut dessécher : hydratez ensuite.', PREGNANCY], conflicts: ['retinoid', 'aha_pha', 'azelaic'], pairsWith: ['niacinamide', 'hyaluronic'],
+      summary: 'Purifie les pores', description: 'Exfoliant qui aide à désobstruer les pores et à limiter l\'aspect brillant.',
+      cautions: ['Peut dessécher : hydratez ensuite.', PREGNANCY, MARKS], conflicts: ['retinoid', 'aha_pha', 'azelaic'], pairsWith: ['niacinamide', 'hyaluronic'],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Deux soirs par semaine', note: 'Augmentez progressivement si votre peau le tolère.' }
     },
@@ -44,7 +45,7 @@
       targets: ['acne', 'pigmentation', 'redness'], objectives: ['blemishes', 'tone', 'redness_comfort'],
       confidence: 'medium', status: 'validated', source: SRC,
       summary: 'Uniformise le teint', description: 'Aide à atténuer l\'aspect des marques et des imperfections, et à uniformiser le teint.',
-      cautions: ['De légers picotements sont possibles au début.', PREGNANCY], conflicts: ['salicylic', 'aha_pha', 'retinoid'], pairsWith: ['niacinamide', 'hyaluronic'],
+      cautions: ['De légers picotements sont possibles au début.', PREGNANCY, MARKS], conflicts: ['salicylic', 'aha_pha', 'retinoid'], pairsWith: ['niacinamide', 'hyaluronic'],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Un soir sur deux au début', note: 'Passez à chaque soir si votre peau le tolère.' }
     },
@@ -53,7 +54,7 @@
       targets: ['pigmentation', 'radiance', 'wrinkles', 'firmness'], objectives: ['tone', 'aging'],
       confidence: 'medium', status: 'validated', source: SRC,
       summary: 'Éclat et uniformité', description: 'Aide à rendre le teint plus lumineux et plus uniforme, et accompagne la protection de la peau.',
-      cautions: ['Peut piquer sur peau sensible.', 'Conservez le produit à l\'abri de la lumière et de la chaleur.'], conflicts: [], pairsWith: ['niacinamide', 'hyaluronic'],
+      cautions: ['Peut piquer sur peau sensible.', 'Conservez le produit à l\'abri de la lumière et de la chaleur.', MARKS], conflicts: [], pairsWith: ['niacinamide', 'hyaluronic'],
       when: 'morning', defaultSlot: 'morning',
       introduction: { frequency: 'Un matin sur deux au début', note: 'Appliquez avant la protection solaire.' }
     },
@@ -62,7 +63,7 @@
       targets: ['wrinkles', 'firmness', 'texture', 'pores', 'pigmentation'], objectives: ['aging', 'texture', 'oil_pores', 'tone'],
       confidence: 'medium', status: 'validated', source: SRC,
       summary: 'Renouvelle la texture', description: 'Aident à lisser le grain de peau et à estomper l\'aspect des signes visibles du vieillissement.',
-      cautions: ['Protection solaire indispensable le lendemain.', PREGNANCY, 'Peuvent irriter : commencez très doucement.'], conflicts: ['salicylic', 'aha_pha', 'azelaic'], pairsWith: ['hyaluronic', 'niacinamide'],
+      cautions: ['Protection solaire indispensable le lendemain.', PREGNANCY, 'Peuvent irriter : commencez très doucement.', MARKS], conflicts: ['salicylic', 'aha_pha', 'azelaic'], pairsWith: ['hyaluronic', 'niacinamide'],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Un soir par semaine au début', note: 'Passez à deux soirs par semaine après quelques semaines si tout va bien.' }
     },
@@ -70,8 +71,8 @@
       id: 'aha_pha', label: 'Exfoliants doux AHA ou PHA', kind: 'treatment', role: 'exfoliation', irritation: 'moderate', groups: ['evening_strong'],
       targets: ['texture', 'radiance', 'pigmentation'], objectives: ['texture', 'tone'],
       confidence: 'medium', status: 'validated', source: SRC,
-      summary: 'Affine le grain de peau', description: 'Exfoliants doux qui aident à lisser le grain de peau et à raviver l\'éclat.',
-      cautions: ['Protection solaire indispensable.', 'Peuvent irriter : espacez en cas de tiraillement.', PREGNANCY], conflicts: ['retinoid', 'salicylic', 'azelaic'], pairsWith: ['hyaluronic'],
+      summary: 'Affine le grain de peau', description: 'Exfoliants qui aident à lisser le grain de peau et à raviver l\'éclat.',
+      cautions: ['Protection solaire indispensable.', 'Peuvent irriter : espacez en cas de tiraillement.', PREGNANCY, MARKS], conflicts: ['retinoid', 'salicylic', 'azelaic'], pairsWith: ['hyaluronic'],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Un soir par semaine au début', note: 'Augmentez très progressivement.' }
     },

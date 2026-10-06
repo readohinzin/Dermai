@@ -160,3 +160,46 @@ test('RO14 données absentes : routine toujours produite, sans NaN ni valeur inv
   assert.equal(JSON.stringify(r).includes('undefined'), false);
   assert.ok(r.routinePlan.slots.morning.length >= 3);
 });
+
+test('RO15 un produit n\'introduit jamais un actif non prévu : p1 (salicylique) n\'est jamais un nettoyant (400 jeux)', () => {
+  for (let seed = 1; seed <= 400; seed++) {
+    const c = randomCase(seed), r = run(c.ui, c.o, c.profile);
+    const planned = new Set(treat(r).map(s => s.activeId));
+    for (const m of r.productMatches) {
+      const step = steps(r).find(s => s.id === m.stepId), p = products.byId(m.productId);
+      if (step.kind !== 'treatment') assert.ok(products.ids(p).every(id => actives.byId(id).kind === 'support'), `seed ${seed} ${p.id} sur ${step.kind}`);
+      else for (const id of products.ids(p)) if (id !== step.activeId) {
+        const a = actives.byId(id);
+        assert.ok(a.groups.length === 0 && (a.kind === 'support' || planned.has(id)), `seed ${seed} ${p.id} ${id}`);
+      }
+    }
+  }
+  const r = run({ acne: 20, pores: 25 }, {}, { level: 'full' });
+  assert.ok(!r.productMatches.some(m => m.productId === 'p1'));
+});
+
+test('RO16 créneaux : la niacinamide (flexible) ne prend pas le matin de la vitamine C (contrainte)', () => {
+  const r = run({ pores: 30, pigmentation: 40 }, {}, { level: 'simple' });
+  const at = id => treat(r).find(s => s.activeId === id);
+  assert.equal(at('vitamin_c').slot, 'morning');
+  assert.equal(at('niacinamide').slot, 'evening');
+  assert.equal(r.routinePlan.deferred.some(d => d.kind === 'slot'), false);
+});
+
+test('RO17 créneaux : vitamine C matin, exfoliants et rétinoïde soir, un seul fort par soir (300 jeux)', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const c = randomCase(seed), r = run(c.ui, c.o, c.profile);
+    for (const s of treat(r)) {
+      if (s.activeId === 'vitamin_c') assert.equal(s.slot, 'morning', 'seed ' + seed);
+      if (actives.byId(s.activeId).groups.length) assert.equal(s.slot, 'evening', 'seed ' + seed);
+    }
+    assert.ok(treat(r).filter(s => actives.byId(s.activeId).groups.length).length <= 1);
+  }
+});
+
+test('RO18 précaution « peaux qui marquent » dès qu\'un actif exigeant est placé', () => {
+  const r = run({ acne: 30 });
+  assert.ok(r.routinePlan.notes.some(n => /garde facilement des marques/.test(n)));
+  const soft = run({ hydration: 20 });
+  assert.ok(!soft.routinePlan.notes.some(n => /garde facilement des marques/.test(n)));
+});

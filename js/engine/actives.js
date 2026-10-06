@@ -40,33 +40,41 @@
       const tr = prefs.filter(a => a.kind === 'treatment'), su = prefs.filter(a => a.kind === 'support');
 
       /* Soins ciblés. */
-      let pool = tr;
+      let pool = tr, blocked = [];
       if (ctx.comfortMode) {
-        const gentle = tr.filter(a => a.irritation === 'low');
-        if (gentle.length) {                       // mode confort : actifs doux d'abord ; l'actif plus exigeant est mis de côté, pas supprimé sans raison
+        /* Mode confort : aucun actif à irritation « high » (rétinoïde) n'est sélectionné automatiquement, même sans alternative douce. */
+        blocked = tr.filter(a => a.irritation === 'high');
+        pool = tr.filter(a => a.irritation !== 'high');
+        const gentle = pool.filter(a => a.irritation === 'low');
+        if (gentle.length) {                       // actifs doux d'abord ; l'actif plus exigeant est mis de côté, pas supprimé sans raison
+          const skipped = pool.find(a => a.irritation !== 'low');
           pool = gentle;
-          const skipped = tr.find(a => a.irritation !== 'low');
           if (skipped) defer(skipped, 'comfort', it.indicator);
         }
       }
       /* L'ordre éditorial des préférences domine : le premier actif utilisable est choisi ; un actif déjà dans le plan couvre le besoin
          quand on l'atteint dans l'ordre, ou quand le plafond est atteint. */
+      let chosenId = null;
       for (const a of pool) {
         const inPlan = treatments.find(t => t.activeId === a.id);
-        if (inPlan) { addIndicator(inPlan.indicators, it.indicator); break; }
+        if (inPlan) { addIndicator(inPlan.indicators, it.indicator); chosenId = a.id; break; }
         if (ownedRule && owned.has('exfoliant') && (a.role === 'exfoliation' || a.groups.includes(strongRule ? strongRule.group : ''))) { defer(a, 'owned', it.indicator); continue; }
         if (treatments.some(t => t.role === a.role)) { defer(a, 'duplicate', it.indicator); continue; }
         if (strongRule && a.groups.includes(strongRule.group) && treatments.filter(t => t.groups.includes(strongRule.group)).length >= strongRule.max) { defer(a, 'conflict', it.indicator); continue; }
         if (treatments.length >= limits.treatments) {
           const covering = pool.find(x => treatments.some(t => t.activeId === x.id));
-          if (covering) addIndicator(treatments.find(t => t.activeId === covering.id).indicators, it.indicator);
+          if (covering) { addIndicator(treatments.find(t => t.activeId === covering.id).indicators, it.indicator); chosenId = covering.id; }
           else defer(a, 'cap', it.indicator);
           break;
         }
         treatments.push({ activeId: a.id, role: a.role, groups: a.groups, irritation: a.irritation, indicators: [it.indicator],
           gentleFallback: ctx.comfortMode && a.irritation !== 'low' });
+        chosenId = a.id;
         break;
       }
+      /* Les actifs « high » écartés en mode confort sont expliqués seulement s'ils passaient avant l'actif retenu (ou s'il n'y en a aucun). */
+      const rank = id => tr.findIndex(x => x.id === id);
+      for (const b of blocked) if (chosenId === null || rank(b.id) < rank(chosenId)) defer(b, 'gentle', it.indicator);
 
       /* Ingrédients de l'hydratant : au plus un par rôle, deux au maximum pour cette priorité. */
       let added = 0;
