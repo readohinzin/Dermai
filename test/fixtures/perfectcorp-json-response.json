@@ -122,6 +122,29 @@
           "mask_urls": [
             "https://example.invalid/fixture-masks/droopy_lower_eyelid_output.jpg"
           ]
+        },
+        {
+          "type": "skin_type",
+          "region": "whole",
+          "skin_type": "Combination"
+        },
+        {
+          "type": "skin_type",
+          "region": "t_zone",
+          "skin_type": "Oily"
+        },
+        {
+          "type": "skin_type",
+          "region": "u_zone",
+          "skin_type": "Dry & Redness"
+        },
+        {
+          "type": "all",
+          "score": 28.5
+        },
+        {
+          "type": "skin_age",
+          "score": 29
         }
       ]
     },

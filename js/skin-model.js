@@ -3,8 +3,17 @@
    Aucune dépendance, aucune configuration de module. Fonctions pures : pas de DOM, pas de réseau.
 
    SOURCE PARSÉE : réponse de statut AI Skin Analysis v2.1 demandée avec format = "json".
-     Chemin unique : data.results.output, un TABLEAU d'éléments { type, ui_score, raw_score, mask_urls }.
+     Chemin unique : data.results.output, un TABLEAU d'éléments.
    (Le format ZIP, qui contient skinanalysisResult/score_info.json, n'est pas demandé et n'est pas supporté.)
+
+   ÉLÉMENTS LUS (formes confirmées par l'OpenAPI officiel https://docs.perfectcorp.com/_bundle/reference/ai_skin_analysis.json) :
+     - 15 métriques : { type, ui_score, raw_score, mask_urls }                      → normalized.<métrique>.{rawScore, uiScore}
+     - skin_type    : { type: "skin_type", region: "whole" | "t_zone" | "u_zone", skin_type: "<valeur>" }
+                      un élément par région → normalized.skinType.{whole, tZone, uZone} (champ `skin_type` seul ; aucun score)
+     - all          : { type: "all", score }                                         → normalized.globalScore (champ `score` seul)
+     - skin_age     : { type: "skin_age", score }                                    → normalized.skinAge     (champ `score` seul)
+     L'OpenAPI documente ces formes avec « hd_skin_type » ; la documentation décrit la même structure pour l'action SD `skin_type`.
+     Tout autre type (dont resize_image) est ignoré. mask_urls, url et tout champ non listé ne sont jamais lus.
 
    TROIS COUCHES, JAMAIS MÉLANGÉES
    1. normalized : donnée Perfect Corp renommée. Aucun calcul DERMAI.
@@ -16,14 +25,12 @@
    RÈGLES
    - rawScore n'est jamais modifié, arrondi ni remplacé. uiScore reste indépendant, jamais utilisé à la place de rawScore.
    - Perfect Corp : score élevé = meilleure condition cutanée : globalScore ne serait jamais inversé.
-   - mask_urls est ignoré : aucune URL ne quitte le serveur.
-   - globalScore, skinAge et skinType : leur représentation dans data.results.output[] n'est PAS établie par une source
-     officielle (ils sont documentés dans score_info.json du format ZIP). Ils restent donc null et ne sont jamais déduits.
-   - skin_type en particulier : c'est une dst_action SD officielle (sous-catégories whole, t_zone, u_zone ; valeurs documentées
-     Normal, Oily, Dry, Combination, Redness, Dry & Redness, Oily & Redness, Combination & Redness). C'est une classification, pas un
-     score. Si la réponse contient un élément { type: "skin_type", … }, il est IGNORÉ (son nom apparaît dans ignoredTypes), quelle que
-     soit sa forme, et normalized.skinType reste null. Pour l'alimenter il faudra une source officielle décrivant cet élément dans
-     output[] ; il faudra alors mettre à jour ce code, la fixture et les tests (S1 à S4 de test/skin-model.test.js).
+   - mask_urls et url sont ignorés : aucune URL ne quitte le serveur.
+   - globalScore (all.score), skinAge (skin_age.score) et skinType : alimentés seulement par les formes ci-dessus. Absents ou invalides,
+     ils restent null. raw_score et ui_score ne sont jamais utilisés pour all, skin_age ni skin_type.
+   - skin_type est une classification (valeurs documentées : Normal, Oily, Dry, Combination, Redness, Dry & Redness, Oily & Redness,
+     Combination & Redness), pas un score.
+   - Un même élément all, skin_age, ou skin_type d'une même région répété = résultat ambigu (comme pour les 15 métriques).
    - Validation générique unique : un nombre fini est conservé tel quel ; null, undefined, texte, NaN, Infinity valent null.
      Aucune plage 0-100 n'est imposée (non établie par le contrat Perfect Corp).
    - Une valeur absente vaut null : jamais inventée, jamais copiée d'une autre métrique. */
@@ -95,38 +102,61 @@
 
   const FAIL = (status, extra) => Object.assign({ status, path: OUTPUT_PATH.join('.'), normalized: null, types: [], ignoredTypes: [] }, extra || {});
 
+  /* Région de skin_type (clé Perfect Corp) → clé DERMAI. */
+  const SKIN_TYPE_REGIONS = { whole: 'whole', t_zone: 'tZone', u_zone: 'uZone' };
+
   function parseSkinResponse(envelope) {
     const output = getPath(envelope, OUTPUT_PATH);
     if (output === undefined || output === null) return FAIL('not_found');
     if (!Array.isArray(output)) return FAIL('invalid');
     const byType = {}, ignored = [];
+    const extras = { skinType: { whole: null, tZone: null, uZone: null }, globalScore: null, skinAge: null };
+    const read = new Set();                                 // types spéciaux lus (skin_type, all, skin_age)
+    const seenRegions = new Set();
     for (const item of output) {
       if (!isObj(item) || typeof item.type !== 'string' || !item.type.trim()) return FAIL('invalid');
-      if (!PC_KEYS.has(item.type)) { ignored.push(safeName(item.type)); continue; }
-      if (has(byType, item.type)) return FAIL('ambiguous', { types: [item.type] });
-      byType[item.type] = item;                       // mask_urls et tout autre champ : jamais lus
+      const t = item.type;
+      if (t === 'skin_type') {
+        const region = item.region;
+        if (typeof region !== 'string' || !has(SKIN_TYPE_REGIONS, region)) { ignored.push(`skin_type@${safeName(typeof region === 'string' ? region : '?')}`); continue; }
+        if (seenRegions.has(region)) return FAIL('ambiguous', { types: ['skin_type'] });
+        seenRegions.add(region); read.add('skin_type');
+        extras.skinType[SKIN_TYPE_REGIONS[region]] = text(item.skin_type);       // valeur du champ skin_type ; invalide → null
+        continue;
+      }
+      if (t === 'all' || t === 'skin_age') {
+        if (read.has(t)) return FAIL('ambiguous', { types: [t] });
+        read.add(t);
+        if (t === 'all') extras.globalScore = num(item.score); else extras.skinAge = num(item.score);   // champ score seul
+        continue;
+      }
+      if (!PC_KEYS.has(t)) { ignored.push(safeName(t)); continue; }
+      if (has(byType, t)) return FAIL('ambiguous', { types: [t] });
+      byType[t] = item;                               // mask_urls, url et tout autre champ : jamais lus
     }
-    if (Object.keys(byType).length === 0) return FAIL('not_found', { ignoredTypes: ignored });
-    return { status: 'ok', path: OUTPUT_PATH.join('.'), form: 'array', normalized: buildNormalized(byType), types: Object.keys(byType), ignoredTypes: [...new Set(ignored)] };
+    if (Object.keys(byType).length === 0) return FAIL('not_found', { ignoredTypes: [...new Set(ignored)] });   // au moins une des 15 métriques est requise
+    return { status: 'ok', path: OUTPUT_PATH.join('.'), form: 'array', normalized: buildNormalized(byType, extras),
+      types: [...Object.keys(byType), ...read], ignoredTypes: [...new Set(ignored)] };
   }
 
   /* ---------- 2. Couche normalized : Perfect Corp renommé, sans aucun calcul ---------- */
   function emptyNormalized() {
     const n = {};
     for (const key of METRIC_KEYS) n[key] = { rawScore: null, uiScore: null };
-    n.globalScore = null;                                  // non fourni dans output[] : voir l'en-tête
-    n.skinType = { whole: null, tZone: null, uZone: null };  // idem
-    n.skinAge = null;                                      // idem
+    n.globalScore = null;                                  // élément { type: "all", score }
+    n.skinType = { whole: null, tZone: null, uZone: null };  // éléments { type: "skin_type", region, skin_type }
+    n.skinAge = null;                                      // élément { type: "skin_age", score }
     return n;
   }
 
-  function buildNormalized(byType) {
+  function buildNormalized(byType, extras) {
     const n = emptyNormalized();
     for (const [pc, key] of METRICS) {
       if (!has(byType, pc)) continue;
       n[key].rawScore = num(byType[pc].raw_score);
       n[key].uiScore = num(byType[pc].ui_score);
     }
+    if (extras) { n.globalScore = extras.globalScore; n.skinType = extras.skinType; n.skinAge = extras.skinAge; }
     return n;
   }
 

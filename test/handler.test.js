@@ -104,8 +104,9 @@ function dirtyEnvelope() {
   env.data.task_id = 'TASKID_SECRET_123';
   env.data.results.output[0].mask_urls = ['https://cdn.example/MASQUE_SECRET.png?sig=abc'];
   env.data.results.output[0].extra_field = 'INCONNU_SECRET';
-  env.data.results.output.push({ type: 'skin_type', whole: 'Oily', t_zone: 'Oily', u_zone: 'Oily' }, { type: 'inconnu_type', secret: 'TYPE_SECRET' });
-  env.data.results.all = SCORE_INFO.all;
+  env.data.results.output.push({ type: 'skin_type', region: 'forehead', skin_type: 'REGION_INCONNUE_SECRET' }, { type: 'inconnu_type', secret: 'TYPE_SECRET' },
+    { type: 'resize_image', url: 'https://cdn.example/RESIZED_SECRET.jpg', score: 1234.5 });
+  env.data.results.all = SCORE_INFO.all;                 // clé voisine au format score_info : jamais lue
   return env;
 }
 
@@ -114,13 +115,15 @@ test('verrou ouvert : le navigateur reçoit seulement le résultat normalisé { 
     const [r] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
     assert.equal(r.status, 200);
     assert.deepEqual(r.body, { ok: true, result: { schemaVersion: 1, normalized: EXPECTED } });
-    assert.strictEqual(r.body.result.normalized.globalScore, null);
-    assert.strictEqual(r.body.result.normalized.skinAge, null);
+    const nz = r.body.result.normalized;               // skin_type, all et skin_age sont lus (formes confirmées par l'OpenAPI)
+    assert.deepEqual(nz.skinType, { whole: 'Combination', tZone: 'Oily', uZone: 'Dry & Redness' });
+    assert.strictEqual(nz.globalScore, JSON_RESP.data.results.output.find(e => e.type === 'all').score);
+    assert.strictEqual(nz.skinAge, JSON_RESP.data.results.output.find(e => e.type === 'skin_age').score);
     assert.deepEqual(Object.keys(r.body.result).sort(), ['normalized', 'schemaVersion']);
     assert.equal(r.body.raw, undefined);
     assert.equal(calls(), 1);
     const s = JSON.stringify(r.body);
-    for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'INCONNU_SECRET', 'https', 'task_id', 'task_status', 'mask_urls', 'raw_score', 'ui_score', 'extra_field', 'TYPE_SECRET', 'inconnu_type', 'Oily']) assert.ok(!s.includes(interdit), interdit);
+    for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'INCONNU_SECRET', 'https', 'task_id', 'task_status', 'mask_urls', 'raw_score', 'ui_score', 'extra_field', 'TYPE_SECRET', 'inconnu_type', 'REGION_INCONNUE_SECRET', 'RESIZED_SECRET', 'resize_image', '1234.5']) assert.ok(!s.includes(interdit), interdit);
   }));
 });
 
@@ -181,8 +184,9 @@ test('log : structure (noms et types), chemin et noms de types ; jamais de valeu
     const chemin = logs.find(l => l.includes('Perfect Corp result path: data.results.output'));
     assert.ok(chemin, 'chemin du résultat non journalisé');
     assert.ok(chemin.includes('skin_type') && chemin.includes('inconnu_type'), 'types ignorés non journalisés (noms)');
-    const tout = logs.join('\n');
-    for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'TYPE_SECRET', 'cdn.example', 'https://', 'sig=abc', 'CLE_SECRETE_XYZ', 'Oily', String(JSON_RESP.data.results.output[0].raw_score)]) {
+    /* hors lignes [DIAG] (qui affichent volontairement les valeurs de skin_type, all et skin_age) : aucune valeur */
+    const tout = logs.filter(l => !l.startsWith('[DERMAI][DIAG]')).join('\n');
+    for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'TYPE_SECRET', 'cdn.example', 'https://', 'sig=abc', 'CLE_SECRETE_XYZ', 'Oily', 'Combination', 'Dry & Redness', '28.5', String(JSON_RESP.data.results.output[0].raw_score)]) {
       assert.ok(!tout.includes(interdit), 'fuite dans les logs : ' + interdit);
     }
   }));
@@ -207,11 +211,10 @@ const { diagnosticLines } = require('../server/diagnostic');
    mask_urls, url ; types supplémentaires skin_type, all, skin_age, resize_image. Valeurs des trois éléments : fictives. */
 function realShapedEnvelope() {
   const el = (type, extra) => ({ type, raw_score: null, ui_score: null, score: null, skin_type: null, region: null, mask_urls: [], url: null, ...extra });
-  const output = JSON_RESP.data.results.output.map(e => el(e.type, { raw_score: e.raw_score, ui_score: e.ui_score, mask_urls: ['https://cdn.example/MASQUE_SECRET.png?sig=abc'] }));
-  output.push(
-    el('skin_type', { skin_type: 'Oily', region: 'whole' }), el('skin_type', { skin_type: 'Dry', region: 't_zone' }), el('skin_type', { skin_type: 'Combination', region: 'u_zone' }),
-    el('all', { score: 61.5, raw_score: 62.25, ui_score: 70 }),
-    el('skin_age', { score: 33, raw_score: 33.5 }),
+  const OUTF = JSON_RESP.data.results.output;
+  const output = OUTF.filter(e => METRIC_TYPES.includes(e.type)).map(e => el(e.type, { raw_score: e.raw_score, ui_score: e.ui_score, mask_urls: ['https://cdn.example/MASQUE_SECRET.png?sig=abc'] }));
+  for (const e of OUTF.filter(x => x.type === 'skin_type')) output.push(el('skin_type', { skin_type: e.skin_type, region: e.region }));   // un élément par région
+  output.push(el('all', { score: OUTF.find(e => e.type === 'all').score }), el('skin_age', { score: OUTF.find(e => e.type === 'skin_age').score }),
     el('resize_image', { url: 'https://cdn.example/RESIZED_SECRET.jpg?sig=zzz', mask_urls: ['https://cdn.example/RESIZE_MASQUE_SECRET.jpg'] }));
   return { status: 200, data: { task_id: 'TASKID_SECRET_123', task_status: 'success', results: { output } } };
 }
@@ -222,13 +225,13 @@ test('DIAG : lignes pour skin_type, all et skin_age avec leurs champs scalaires 
   assert.equal(lignes.length, 1 + 5);
   const st = lignes.filter(l => l.includes('type="skin_type"'));
   assert.equal(st.length, 3);
-  assert.ok(st[0].includes('skin_type="Oily"') && st[0].includes('region="whole"'));
-  assert.ok(st[1].includes('skin_type="Dry"') && st[1].includes('region="t_zone"'));
-  assert.ok(st[2].includes('skin_type="Combination"') && st[2].includes('region="u_zone"'));
+  assert.ok(st[0].includes('skin_type="Combination"') && st[0].includes('region="whole"'));
+  assert.ok(st[1].includes('skin_type="Oily"') && st[1].includes('region="t_zone"'));
+  assert.ok(st[2].includes('skin_type="Dry & Redness"') && st[2].includes('region="u_zone"'));
   const all = lignes.find(l => l.includes('type="all"'));
-  assert.ok(all.includes('score=61.5') && all.includes('raw_score=62.25') && all.includes('ui_score=70') && all.includes('skin_type=null') && all.includes('region=null'));
+  assert.ok(all.includes('score=28.5 ') && all.includes('raw_score=null') && all.includes('ui_score=null') && all.includes('skin_type=null') && all.includes('region=null'));
   const age = lignes.find(l => l.includes('type="skin_age"'));
-  assert.ok(age.includes('score=33 ') && age.includes('raw_score=33.5') && age.includes('ui_score=null'));
+  assert.ok(age.includes('score=29 ') && age.includes('raw_score=null') && age.includes('ui_score=null'));
 });
 
 test('DIAG : champs absents signalés, valeurs non scalaires ou ressemblant à une URL jamais affichées', () => {
@@ -256,17 +259,17 @@ test('DIAG : dans les logs du handler, uniquement ces champs ; aucune fuite (JSO
     const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
     const diag = logs.filter(l => l.startsWith('[DERMAI][DIAG]') && !l.includes('répétitions'));   // diagnostic skin_type / all / skin_age, inchangé
     assert.equal(diag.length, 6);
-    assert.ok(diag.join('\n').includes('skin_type="Oily"') && diag.join('\n').includes('score=61.5') && diag.join('\n').includes('score=33 '));
+    assert.ok(diag.join('\n').includes('skin_type="Oily"') && diag.join('\n').includes('score=28.5 ') && diag.join('\n').includes('score=29 '));
     const tout = logs.join('\n');
     for (const interdit of ['MASQUE_SECRET', 'RESIZED_SECRET', 'RESIZE_MASQUE', 'TASKID_SECRET', 'CLE_SECRETE_XYZ', 'cdn.example', 'https://', 'sig=abc', 'sig=zzz',
       String(JSON_RESP.data.results.output[0].raw_score), String(JSON_RESP.data.results.output[1].ui_score) + '.']) {
       assert.ok(!tout.includes(interdit), 'fuite dans les logs : ' + interdit);
     }
     assert.ok(!diag.some(l => /resize_image|"acne"|"pore"/.test(l)), 'seuls skin_type, all et skin_age sont journalisés');
-    /* le contrat métier est inchangé : mêmes 15 métriques, skinType/globalScore/skinAge toujours null, rien de plus renvoyé */
+    /* le diagnostic n'a aucun effet sur le contrat : la réponse est celle du parseur (15 métriques, skin_type, all, skin_age) */
     assert.equal(r.status, 200);
     assert.deepEqual(r.body, { ok: true, result: { schemaVersion: 1, normalized: EXPECTED } });
-    assert.ok(!JSON.stringify(r.body).includes('Oily'));
+    assert.deepEqual(r.body.result.normalized.skinType, { whole: 'Combination', tZone: 'Oily', uZone: 'Dry & Redness' });
   }));
 });
 
@@ -285,7 +288,7 @@ const REP_ATTENDU = '[DERMAI][DIAG] répétitions : ' + [...METRIC_TYPES].map(t 
 
 test('REP : 15 types de métriques connus, ordre du parseur, une occurrence chacun', () => {
   assert.equal(METRIC_TYPES.length, 15);
-  assert.deepEqual([...METRIC_TYPES].sort(), JSON_RESP.data.results.output.map(e => e.type).sort());
+  assert.deepEqual([...METRIC_TYPES].sort(), JSON_RESP.data.results.output.map(e => e.type).filter(t => !['skin_type', 'all', 'skin_age'].includes(t)).sort());   // les 15 métriques de la fixture
   assert.equal(repetitionLine(realShapedEnvelope()), REP_ATTENDU);
   assert.equal(repetitionLine(JSON_RESP), REP_ATTENDU);
   assert.deepEqual([...METRIC_TYPES], skinModel.METRICS.map(m => m[0]), 'ordre et liste = ceux de la table du parseur');
