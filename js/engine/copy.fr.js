@@ -93,6 +93,26 @@
     ? 'Votre routine est une routine d\'entretien.'
     : 'Une routine orientée vers : ' + joinList(labels.map(lower)) + '.';
   const productBecause = labels => 'Contient : ' + joinList(labels.map(lower)) + '.';
+  /* Pourquoi CE produit : le rôle qu'il joue dans une étape déjà définie par la routine, jamais une promesse ni un langage médical. */
+  const PRODUCT_CATEGORY_LABELS = { cleanser: 'Nettoyant', serum: 'Soin ciblé', moisturizer: 'Hydratant', spf: 'Protection solaire' };
+  const productWhy = (kind, labels) => {
+    const l = joinList((labels || []).map(lower));
+    if (kind === 'treatment') return 'Actif retenu dans votre routine pour cette étape : ' + l + '. Ce soin le contient.';
+    if (kind === 'moisturize') return 'Hydratant pour l\'étape d\'hydratation de votre routine.' + (l ? ' Il contient des actifs de soutien retenus : ' + l + '.' : '');
+    if (kind === 'cleanse') return 'Nettoyant doux pour l\'étape de nettoyage de votre routine.';
+    return 'Protection solaire pour l\'étape du matin de votre routine.';
+  };
+  /* Raisons réelles d'un produit non retenu (chacune correspond à une règle du moteur, jamais inventée). */
+  const PRODUCT_REASONS = {
+    excluded: 'Écarté : il contient un actif que vous avez choisi d\'exclure.',
+    comfort: 'Écarté : votre approche douce privilégie des formules plus simples.',
+    composition: 'Écarté : sa composition contient un actif que votre routine ne prévoit pas.',
+    active_not_selected: 'Son actif n\'est pas retenu dans votre routine actuelle.',
+    other_product_chosen: 'Un autre produit répond déjà à cette étape de votre routine.',
+    owned: 'Vous avez indiqué utiliser déjà un produit pour cette étape.',
+    no_step: 'Cette étape n\'existe pas dans votre routine actuelle.'
+  };
+  const AVAILABILITY_LABELS = { available: 'Disponible', unavailable: 'Indisponible', coming_soon: 'Bientôt disponible', unknown: 'Données à venir' };
 
   /* ---- personnalisation : explications structurées (pourquoi, pourquoi maintenant, pourquoi pas autre chose) ---- */
   const LEVEL_LABELS = { none: 'Aucune routine', simple: 'Routine simple', full: 'Routine complète' };
@@ -156,6 +176,6 @@
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, AVAILABILITY_LABELS
   };
 });

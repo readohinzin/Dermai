@@ -63,7 +63,8 @@
     const prof = normalizeProfile(profile);
     const cur = core(normalized, prof);
     const { interpretation, eff, priorities, pers, activePlan, routinePlan } = cur;
-    const productMatches = dep.products.match(routinePlan);
+    /* options.catalog : catalogue de produits à utiliser (réel ou démonstration, choisi par l'appelant). Le catalogue n'agit QUE sur cette dernière couche. */
+    const productMatches = dep.products.match(routinePlan, options && options.catalog);
     const prev = options && options.previous ? core(options.previous, prof) : null;
     const personalization = dep.personalization.finalize(pers, eff, priorities, activePlan, routinePlan, prev);
 

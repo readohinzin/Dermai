@@ -150,7 +150,9 @@ const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
 const Engine=window.DermaiEngine;
 /* Profil courant → moteur. Rien n'est mis en cache : toute modification (objectifs, niveau, confort) recalcule la routine à l'affichage suivant.
    L'analyse précédente (si elle existe) sert seulement à comparer, jamais de référence courante. */
-const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},prev?{previous:prev.normalized}:undefined)};
+/* Catalogue de produits : DÉMONSTRATION en mode démo, RÉEL (js/engine/data/catalog.js, vide tant qu'aucune donnée vérifiée n'existe) en mode réel. Jamais mélangés. */
+const catalogNow=()=>DEMO_MODE?Engine.products.PRODUCTS:Engine.catalogData.PRODUCTS;
+const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},Object.assign({catalog:catalogNow()},prev?{previous:prev.normalized}:{}))};
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 if(!DEMO_MODE){SCANS.length=0;state.cmpA=0;state.cmpB=1}   // mode réel : aucune analyse fictive n'existe, même en mémoire (la démo seule les utilise)
@@ -685,7 +687,7 @@ V.home=()=>{
     <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length?`<p class="muted" style="margin-bottom:8px">Les indicateurs à soutenir en premier, d'après votre analyse.</p><ul class="c-list">${P.items.map(m=>`<li><button class="c-list-row" data-go="concern:${m.indicator}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${bandBadge(m)}${ic(`chev`)}</button></li>`).join(``)}</ul>`:`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}</section>
     <section><div class="hd"><h2 class="h3">Explorer</h2></div>
       <button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Ceux de votre plan, et pourquoi</span></div>${ic(`chev`)}</button>
-      <button class="rowlink" data-go="products"><div class="grow"><b>Exemples de produits</b><span class="s">Exemples de démonstration</span></div>${ic(`chev`)}</button></section>
+      <button class="rowlink" data-go="products"><div class="grow"><b>${DEMO_MODE?`Exemples de produits`:`Produits pour ma routine`}</b><span class="s">${DEMO_MODE?`Exemples de démonstration`:Engine.products.usable(catalogNow()).length?`Pour chaque étape de votre routine`:`Catalogue en préparation`}</span></div>${ic(`chev`)}</button></section>
    </div>
    <div class="col">
     <section><div class="hd"><h2 class="h3">Ma routine du jour</h2><span class="muted">${doneN} sur ${steps.length}</span></div>
@@ -832,7 +834,7 @@ V.active=id=>{
    <div><h4>Moment d'utilisation</h4><p>${WHEN_FR[a.when]}</p></div>
    <div><h4>Introduction progressive</h4><p>${startHint(a.introduction)}</p></div>
    <div><h4>Précautions générales</h4><ul>${a.cautions.map(x=>`<li>${x}</li>`).join(``)}</ul></div>
-  </div><button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir des exemples de produits</button></div></div>`,{back:true,title:a.label});
+  </div><button class="c-btn c-btn--primary c-btn--block" data-go="products">${DEMO_MODE?`Voir des exemples de produits`:`Voir les produits de ma routine`}</button></div></div>`,{back:true,title:a.label});
 };
 
 /* Routine : générée par le moteur (priorités, actifs, type de peau, niveau de routine). */
@@ -842,10 +844,10 @@ V.routine=()=>{
   const sel=Object.fromEntries(PZ.selectedActives.map(x=>[x.activeId,x]));
   const whyBlock=st=>{const x=sel[st.activeId];if(!x)return ``;return `<details class="c-why"><summary>Pourquoi cet actif ?</summary><p>${x.why}</p><p>${x.whyNow}</p>${x.whyNot.map(n=>`<p>${n.text}</p>`).join(``)}</details>`};
   const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
-    const m=pm[st.id],p=m&&Engine.products.byId(m.productId);
+    const m=pm[st.id],p=m&&Engine.products.byId(m.productId,catalogNow());
     return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>
       ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}<button class="link" data-go="active:${st.activeId}">Découvrir cet actif</button>`:``}
-      ${p?`<button class="link" data-act="product" data-v="${p.id}">Exemple (démonstration) : ${p.name}</button>`:``}</div>
+      ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Produit proposé : `}${esc(p.name)}</button>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   const cautions=[...new Set(R.slots.morning.concat(R.slots.evening).filter(s=>s.kind===`treatment`).flatMap(s=>s.cautions))];
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>${R.summary}</p></div>
@@ -854,32 +856,64 @@ V.routine=()=>{
     ${PZ.approachNote?`<p class="muted" style="margin-top:10px">${PZ.approachNote}</p>`:``}${PZ.evolution.note?`<p class="muted" style="margin-top:10px">${PZ.evolution.note}</p>`:``}</section>
   <div class="grid2">${list(`morning`,`am`,`sun`,`Matin`)}${list(`evening`,`pm`,`moon`,`Soir`)}</div>
   <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">À retenir</h2>
-    <ul class="l-list" style="margin-top:0">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${cautions.map(c=>`<li>${ic(`info`)}<span>${c}</span></li>`).join(``)}${eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
-  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="products">Voir des exemples de produits</button></div></div>`);
+    <ul class="l-list" style="margin-top:0">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${cautions.map(c=>`<li>${ic(`info`)}<span>${c}</span></li>`).join(``)}${DEMO_MODE&&eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
+  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}${!DEMO_MODE&&!Engine.products.usable(catalogNow()).length?`<p class="muted" style="margin-bottom:10px">Le catalogue de produits est en préparation : votre routine indique déjà les actifs à chercher.</p>`:``}<button class="c-btn c-btn--primary c-btn--block" data-go="products">${DEMO_MODE?`Voir des exemples de produits`:`Voir les produits de ma routine`}</button></div></div>`);
 };
 
-/* Produits : catalogue de démonstration, jamais noté ni présenté comme personnalisé. */
+/* Produits : conséquence de la routine (jamais l'inverse). « Recommandés pour votre routine » = produits choisis par le moteur pour chaque étape ;
+   « Autres produits » = le reste du catalogue, avec la raison réelle du moteur. Aucun score, aucun pourcentage. Données commerciales (prix, vendeur,
+   lien) affichées seulement si elles existent et sont sourcées ; sinon « Données à venir ». Catalogue réel vide : état clair, aucun produit fictif. */
 const SKIN_FR={all:`tous types de peau`,normal:`peau normale`,oily:`peau grasse`,dry:`peau sèche`,combination:`peau mixte`};
+const CAT_FILTERS=[[`all`,`Tous`],[`cleanser`,`Nettoyants`],[`serum`,`Soins ciblés`],[`moisturizer`,`Hydratants`],[`spf`,`Protection solaire`]];
+const fmtPrice=pr=>pr.currency===`XOF`?fmt(pr.amount):`${pr.amount.toLocaleString(`fr-FR`)}${NB}€`;
+const priceLine=p=>{const c=Engine.products.commerceOf(p);return c.price?fmtPrice(c.price):`<span class="muted">Prix à venir</span>`};
+const availBadge=c=>`<span class="c-badge${c.availability===`available`?` c-badge--good`:` c-badge--outline`}">${c.availabilityLabel}</span>`;
+const mainActiveLabel=p=>{const id=Engine.products.primaryActive(p),a=id&&Engine.actives.byId(id);return a?a.label:null};
+/* Image : produit de démonstration = illustration de flacon ; produit réel = sa photo si elle existe, sinon un cadre neutre « Image à venir » (jamais une fausse photo). */
+const productMedia=p=>p.demo?bottle(p.type,p.color):(p.image&&p.image.src?`<img src="${esc(p.image.src)}" alt="${esc(p.image.alt)}" loading="lazy">`:`<div class="pimg-ph" role="img" aria-label="Image du produit à venir">${ic(`image`)}<span>Image à venir</span></div>`);
+const slotsOf=steps=>[...new Set(steps.map(s=>s.stepId.startsWith(`morning`)?`Matin`:`Soir`))].join(` et `);
+function productCard(p,o={}){
+  const c=Engine.products.commerceOf(p),act=mainActiveLabel(p);
+  return `<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${o.inPlan?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${productMedia(p)}</div>
+   <div class="pb"><div class="br">${esc(p.brand)}</div><div class="nm">${esc(p.name)}</div>
+   <div class="role muted">${o.slots?`${o.slots} · `:``}${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}${act?` · ${act}`:``}</div>
+   <div class="pr">${availBadge(c)}<span>${priceLine(p)}</span></div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}</div></button>`;
+}
 V.products=()=>{
-  const f=state.filter,inPlan=planProductIds(),items=Engine.products.PRODUCTS.filter(p=>f===`all`||p.targets.includes(f));
-  return shell(`<div class="pagehead"><h1>Exemples de produits</h1><p>Un catalogue de démonstration, qui n'est pas personnalisé. Ceux de votre routine sont repérés.</p></div>
-  <div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>
-  <div class="chips" style="margin-bottom:24px"><button class="c-chip" data-act="filter" data-v="all" aria-pressed="${f===`all`}">Tous</button>${CIDS.map(c=>`<button class="c-chip" data-act="filter" data-v="${c}" aria-pressed="${f===c}">${CONCERNS[c].label}</button>`).join(``)}</div>
-  <div class="pgrid">${items.map(p=>`<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${inPlan.has(p.id)?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${bottle(p.type,p.color)}</div><div class="pb"><div class="br">${p.brand}</div><div class="nm">${p.name}</div><div class="pr"><span>${priceLine(p)}</span></div></div></button>`).join(``)}</div>
-  <div style="margin-top:32px;max-width:520px">${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="progress">Suivre ma progression</button></div>`,{back:true,title:`Produits`});
+  const f=state.filter,list=Engine.products.usable(catalogNow()),inF=p=>f===`all`||p.category===f;
+  const head=`<div class="pagehead"><h1>${DEMO_MODE?`Exemples de produits`:`Produits pour ma routine`}</h1><p>${DEMO_MODE?`Un catalogue de démonstration, qui n'est pas personnalisé. Ceux de votre routine sont repérés.`:`DERMAI choisit d'abord les actifs de votre routine, puis les produits qui les contiennent.`}</p></div>`;
+  if(!DEMO_MODE&&!list.length)return shell(`${head}<div class="c-card c-card--empty"><div class="c-empty">${ic(`layers`)}<h2 class="c-empty__title">Les produits arrivent bientôt</h2><p class="c-empty__text">DERMAI prépare son catalogue de produits. En attendant, votre routine indique déjà les types de soins et les actifs à chercher.</p><button class="c-btn c-btn--primary c-btn--block" data-go="${noReal()?`scan`:`routine`}">${noReal()?`Analyser ma peau`:`Voir ma routine`}</button></div></div><div style="margin-top:24px;max-width:520px">${disc()}</div>`,{back:true,title:`Produits`});
+  const chips=`<div class="chips" style="margin-bottom:24px">${CAT_FILTERS.map(([v,name])=>`<button class="c-chip" data-act="filter" data-v="${v}" aria-pressed="${f===v}">${name}</button>`).join(``)}</div>`;
+  const note=DEMO_MODE?`<div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>`:``;
+  const foot=`<div style="margin-top:32px;max-width:520px">${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="progress">Suivre ma progression</button></div>`;
+  if(noReal()){
+    return shell(`${head}${note}<div class="c-notice u-my-5">${ic(`info`)}<div>Faites votre première analyse pour voir quels produits correspondent à votre routine.</div></div>${chips}<div class="pgrid">${list.filter(inF).map(p=>productCard(p)).join(``)}</div>${foot}`,{back:true,title:`Produits`});
+  }
+  const eng=engineFor(SCANS[state.latest]),view=Engine.products.catalogView(eng.routinePlan,eng.productMatches,catalogNow());
+  const rec=view.recommended.map(r=>({p:Engine.products.byId(r.productId,catalogNow()),r})).filter(x=>inF(x.p));
+  const oth=view.others.map(o=>({p:Engine.products.byId(o.productId,catalogNow()),o})).filter(x=>inF(x.p));
+  return shell(`${head}${note}${chips}
+   <section><div class="hd"><h2 class="h3">Recommandés pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit recommandé dans cette catégorie.`:`Aucun produit du catalogue ne correspond encore aux étapes de votre routine.`}</p>`}</section>
+   ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${foot}`,{back:true,title:`Produits`});
 };
-/* Prix : jamais un prix de démonstration présenté comme réel. Un produit réel (demo faux, prix renseigné) affichera son prix. */
-const priceLine=p=>(!p.demo&&p.price&&p.price.amount!=null)?fmt(p.price.amount):`<span class="muted">Prix à venir</span>`;
 function productSheet(id){
-  const p=Engine.products.byId(id),A=Engine.actives;
-  const eng=noReal()?null:engineFor(SCANS[state.latest]),steps=eng?eng.productMatches.filter(m=>m.productId===id):[];
-  const why=steps.length?`Proposé comme exemple pour votre routine${steps[0].because?` : ${steps[0].because.charAt(0).toLowerCase()+steps[0].because.slice(1)}`:`.`}`:`Produit de démonstration, non lié à votre analyse.`;
-  const main=p.ingredients.find(i=>i.activeId);
-  return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:18px">${bottle(p.type,p.color)}</div>
-  <p class="muted">${p.brand}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${p.name}</h2><p style="color:var(--ink)">${priceLine(p)}</p>
-  <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p><p class="muted" style="margin-top:8px">Cible : ${p.targets.map(c=>SkinModel.METRIC_LABELS[c].toLowerCase()).join(`, `)}. Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.</p></div>
-  <div class="kv" style="margin-bottom:18px">${main?`<div><h4>Actif principal</h4><p>${A.byId(main.activeId).label}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${i.label}</span>`).join(``)}</div></div><div><h4>Vendeur et disponibilité</h4><p class="muted">À venir.</p></div></div>
-  <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-act="toast" data-v="Les liens d'achat ne sont pas encore disponibles.">Voir où l'acheter</button><button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
+  const p=Engine.products.byId(id,catalogNow());if(!p)return `<p class="muted">Ce produit n'est plus disponible dans le catalogue.</p><button class="link" data-act="close">Fermer</button>`;
+  const A=Engine.actives,c=Engine.products.commerceOf(p);
+  let why=`Produit de démonstration, non lié à votre analyse.`;
+  if(!noReal()){
+    const eng=engineFor(SCANS[state.latest]),view=Engine.products.catalogView(eng.routinePlan,eng.productMatches,catalogNow());
+    const rec=view.recommended.find(r=>r.productId===id),oth=view.others.find(o=>o.productId===id);
+    if(rec)why=`${slotsOf(rec.steps)} : ${rec.steps.map(s=>s.why).filter((w,i,a)=>a.indexOf(w)===i).join(` `)}`;
+    else if(oth)why=`Non retenu pour votre routine actuelle. ${oth.text}`;
+  }else if(!DEMO_MODE)why=`Faites votre première analyse pour savoir si ce produit correspond à votre routine.`;
+  const act=mainActiveLabel(p),secondary=Engine.products.ids(p).filter(i=>i!==Engine.products.primaryActive(p));
+  return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:18px">${productMedia(p)}</div>
+  <p class="muted">${esc(p.brand)}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${esc(p.name)}</h2>
+  <p style="color:var(--ink);display:flex;gap:10px;align-items:center;flex-wrap:wrap">${availBadge(c)}<span>${priceLine(p)}</span></p>
+  ${c.price?`<p class="muted" style="font-size:13px">Prix relevé le ${new Date(c.price.checkedAt).toLocaleDateString(`fr-FR`,{day:`numeric`,month:`long`,year:`numeric`})} (${esc(c.price.source)}).</p>`:``}
+  <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p>${p.description?`<p class="muted" style="margin-top:8px">${esc(p.description)}</p>`:``}<p class="muted" style="margin-top:8px">${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}. Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.</p></div>
+  <div class="kv" style="margin-bottom:18px">${act?`<div><h4>Actif principal</h4><p>${act}</p></div>`:``}${secondary.length?`<div><h4>Autres actifs</h4><p>${secondary.map(i=>A.byId(i).label).join(`, `)}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${esc(i.label)}</span>`).join(``)}</div></div><div><h4>Vendeur</h4><p class="muted">${c.vendor?esc(c.vendor):`Données à venir.`}</p></div></div>
+  <div class="stack">${c.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Voir où l'acheter</a>`:``}<button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
 }
 
 /* Progression */
