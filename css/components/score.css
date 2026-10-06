@@ -1,0 +1,24 @@
+/* Scores et barres. La valeur affichée est toujours fournie par le code, jamais calculée ici.
+   --value (0 à 100) pilote la largeur de la barre. */
+.c-score{display:inline-flex;align-items:baseline;gap:var(--s-1);font-family:var(--font-serif);font-weight:400;line-height:.95;color:var(--ink);font-variant-numeric:tabular-nums}
+.c-score__value{font-size:var(--fs-score-m)}
+.c-score__unit{font:500 var(--fs-sm)/1 var(--font-sans);color:var(--ink-3)}
+.c-score--xl .c-score__value{font-size:var(--fs-score-xl);color:var(--accent)}
+.c-score--l .c-score__value{font-size:var(--fs-score-l)}
+.c-score--m .c-score__value{font-size:var(--fs-score-m)}
+.c-score--s .c-score__value{font-size:var(--fs-score-s)}
+.c-score--null .c-score__value{color:var(--ink-3)}
+
+.c-bar{display:block;height:8px;border-radius:var(--r-pill);background:var(--track);overflow:hidden}
+.c-bar__fill{display:block;height:100%;width:calc(var(--value,0)*1%);border-radius:inherit;background:var(--accent)}
+.c-bar--good .c-bar__fill{background:var(--good)}
+.c-bar--mid .c-bar__fill{background:var(--mid)}
+.c-bar--low .c-bar__fill{background:var(--low)}
+
+/* ligne de préoccupation : nom, score, barre, niveau en texte */
+.c-concern{display:grid;grid-template-columns:1fr auto;gap:var(--s-2) var(--s-3);align-items:center;padding:var(--s-4) 0;border-bottom:1px solid var(--line)}
+.c-concern__name{font:400 var(--fs-h3)/var(--lh-tight) var(--font-serif)}
+.c-concern__score{font:700 var(--fs-md)/1 var(--font-sans);font-variant-numeric:tabular-nums}
+.c-concern__score small{font-weight:500;color:var(--ink-3)}
+.c-concern .c-bar,.c-concern__meta{grid-column:1 / -1}
+.c-concern__meta{display:flex;justify-content:space-between;gap:var(--s-3);font-size:var(--fs-xs);color:var(--ink-3)}

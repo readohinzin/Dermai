@@ -1,0 +1,17 @@
+/* Photo et graphiques. Le cadre photo garde toujours son ratio : pas de zone vide. */
+.c-photo{position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:var(--r-md);background:var(--tint);isolation:isolate}
+.c-photo--square{aspect-ratio:1/1}
+.c-photo>img,.c-photo__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.c-photo__placeholder{position:absolute;inset:0;display:grid;place-items:center;gap:var(--s-2);align-content:center;color:var(--ink-3);font-size:var(--fs-sm);text-align:center;padding:var(--s-4)}
+.c-photo__placeholder svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.c-photo__caption{position:absolute;left:var(--s-3);right:var(--s-3);bottom:var(--s-3);padding:var(--s-2) var(--s-3);border-radius:var(--r-pill);background:rgba(33,27,29,.72);color:#fff;font-size:var(--fs-xs);text-align:center;z-index:2}
+
+.c-preview{display:flex;flex-direction:column;gap:var(--s-3)}
+.c-preview .c-photo{max-width:320px;width:100%;margin-inline:auto}
+
+.c-chart{width:100%;height:auto;display:block;overflow:visible}
+.c-chart__line{fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.c-chart__dot{fill:var(--surface);stroke:var(--accent);stroke-width:2.4}
+.c-chart__label{font:600 12px var(--font-sans);fill:var(--ink-2)}
+.c-chart__axis{font:600 12px var(--font-sans);fill:var(--ink-3)}
+.c-chart__grid{stroke:var(--line);stroke-width:1}

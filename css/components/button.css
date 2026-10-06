@@ -1,0 +1,36 @@
+/* Boutons. Une seule action principale par écran (c-btn--primary). Cible tactile >= 44px. */
+.c-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);min-height:var(--tap-lg);padding:0 var(--s-6);border:1px solid transparent;border-radius:var(--r-pill);font:600 var(--fs-md)/1.2 var(--font-sans);text-align:center;text-decoration:none;cursor:pointer;color:var(--ink);background:transparent;transition:background var(--dur-fast),border-color var(--dur-fast),transform var(--dur-fast),box-shadow var(--dur-fast)}
+.c-btn:active:not(:disabled):not([aria-disabled="true"]){transform:scale(.98)}
+.c-btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.c-btn svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.c-btn--block{display:flex;width:100%}
+.c-btn--sm{min-height:var(--tap);padding:0 var(--s-5);font-size:var(--fs-sm)}
+
+.c-btn--primary{background:var(--accent);color:var(--on-accent)}
+.c-btn--secondary{background:var(--surface);color:var(--accent);border-color:var(--accent)}
+.c-btn--ghost{color:var(--accent)}
+.c-btn--danger{background:var(--error);color:#fff}
+.c-btn--danger-quiet{color:var(--error-ink);border-color:var(--error)}
+.c-btn--link{min-height:var(--tap);padding:0 var(--s-1);color:var(--accent);text-decoration:underline;text-underline-offset:3px;border-radius:var(--r-sm)}
+
+@media (hover:hover){
+  .c-btn--primary:hover{background:var(--accent-hover)}
+  .c-btn--secondary:hover,.c-btn--ghost:hover{background:var(--tint)}
+  .c-btn--danger:hover{background:var(--error-ink)}
+  .c-btn--danger-quiet:hover{background:var(--error-bg)}
+}
+.c-btn--primary:active:not(:disabled){background:var(--accent-pressed)}
+
+.c-btn:disabled,.c-btn[aria-disabled="true"]{cursor:not-allowed;background:var(--tint);color:var(--ink-disabled);border-color:transparent;box-shadow:none}
+.c-btn--link:disabled{background:transparent}
+
+/* chargement : le libellé reste lisible, le bouton ne se déclenche plus */
+.c-btn[aria-busy="true"]{pointer-events:none;cursor:progress}
+.c-btn[aria-busy="true"]::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:c-spin .8s linear infinite}
+@keyframes c-spin{to{transform:rotate(360deg)}}
+
+.c-icon-btn{display:inline-grid;place-items:center;width:var(--tap);height:var(--tap);border:0;border-radius:50%;background:transparent;color:var(--ink);cursor:pointer;flex:none}
+.c-icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.c-icon-btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+@media (hover:hover){.c-icon-btn:hover{background:var(--tint)}}
+.c-icon-btn:disabled{color:var(--ink-disabled);cursor:not-allowed}

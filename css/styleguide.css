@@ -1,0 +1,23 @@
+/* Mise en page propre à la page styleguide.html. Les composants viennent de styles.css. */
+@layer utilities{
+  .sg-hero{margin:var(--s-4) 0 var(--s-2)}
+  .sg-hero h1{font:400 var(--fs-h1)/1.05 var(--font-serif);margin:0}
+  .sg-hero p{color:var(--ink-2);margin:var(--s-2) 0 0}
+  .sg-sec{padding-top:var(--s-6);border-top:1px solid var(--line)}
+  .sg-sec>h2{font:400 var(--fs-h2)/1.1 var(--font-serif);margin:0 0 var(--s-4)}
+  .sg-label{font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:var(--s-5) 0 var(--s-2)}
+  .sg-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:var(--s-3)}
+  .sg-sw{border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;font-size:var(--fs-xs);background:var(--surface)}
+  .sg-sw i{display:block;height:44px;background:var(--c)}
+  .sg-sw span{display:block;padding:var(--s-1) var(--s-2);color:var(--ink-2);word-break:break-all}
+  .sg-demo{padding:var(--s-4);border:1px dashed var(--line-strong);border-radius:var(--r-md);background:var(--bg)}
+  .sg-demo--nav{position:relative;min-height:96px}
+  .sg-demo--dark{background:var(--ink)}
+  .sg-type div{margin-bottom:var(--s-2)}
+  .sg-t1{font-size:var(--fs-h1);line-height:1.05}
+  .sg-t2{font-size:var(--fs-h2);line-height:1.1}
+  .sg-t3{font-size:var(--fs-h3);line-height:1.1}
+  .sg-t5{font-size:var(--fs-sm)}
+  .sg-t6{font-size:var(--fs-xs)}
+  .sg-note{font-size:var(--fs-xs);color:var(--ink-3);margin:var(--s-2) 0 0}
+}

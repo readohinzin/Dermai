@@ -1,0 +1,64 @@
+/* Design tokens v1. Noms identiques à la spécification, sauf --rose de la spec qui existe
+   déjà dans la feuille historique sous --rose-deep (même valeur #D98F9F).
+   Thème : clair uniquement pour l'instant. Les valeurs sombres sont prêtes mais ne
+   s'appliquent que si <html data-theme="dark"> est posé explicitement (non utilisé). */
+:root{
+  color-scheme:light;
+
+  /* surfaces et encres */
+  --bg:#FFF9FA; --bg-soft:#FBECEF; --surface:#FFFFFF; --tint:#F8E7EA; --tint-strong:#F5DDE2;
+  --ink:#211B1D; --ink-2:#5C4E53; --ink-3:#6E5E64; --ink-disabled:#8F7E84;
+  --accent:#542F3B; --accent-hover:#43232E; --accent-pressed:#371B25; --sage:#A9D3C1;
+  --on-accent:#FFFFFF;
+  --line:rgba(84,47,59,.13); --line-strong:#8F7E84; --track:#E6D3D8; --overlay:rgba(33,27,29,.5);
+
+  /* états : encre (texte), fond, couleur de remplissage */
+  --good-ink:#285A45; --good-bg:#E6F3EC; --good:#3F7A62;
+  --mid-ink:#7A4E0B;  --mid-bg:#FBF0DC;  --mid:#A8670F;
+  --low-ink:#7A2F45;  --low-bg:#F8E7EA;  --low:#8E3F55;
+  --error-ink:#9F2F35; --error-bg:#FBEAEA; --error:#A63D40;
+  --info-ink:#542F3B; --info-bg:#F8E7EA;
+
+  /* typographie */
+  --font-serif:'DM Serif Display','Playfair Display',Georgia,serif;
+  --font-sans:'Manrope','Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --fs-xs:.75rem;   /* 12px : plancher */
+  --fs-sm:.875rem;  /* 14px */
+  --fs-md:1rem;     /* 16px */
+  --fs-lg:1.125rem; /* 18px */
+  --fs-h3:1.5rem;
+  --fs-h2:clamp(1.75rem,5.5vw,2.25rem);
+  --fs-h1:clamp(2.1rem,7.5vw,3rem);
+  --fs-score-xl:clamp(3.4rem,14vw,4.5rem);
+  --fs-score-l:2.75rem; --fs-score-m:1.875rem; --fs-score-s:1.25rem;
+  --lh-tight:1.1; --lh-body:1.5;
+
+  /* formes et espacements */
+  --r-sm:12px; --r-md:20px; --r-lg:28px; --r-pill:999px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-7:32px; --s-8:40px; --s-9:48px; --s-10:64px;
+  --tap:44px; --tap-lg:52px;
+
+  /* élévation, mouvement, empilement */
+  --shadow-1:0 1px 2px rgba(84,47,59,.06),0 8px 20px -12px rgba(84,47,59,.22);
+  --shadow-2:0 18px 40px -20px rgba(84,47,59,.45);
+  --dur-fast:120ms; --dur:220ms; --dur-slow:600ms; --ease:cubic-bezier(.2,.7,.2,1);
+  --z-header:10; --z-nav:20; --z-sheet:50; --z-toast:60;
+  --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+}
+
+/* Sombre : préparé, volontairement inactif tant que le thème n'est pas déclaré. */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#171214; --bg-soft:#2A2024; --surface:#211A1D; --tint:#33262B; --tint-strong:#3A2A30;
+  --ink:#F7EEF0; --ink-2:#CDBDC2; --ink-3:#B3A2A8; --ink-disabled:#7E6E74;
+  --accent:#F0BBC7; --accent-hover:#F6CCD5; --accent-pressed:#E7A9B8; --on-accent:#2A1219;
+  --line:rgba(248,231,234,.14); --line-strong:#8A7A80; --track:#3F3035; --overlay:rgba(0,0,0,.6);
+  --good-ink:#A9D8C1; --good-bg:#1F3329; --good:#6FB898;
+  --mid-ink:#EBC27A; --mid-bg:#3A2D14; --mid:#D9A04A;
+  --low-ink:#F0B3C2; --low-bg:#3A2029; --low:#D97A93;
+  --error-ink:#F4AEB0; --error-bg:#3A2022; --error:#E0777A;
+  --info-ink:#F0BBC7; --info-bg:#33262B;
+  --shadow-1:0 1px 2px rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.5);
+  --shadow-2:0 18px 40px -20px rgba(0,0,0,.7);
+  --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+}

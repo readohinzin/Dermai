@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>DERMAI, styleguide interne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styleguide.css">
+</head>
+<body>
+<svg width="0" height="0" class="u-sr" aria-hidden="true"><symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol><symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol><symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 4-6"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></symbol><symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-5 6-8 10-10"/></symbol><symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol></svg>
+<main class="ly-page ly-stack-lg">
+<header class="sg-hero">
+  <span class="c-badge c-badge--outline">Interne, non lié à l'application</span>
+  <h1>Design System v1</h1>
+  <p>Fondations et composants de l'étape 0. Cette page n'utilise aucun script et ne touche pas au parcours de l'app.</p>
+</header>
+
+<section class="sg-sec" id="couleurs"><h2>Couleurs</h2>
+<div class="sg-swatches"><div class="sg-sw"><i style="--c:var(--bg)"></i><span>--bg</span></div><div class="sg-sw"><i style="--c:var(--bg-soft)"></i><span>--bg-soft</span></div><div class="sg-sw"><i style="--c:var(--surface)"></i><span>--surface</span></div><div class="sg-sw"><i style="--c:var(--tint)"></i><span>--tint</span></div><div class="sg-sw"><i style="--c:var(--tint-strong)"></i><span>--tint-strong</span></div><div class="sg-sw"><i style="--c:var(--ink)"></i><span>--ink</span></div><div class="sg-sw"><i style="--c:var(--ink-2)"></i><span>--ink-2</span></div><div class="sg-sw"><i style="--c:var(--ink-3)"></i><span>--ink-3</span></div><div class="sg-sw"><i style="--c:var(--ink-disabled)"></i><span>--ink-disabled</span></div><div class="sg-sw"><i style="--c:var(--accent)"></i><span>--accent</span></div><div class="sg-sw"><i style="--c:var(--accent-hover)"></i><span>--accent-hover</span></div><div class="sg-sw"><i style="--c:var(--accent-pressed)"></i><span>--accent-pressed</span></div><div class="sg-sw"><i style="--c:var(--rose-deep)"></i><span>--rose-deep</span></div><div class="sg-sw"><i style="--c:var(--sage)"></i><span>--sage</span></div><div class="sg-sw"><i style="--c:var(--line-strong)"></i><span>--line-strong</span></div><div class="sg-sw"><i style="--c:var(--track)"></i><span>--track</span></div><div class="sg-sw"><i style="--c:var(--good)"></i><span>--good</span></div><div class="sg-sw"><i style="--c:var(--good-bg)"></i><span>--good-bg</span></div><div class="sg-sw"><i style="--c:var(--mid)"></i><span>--mid</span></div><div class="sg-sw"><i style="--c:var(--mid-bg)"></i><span>--mid-bg</span></div><div class="sg-sw"><i style="--c:var(--low)"></i><span>--low</span></div><div class="sg-sw"><i style="--c:var(--low-bg)"></i><span>--low-bg</span></div><div class="sg-sw"><i style="--c:var(--error)"></i><span>--error</span></div><div class="sg-sw"><i style="--c:var(--error-bg)"></i><span>--error-bg</span></div></div>
+<p class="sg-note">Les teintes d'état (bon, moyen, bas, erreur) sont toujours accompagnées d'un libellé texte.</p>
+</section>
+
+<section class="sg-sec sg-type" id="typo"><h2>Typographie</h2>
+<div class="u-serif sg-t1">Titre 1, DM Serif Display</div>
+<div class="u-serif sg-t2">Titre 2, DM Serif Display</div>
+<div class="u-serif sg-t3">Titre 3, DM Serif Display</div>
+<div>Corps 16 px, Manrope. Une peau qui respire, un texte qui se lit sans effort.</div>
+<div class="u-muted sg-t5">Texte secondaire 14 px.</div>
+<div class="u-muted sg-t6">Mention 12 px, plancher du système.</div>
+</section>
+
+<section class="sg-sec" id="boutons"><h2>Boutons</h2>
+<div class="ly-stack">
+  <button class="c-btn c-btn--primary c-btn--block"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cam"/></svg>Prendre une photo</button>
+  <button class="c-btn c-btn--secondary c-btn--block">Importer une photo</button>
+  <div class="ly-row">
+    <button class="c-btn c-btn--ghost">Plus tard</button>
+    <button class="c-btn c-btn--danger">Supprimer</button>
+    <button class="c-btn c-btn--danger-quiet">Effacer mes données</button>
+    <button class="c-btn c-btn--link">En savoir plus</button>
+  </div>
+  <div class="ly-row">
+    <button class="c-btn c-btn--primary" disabled>Désactivé</button>
+    <button class="c-btn c-btn--primary" aria-busy="true">Envoi en cours</button>
+    <button class="c-btn c-btn--primary c-btn--sm">Compact</button>
+  </div>
+  <div class="ly-row">
+    <button class="c-icon-btn" aria-label="Retour"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-back"/></svg></button>
+    <button class="c-icon-btn" aria-label="Ajouter"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button class="c-icon-btn" aria-label="Indisponible" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg></button>
+  </div>
+</div></section>
+
+<section class="sg-sec" id="cartes"><h2>Cartes</h2>
+<div class="ly-stack">
+  <div class="c-card"><h3 class="c-card__title">Carte standard</h3><p class="c-card__text">Contenu courant, bordure fine, sans ombre.</p></div>
+  <div class="c-card c-card--important"><h3 class="c-card__title">Carte importante</h3><p class="c-card__text">Une seule par écran, pour ce qui compte le plus.</p></div>
+  <button class="c-card c-card--interactive"><h3 class="c-card__title">Carte cliquable</h3><p class="c-card__text">Survol, focus et appui visibles.</p></button>
+  <div class="c-card c-card--empty"><h3 class="c-card__title">Carte vide</h3><p class="c-card__text">Rien à afficher pour le moment.</p></div>
+  <div class="c-card c-card--result">
+    <div class="c-photo"><div class="c-photo__placeholder"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-user"/></svg><span>Photo</span></div></div>
+    <div class="c-card__body ly-row"><h3 class="c-card__title u-grow">Résultat</h3><span class="c-score c-score--xl"><span class="c-score__value">72</span></span></div>
+  </div>
+</div></section>
+
+<section class="sg-sec" id="badges"><h2>Pastilles, filtres, variation</h2>
+<div class="ly-row">
+  <span class="c-badge c-badge--good">Bien</span>
+  <span class="c-badge c-badge--mid">À soutenir</span>
+  <span class="c-badge c-badge--low">À surveiller</span>
+  <span class="c-badge c-badge--error">Erreur</span>
+  <span class="c-badge c-badge--demo">Démo</span>
+  <span class="c-badge c-badge--outline">Neutre</span>
+</div>
+<p class="sg-label">Filtres</p>
+<div class="ly-row">
+  <button class="c-chip" aria-pressed="true">Hydratation</button>
+  <button class="c-chip" aria-pressed="false">Pores</button>
+  <button class="c-chip" disabled>Indisponible</button>
+</div>
+<p class="sg-label">Variation</p>
+<div class="ly-row">
+  <span class="c-delta c-delta--up">+4 pts</span>
+  <span class="c-delta c-delta--down">-3 pts</span>
+  <span class="c-delta c-delta--flat">Stable</span>
+</div></section>
+
+<section class="sg-sec" id="scores"><h2>Scores et barres</h2>
+<div class="ly-row">
+  <span class="c-score c-score--xl"><span class="c-score__value">72</span><span class="c-score__unit">/100</span></span>
+  <span class="c-score c-score--l"><span class="c-score__value">64</span></span>
+  <span class="c-score c-score--m"><span class="c-score__value">48</span></span>
+  <span class="c-score c-score--s"><span class="c-score__value">31</span></span>
+  <span class="c-score c-score--m c-score--null"><span class="c-score__value">–</span></span>
+</div>
+<p class="sg-note">Le dernier score est la valeur absente : un tiret, jamais un zéro inventé.</p>
+<p class="sg-label">Barres</p>
+<div class="ly-stack">
+  <span class="c-bar c-bar--good" role="img" aria-label="78 sur 100" style="--value:78"><span class="c-bar__fill"></span></span>
+  <span class="c-bar c-bar--mid" role="img" aria-label="48 sur 100" style="--value:48"><span class="c-bar__fill"></span></span>
+  <span class="c-bar c-bar--low" role="img" aria-label="22 sur 100" style="--value:22"><span class="c-bar__fill"></span></span>
+</div>
+<p class="sg-label">Ligne de préoccupation</p>
+<div class="c-concern">
+  <span class="c-concern__name">Pores</span>
+  <span class="c-concern__score">38<small>/100</small></span>
+  <span class="c-bar c-bar--mid" role="img" aria-label="38 sur 100" style="--value:38"><span class="c-bar__fill"></span></span>
+  <span class="c-concern__meta"><span class="c-badge c-badge--mid">À soutenir</span><span>Valeur de démonstration</span></span>
+</div></section>
+
+<section class="sg-sec" id="retours"><h2>Retours et états</h2>
+<div class="ly-stack">
+  <div class="c-notice"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg><div><span class="c-notice__title">Information</span>Votre photo n'est pas enregistrée.</div></div>
+  <div class="c-notice c-notice--success"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg><div><span class="c-notice__title">Analyse terminée</span>Vos résultats sont prêts.</div></div>
+  <div class="c-notice c-notice--warning"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-warn"/></svg><div><span class="c-notice__title">Lumière faible</span>Rapprochez-vous d'une fenêtre.</div></div>
+  <div class="c-notice c-notice--error"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-warn"/></svg><div><span class="c-notice__title">Analyse impossible</span>Le service est momentanément indisponible. Réessayez dans un instant.</div></div>
+  <div class="c-card"><div class="c-state"><span class="c-spinner" role="status" aria-label="Chargement"></span><h3 class="c-state__title">Analyse en cours</h3><p class="c-state__text">Cela prend quelques secondes.</p></div></div>
+  <div class="c-card"><div class="c-state c-state--success"><span class="c-state__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><h3 class="c-state__title">Photo reçue</h3><p class="c-state__text">Nous lançons l'analyse.</p></div></div>
+  <div class="c-card"><div class="c-state c-state--error"><span class="c-state__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-warn"/></svg></span><h3 class="c-state__title">Échec de l'envoi</h3><p class="c-state__text">Vérifiez votre connexion puis réessayez.</p><button class="c-btn c-btn--secondary c-btn--sm">Réessayer</button></div></div>
+  <div class="c-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chart"/></svg><h3 class="c-empty__title">Pas encore d'analyse</h3><p class="c-empty__text">Faites un premier scan pour voir votre évolution.</p></div>
+  <div><span class="c-toast" role="status">Routine mise à jour</span></div>
+  <p class="c-disclaimer">DERMAI donne des repères de soin, pas un avis médical. En cas de doute sur votre peau, consultez un professionnel de santé.</p>
+</div></section>
+
+<section class="sg-sec" id="formulaires"><h2>Formulaires</h2>
+<div class="ly-stack">
+  <div class="c-field"><label class="c-field__label" for="sg-a">Prénom</label><input class="c-input" id="sg-a" placeholder="Camille"><span class="c-field__hint">Pour personnaliser l'accueil.</span></div>
+  <div class="c-field"><label class="c-field__label" for="sg-b">Email</label><input class="c-input" id="sg-b" value="camille@" aria-invalid="true" aria-describedby="sg-b-e"><span class="c-field__error" id="sg-b-e">Adresse incomplète.</span></div>
+  <div class="ly-row"><button class="c-switch" role="switch" aria-checked="true" aria-label="Rappels"></button><span>Rappels quotidiens</span></div>
+  <div class="ly-row"><button class="c-switch" role="switch" aria-checked="false" aria-label="Partage"></button><span>Partage</span></div>
+  <div class="ly-row"><button class="c-check" aria-pressed="true" aria-label="Fait"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></button><button class="c-check" aria-pressed="false" aria-label="À faire"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></button></div>
+  <div class="c-seg" role="group" aria-label="Période"><button class="c-seg__btn" aria-pressed="true">Matin</button><button class="c-seg__btn" aria-pressed="false">Soir</button></div>
+</div></section>
+
+<section class="sg-sec" id="navigation"><h2>Navigation</h2>
+<p class="sg-label">En-tête</p>
+<div class="sg-demo"><div class="c-header"><button class="c-icon-btn" aria-label="Retour"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-back"/></svg></button><span class="c-header__title">Mes résultats</span><button class="c-icon-btn" aria-label="Profil"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-user"/></svg></button></div></div>
+<p class="sg-label">Barre d'action</p>
+<div class="sg-demo"><div class="c-actionbar"><button class="c-btn c-btn--primary c-btn--block">Continuer</button><button class="c-btn c-btn--ghost c-btn--block">Plus tard</button></div></div>
+<p class="sg-label">Barre du bas</p>
+<div class="sg-demo"><nav class="c-bottomnav" aria-label="Exemple">
+  <button class="c-bottomnav__item" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-home"/></svg>Accueil</button>
+  <button class="c-bottomnav__item"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cam"/></svg>Scan</button>
+  <button class="c-bottomnav__item"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chart"/></svg>Suivi</button>
+  <button class="c-bottomnav__item"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-leaf"/></svg>Routine</button>
+  <button class="c-bottomnav__item"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-user"/></svg>Profil</button>
+</nav></div>
+<p class="sg-label">Feuille</p>
+<div class="sg-demo"><div class="c-sheet"><h3 class="c-card__title">Feuille</h3><p class="c-card__text">Rendue ici en flux normal. En usage réel, elle se pose sur un voile (c-scrim).</p></div></div>
+</section>
+
+<section class="sg-sec" id="photo"><h2>Photo</h2>
+<div class="c-preview">
+  <div class="c-photo"><div class="c-photo__placeholder"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cam"/></svg><span>Aucune photo</span></div><span class="c-photo__caption">Visage de face, bien éclairé</span></div>
+  <div class="ly-row"><button class="c-btn c-btn--primary u-grow">Utiliser cette photo</button><button class="c-btn c-btn--secondary">Reprendre</button></div>
+</div></section>
+
+<section class="sg-sec" id="listes"><h2>Listes et fiches</h2>
+<div class="ly-stack">
+  <ul class="c-list">
+    <li><button class="c-list-row"><span class="c-list-row__main"><span class="c-list-row__title">Mes analyses</span><span class="c-list-row__sub">Historique des scans</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chev"/></svg></button></li>
+    <li><button class="c-list-row"><span class="c-list-row__main"><span class="c-list-row__title">Confidentialité</span><span class="c-list-row__sub">Photo et données</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chev"/></svg></button></li>
+  </ul>
+  <div class="c-routine-step"><span class="c-routine-step__ord">1</span><div class="c-routine-step__body"><div class="c-routine-step__meta">Matin, nettoyer</div><div class="c-routine-step__name">Gel nettoyant doux</div><div class="c-routine-step__role">Retire l'excès de sébum.</div></div><button class="c-check" aria-pressed="true" aria-label="Fait"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></button></div>
+  <div class="c-routine-step" data-done="true"><span class="c-routine-step__ord">2</span><div class="c-routine-step__body"><div class="c-routine-step__meta">Matin, hydrater</div><div class="c-routine-step__name">Crème légère</div></div><button class="c-check" aria-pressed="false" aria-label="À faire"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></button></div>
+  <div class="ly-grid ly-grid-2"><div class="c-product"><div class="c-product__media"><span class="c-product__badge c-badge c-badge--demo">Exemple</span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-leaf"/></svg></div><div class="c-product__body"><div class="c-product__brand">Marque</div><div class="c-product__name">Sérum équilibrant</div><div class="c-product__meta"><span>30 ml</span><b>24 €</b></div></div></div></div>
+  <div class="c-active"><span class="c-active__orb">N</span><div class="c-active__body"><span class="c-active__name">Niacinamide</span><div class="c-active__tags"><span class="c-badge">Pores</span><span class="c-badge">Texture</span></div></div></div>
+</div></section>
+
+<section class="sg-sec" id="graphique"><h2>Graphique</h2>
+<div class="c-card"><svg class="c-chart" viewBox="0 0 300 120" role="img" aria-label="Exemple d'évolution : 48, 55, 61, 66">
+  <line class="c-chart__grid" x1="0" x2="300" y1="20" y2="20"/><line class="c-chart__grid" x1="0" x2="300" y1="60" y2="60"/><line class="c-chart__grid" x1="0" x2="300" y1="100" y2="100"/>
+  <polyline class="c-chart__line" points="20,84 107,66 193,48 280,34"/>
+  <circle class="c-chart__dot" cx="20" cy="84" r="5"/><circle class="c-chart__dot" cx="107" cy="66" r="5"/><circle class="c-chart__dot" cx="193" cy="48" r="5"/><circle class="c-chart__dot" cx="280" cy="34" r="5"/>
+  <text class="c-chart__label" x="280" y="22" text-anchor="end">66</text>
+  <text class="c-chart__axis" x="20" y="118">S1</text><text class="c-chart__axis" x="107" y="118" text-anchor="middle">S2</text><text class="c-chart__axis" x="193" y="118" text-anchor="middle">S3</text><text class="c-chart__axis" x="280" y="118" text-anchor="end">S4</text>
+</svg><p class="sg-note">Données d'exemple.</p></div></section>
+</main>
+</body>
+</html>

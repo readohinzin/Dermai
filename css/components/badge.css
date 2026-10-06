@@ -1,0 +1,20 @@
+/* Pastilles d'état, filtres, variation. L'information ne repose jamais sur la couleur seule :
+   chaque état porte un libellé texte. */
+.c-badge{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0 var(--s-3);border-radius:var(--r-pill);font:600 var(--fs-xs)/1 var(--font-sans);white-space:nowrap;background:var(--tint);color:var(--accent)}
+.c-badge--good{background:var(--good-bg);color:var(--good-ink)}
+.c-badge--mid{background:var(--mid-bg);color:var(--mid-ink)}
+.c-badge--low{background:var(--low-bg);color:var(--low-ink)}
+.c-badge--error{background:var(--error-bg);color:var(--error-ink)}
+.c-badge--demo{background:var(--tint);color:var(--accent)}
+.c-badge--demo::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rose-deep)}
+.c-badge--outline{background:transparent;border:1px solid var(--line-strong);color:var(--ink-2)}
+
+.c-chip{display:inline-flex;align-items:center;gap:var(--s-2);min-height:var(--tap);padding:0 var(--s-4);border:1px solid var(--line-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--ink);font:500 var(--fs-sm)/1 var(--font-sans);cursor:pointer}
+.c-chip:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.c-chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.c-chip:disabled{color:var(--ink-disabled);border-color:var(--line);cursor:not-allowed}
+
+.c-delta{display:inline-flex;align-items:center;gap:4px;min-height:24px;padding:0 var(--s-2);border-radius:var(--r-pill);font:700 var(--fs-xs)/1 var(--font-sans);font-variant-numeric:tabular-nums;background:var(--tint);color:var(--ink-2)}
+.c-delta--up{background:var(--good-bg);color:var(--good-ink)}
+.c-delta--down{background:var(--low-bg);color:var(--low-ink)}
+.c-delta--flat{background:var(--tint);color:var(--ink-2)}

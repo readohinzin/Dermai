@@ -1,0 +1,26 @@
+/* Retours à l'utilisateur : avis, états vides, états d'analyse, toast, mention légale. */
+.c-notice{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-4);border-radius:var(--r-sm);background:var(--info-bg);color:var(--info-ink);font-size:var(--fs-sm);line-height:1.45}
+.c-notice svg{width:20px;height:20px;flex:none;margin-top:1px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.c-notice__title{display:block;font-weight:700;margin-bottom:2px}
+.c-notice--success{background:var(--good-bg);color:var(--good-ink)}
+.c-notice--warning{background:var(--mid-bg);color:var(--mid-ink)}
+.c-notice--error{background:var(--error-bg);color:var(--error-ink)}
+
+.c-empty{display:flex;flex-direction:column;align-items:center;gap:var(--s-3);text-align:center;padding:var(--s-7) var(--s-5)}
+.c-empty__title{font:400 var(--fs-h3)/var(--lh-tight) var(--font-serif);margin:0}
+.c-empty__text{margin:0;color:var(--ink-2);font-size:var(--fs-sm);max-width:28em}
+
+.c-spinner{display:inline-block;width:28px;height:28px;border-radius:50%;border:3px solid var(--track);border-top-color:var(--accent);animation:c-spin .9s linear infinite}
+
+/* états de l'analyse : idle, uploading, processing, success, error. Le texte porte le sens. */
+.c-state{display:flex;flex-direction:column;align-items:center;gap:var(--s-3);text-align:center;padding:var(--s-6) var(--s-5)}
+.c-state__title{font:400 var(--fs-h3)/var(--lh-tight) var(--font-serif);margin:0}
+.c-state__text{margin:0;color:var(--ink-2);font-size:var(--fs-sm)}
+.c-state__icon{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--tint);color:var(--accent)}
+.c-state__icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.c-state--success .c-state__icon{background:var(--good-bg);color:var(--good-ink)}
+.c-state--error .c-state__icon{background:var(--error-bg);color:var(--error-ink)}
+
+.c-toast{display:inline-block;max-width:min(88vw,28rem);padding:var(--s-3) var(--s-5);border-radius:var(--r-pill);background:var(--ink);color:var(--bg);font-size:var(--fs-sm);text-align:center}
+
+.c-disclaimer{font-size:var(--fs-xs);line-height:1.5;color:var(--ink-3)}

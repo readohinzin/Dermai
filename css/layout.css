@@ -1,0 +1,14 @@
+/* Gabarits préfixés ly- (aucune collision avec les classes historiques). Mobile d'abord. */
+.ly-page{width:100%;max-width:600px;margin-inline:auto;padding:var(--s-5) var(--s-5) calc(var(--s-10) + var(--s-8));padding-left:max(var(--s-5),env(safe-area-inset-left));padding-right:max(var(--s-5),env(safe-area-inset-right))}
+.ly-stack{display:flex;flex-direction:column;gap:var(--s-4);min-width:0}
+.ly-stack-lg{display:flex;flex-direction:column;gap:var(--s-7);min-width:0}
+.ly-row{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.ly-grid{display:grid;gap:var(--s-4)}
+.ly-full-height{min-height:100vh;min-height:100svh}
+@media (min-width:600px){
+  .ly-grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (min-width:1024px){
+  .ly-page{max-width:1120px;padding-inline:var(--s-10)}
+  .ly-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+}

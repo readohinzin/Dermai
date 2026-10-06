@@ -1,0 +1,10 @@
+/* Utilitaires u- : un seul rôle chacun, toujours prioritaires. */
+.u-muted{color:var(--ink-3)}
+.u-center{text-align:center}
+.u-right{text-align:right}
+.u-nowrap{white-space:nowrap}
+.u-tabular{font-variant-numeric:tabular-nums}
+.u-serif{font-family:var(--font-serif);font-weight:400}
+.u-grow{flex:1 1 auto;min-width:0}
+.u-hide-mobile{display:none}
+@media (min-width:600px){.u-hide-mobile{display:revert}}
