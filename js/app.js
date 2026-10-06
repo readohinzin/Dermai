@@ -147,6 +147,78 @@ const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 
 /* ---------- 3. COMPOSANTS ---------- */
 const $app=document.getElementById(`app`),$ov=document.getElementById(`overlay`);
+
+/* ---------- Compte et profil persistant ----------
+   Supabase Auth + table profiles via js/account.js (clé publique seulement, RLS côté base). Le profil (objectifs, niveau, approche douce,
+   exclusions) est chargé UNE fois à la connexion puis tenu dans `state`, que tous les écrans lisent. Il n'est jamais copié dans le stockage local
+   (seule la session d'authentification l'est). Mode démo : aucun compte. Aucune photo, aucun masque, aucun task_id n'est enregistré. */
+const ACCOUNT=(!DEMO_MODE&&window.DermaiAccount&&window.DERMAI_CONFIG)?DermaiAccount.create({url:window.DERMAI_CONFIG.supabaseUrl,anonKey:window.DERMAI_CONFIG.supabaseAnonKey,storage:(()=>{try{return window.localStorage}catch(e){return null}})()}):null;
+state.account={status:ACCOUNT&&ACCOUNT.available?`checking`:`off`,email:``,loading:false,busy:false,error:``,info:``,formEmail:``};   // off | checking | visitor | signedIn
+state.save={status:`idle`,message:``};                                                                                            // idle | saving | saved | error
+const accountOn=()=>state.account.status!==`off`;
+const signedIn=()=>state.account.status===`signedIn`;
+let authEpoch=0;
+/* Profil de l'application → forme enregistrée / chargée → état. Un seul endroit, aucune règle dupliquée : Engine.normalizeProfile assainit. */
+const profileForSave=()=>{const n=Engine.normalizeProfile({goals:state.goals,level:state.level,exclusions:state.exclusions,comfort:{preferGentle:state.gentle}});return{goals:n.goals,level:state.level,comfort:n.comfort,exclusions:n.exclusions}};
+function applyProfile(p){const n=Engine.normalizeProfile(p||{});state.goals=n.goals;state.noGoal=false;state.level=[`none`,`simple`,`full`].includes(p&&p.level)?p.level:``;state.gentle=!!n.comfort.preferGentle;state.exclusions=n.exclusions}
+/* Retour à l'état visiteur : plus aucune donnée du compte précédent (objectifs, niveau, approche, exclusions, analyses de la session). */
+function resetPrivateState(){
+  state.goals=[];state.noGoal=false;state.level=``;state.gentle=false;state.exclusions=[];state.cats=[];state.done={};
+  state.user.name=``;state.user.email=``;state.save={status:`idle`,message:``};
+  if(!DEMO_MODE){SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;clearReal()}
+}
+const softStatus=()=>{const el=document.getElementById(`saveStatus`);if(el)el.textContent=state.save.message};
+let saving=false,pendingSave=false;
+async function persist(){
+  if(!ACCOUNT||!signedIn())return;
+  if(saving){pendingSave=true;return}
+  saving=true;const epoch=authEpoch;
+  state.save={status:`saving`,message:`Enregistrement…`};softStatus();
+  do{
+    pendingSave=false;
+    const r=await ACCOUNT.saveProfile(profileForSave());
+    if(epoch!==authEpoch||!signedIn())break;                       // déconnexion ou changement de compte pendant l'enregistrement
+    if(!r.ok){state.save={status:`error`,message:r.error};softStatus();toast(r.error);break}
+    state.save={status:pendingSave?`saving`:`saved`,message:pendingSave?`Enregistrement…`:`Préférences enregistrées.`};softStatus();
+  }while(pendingSave);
+  saving=false;
+  if(epoch===authEpoch&&state.route===`profile`&&state.save.status===`error`)render(true);
+}
+async function enterSession(user,fresh){
+  authEpoch++;state.account.status=`signedIn`;state.account.email=user.email;state.user.email=user.email;state.account.error=``;state.account.info=``;
+  state.account.loading=true;
+  if(fresh){applyProfile({})}
+  const epoch=authEpoch,r=await ACCOUNT.loadProfile();
+  if(epoch!==authEpoch)return;
+  state.account.loading=false;
+  if(r.ok){if(r.profile)applyProfile(r.profile);else applyProfile({});state.save={status:`idle`,message:``}}
+  else{state.save={status:`error`,message:r.error}}
+}
+async function bootAccount(){
+  if(!ACCOUNT||!ACCOUNT.available)return;
+  const u=await ACCOUNT.restoreSession();
+  if(u)await enterSession(u,false);else state.account.status=`visitor`;
+  if([`landing`,`profile`,`home`,`result`,`routine`,`actives`,`progress`,`analyses`,`privacy`].includes(state.route))render(true);
+}
+async function submitAuth(kind,form){
+  const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=form.querySelector(`[name=password]`).value||``;
+  const btn=form.querySelector(`button[type=submit]`);
+  state.account.formEmail=email;state.account.error=``;state.account.info=``;
+  if(btn){btn.disabled=true;btn.textContent=kind===`signup`?`Création…`:`Connexion…`}
+  const r=kind===`signup`?await ACCOUNT.signUp(email,pw):await ACCOUNT.signIn(email,pw);
+  form.querySelector(`[name=password]`).value=``;
+  if(!r.ok){state.account.error=r.error;render();return}
+  if(r.needsConfirmation){state.account.info=r.message;go(`login`,null,{replace:true});return}
+  resetPrivateState();
+  await enterSession(r.user,kind===`signup`);
+  state.account.formEmail=``;
+  if(kind===`signup`)go(`welcome`,null,{replace:true});else go(`home`,null,{reset:true});
+}
+async function logout(){
+  await ACCOUNT.signOut();authEpoch++;
+  state.account.status=`visitor`;state.account.email=``;state.account.loading=false;
+  resetPrivateState();go(`landing`,null,{reset:true});toast(`Vous êtes déconnecté.`);
+}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':`&amp;`,'<':`&lt;`,'>':`&gt;`,'"':`&quot;`}[c]));
 const NB=`\u00a0`;
 const fmt=n=>n.toLocaleString(`fr-FR`).replace(/[\u202f\u00a0\s]/g,NB)+NB+`FCFA`;
@@ -268,13 +340,13 @@ const V={};
 
 /* Landing */
 V.landing=()=>{
-  return `<header class="l-top"><span class="brand">DERMAI</span><button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button></header>
+  return `<header class="l-top"><span class="brand">DERMAI</span>${signedIn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Mon espace</button>`:accountOn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="login">Se connecter</button>`:`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button>`}</header>
   <section class="hero"><div class="wrap hero-grid">
     <div>
       <p class="tagline">${ic(`sparkle`)} Analyse cosmétique assistée par IA</p>
       <h1 class="hero-h">Votre peau.<br>Votre analyse.<br>Votre routine.</h1>
       <p class="lead">Analysez visuellement votre peau et découvrez une routine personnalisée adaptée à vos besoins.</p>
-      <div class="cta-row"><button class="c-btn c-btn--primary" data-go="signup">Analyser ma peau</button><button class="c-btn c-btn--secondary" data-act="scroll" data-v="how">En savoir plus</button></div>
+      <div class="cta-row"><button class="c-btn c-btn--primary" data-go="${signedIn()?`scan`:`signup`}">Analyser ma peau</button><button class="c-btn c-btn--secondary" data-act="scroll" data-v="how">En savoir plus</button></div>
       ${DEMO_MODE?`<div style="margin-top:20px">${demoTag()}</div>`:``}
     </div>
     <div class="hero-art">
@@ -350,7 +422,7 @@ V.landing=()=>{
 };
 
 /* Inscription */
-V.signup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div>
+const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div>
   <div class="body"><h1>Créez votre compte</h1><p style="margin:10px 0 26px">Une minute suffit pour personnaliser votre expérience.</p>
   <div class="stack" style="gap:16px">
     <div class="c-field"><label class="c-field__label" for="f-name">Prénom</label><input class="c-input" id="f-name" autocomplete="given-name" value="${DEMO_MODE?`Amina`:``}"></div>
@@ -361,6 +433,23 @@ V.signup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-ic
     <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Google</button>
     <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Apple</button>
   </div><p class="muted" style="margin-top:22px">Maquette : aucun compte réel n'est créé.</p></div></div>`;
+const authForm=kind=>{
+  const signup=kind===`signup`,A=state.account;
+  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div>
+  <div class="body"><h1>${signup?`Créez votre compte`:`Content de vous revoir`}</h1><p style="margin:10px 0 22px">${signup?`Retrouvez vos objectifs et vos préférences sur vos prochains appareils.`:`Connectez-vous pour retrouver vos préférences.`}</p>
+  ${A.info?`<div class="c-notice c-notice--success u-my-5" role="status">${ic(`check`)}<div>${A.info}</div></div>`:``}
+  ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
+  <form class="stack" style="gap:16px" data-form="${kind}" novalidate>
+    <div class="c-field"><label class="c-field__label" for="f-mail">Adresse e-mail</label><input class="c-input" id="f-mail" name="email" type="email" inputmode="email" enterkeyhint="next" autocomplete="email" autocapitalize="none" spellcheck="false" value="${esc(A.formEmail)}" required></div>
+    <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" name="password" type="password" enterkeyhint="go" autocomplete="${signup?`new-password`:`current-password`}" required>${signup?`<p class="c-field__hint">8 caractères au minimum.</p>`:``}</div>
+    <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">${signup?`Créer mon compte`:`Se connecter`}</button>
+  </form>
+  <p style="margin-top:20px;text-align:center">${signup?`Déjà un compte ? <button class="link" data-go="login">Se connecter</button>`:`Pas encore de compte ? <button class="link" data-go="signup">Créer mon compte</button>`}</p>
+  ${signup?`<p style="text-align:center"><button class="link" data-go="welcome">Continuer sans compte</button></p>`:``}
+  <p class="muted" style="margin-top:14px">Seules vos préférences de personnalisation sont associées à votre compte. Vos photos ne sont pas enregistrées dans votre profil.</p></div></div>`;
+};
+V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><span class="brand" style="font-size:1.3rem">DERMAI</span></div><div class="body"><h1>Bienvenue sur DERMAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
+V.login=()=>accountOn()?authForm(`login`):V.signup();
 V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><span class="brand" style="margin-bottom:34px">DERMAI</span><h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
 
 /* Onboarding */
@@ -607,11 +696,23 @@ V.analyses=()=>noReal()?emptyScan(`Mes analyses`,EMPTY_MSG,{back:true,title:`Mes
   <div style="max-width:640px">${[...SCANS].reverse().map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${s.date}</b>${s.id===state.latest?` <span class="c-badge c-badge--outline">Analyse actuelle</span>`:``}<p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">${s.id===state.latest?`Priorités actuelles`:`Repères à soutenir à cette date`}</p><div class="chips">${pi.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(s).priorities.items)}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}</div>`,{back:true,title:`Mes analyses`});
 
 /* Profil */
+/* Bloc compte de la page Profil : visiteur, connecté (e-mail, état d'enregistrement, déconnexion) ou vérification en cours. Rien en mode démo. */
+const accountSection=()=>{
+  const A=state.account;
+  if(A.status===`off`)return ``;
+  if(A.status===`checking`)return `<section class="sand"><p class="kicker">Mon compte</p><p class="muted" style="margin-top:8px">Vérification de votre session…</p></section>`;
+  if(A.status===`visitor`)return `<section class="sand"><p class="kicker">Mon compte</p><p style="color:var(--ink);margin:8px 0 14px">Créez votre compte pour retrouver vos préférences sur vos prochains appareils.</p><div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-go="signup">Créer mon compte</button><button class="c-btn c-btn--secondary c-btn--block" data-go="login">Se connecter</button></div></section>`;
+  return `<section class="sand"><p class="kicker">Mon compte</p><p style="color:var(--ink);margin:8px 0 4px">Connecté en tant que :</p><p class="big" style="font-size:1.3rem;overflow-wrap:anywhere;margin-bottom:10px">${esc(A.email)}</p>
+    <p class="muted" id="saveStatus" role="status" aria-live="polite">${A.loading?`Chargement de votre profil…`:state.save.message}</p>
+    ${state.save.status===`error`?`<button class="link" data-act="retry-save">Réessayer</button>`:``}
+    <div class="stack" style="margin-top:12px"><button class="c-btn c-btn--secondary c-btn--block" data-act="logout">Se déconnecter</button></div></section>`;
+};
 const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="c-switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
 V.profile=()=>{
   const none=noReal(),r=none?null:viewOf(SCANS[state.latest]);
   return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
+   ${accountSection()}
    <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(SCANS[state.latest]).priorities.items)}`}</section>
    <section><div class="hd"><h2 class="h3">Mes objectifs</h2><span class="muted">${goalCount()}</span></div><p class="muted" style="margin-bottom:10px">Facultatif, trois au maximum. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p>
      <div class="chips">${Engine.goalList().map(g=>`<button class="c-chip" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}">${g.label}</button>`).join(``)}<button class="c-chip" data-act="goal" data-v="none" aria-pressed="${state.noGoal}">${Engine.copy.NO_GOAL}</button></div></section>
@@ -620,21 +721,22 @@ V.profile=()=>{
    <section><div class="hd"><h2 class="h3">Mon approche</h2></div>
      <div class="rowlink" style="border-top:1px solid var(--line)"><div class="grow"><b>Privilégier une approche douce</b><span class="s">Actifs doux, hydratation, barrière et protection solaire d'abord</span></div><button class="c-switch" role="switch" aria-checked="${state.gentle}" data-act="gentle" aria-label="Privilégier une approche douce"></button></div>
      ${exclusionsSection()}
-     <p class="muted" style="margin-top:12px">Ma routine est recalculée automatiquement lorsque je modifie ces préférences. Elles ne sont pas enregistrées définitivement pour l'instant.</p>
+     <p class="muted" style="margin-top:12px">Ma routine est recalculée automatiquement lorsque je modifie ces préférences. ${signedIn()?`Elles sont enregistrées avec votre compte.`:state.account.status===`visitor`?`Créez un compte pour les retrouver sur vos prochains appareils.`:`Elles ne sont pas enregistrées définitivement pour l'instant.`}</p>
      ${none?``:`<div style="margin-top:12px"><p style="color:var(--ink);margin-bottom:10px">${engineFor(SCANS[state.latest]).routinePlan.summary}</p><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></div>`}</section>
    <section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
    <button class="rowlink" data-go="privacy">${ic(`shield`)}<div class="grow"><b>Confidentialité et données</b><span class="s">Photos, historique, compte</span></div>${ic(`chev`)}</button>
    ${DEMO_MODE?`<button class="rowlink" data-act="pick-photo">${ic(`image`)}<div class="grow"><b>Photo de démonstration</b><span class="s">${photoSrc()?`Importée. Touchez pour la remplacer.`:`Importer une image générée par IA (personne fictive)`}</span></div>${ic(`chev`)}</button>${state.photo?`<button class="rowlink" data-act="clear-photo">${ic(`trash`)}<div class="grow"><b>Retirer la photo de démonstration</b></div></button>`:``}`:``}
-   <button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div></button>
-   <button class="rowlink" data-go="landing" data-reset="1">${ic(`out`)}<div class="grow"><b>Se déconnecter</b></div></button></section>
+   ${accountOn()?``:`<button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div></button>
+   <button class="rowlink" data-go="landing" data-reset="1">${ic(`out`)}<div class="grow"><b>Se déconnecter</b></div></button>`}</section>
    <p class="muted">DERMAI, maquette v2. ${DEMO_MODE?`Données fictives.`:``}</p>
   </div></div>`);
 };
 V.privacy=()=>shell(`<div class="pagehead"><h1>Confidentialité</h1><p style="color:var(--ink);font-size:18px">Vos photos sont utilisées pour analyser votre peau.</p></div>
   <div class="grid2"><div class="col">
-   <section><ul class="l-list" style="margin-top:0"><li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li></ul></section>
+   <section><ul class="l-list" style="margin-top:0">${DEMO_MODE?`<li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li>`
+     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil, et vos analyses ne sont pas conservées d'une session à l'autre.</span></li>`}</ul></section>
    <section>${sw(`keep`,`Conserver mes photos`,`Pour comparer avant et maintenant`)}</section>
   </div><div class="col"><section><div class="hd"><h2 class="h3">Gérer mes données</h2></div>
    <button class="rowlink" data-act="confirm" data-v="photos" style="border-top:1px solid var(--line)">${ic(`camera`)}<div class="grow"><b>Supprimer mes photos</b><span class="s">Les analyses restent disponibles</span></div>${ic(`chev`)}</button>
@@ -650,7 +752,7 @@ const CONFIRMS={
 
 /* ---------- 5. NAVIGATION ET ACTIONS ---------- */
 let timers=[],anTok=0;
-const NOSTACK=new Set([`scan`,`analyzing`,`signup`,`welcome`,`onb`]);
+const NOSTACK=new Set([`scan`,`analyzing`,`signup`,`login`,`welcome`,`onb`]);
 function go(route,param=null,{reset=false,replace=false,keepScan=false}={}){
   anTok++;timers.forEach(clearTimeout);timers=[];closeSheet();
   if(reset)state.stack=[];
@@ -809,9 +911,11 @@ function act(a,v,el){
     case `close`:closeSheet();break;
     case `scroll`:document.getElementById(v).scrollIntoView({behavior:`smooth`});break;
     case `signup`:{const n=document.getElementById(`f-name`),m=document.getElementById(`f-mail`);state.user.name=(n&&n.value.trim())||(DEMO_MODE?`Amina`:``);state.user.email=(m&&m.value.trim())||(DEMO_MODE?`amina@exemple.com`:``);go(`welcome`);break}
-    case `goal`:{const r=Engine.toggleGoal(state.goals,v);state.goals=r.goals;if(v===`none`)state.noGoal=true;else if(!r.limited)state.noGoal=false;if(r.limited)toast(Engine.copy.GOAL_LIMIT);render(true);break}
-    case `level`:state.level=v;render(true);break;
-    case `gentle`:state.gentle=!state.gentle;render(true);break;
+    case `goal`:{const r=Engine.toggleGoal(state.goals,v);state.goals=r.goals;if(v===`none`)state.noGoal=true;else if(!r.limited)state.noGoal=false;if(r.limited)toast(Engine.copy.GOAL_LIMIT);render(true);if(!r.limited)persist();break}
+    case `level`:state.level=v;render(true);persist();break;
+    case `gentle`:state.gentle=!state.gentle;render(true);persist();break;
+    case `logout`:logout();break;
+    case `retry-save`:persist();break;
     case `cat`:if(v===`none`)state.cats=state.cats.includes(`none`)?[]:[`none`];else{state.cats=state.cats.filter(c=>c!==`none`);toggle(state.cats,v)}render(true);break;
     case `finish-onb`:go(`home`,null,{reset:true});break;
     case `scan-start`:state.scanStep=1;render();scrollTo(0,0);break;
@@ -844,5 +948,7 @@ document.addEventListener(`change`,e=>{
   const k=e.target.dataset&&e.target.dataset.change;if(!k)return;
   state[k]=Number(e.target.value);render(true);
 });
+document.addEventListener(`submit`,e=>{const f=e.target&&e.target.dataset&&e.target.dataset.form;if(!f||!ACCOUNT)return;e.preventDefault();submitAuth(f,e.target)});
 document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
 render();
+bootAccount();

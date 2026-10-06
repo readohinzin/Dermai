@@ -38,4 +38,12 @@ const isDebugRawEnabled = (env = process.env) => flag(env.DERMAI_DEBUG_RAW);
    (variable absente, vide ou inconnue = démo). Lu à chaque requête de /api/config-js, par environnement Vercel. */
 const isDemoMode = (env = process.env) => !['false', '0', 'no', 'off'].includes(String(env.DERMAI_DEMO_MODE || '').trim().toLowerCase());
 
-module.exports = { isDemoMode, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
+/* Comptes (Supabase Auth). Seules deux variables PUBLIQUES sont exposées au navigateur : l'URL du projet et la clé « anon ».
+   La clé service_role et tout autre secret ne sont jamais lus ici. Sans configuration valide, les comptes sont simplement indisponibles. */
+const publicSupabase = (env = process.env) => {
+  const url = String(env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  const anonKey = String(env.SUPABASE_ANON_KEY || '').trim();
+  return /^https:\/\/[^/\s]+$/.test(url) && anonKey ? { supabaseUrl: url, supabaseAnonKey: anonKey } : null;
+};
+
+module.exports = { isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
