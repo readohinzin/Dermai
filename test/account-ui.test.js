@@ -70,7 +70,7 @@ test('U6 déconnexion et changement de compte : tout l\'état privé est réinit
 });
 
 test('U7 échec de sauvegarde : message humain, jamais « enregistrées » après un échec', () => {
-  assert.match(app, /if\(!r\.ok\)\{state\.save=\{status:`error`,message:r\.error\}/);
+  assert.match(app, /if\(!r\.ok\)\{if\(r\.error===DermaiAccount\.MSG\.sessionExpired\)\{expireSession\(\);break\}state\.save=\{status:`error`,message:r\.error\}/);
   assert.match(app, /Préférences enregistrées\./);
   assert.match(app, /Enregistrement…/);
   assert.match(app, /Chargement de votre profil…/);
@@ -93,4 +93,10 @@ test('U9 pas de fournisseur social ni d\'auth maison en mode réel ; démo incha
 
 test('U10 la suppression de compte factice n\'est plus proposée lorsque les comptes sont actifs', () => {
   assert.match(app, /\$\{accountOn\(\)\?``:`<button class="rowlink" data-act="confirm" data-v="account">/);
+});
+
+test('U11 session expirée : retour visiteur, état privé effacé, invitation à se reconnecter', () => {
+  assert.match(app, /function expireSession\(\)\{[\s\S]*resetPrivateState\(\);go\(`login`/);
+  assert.match(app, /r\.error===DermaiAccount\.MSG\.sessionExpired\)\{expireSession\(\)/);
+  assert.match(app, /else if\(r\.error===DermaiAccount\.MSG\.sessionExpired\)\{expireSession\(\)\}/);
 });

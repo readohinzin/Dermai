@@ -62,6 +62,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       if (body && body.user_id && body.user_id !== t.sub) return resp(403, { code: '42501', message: 'new row violates row-level security policy for table "profiles"' });
       if (!valid(body)) return resp(400, { code: '23514', message: 'violates check constraint' });
       if (method === 'PATCH') {
+        if (!u.search) return resp(400, { code: '21000', message: 'UPDATE requires a WHERE clause' });   // comme le vrai service (extension safeupdate)
         if (!own) return resp(200, []);
         Object.assign(own, body, { updated_at: clock }); return resp(200, [own]);
       }

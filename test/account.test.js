@@ -42,6 +42,7 @@ test('A3 le navigateur n\'envoie jamais user_id, ni rôle, ni identifiant : la b
   const writes = fake.log.filter(l => l.path.startsWith('/rest') && l.body);
   assert.ok(writes.length > 0);
   for (const w of writes) assert.deepEqual(Object.keys(w.body).sort(), ['exclusions', 'goals', 'prefer_gentle', 'routine_level'], JSON.stringify(w.body));
+  assert.ok(fake.log.some(l => l.method === 'PATCH' && l.path === '/rest/v1/profiles?id=not.is.null'), 'UPDATE avec une condition, sans identifiant d\'utilisateur');
   for (const l of fake.log) { assert.doesNotMatch(l.path, /user_id/); assert.ok(!/service_role/i.test(JSON.stringify(l.headers))); assert.equal(l.headers.apikey, KEY); }
 });
 

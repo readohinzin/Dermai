@@ -168,6 +168,12 @@ function resetPrivateState(){
   if(!DEMO_MODE){SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;clearReal()}
 }
 const softStatus=()=>{const el=document.getElementById(`saveStatus`);if(el)el.textContent=state.save.message};
+/* Session invalide ou expirée (jeton refusé et non renouvelable) : retour visiteur, plus aucune donnée du compte, invitation à se reconnecter. */
+function expireSession(){
+  authEpoch++;ACCOUNT.signOut();
+  state.account.status=`visitor`;state.account.email=``;state.account.loading=false;state.account.error=``;state.account.info=DermaiAccount.MSG.sessionExpired;
+  resetPrivateState();go(`login`,null,{reset:true});
+}
 let saving=false,pendingSave=false;
 async function persist(){
   if(!ACCOUNT||!signedIn())return;
@@ -178,7 +184,7 @@ async function persist(){
     pendingSave=false;
     const r=await ACCOUNT.saveProfile(profileForSave());
     if(epoch!==authEpoch||!signedIn())break;                       // déconnexion ou changement de compte pendant l'enregistrement
-    if(!r.ok){state.save={status:`error`,message:r.error};softStatus();toast(r.error);break}
+    if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();break}state.save={status:`error`,message:r.error};softStatus();toast(r.error);break}
     state.save={status:pendingSave?`saving`:`saved`,message:pendingSave?`Enregistrement…`:`Préférences enregistrées.`};softStatus();
   }while(pendingSave);
   saving=false;
@@ -192,6 +198,7 @@ async function enterSession(user,fresh){
   if(epoch!==authEpoch)return;
   state.account.loading=false;
   if(r.ok){if(r.profile)applyProfile(r.profile);else applyProfile({});state.save={status:`idle`,message:``}}
+  else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession()}
   else{state.save={status:`error`,message:r.error}}
 }
 async function bootAccount(arrivedWithoutPage){

@@ -165,10 +165,12 @@
       return { ok: true, profile: row ? fromRow(row) : null };
     }
 
-    /* Mise à jour de la ligne de l'utilisateur (RLS la limite à la sienne) ; création si elle n'existe pas encore. */
+    /* Mise à jour de la ligne de l'utilisateur ; création si elle n'existe pas encore. Supabase refuse un UPDATE sans condition (« WHERE ») :
+       `id=not.is.null` n'en est qu'une formalité, c'est la RLS qui limite la requête à la seule ligne de l'utilisateur connecté.
+       Aucun identifiant d'utilisateur n'est envoyé. */
     async function saveProfile(profile) {
       const row = toRow(profile);
-      let r = await authed('/rest/v1/profiles', { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(row) });
+      let r = await authed('/rest/v1/profiles?id=not.is.null', { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(row) });
       if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
       if (r.network || !r.ok) return { ok: false, error: MSG.saveFailed };
       if (Array.isArray(r.body) && r.body.length === 0) {
