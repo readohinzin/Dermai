@@ -9,10 +9,21 @@ process.env.DERMAI_ANALYSIS_ENABLED = '1';   // verrou ouvert pour les tests ; l
 const perfectcorp = require('../server/perfectcorp');
 const handler = require('../api/skin-analysis.js');
 
+/* Depuis l'étape 11.1, /api/skin-analysis exige une session Supabase valide (vérifiée auprès de Supabase : ici un faux GoTrue en mémoire).
+   Ces tests de validation, de verrou et de résultat s'exécutent donc en tant qu'utilisateur connecté ; les refus sans session sont dans
+   analysis-auth.test.js. */
+const auth = require('../server/auth');
+const { createFake } = require('./helpers/fake-supabase.js');
+process.env.SUPABASE_URL = 'https://demo.supabase.co'; process.env.SUPABASE_ANON_KEY = 'public-anon-key';
+const FAKE_SB = createFake(); auth.api.fetchImpl = FAKE_SB.fetch;
+const TEST_TOKEN = 'aaaaaaaa.bbbbbbbb.cccccccc';
+FAKE_SB.users.set('t@exemple.com', { id: '11111111-1111-4111-8111-111111111111', email: 't@exemple.com', password: 'x', confirmed: true });
+FAKE_SB.tokens.set(TEST_TOKEN, { sub: '11111111-1111-4111-8111-111111111111', exp: Number.MAX_SAFE_INTEGER });
+
 function call(method, headers, data) {
   return new Promise(resolve => {
     const req = Readable.from(data ? [data] : []);
-    req.method = method; req.headers = headers;
+    req.method = method; req.headers = Object.assign({ authorization: 'Bearer ' + TEST_TOKEN }, headers);
     const res = { setHeader() {}, end(b) { resolve({ status: this.statusCode, body: JSON.parse(b) }); } };
     handler(req, res);
   });

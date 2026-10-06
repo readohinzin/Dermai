@@ -260,7 +260,15 @@
       return { ok: true };
     }
 
-    return { available, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, saveAnalysis, listAnalyses, deleteAnalyses,
+    /* Jeton d'accès de la session (rafraîchi s'il est sur le point d'expirer) pour appeler le backend DERMAI ; null sans session.
+       Le serveur le vérifie auprès de Supabase : le navigateur ne prouve rien par lui-même. */
+    async function accessToken() {
+      if (!available || !session) return null;
+      if (session.expires_at - now() <= REFRESH_MARGIN_S) await refresh();
+      return session ? session.access_token : null;
+    }
+
+    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, saveAnalysis, listAnalyses, deleteAnalyses,
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 

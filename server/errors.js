@@ -25,6 +25,8 @@ const MESSAGES = {
   TASK_ERROR: 'L\'analyse n\'a pas pu être terminée.',
   TIMEOUT: 'L\'analyse prend trop de temps. Veuillez réessayer.',
   ANALYSIS_DISABLED: 'L\'analyse n\'est pas disponible pour le moment.',
+  AUTH_REQUIRED: 'Connectez-vous pour analyser votre peau.',
+  AUTH_UNAVAILABLE: 'Impossible de vérifier votre connexion pour le moment. Réessayez.',
   RESULT_NOT_FOUND: 'L\'analyse n\'a pas pu être terminée.',
   RESULT_INVALID: 'L\'analyse n\'a pas pu être terminée.',
   RESULT_AMBIGUOUS: 'L\'analyse n\'a pas pu être terminée.',

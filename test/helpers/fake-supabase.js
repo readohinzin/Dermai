@@ -16,10 +16,10 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
   const refresh = new Map();          // refresh_token -> sub
   let n = 0, clock = 1_800_000_000;
   const log = [];
-  const state = { now: () => clock, advance: s => { clock += s; }, failNetwork: false, failRest: false, failAuth: false, failAnalyses: false, failAnalysesOnce: 0 };
+  const state = { now: () => clock, advance: s => { clock += s; }, failNetwork: false, failRest: false, failAuth: false, failAnalyses: false, failAnalysesOnce: 0, failAuthUser: false };
   const resp = (status, body) => ({ ok: status >= 200 && status < 300, status, text: async () => (body === undefined ? '' : JSON.stringify(body)) });
   const mkSession = u => {
-    const access = 'at-' + (++n), rt = 'rt-' + (++n);
+    const access = 'at-' + (++n) + '.pl-' + n + '.sg-' + n, rt = 'rt-' + (++n);
     tokens.set(access, { sub: u.id, exp: clock + ttl }); refresh.set(rt, u.id);
     return { access_token: access, refresh_token: rt, expires_in: ttl, expires_at: clock + ttl, token_type: 'bearer', user: { id: u.id, email: u.email } };
   };
@@ -52,6 +52,13 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       if (!sub) return resp(400, { error_code: 'refresh_token_not_found', msg: 'Invalid Refresh Token' });
       refresh.delete(body.refresh_token);
       return resp(200, mkSession([...users.values()].find(x => x.id === sub)));
+    }
+    if (u.pathname === '/auth/v1/user') {                                              // vérification d'un jeton (GoTrue : GET /user)
+      if (state.failAuthUser) return resp(500, { message: 'internal db trace' });
+      const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
+      if (!t || t.exp <= clock) return resp(401, { code: 401, error_code: 'bad_jwt', msg: 'invalid JWT' });
+      const user = [...users.values()].find(x => x.id === t.sub);
+      return resp(200, { id: user.id, email: user.email, aud: 'authenticated', role: 'authenticated' });
     }
     if (u.pathname === '/auth/v1/logout') {
       const t = (h.authorization || '').replace('Bearer ', ''); tokens.delete(t); return resp(204);

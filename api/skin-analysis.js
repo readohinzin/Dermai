@@ -2,6 +2,7 @@
 const { readBody, validateImage } = require('../server/validation');
 const { AnalysisError, toUserMessage } = require('../server/errors');
 const perfectcorp = require('../server/perfectcorp');
+const auth = require('../server/auth');
 const { isAnalysisEnabled, isDebugRawEnabled } = require('../server/config');
 const { describeStructure } = require('../server/structure');
 /* Module partagé avec le navigateur (js/skin-model.js) : localise le résultat et ne garde que les champs autorisés. */
@@ -22,6 +23,16 @@ async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return send(res, 405, { ok: false, error: toUserMessage('METHOD_NOT_ALLOWED') });
+  }
+  /* Authentification d'abord : seule une session Supabase valide (vérifiée auprès de Supabase) peut déclencher une analyse. Refus AVANT toute lecture
+     du corps, toute validation de photo et tout appel à Perfect Corp, y compris verrou ouvert. L'état du verrou n'est donc jamais révélé à un anonyme. */
+  try {
+    await auth.verifyUser(req);
+  } catch (err) {
+    const e = err instanceof AnalysisError ? err : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: err });
+    console.warn('[DERMAI] Skin analysis refused:', e.code);
+    if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
+    return send(res, e.status, { ok: false, error: toUserMessage(e.code) });
   }
   /* Verrou : désactivé par défaut, aucune photo n'est lue ni envoyée tant qu'il n'est pas activé. */
   if (!isAnalysisEnabled()) {
