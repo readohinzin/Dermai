@@ -117,7 +117,7 @@
   const OFFER_TYPE_LABELS = { brand_site: 'Site de la marque', retailer: 'Revendeur en ligne', pharmacy: 'Pharmacie en ligne', marketplace: 'Place de marché', importer: 'Importateur ou distributeur' };
   const OFFER_TEXTS = {
     neutral: 'Options d\'achat en ligne. La disponibilité et la livraison dépendent de votre pays.',
-    international: 'Disponible en ligne : livraison selon votre pays (frais et douane possibles).',
+    international: 'Livraison internationale annoncée par le vendeur : livraison selon votre pays, à vérifier lors de la commande (frais et douane possibles).',
     marketplace: 'Annonce d\'une place de marché : le vendeur est un tiers, DERMAI ne garantit pas l\'authenticité du produit.',
     none: 'Aucune offre vérifiée pour le moment.',
     priceToCheck: 'Prix à vérifier'
