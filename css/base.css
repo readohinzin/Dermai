@@ -5,6 +5,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 [hidden]{display:none!important}
 :where(button,[role="button"],a,input,select,textarea,summary):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .u-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  html:not([data-motion]) *,html:not([data-motion]) *::before,html:not([data-motion]) *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }

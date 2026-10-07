@@ -4,8 +4,8 @@
 .hc-wrap{padding:0 0 56px}
 .hc{position:relative;isolation:isolate}
 .hc-stage{display:grid}
-.hc-slide{grid-area:1/1;position:relative;overflow:hidden;min-width:0;opacity:0;visibility:hidden;transition:opacity .9s ease,visibility 0s linear .9s}
-.hc-slide.is-active{opacity:1;visibility:visible;transition:opacity .9s ease,visibility 0s}
+.hc-slide{grid-area:1/1;position:relative;overflow:hidden;min-width:0;opacity:0;visibility:hidden;transition:opacity .6s ease,visibility 0s linear .6s}
+.hc-slide.is-active{opacity:1;visibility:visible;transition:opacity .3s ease,visibility 0s}
 
 /* Thèmes de fond */
 .hc-t-rose{--g1:#FDE9EC;--g2:#F7CBD3;--g3:#FFD9B8}
@@ -16,8 +16,8 @@
 .hc-bg i{position:absolute;border-radius:50%;filter:blur(64px);opacity:.8}
 .hc-bg i:nth-child(1){width:min(46vw,620px);height:min(46vw,620px);min-width:260px;min-height:260px;right:-8%;top:-14%;background:var(--g3)}
 .hc-bg i:nth-child(2){width:min(38vw,520px);height:min(38vw,520px);min-width:220px;min-height:220px;left:-10%;bottom:-22%;background:color-mix(in srgb,var(--g2) 55%,#fff)}
-.hc-slide.is-active .hc-bg i:nth-child(1){animation:hcFloat 16s ease-in-out infinite alternate}
-.hc-slide.is-active .hc-bg i:nth-child(2){animation:hcFloat 19s -6s ease-in-out infinite alternate-reverse}
+.hc-slide.is-active .hc-bg i:nth-child(1){animation:hcFloat 9s ease-in-out infinite alternate}
+.hc-slide.is-active .hc-bg i:nth-child(2){animation:hcFloat 11s -4s ease-in-out infinite alternate-reverse}
 
 /* Mise en page : texte puis portrait sur mobile, deux colonnes sur grand écran. La place des commandes (points, pause, mention) est réservée en bas. */
 .hc-in{position:relative;z-index:1;display:grid;gap:6px;max-width:1180px;margin:0 auto;padding:22px 20px 76px;box-sizing:border-box}
@@ -56,9 +56,9 @@
 /* Diapositive 1 : cadre de détection, anneau de suivi, points et balayage */
 .hc-ring{transform-origin:505px 520px}
 .hc-slide.is-active .hc-brk path{animation:hcDraw 1s .5s backwards}
-.hc-slide.is-active .hc-ring{animation:hcSpin 11s linear infinite,hcFade .8s .6s backwards}
+.hc-slide.is-active .hc-ring{animation:hcSpin 6s linear infinite,hcFade .8s .6s backwards}
 .hc-slide.is-active .hc-dots{animation:hcDots 2.6s ease-in-out infinite}
-.hc-slide.is-active .hc-sweep{animation:hcSweep 3s ease-in-out infinite}
+.hc-slide.is-active .hc-sweep{animation:hcSweep 2.2s ease-in-out infinite}
 .hc-dots{opacity:.5}
 
 /* Diapositive 2 : scores par zone (bulles à anneau de progression) */
@@ -123,7 +123,7 @@
 @keyframes hcFade{from{opacity:0}to{opacity:1}}
 @keyframes hcPop{from{opacity:0;transform:translate(-50%,-50%) scale(.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @keyframes hcChip{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
-@keyframes hcFloat{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-4%,5%,0) scale(1.12)}}
+@keyframes hcFloat{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-14%,16%,0) scale(1.32)}}
 @keyframes hcDraw{from{stroke-dasharray:1;stroke-dashoffset:1}to{stroke-dasharray:1;stroke-dashoffset:0}}
 @keyframes hcSpin{to{transform:rotate(360deg)}}
 @keyframes hcDots{0%,100%{opacity:.18}50%{opacity:.72}}
@@ -134,11 +134,11 @@
 
 /* Parallaxe : le pointeur (grand écran) et le défilement déplacent des plans à des vitesses différentes. Variables posées par js/motion.js ; propriété `translate`,
    indépendante des animations `transform` ci-dessus. Sans pointeur fin ou avec « moins d'animations », les variables restent à zéro. */
-.hc-pic{translate:calc(var(--px,0) * 12px) calc(var(--py,0) * 8px);transition:translate .5s cubic-bezier(.2,.8,.2,1)}
-.hc-b,.hc-act,.hc-prog,.hc-chips{translate:calc(var(--px,0) * 22px) calc(var(--py,0) * 14px);transition:translate .6s cubic-bezier(.2,.8,.2,1)}
-.hc-bg i{translate:calc(var(--px,0) * -34px) calc(var(--py,0) * -22px + var(--sy,0) * 60px);transition:translate .8s cubic-bezier(.2,.8,.2,1)}
-.hc-art{translate:0 calc(var(--sy,0) * -34px)}
-.hc-copy{translate:0 calc(var(--sy,0) * -16px);opacity:calc(1 - var(--sy,0) * .55)}
+.hc-pic{translate:calc(var(--px,0) * 26px) calc(var(--py,0) * 16px);transition:translate .5s cubic-bezier(.2,.8,.2,1)}
+.hc-b,.hc-act,.hc-prog,.hc-chips{translate:calc(var(--px,0) * 46px) calc(var(--py,0) * 28px);transition:translate .6s cubic-bezier(.2,.8,.2,1)}
+.hc-bg i{translate:calc(var(--px,0) * -80px) calc(var(--py,0) * -50px + var(--sy,0) * 110px);transition:translate .8s cubic-bezier(.2,.8,.2,1)}
+.hc-art{translate:0 calc(var(--sy,0) * -70px)}
+.hc-copy{translate:0 calc(var(--sy,0) * -40px);opacity:calc(1 - var(--sy,0) * .7)}
 
 /* Trio de visages de l'accueil (section « Deux peaux ne se ressemblent pas ») : pastilles rondes qui se chevauchent, chacune sur son dégradé pastel. */
 .faces{display:flex;margin:0 0 22px;padding-left:4px}
@@ -149,3 +149,14 @@
 .fc--2{background:linear-gradient(135deg,#EFE7F8,#D9CBF0)}
 .fc--3{background:linear-gradient(135deg,#FDF0DC,#F6D0B5)}
 @media (hover:hover){.fc:hover{transform:translateY(-6px) scale(1.05)}}
+
+/* Ambiance permanente de la bannière (grand écran comme mobile) : le fond s'ouvre en cercle à chaque diapositive, le visage respire, les bulles pulsent, un projecteur suit le pointeur */
+.hc-slide.is-active .hc-bg{animation:hcWipe 1.2s cubic-bezier(.7,0,.2,1) both}
+@keyframes hcWipe{from{clip-path:circle(0% at 78% 55%)}to{clip-path:circle(150% at 78% 55%)}}
+.hc-slide.is-active .hc-pic img{animation:hcBreathe 6s ease-in-out infinite}
+@keyframes hcBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+.hc-slide.is-active .hc-b{animation:hcPop .6s calc(.35s + var(--d) * .13s) both cubic-bezier(.2,1.5,.4,1),hcPulse 3.4s calc(1.4s + var(--d) * .45s) ease-in-out infinite}
+@keyframes hcPulse{0%,100%{scale:1}50%{scale:1.12}}
+.hc-slide.is-active .hc-chip.is-on{animation:hcChipBounce 1.5s ease-in-out infinite}
+@keyframes hcChipBounce{0%,100%{translate:0 0}50%{translate:0 -7px}}
+.hc::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(460px circle at var(--mx,70%) var(--my,40%),rgba(255,255,255,.6),transparent 62%);opacity:var(--so,0);transition:opacity .5s ease}

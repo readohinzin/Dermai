@@ -18,7 +18,7 @@ test('M1 règles : chaque page animée a ses règles, chaque effet est connu, le
   for (const [route, rules] of Object.entries(Motion.RULES)) for (const [sel, effect, o] of rules) {
     assert.ok(Motion.ATTR[effect], `${route} : effet inconnu ${effect}`);
     assert.ok(typeof sel === 'string' && sel.length > 2);
-    if (o) for (const k of Object.keys(o)) assert.ok(['stagger', 'step', 'max', 'delay'].includes(k), k);
+    if (o) for (const k of Object.keys(o)) assert.ok(['stagger', 'step', 'max', 'delay', 'f'].includes(k), k);
     for (const m of sel.matchAll(/\.([a-z][\w-]*)/g)) classes.add(m[1]);
   }
   // chaque classe visée existe dans le balisage de l'application (une règle qui ne vise plus rien est une règle morte)
@@ -49,16 +49,19 @@ test('M3 sécurité : rien n\'est caché sans script ; aucun état de départ ho
   }
   assert.match(css, /\.m-on \[data-m\]\{opacity:0/);
   const js = strip(read('js/motion.js'));
-  assert.match(js, /if \(reduced \|\| typeof IntersectionObserver !== 'function'\) return ctl;/, 'mouvement réduit ou navigateur ancien : on n\'installe rien (et la classe m-on n\'est jamais posée)');
+  assert.match(js, /if \(reducedNow \|\| typeof IntersectionObserver !== 'function'\) return ctl;/, 'mouvement réduit ou navigateur ancien : on n\'installe rien (et la classe m-on n\'est jamais posée)');
   assert.ok(js.indexOf("html.classList.add('m-on')") > js.indexOf('return ctl;'), 'm-on n\'est posé qu\'après la sortie anticipée');
   assert.match(js, /fallback = setTimeout/, 'filet de sécurité : rien ne reste caché');
-  assert.doesNotMatch(js, /fetch\(|XMLHttpRequest|localStorage|eval\(|innerHTML\s*=|document\.write/, 'aucun réseau, aucun stockage, aucune injection');
+  assert.doesNotMatch(js, /fetch\(|XMLHttpRequest|eval\(|innerHTML\s*=|document\.write/, 'aucun réseau, aucune injection');
+  // seul stockage : la préférence d'animations, dans le navigateur, sous try/catch, jamais envoyée
+  assert.equal((js.match(/localStorage/g) || []).length, 3); assert.match(js, /const KEY = 'dermai\.motion';/);
+  assert.match(js, /const getPref = \(\) => \{ try \{ const v = localStorage\.getItem\(KEY\)/); assert.match(js, /const setPref = v => \{ try \{/);
   assert.doesNotMatch(css, /width\s*:\s*\d+px\s*;[^}]*transition|transition[^};]*\b(width|height|top|left|margin|padding)\b/, 'jamais de transition sur une propriété qui force la mise en page');
 });
 
 test('M4 performance : seuls transform, opacity, translate, stroke-dashoffset sont animés ; will-change réservé aux éléments en attente', () => {
   const css = strip(read('css/components/motion.css'));
-  for (const m of css.matchAll(/transition:([^;}]+)/g)) for (const part of m[1].split(/,(?![^()]*\))/)) { const prop = part.trim().split(/\s+/)[0]; assert.ok(['transform', 'opacity', 'translate', 'stroke-dashoffset', 'box-shadow', 'background-color', 'border-color'].includes(prop), 'propriété animée : ' + prop); }
+  for (const m of css.matchAll(/transition:([^;}]+)/g)) for (const part of m[1].split(/,(?![^()]*\))/)) { const prop = part.trim().split(/\s+/)[0]; assert.ok(['transform', 'opacity', 'translate', 'rotate', 'stroke-dashoffset', 'box-shadow', 'background-color', 'border-color'].includes(prop), 'propriété animée : ' + prop); }
   const wc = [...css.matchAll(/will-change:[^;}]+/g)].map(m => m[0]);
   assert.deepEqual(wc, ['will-change:opacity,transform'], 'will-change : un seul usage, sur [data-m] avant l\'effet');
   assert.match(read('js/motion.js'), /el\.removeAttribute\('data-m'\)/, 'l\'attribut (donc will-change) est retiré après l\'effet');
@@ -83,13 +86,48 @@ test('M6 branchement : scripts dans l\'ordre, rendu → scan, re-rendu conservé
   assert.match(styles, /@import url\("components\/motion\.css"\) layer\(components\);/);
   assert.match(app, /after\(!!keep\);/); assert.match(app, /function after\(keep\)\{/);
   assert.match(app, /motionCtl\.scan\(\$app,\{route:state\.route,key:state\.route\+`:`\+\(state\.param==null\?``:state\.param\),keep:!!keep\}\)/);
-  assert.match(app, /DermaiMotion\.init\(\{reduced:!!\(window\.matchMedia&&matchMedia\(`\(prefers-reduced-motion: reduce\)`\)\.matches\)\}\)/);
+  assert.match(app, /DermaiMotion\.init\(\{reduced:DermaiMotion\.reduced\(\)\}\)/);
   const js = read('js/motion.js');
-  assert.match(js, /if \(o\.keep && o\.key === lastKey && played\) return;/);
+  assert.match(js, /if \(o\.keep && o\.key === lastKey && played\) \{ kick\(\); return; \}/);
 });
 
 test('M7 aucun défilement horizontal causé par les éléments en attente d\'apparition', () => {
   const css = read('css/components/motion.css');
   assert.match(css, /\.m-on #app\{overflow-x:clip\}/);
-  assert.match(css, /\[data-m=left\]\{transform:translateX\(-28px\)\}/); assert.match(css, /\[data-m=right\]\{transform:translateX\(28px\)\}/);
+  assert.match(css, /\[data-m=left\]\{transform:translateX\(-64px\)\}/); assert.match(css, /\[data-m=right\]\{transform:translateX\(64px\)\}/);
+});
+
+test('M8 préférence d\'animations : Automatique suit le système, Activées le contourne, Réduites coupe ; CSS fondé sur data-motion ; interrupteur sur l\'accueil et le profil', () => {
+  assert.equal(Motion.isReduced('auto', true), true); assert.equal(Motion.isReduced('auto', false), false);
+  assert.equal(Motion.isReduced('on', true), false, '« Activées » contourne le réglage du système (PC aux effets Windows coupés)');
+  assert.equal(Motion.isReduced('off', false), true);
+  const legacy = read('css/legacy.css'), base = read('css/base.css');
+  for (const css of [legacy, base]) {
+    assert.match(css, /html\[data-motion="reduce"\] \*/);
+    assert.match(css, /@media \(prefers-reduced-motion:reduce\)\{[\s\S]*html:not\(\[data-motion\]\)/, 'sans script, le réglage du système s\'applique encore');
+    assert.doesNotMatch(css.replace(/html:not\(\[data-motion\]\)[^}]*\}/g, '').replace(/html\[data-motion="reduce"\][^}]*\}/g, ''), /@media \(prefers-reduced-motion:reduce\)\{\s*\*/, 'plus de règle globale directe sur le réglage du système');
+  }
+  const app = read('js/app.js');
+  assert.match(app, /const motionPrefUI=\(\)=>/); assert.equal((app.match(/\$\{motionPrefUI\(\)\}/g) || []).length, 2, 'accueil et profil');
+  for (const v of ['auto', 'on', 'off']) assert.match(app, new RegExp('b\\(`' + v + '`'));
+  assert.match(app, /case `motion-pref`:DermaiMotion\.setPref\(v\);DermaiMotion\.apply\(\)/);
+  assert.match(app, /Choisissez « Activées » pour les voir/);
+});
+
+test('M9 amplitude : les mouvements sont perceptibles (décalages et durées minimaux) et l\'ambiance est permanente', () => {
+  const css = read('css/components/motion.css'), hero = read('css/components/hero.css');
+  const px = re => Math.abs(+css.match(re)[1]);
+  assert.ok(px(/\[data-m=rise\]\{transform:translateY\((-?\d+)px\)/) >= 56 && px(/\[data-m=left\]\{transform:translateX\((-?\d+)px\)/) >= 56);
+  assert.match(css, /@keyframes rise\{from\{opacity:0;transform:translateY\(54px\)/, 'l\'entrée de page historique (14 px) est remplacée');
+  assert.match(css, /\.w>span\{display:inline-block\}/); assert.match(css, /@keyframes mqScroll/);
+  for (const re of [/hcWipe/, /hcBreathe/, /hcPulse/, /hcChipBounce/, /\.hc::after\{[^}]*radial-gradient/]) assert.match(hero, re);
+  assert.match(hero, /hcFloat 9s/);                       // fonds vivants, rapides
+  assert.match(css, /\.pgrid,\.hc-art\{perspective:1100px\}/);
+  assert.ok(Motion.RULES.landing.some(r => r[1] === 'words') && Motion.RULES.landing.some(r => r[1] === 'par'));
+});
+
+test('M10 l\'interrupteur d\'animations ne déborde jamais d\'un petit écran', () => {
+  const css = read('css/components/motion.css');
+  assert.match(css, /\.motion-pref \.c-seg\{display:flex;flex-wrap:wrap;[^}]*max-width:26rem\}/);
+  assert.match(css, /\.motion-pref \.c-seg__btn\{flex:1 1 auto;min-width:0/);
 });

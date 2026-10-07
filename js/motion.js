@@ -21,7 +21,7 @@
   const COMMON = [['.gchart .gl-line', 'draw'], ['.gchart .gl-dot', 'dot', { stagger: 1, step: 140, delay: 700 }], ['.gchart .gv', 'fade', { stagger: 1, step: 140, delay: 800 }]];
   const RULES = {
     landing: [
-      ['.sec h2', 'rise'], ['.sec .wrap > p, .two > div > p', 'rise', { delay: 90 }],
+      ['.sec h2', 'words'], ['.sec .wrap > p, .two > div > p', 'rise', { delay: 250 }], ['.facebox', 'par', { f: 0.22 }], ['.faces', 'par', { f: -0.14 }], ['.two .c-card', 'par', { f: 0.12 }],
       ['.steps3 .s', 'rise', { stagger: 1, step: 140 }], ['.steps3 .num', 'pop', { stagger: 1, step: 140, delay: 200 }],
       ['.plist > div', 'left', { stagger: 1, step: 55, max: 9 }],
       ['.two .c-card', 'scale'], ['.faces .fc', 'pop', { stagger: 1, step: 150 }], ['.two .facebox', 'right'], ['.facebox', 'zones'],
@@ -39,11 +39,32 @@
     home: [['.skin-now', 'rise'], ['.c-score__value', 'count']].concat(COMMON),
     analyses: [['.rowlink', 'left', { stagger: 1, step: 80 }]]
   };
-  const ATTR = { rise: 'm', left: 'm', right: 'm', scale: 'm', pop: 'm', fade: 'm', count: 'mx', bar: 'mx', draw: 'mx', dot: 'mx', line: 'mx', zones: 'mx' };
+  const ATTR = { words: 'mx', par: 'par', rise: 'm', left: 'm', right: 'm', scale: 'm', pop: 'm', fade: 'm', count: 'mx', bar: 'mx', draw: 'mx', dot: 'mx', line: 'mx', zones: 'mx' };
+
+  /* Préférence d'animations : « Automatique » suit le système (prefers-reduced-motion), « Activées » force les animations (utile sur un PC dont les effets Windows sont coupés,
+     ce qui est signalé comme « moins d'animations » au navigateur), « Réduites » les coupe. Mémorisée dans le navigateur (jamais envoyée). */
+  const KEY = 'dermai.motion';
+  const getPref = () => { try { const v = localStorage.getItem(KEY); return v === 'on' || v === 'off' ? v : 'auto'; } catch (e) { return 'auto'; } };
+  const setPref = v => { try { if (v === 'on' || v === 'off') localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) { /* stockage indisponible : la préférence ne persiste pas */ } };
+  const osReduces = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isReduced = (pref, os) => pref === 'off' || (pref !== 'on' && !!os);
+  const reduced = () => isReduced(getPref(), osReduces());
+  /* Pose data-motion sur <html> : les feuilles de style s'y appuient (et non plus directement sur le réglage du système) pour pouvoir être contournées par « Activées ». */
+  const apply = () => { if (typeof document !== 'undefined') document.documentElement.setAttribute('data-motion', reduced() ? 'reduce' : 'full'); };
+  if (typeof document !== 'undefined') apply();
 
   /* Fonctions pures */
   const delayOf = (i, o) => { o = o || {}; const step = o.step == null ? 90 : o.step, max = o.max == null ? 7 : o.max; return (o.delay || 0) + (o.stagger ? Math.min(i, max) * step : 0); };
   const countOf = txt => { const m = /^\s*(\d{1,4})(?:[.,](\d))?\s*$/.exec(String(txt)); return m ? { value: +(m[1] + (m[2] ? '.' + m[2] : '')), decimals: m[2] ? 1 : 0 } : null; };
+  /* Titre découpé en mots (chaque mot dans un masque) : les mots se lèvent l'un après l'autre. Le texte reste un texte normal (espaces conservés, lisible tel quel). */
+  const splitWords = el => {
+    const words = el.textContent.trim().split(/\s+/); el.textContent = '';
+    words.forEach((w, i) => {
+      const o = document.createElement('span'), n = document.createElement('span'); o.className = 'w'; n.textContent = w; n.style.setProperty('--i', i); o.appendChild(n);
+      el.appendChild(o); if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
+    });
+  };
+  const TILT = '.pcard, .acard, .c-concern-card:not(.c-concern-card--static), .hc-face, [data-tilt]';
   const ease = k => 1 - Math.pow(1 - k, 3);
   /* Éléments à ne pas animer : la bannière (elle a ses propres animations) et les enfants directs de `.col`, déjà animés par la feuille historique. */
   const skip = el => !!(el.closest && el.closest('.hc')) || !!(el.parentElement && el.parentElement.classList && el.parentElement.classList.contains('col'));
@@ -52,12 +73,12 @@
   function init(opts) {
     opts = opts || {};
     const doc = document, html = doc.documentElement;
-    const reduced = !!opts.reduced;
+    const reducedNow = opts.reduced == null ? reduced() : !!opts.reduced;
     const ctl = { active: false, scan() {}, stop() {}, reveal() {} };
-    if (reduced || typeof IntersectionObserver !== 'function') return ctl;
+    if (reducedNow || typeof IntersectionObserver !== 'function') return ctl;
     html.classList.add('m-on'); ctl.active = true;
 
-    let io = null, route = '', raf = [], zoneTimers = [], fallback = null, stopped = false, lastKey = null, played = false;
+    let parList = [], io = null, route = '', raf = [], zoneTimers = [], fallback = null, stopped = false, lastKey = null, played = false;
     const fine = typeof matchMedia === 'function' && matchMedia('(hover:hover) and (pointer:fine)').matches;
     const clear = () => { if (io) io.disconnect(); io = null; raf.forEach(cancelAnimationFrame); raf = []; zoneTimers.forEach(clearInterval); zoneTimers = []; clearTimeout(fallback); };
 
@@ -95,7 +116,9 @@
       /* Un re-rendu qui conserve l'état (case cochée, chargement terminé) ne rejoue pas la page : sauf si cette page n'a encore rien joué (premier rendu vide,
          puis contenu chargé), auquel cas c'est la vraie arrivée du contenu. */
       if (!rootEl) return;
-      if (o.keep && o.key === lastKey && played) return;
+      parList = [];   // parallaxe au défilement : toujours reconstruite, même pour un re-rendu qui conserve l'état
+      for (const [sel, effect, ro] of RULES[route] || []) if (effect === 'par') { let l; try { l = [...rootEl.querySelectorAll(sel)]; } catch (e) { continue; } for (const el of l) { el.setAttribute('data-par', ro && ro.f ? String(ro.f) : '0.15'); parList.push(el); } }
+      if (o.keep && o.key === lastKey && played) { kick(); return; }
       lastKey = o.key == null ? route : o.key; played = false;
       const rules = RULES[route] || [];
       const groups = new Map(); const targets = [];
@@ -103,6 +126,8 @@
         let list; try { list = [...rootEl.querySelectorAll(sel)]; } catch (e) { continue; }
         for (const el of list) {
           if (skip(el) || el.hasAttribute('data-' + ATTR[effect])) continue;
+          if (effect === 'par') continue;
+          if (effect === 'words') { if (el.children.length || !el.textContent.trim()) continue; splitWords(el); }
           const key = (el.parentElement || rootEl);
           const gk = groups.get(key) || new Map(); groups.set(key, gk);
           const idx = gk.get(sel) || 0; gk.set(sel, idx + 1);
@@ -114,6 +139,7 @@
           targets.push(el);
         }
       }
+      kick();
       if (!targets.length) return;
       played = true;
       const vh = innerHeight || 800;
@@ -139,6 +165,14 @@
       const hc = doc.querySelector('.hc');
       if (hc) hc.style.setProperty('--sy', Math.min(1, Math.max(0, y / Math.max(300, hc.offsetHeight * 0.8))).toFixed(3));
       if (pendingPointer && hc && fine) { const r = hc.getBoundingClientRect(); hc.style.setProperty('--px', (((pendingPointer.x - r.left) / r.width) * 2 - 1).toFixed(3)); hc.style.setProperty('--py', (((pendingPointer.y - r.top) / r.height) * 2 - 1).toFixed(3)); }
+      if (pendingPointer && hc && fine) { const r = hc.getBoundingClientRect(); hc.style.setProperty('--mx', ((pendingPointer.x - r.left) / r.width * 100).toFixed(1) + '%'); hc.style.setProperty('--my', ((pendingPointer.y - r.top) / r.height * 100).toFixed(1) + '%'); hc.style.setProperty('--so', '1'); }
+      const vh = innerHeight || 800;
+      for (const el of parList) {   // parallaxe au défilement : chaque plan avance à sa vitesse (propriété translate, indépendante des apparitions)
+        if (!el.isConnected) continue;
+        const r = el.getBoundingClientRect(); if (r.bottom < -200 || r.top > vh + 200) continue;
+        const k = parseFloat(el.dataset.par) || 0.15, p = ((r.top + r.height / 2) - vh / 2) / vh;
+        el.style.translate = '0 ' + (-p * k * 220).toFixed(1) + 'px';
+      }
       pendingPointer = null;
     }
     const kick = () => { if (!ticking) { ticking = true; requestAnimationFrame(frame); } };
@@ -150,12 +184,15 @@
         if (e.pointerType !== 'mouse') return;
         const hc = e.target.closest && e.target.closest('.hc');
         if (hc) { pendingPointer = { x: e.clientX, y: e.clientY }; kick(); }
+        const t = e.target.closest && e.target.closest(TILT);
+        if (t) { const r = t.getBoundingClientRect(), px = (e.clientX - r.left) / r.width - .5, py = (e.clientY - r.top) / r.height - .5, deg = Math.min(1, Math.hypot(px, py) * 2) * (t.matches('.hc-face') ? 9 : 8); t.style.rotate = (-py).toFixed(3) + ' ' + px.toFixed(3) + ' 0 ' + deg.toFixed(2) + 'deg'; }
         const b = e.target.closest && e.target.closest('[data-mag], .hc-cta .c-btn');
         if (b) { const r = b.getBoundingClientRect(); b.style.translate = (((e.clientX - r.left) / r.width - .5) * 14).toFixed(1) + 'px ' + (((e.clientY - r.top) / r.height - .5) * 8).toFixed(1) + 'px'; }
       }, { passive: true });
       on(doc, 'pointerout', e => {
         const b = e.target.closest && e.target.closest('[data-mag], .hc-cta .c-btn'); if (b && !b.contains(e.relatedTarget)) b.style.translate = '';
-        const hc = e.target.closest && e.target.closest('.hc'); if (hc && !hc.contains(e.relatedTarget)) { hc.style.setProperty('--px', '0'); hc.style.setProperty('--py', '0'); }
+        const t = e.target.closest && e.target.closest(TILT); if (t && !t.contains(e.relatedTarget)) t.style.rotate = '';
+        const hc = e.target.closest && e.target.closest('.hc'); if (hc && !hc.contains(e.relatedTarget)) { hc.style.setProperty('--px', '0'); hc.style.setProperty('--py', '0'); hc.style.setProperty('--so', '0'); }
       });
     }
     on(doc, 'pointerdown', e => {   // ondulation au clic
@@ -171,5 +208,5 @@
     return ctl;
   }
 
-  return { RULES, ATTR, delayOf, countOf, skip, init };
+  return { RULES, ATTR, delayOf, countOf, skip, init, getPref, setPref, osReduces, isReduced, reduced, apply, KEY };
 });
