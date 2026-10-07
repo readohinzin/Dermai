@@ -16,7 +16,7 @@
 
   const DURATION = 7000;                       // durée d'une diapositive (ms)
   const PORTRAIT = 'img/hero/portrait-cutout.webp';
-  const NOTE = 'Illustration : personne fictive, aucun résultat réel.';
+  const SR_NOTE = 'Exemple illustratif : personne fictive, scores d\'exemple, aucun résultat réel.';   // lu par les lecteurs d\'écran ; plus affiché à l\'écran
 
   /* Contenu : une diapositive = un message, dit une fois. Les valeurs de scores sont des EXEMPLES (100 = meilleur résultat, comme dans l'application). */
   const SLIDES = [
@@ -82,12 +82,12 @@
       <div class="hc-in">
         <div class="hc-copy">
           <p class="tagline hc-kick">${ctx.sparkle || ''} ${esc(s.kicker)}</p>
-          <${H} class="hc-h">${s.title.map(esc).join('<br>')}</${H}>
+          <${H} class="hc-h">${s.title.map((l, n) => `<span class="ln" style="--l:${n}"><span>${esc(l)}</span></span>`).join('')}</${H}>
           <p class="hc-p">${esc(s.text)}</p>
           <div class="cta-row hc-cta"><button class="c-btn c-btn--primary" data-go="${ctx.cta && ctx.cta.go || 'signup'}">Analyser ma peau</button><button class="c-btn c-btn--secondary" data-act="scroll" data-v="${s.more[0]}">${esc(s.more[1])}</button></div>
           ${i === 0 && ctx.extraFirst ? `<div style="margin-top:20px">${ctx.extraFirst}</div>` : ''}
         </div>
-        <div class="hc-art"><div class="hc-face hc-face--${s.id}"><div class="hc-pic"><img src="${PORTRAIT}" width="900" height="900" alt="${esc(s.alt)}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>${pic[s.id] || ''}</div>${outer[s.id] || ''}</div></div>
+        <div class="hc-art"><p class="u-sr">${SR_NOTE}</p><div class="hc-face hc-face--${s.id}"><div class="hc-pic"><img src="${PORTRAIT}" width="900" height="900" alt="${esc(s.alt)}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>${pic[s.id] || ''}</div>${outer[s.id] || ''}</div></div>
       </div></article>`;
     };
     return `<section class="hc" data-hc aria-roledescription="carrousel" aria-label="Présentation de DERMAI">
@@ -95,7 +95,7 @@
       <div class="hc-ctl"><div class="hc-dots-row">
         <button type="button" class="hc-pause" data-hc-pause aria-label="Mettre en pause le défilement"><svg class="p1" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><svg class="p2" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg></button>
         ${SLIDES.map((s, i) => `<button type="button" class="hc-dot${i === 0 ? ' is-on' : ''}" data-hc-go="${i}" aria-label="Diapositive ${i + 1} sur ${SLIDES.length}"${i === 0 ? ' aria-current="true"' : ''}><i></i></button>`).join('')}
-      </div>${ctx.note === false ? '' : `<p class="hc-cap">${NOTE}</p>`}</div>
+      </div></div>
     </section>`;
   }
 
@@ -162,5 +162,5 @@
     return { stop() { stopped = true; clearT(timer); clearInterval(chipTimer); cancelRaf(); cleanups.forEach(f => f()); if (io) io.disconnect(); }, show, get index() { return idx; } };
   }
 
-  return { SLIDES, BUBBLES, PROGRESS, PIC, DURATION, PORTRAIT, NOTE, html, init };
+  return { SLIDES, BUBBLES, PROGRESS, PIC, DURATION, PORTRAIT, SR_NOTE, html, init };
 });

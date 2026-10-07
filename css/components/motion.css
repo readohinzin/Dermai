@@ -1,0 +1,54 @@
+/* Motion design (voir js/motion.js). Les états de départ (invisible, décalé, à zéro) n'existent QUE sous html.m-on, posé par le script quand l'animation est
+   possible : sans script, ou avec « moins d'animations », tout est visible et immobile. Seuls transform, opacity et translate sont animés. */
+
+/* Les éléments décalés avant leur apparition ne doivent jamais élargir la page (défilement horizontal sur téléphone) : `clip` ne crée pas de conteneur de défilement,
+   l'en-tête collant continue de fonctionner. */
+.m-on #app{overflow-x:clip}
+
+/* Apparitions au défilement : data-m = rise | left | right | scale | pop | fade ; --md = retard de la cascade (posé par le script) */
+.m-on [data-m]{opacity:0;will-change:opacity,transform}
+.m-on [data-m=rise]{transform:translateY(30px)}
+.m-on [data-m=left]{transform:translateX(-28px)}
+.m-on [data-m=right]{transform:translateX(28px)}
+.m-on [data-m=scale]{transform:translateY(16px) scale(.94)}
+.m-on [data-m=pop]{transform:scale(.55)}
+.m-on [data-m].is-in{opacity:1;transform:none;transition:opacity .8s cubic-bezier(.2,.7,.2,1) var(--md,0s),transform .9s cubic-bezier(.2,.8,.2,1) var(--md,0s)}
+.m-on [data-m=pop].is-in{transition:opacity .5s ease var(--md,0s),transform .75s cubic-bezier(.2,1.5,.4,1) var(--md,0s)}
+
+/* Effets propres : data-mx = bar | draw | dot | line */
+.m-on [data-mx=bar]{transform:scaleX(0);transform-origin:left center}
+.m-on [data-mx=bar].is-in{transform:none;transition:transform 1.1s cubic-bezier(.2,.8,.2,1) var(--md,0s)}
+.m-on [data-mx=draw]{stroke-dasharray:1;stroke-dashoffset:1}
+.m-on [data-mx=draw].is-in{stroke-dashoffset:0;transition:stroke-dashoffset 1.8s cubic-bezier(.4,0,.2,1)}
+.m-on [data-mx=dot]{opacity:0;transform:scale(0);transform-box:fill-box;transform-origin:center}
+.m-on [data-mx=dot].is-in{opacity:1;transform:none;transition:opacity .4s ease var(--md,0s),transform .65s cubic-bezier(.2,1.7,.4,1) var(--md,0s)}
+.m-on [data-mx=line]::before{transform:scaleX(0);transform-origin:left center}
+.m-on [data-mx=line].is-in::before{transform:none;transition:transform 1.5s cubic-bezier(.4,0,.2,1)}
+
+/* Barre de progression de lecture (accueil public) et en-tête qui réagit au défilement */
+#mprog{position:fixed;left:0;top:0;width:100%;height:3px;z-index:60;pointer-events:none;transform-origin:left center;transform:scaleX(0);background:linear-gradient(90deg,var(--rose-deep),var(--accent))}
+.l-top{transition:box-shadow .35s ease,background-color .35s ease}
+.l-top .brand-logo{transition:transform .35s cubic-bezier(.2,.8,.2,1);transform-origin:left center}
+.l-top.is-stuck{box-shadow:0 10px 26px -18px rgba(84,47,59,.55)}
+.l-top.is-stuck .brand-logo{transform:scale(.84)}
+
+/* Boutons : appui, ondulation, bouton « magnétique » de la bannière */
+.c-btn{position:relative;overflow:hidden;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .3s ease,background-color .2s ease,border-color .2s ease,translate .3s cubic-bezier(.2,.8,.2,1)}
+.c-btn:active{transform:scale(.97)}
+.m-ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.22;transform:scale(0);pointer-events:none;animation:mRipple .65s ease-out forwards}
+@keyframes mRipple{to{transform:scale(1);opacity:0}}
+
+/* Appel final : halo qui respire ; visage de la section « ce que DERMAI observe » qui flotte doucement */
+.sec.alt[style*="center"] .c-btn--primary{animation:mPulse 2.8s ease-in-out infinite}
+@keyframes mPulse{0%,100%{box-shadow:0 12px 26px -14px rgba(84,47,59,.55),0 0 0 0 rgba(84,47,59,.28)}50%{box-shadow:0 12px 26px -14px rgba(84,47,59,.55),0 0 0 14px rgba(84,47,59,0)}}
+.facebox .portrait{animation:mFloat 7s ease-in-out infinite}
+@keyframes mFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.flowstrip .ico{transition:transform .35s cubic-bezier(.2,1.5,.4,1),box-shadow .3s ease,border-color .3s ease}
+
+/* Survol (appareils à pointeur) : les cartes cliquables se soulèvent */
+@media (hover:hover){
+  .pcard,.acard,.c-concern-card,.rowlink{transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s ease,background-color .25s ease,border-color .25s ease}
+  .pcard:hover,.acard:hover,.c-concern-card:hover{transform:translateY(-4px);box-shadow:0 20px 36px -22px rgba(84,47,59,.55)}
+  .c-btn--primary:hover{transform:translateY(-2px);box-shadow:0 18px 32px -16px rgba(84,47,59,.7)}
+  .flowstrip div:hover .ico{transform:translateY(-4px) scale(1.08);border-color:var(--accent);box-shadow:0 12px 22px -12px rgba(84,47,59,.5)}
+}

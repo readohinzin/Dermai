@@ -525,11 +525,11 @@ const V={};
 /* Landing : bannière en carrousel (js/hero.js). Les actifs montrés sont des actifs DERMAI validés, avec leur résumé réel (jamais un texte inventé). */
 const HERO_ACTIVES=[`niacinamide`,`azelaic`,`vitamin_c`,`hyaluronic`,`ceramides`];
 const heroActives=()=>HERO_ACTIVES.map(id=>Engine.actives.byId(id)).filter(Boolean).map(x=>({label:x.label,summary:x.summary}));
-let heroCtl=null;
+let heroCtl=null,motionCtl=null;
 const stopHero=()=>{if(heroCtl){heroCtl.stop();heroCtl=null}};
 V.landing=()=>{
   return `<header class="l-top">${brandBtn(44)}${signedIn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Mon espace</button>`:accountOn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="login">Se connecter</button>`:`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button>`}</header>
-  <section class="hc-wrap">${DermaiHero.html({cta:{go:signedIn()?`scan`:`signup`},labels:SkinModel.METRIC_LABELS,actives:heroActives(),note:!DEMO_MODE,sparkle:ic(`sparkle`),extraFirst:DEMO_MODE?demoTag():``})}
+  <section class="hc-wrap">${DermaiHero.html({cta:{go:signedIn()?`scan`:`signup`},labels:SkinModel.METRIC_LABELS,actives:heroActives(),sparkle:ic(`sparkle`),extraFirst:DEMO_MODE?demoTag():``})}
   <div class="wrap"><div class="flowstrip" aria-label="Le principe">
     <div><span class="ico">${ic(`camera`)}</span>Photo</div><div><span class="ico">${ic(`sparkle`)}</span>Intelligence artificielle</div><div><span class="ico">${ic(`eye`)}</span>Analyse</div><div><span class="ico">${ic(`routine`)}</span>Routine personnalisée</div>
   </div></div></section>
@@ -1069,10 +1069,12 @@ function render(keep){
   stopHero();
   $app.classList.toggle(`still`,!!keep);
   $app.innerHTML=(V[state.route]||V.home)(state.param);
-  after();
+  after(!!keep);
   if(keep)scrollTo(0,y);
 }
-function after(){
+function after(keep){
+  if(!motionCtl)motionCtl=DermaiMotion.init({reduced:!!(window.matchMedia&&matchMedia(`(prefers-reduced-motion: reduce)`).matches)});
+  motionCtl.scan($app,{route:state.route,key:state.route+`:`+(state.param==null?``:state.param),keep:!!keep});   // motion design : apparitions au défilement, compteurs, courbes (js/motion.js)
   if(state.route===`landing`){const el=document.querySelector(`[data-hc]`);if(el)heroCtl=DermaiHero.init(el,{reduced:window.matchMedia&&matchMedia(`(prefers-reduced-motion: reduce)`).matches,actives:heroActives()})}
   if(state.route===`scan`&&state.scanStep>=1&&state.scanStep<=3){
     if(DEMO_MODE)timers.push(setTimeout(()=>{const c=document.getElementById(`cam`),q=document.getElementById(`qt`);if(c&&q){c.classList.add(`ready`);q.textContent=`Qualité de l'image : excellente`}},1000));

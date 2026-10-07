@@ -29,14 +29,15 @@ test('H1 balisage : région carrousel, 4 diapositives étiquetées, un seul h1, 
 });
 
 test('H2 contenu : titres, boutons et mention d\'illustration ; textes en français, sans tiret cadratin ; scores d\'exemple identifiés', () => {
-  assert.match(html, /Votre peau\.<br>Votre analyse\.<br>Votre routine\./);
-  assert.match(html, /Des scores clairs,<br>zone par zone\./);
-  assert.match(html, /Des actifs choisis<br>pour vous\./);
-  assert.match(html, /Votre peau évolue\.<br>Suivez-la\./);
+  // chaque ligne du titre est un masque qui se lève (<span class="ln"><span>ligne</span></span>) : le texte reste complet et lisible sans animation
+  const lines = h => [...h.matchAll(/<span class="ln" style="--l:\d"><span>([^<]+)<\/span><\/span>/g)].map(m => m[1]);
+  assert.deepEqual(lines(html).slice(0, 3), ['Votre peau.', 'Votre analyse.', 'Votre routine.']);
+  assert.deepEqual(lines(html).slice(3), ['Des scores clairs,', 'zone par zone.', 'Des actifs choisis', 'pour vous.', 'Votre peau évolue.', 'Suivez-la.']);
   assert.equal((html.match(/data-go="signup"/g) || []).length, 4, 'le bouton principal de chaque diapositive mène à l\'inscription (visiteur)');
   assert.equal(Hero.html({ ...ctx, cta: { go: 'scan' } }).match(/data-go="scan"/g).length, 4, 'connecté : vers l\'analyse');
-  assert.match(html, /Illustration : personne fictive, aucun résultat réel\./);
-  assert.doesNotMatch(Hero.html({ ...ctx, note: false }), /hc-cap/, 'pas de mention en démo (étiquette démo à la place)');
+  // mention visible retirée à la demande de l'équipe : l'équivalent texte reste lu par les lecteurs d'écran, la section « Ce que DERMAI observe » garde la sienne
+  assert.doesNotMatch(html, /hc-cap|Illustration : personne fictive/);
+  assert.equal((html.match(/<p class="u-sr">Exemple illustratif : personne fictive, scores d'exemple, aucun résultat réel\.<\/p>/g) || []).length, 4);
   assert.doesNotMatch(html, /[—–]/, 'aucun tiret cadratin');
   assert.match(html, /<span class="xp">Exemple<\/span>/, 'le suivi de score est marqué « Exemple »');
   assert.ok(Hero.BUBBLES.length === 6 && Hero.BUBBLES.every(b => Number.isInteger(b.v) && b.v >= 0 && b.v <= 100 && M.METRIC_KEYS.includes(b.k)), 'scores 0 à 100 sur de vrais indicateurs');
@@ -78,7 +79,8 @@ test('H5 durée, commandes et accessibilité du pilote : pause, hors écran, ong
 test('H6 CSS : thèmes pastel, animations limitées à la diapositive active, commandes de 44 px, mouvement réduit couvert', () => {
   const css = read('css/components/hero.css');
   for (const t of ['rose', 'lilac', 'sand', 'sky']) assert.match(css, new RegExp(`\\.hc-t-${t}\\{`));
-  assert.match(css, /\.hc-slide\.is-active \.hc-h\{animation:/);
+  assert.match(css, /\.hc-slide\.is-active \.hc-h \.ln>span\{animation:hcMask/);
+  assert.doesNotMatch(css, /\.hc-h \.ln>span\{[^}]*transform:/, 'le texte du titre n\'est jamais décalé hors animation');
   assert.doesNotMatch(css.replace(/@keyframes[^{]+\{[\s\S]*?\}\s*\}/g, ''), /\.hc-slide(?!\.is-active)[^{]*\{[^}]*animation:/, 'aucune animation hors diapositive active');
   assert.match(css, /\.hc-pause,\.hc-dot\{width:44px;height:44px/);
   assert.match(css, /\.hc-stage\{display:grid\}/); assert.match(css, /\.hc-slide\{grid-area:1\/1/);
@@ -90,7 +92,7 @@ test('H6 CSS : thèmes pastel, animations limitées à la diapositive active, co
 test('H7 branchement : module chargé avant l\'application, démarré à l\'accueil, arrêté à chaque rendu, cibles de défilement présentes', () => {
   const app = read('js/app.js'), idx = read('index.html');
   assert.ok(idx.indexOf('js/hero.js') > 0 && idx.indexOf('js/hero.js') < idx.indexOf('js/app.js'));
-  assert.match(app, /DermaiHero\.html\(\{cta:\{go:signedIn\(\)\?`scan`:`signup`\},labels:SkinModel\.METRIC_LABELS,actives:heroActives\(\),note:!DEMO_MODE/);
+  assert.match(app, /DermaiHero\.html\(\{cta:\{go:signedIn\(\)\?`scan`:`signup`\},labels:SkinModel\.METRIC_LABELS,actives:heroActives\(\),sparkle:/);
   assert.match(app, /const HERO_ACTIVES=\[`niacinamide`,`azelaic`,`vitamin_c`,`hyaluronic`,`ceramides`\]/);
   assert.match(app, /function render\(keep\)\{\s*const y=window\.scrollY;\s*stopHero\(\);/);
   assert.match(app, /if\(state\.route===`landing`\)\{const el=document\.querySelector\(`\[data-hc\]`\);if\(el\)heroCtl=DermaiHero\.init\(el,\{reduced:/);
