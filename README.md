@@ -5,7 +5,7 @@ Application web d'analyse cosmétique de la peau et de routine personnalisée (f
 Fichiers : `index.html`, `css/styles.css`, `js/app.js`. Ouvre `index.html` dans un navigateur, aucune installation.
 
 ## Écrans
-Accueil, inscription, onboarding, scan (3 photos), analyse, résultats, détail par préoccupation,
+Accueil, inscription, onboarding, scan (une photo de face ; trois en mode démonstration), analyse, résultats, détail par préoccupation,
 actifs, routine matin/soir, produits, progression, historique des analyses, profil, confidentialité.
 
 ## Données d'analyse

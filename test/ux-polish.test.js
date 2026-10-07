@@ -78,3 +78,8 @@ test('UX9 microcopy : aucune formulation absolue ou médicale dans l\'interface'
   assert.doesNotMatch(ui, /\b(élimine|guérit|guérir|corrige définitivement|garanti|miracle|disparaît définitivement)\b/i);
   assert.doesNotMatch(ui, /Votre diagnostic|nous diagnostiquons|traitement médical/i);
 });
+
+test('UX-photo l\'accueil annonce UNE photo de face (le scan réel n\'en prend qu\'une) ; les trois photos restent propres au mode démonstration', () => {
+  assert.match(app, /DEMO_MODE\?`<h3>Trois photos<\/h3>[^`]*`:`<h3>Une photo<\/h3><p>Un portrait de face, à la lumière naturelle\. C'est tout ce qu'il faut\.<\/p>`/);
+  assert.equal((app.match(/<h3>Trois photos<\/h3>/g) || []).length, 1, 'une seule mention, réservée au mode démonstration');
+});

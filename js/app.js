@@ -541,7 +541,7 @@ V.landing=()=>{
   <section class="sec alt" id="how"><div class="wrap">
     <h2>Comment ça marche</h2>
     <div class="steps3">
-      <div class="s"><span class="num">1</span><div><h3>Trois photos</h3><p>De face, puis de profil, à la lumière naturelle. Environ une minute.</p></div></div>
+      <div class="s"><span class="num">1</span><div>${DEMO_MODE?`<h3>Trois photos</h3><p>De face, puis de profil, à la lumière naturelle. Environ une minute.</p>`:`<h3>Une photo</h3><p>Un portrait de face, à la lumière naturelle. C'est tout ce qu'il faut.</p>`}</div></div>
       <div class="s"><span class="num">2</span><div><h3>Une analyse visuelle</h3><p>DERMAI repère les préoccupations visibles de votre peau et les classe par priorité.</p></div></div>
       <div class="s"><span class="num">3</span><div><h3>Une routine à votre mesure</h3><p>Des actifs, des gestes et des produits, dans l'ordre où les utiliser.</p></div></div>
     </div>
