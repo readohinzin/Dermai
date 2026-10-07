@@ -256,7 +256,8 @@ test('OF11 démonstration séparée : aucun produit ni marque de démonstration 
 test('OF12 interface : offres par pays, textes neutres, bouton « Acheter en ligne » seulement avec un vrai lien, aucun pays par défaut, aucun prix global', () => {
   const app = read('js/app.js'), css = read('css/components/card.css');
   assert.match(app, /o\.buyable\?`<a class="c-btn c-btn--primary c-btn--block" href="\$\{esc\(o\.url\)\}"[^>]*>Acheter en ligne<\/a>`/);
-  assert.equal((app.match(/Acheter en ligne/g) || []).length, 1, 'un seul bouton d\'achat, lié à une offre');
+  assert.equal((app.match(/Acheter en ligne/g) || []).length, 2, 'deux boutons d\'achat : la ligne d\'offre et la carte produit, tous deux liés à une offre qui a un vrai lien');
+  assert.match(app, /buy:o\.buyable\?o\.url:null/); assert.match(app, /co&&co\.buy&&\(o\.inPlan\|\|noReal\(\)\)\?`<a class="c-btn c-btn--primary c-btn--block pbuy" href="\$\{esc\(co\.buy\)\}"/);
   assert.match(app, /Engine\.copy\.OFFER_TEXTS\.neutral/); assert.match(app, /OFFER_TEXTS\.none/); assert.match(app, /OFFER_TEXTS\.priceToCheck/);
   assert.match(app, /Offres à venir/); assert.match(app, /Relevé le \$\{dFr\(o\.checkedAt\)\} \(\$\{esc\(o\.source\)\}\)/);
   assert.match(app, /p\.demo\|\|p\.skinTypesDocumented/, 'types de peau affichés seulement s\'ils sont documentés');

@@ -13,6 +13,7 @@
      commercial, produits RÉELS : `offers` [{ market, retailer, type, currency, price, availability, url, source, checkedAt, shipping }]. UN produit, PLUSIEURS offres,
        chacune propre à UN pays (code ISO), avec SA devise, SON prix, SA disponibilité, SON vendeur, SA source et SA date. Aucun prix ni aucune disponibilité global(e),
        aucune conversion de devise, aucun pays déduit d'un autre. Les champs commerciaux « plats » (price, vendor, url, availability) sont réservés à la démonstration.
+       Affichage selon le pays d'achat choisi par l'utilisatrice : marketView() (offres du pays, régionales déclarées par le vendeur, d'autres pays) ; sans effet sur la sélection des produits.
      commercial, produits de démonstration : availability, price { amount, currency }, priceSource, priceCheckedAt, vendor, url, image
    Les données commerciales n'entrent JAMAIS dans la sélection : un produit sans prix, sans vendeur ni lien reste recommandable, et un produit sans
    donnée commerciale s'affiche « Données à venir ». */
@@ -20,8 +21,8 @@
   const isNode = typeof module === 'object' && module.exports;
   const E = root.DermaiEngine || {};
   const dep = isNode
-    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js') }
-    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel };
+    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js'), markets: require('./data/markets.js') }
+    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel, markets: E.marketsData };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); NS.products = api; }
@@ -35,13 +36,10 @@
   const CURRENCIES = ['XOF', 'EUR'];                                        // démonstration (champs plats) ; aucune conversion entre devises
 
   /* ---- Offres commerciales par pays (produits réels) : l'Afrique entière, aucun pays par défaut ---- */
-  const MARKETS = { DZ: 'Algérie', AO: 'Angola', BJ: 'Bénin', BW: 'Botswana', BF: 'Burkina Faso', BI: 'Burundi', CV: 'Cap-Vert', CM: 'Cameroun', CF: 'Centrafrique', TD: 'Tchad', KM: 'Comores',
-    CG: 'Congo', CD: 'RD Congo', CI: 'Côte d\'Ivoire', DJ: 'Djibouti', EG: 'Égypte', GQ: 'Guinée équatoriale', ER: 'Érythrée', SZ: 'Eswatini', ET: 'Éthiopie', GA: 'Gabon', GM: 'Gambie',
-    GH: 'Ghana', GN: 'Guinée', GW: 'Guinée-Bissau', KE: 'Kenya', LS: 'Lesotho', LR: 'Liberia', LY: 'Libye', MG: 'Madagascar', MW: 'Malawi', ML: 'Mali', MR: 'Mauritanie', MU: 'Maurice',
-    MA: 'Maroc', MZ: 'Mozambique', NA: 'Namibie', NE: 'Niger', NG: 'Nigeria', RW: 'Rwanda', ST: 'Sao Tomé-et-Principe', SN: 'Sénégal', SC: 'Seychelles', SL: 'Sierra Leone', SO: 'Somalie',
-    ZA: 'Afrique du Sud', SS: 'Soudan du Sud', SD: 'Soudan', TZ: 'Tanzanie', TG: 'Togo', TN: 'Tunisie', UG: 'Ouganda', ZM: 'Zambie', ZW: 'Zimbabwe' };
+  /* Pays d'Afrique : la liste vient de data/markets.js (source unique, avec devise et nom anglais) ; ici seulement code → nom français. */
+  const MARKETS = Object.fromEntries(dep.markets.COUNTRIES.map(c => [c.code, c.fr]));
   const OFFER_CURRENCIES = ['XOF', 'XAF', 'NGN', 'GHS', 'KES', 'ZAR', 'MAD', 'TND', 'DZD', 'EGP', 'RWF', 'TZS', 'UGX', 'CDF', 'GNF', 'MGA', 'MUR', 'ETB', 'ZMW', 'BWP', 'NAD', 'AOA', 'MZN',
-    'GMD', 'SLE', 'LRD', 'MWK', 'SCR', 'DJF', 'KMF', 'CVE', 'STN', 'MRU', 'SDG', 'SSP', 'SOS', 'LYD', 'ERN', 'LSL', 'SZL', 'ZWL', 'BIF', 'EUR', 'USD', 'GBP'];
+    'GMD', 'SLE', 'LRD', 'MWK', 'SCR', 'DJF', 'KMF', 'CVE', 'STN', 'MRU', 'SDG', 'SSP', 'SOS', 'LYD', 'ERN', 'LSL', 'SZL', 'ZWL', 'ZWG', 'BIF', 'EUR', 'USD', 'GBP'];
   /* Une devise propre à une zone n'est acceptée que dans cette zone : un prix en FCFA hors zone FCFA (ou en naira hors Nigeria) est une erreur de saisie ou une conversion. */
   const CURRENCY_HOME = { XOF: ['BJ', 'BF', 'CI', 'GW', 'ML', 'NE', 'SN', 'TG'], XAF: ['CM', 'CF', 'TD', 'CG', 'GQ', 'GA'], NGN: ['NG'], GHS: ['GH'], KES: ['KE'], MAD: ['MA'], ZAR: ['ZA', 'LS', 'NA', 'SZ'],
     TND: ['TN'], DZD: ['DZ'], EGP: ['EG'], RWF: ['RW'], TZS: ['TZ'], UGX: ['UG'] };
@@ -73,6 +71,9 @@
     if (!OFFER_TYPES.includes(o.type)) e.push('offre : type de vendeur invalide');
     if (!OFFER_AVAILABILITY.includes(o.availability)) e.push('offre : disponibilité invalide');
     if (o.shipping != null && !OFFER_SHIPPING.includes(o.shipping)) e.push('offre : livraison invalide');
+    /* servesMarkets : pays que le VENDEUR indique lui-même desservir (offre « régionale »). Jamais déduit d'une devise ou d'une zone ; absent = inconnu. */
+    if (o.servesMarkets != null && !(Array.isArray(o.servesMarkets) && o.servesMarkets.length > 0 && o.servesMarkets.length <= 60 && new Set(o.servesMarkets).size === o.servesMarkets.length
+      && o.servesMarkets.every(c => Object.prototype.hasOwnProperty.call(MARKETS, c)))) e.push('offre : pays desservis invalides (codes ISO connus, sans doublon)');
     if (!text(o.source, 160)) e.push('offre : source manquante');
     if (!isDate(o.checkedAt)) e.push('offre : date de vérification manquante');
     if (o.url != null && !isRealLink(o.url)) e.push('offre : lien d\'achat invalide (https réel obligatoire)');
@@ -179,9 +180,23 @@
       const link = o.url && isRealLink(o.url) ? o.url : null;
       return { market: o.market, country: MARKETS[o.market], retailer: o.retailer, type: o.type, typeLabel: copy.OFFER_TYPE_LABELS[o.type],
         marketplace: o.type === 'marketplace', currency: o.price != null ? o.currency : (o.currency || null), price: o.price != null ? o.price : null,
-        availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null,
+        availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null, serves: Array.isArray(o.servesMarkets) ? o.servesMarkets.slice() : null,
         url: link, buyable: !!(link && o.availability === 'in_stock'), linkOnly: !!(link && o.availability === 'unknown'), source: o.source, checkedAt: o.checkedAt };
     }).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
+  }
+  /* Offres d'un produit POUR UN PAYS D'ACHAT (choisi par l'utilisatrice). Hiérarchie simple, sans score : 1. offres du pays ; 2. offres régionales, seulement si le vendeur
+     déclare desservir ce pays (servesMarkets) ; 3. offres d'autres pays (achat en ligne, livraison à vérifier) ; 4. aucune. Une offre dont le vendeur indique une livraison
+     « locale » (shipping: 'local') n'est jamais proposée hors de son pays. Le pays ne retire ni n'ajoute aucun produit et ne change aucune recommandation : il ne sert qu'à
+     classer et présenter les offres d'un produit DÉJÀ choisi par le moteur. */
+  function marketView(p, country) {
+    const all = offersOf(p), code = typeof country === 'string' && Object.prototype.hasOwnProperty.call(MARKETS, country) ? country : null;
+    const base = { country: code, countryName: code ? MARKETS[code] : null, all, hasOffers: all.length > 0 };
+    if (!code) return Object.assign(base, { local: [], regional: [], international: [], tier: 'no-country' });
+    const local = all.filter(o => o.market === code);
+    const rest = all.filter(o => o.market !== code);
+    const regional = rest.filter(o => o.serves && o.serves.includes(code));
+    const international = rest.filter(o => !(o.serves && o.serves.includes(code)) && o.shipping !== 'local');
+    return Object.assign(base, { local, regional, international, tier: local.length ? 'local' : regional.length ? 'regional' : international.length ? 'international' : 'none' });
   }
   /* Données commerciales d'un produit. Réel : uniquement `offers` (les champs plats sont nuls). Démonstration : anciens champs plats, jamais de prix réel. */
   function commerceOf(p) {
@@ -290,6 +305,6 @@
       price: null, currency: null, vendor: p.vendor || null, availability: p.availability || null, url: p.url || null };
   }
 
-  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, catalogView, commerceOf, offersOf, validateOffer, primaryActive, validateProduct, validateCatalog,
+  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, catalogView, commerceOf, offersOf, marketView, validateOffer, primaryActive, validateProduct, validateCatalog,
     stepCategory, CATALOG_FIELDS, toCatalogEntry };
 });

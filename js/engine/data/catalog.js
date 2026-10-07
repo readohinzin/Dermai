@@ -13,6 +13,7 @@
        inci: [ … ] | null, inciNote, sources: [{ kind: 'manufacturer'|'retailer'|…, label, url, checkedAt, method }], verification: { missing: [ … ] },
        offers: [ { market: 'NG', retailer: '…', type: 'brand_site'|'retailer'|'pharmacy'|'marketplace'|'importer', currency: 'NGN', price: 12500 | null,
                    availability: 'in_stock'|'out_of_stock'|'coming_soon'|'unknown', url: 'https://…' | null, shipping: 'local'|'international'|null,
+                   servesMarkets: ['BJ', …] | absent,   // pays que le VENDEUR déclare desservir (offre « régionale » pour ces pays) ; jamais déduit d'une devise ; absent = inconnu
                    source: '…', checkedAt: 'AAAA-MM-JJ' } ],
        image: { src: 'img/products/….jpg', alt: '…' } | null }
    Une annonce de place de marché est une offre de type « marketplace » : ce n'est pas une preuve d'authenticité ni de distribution officielle.

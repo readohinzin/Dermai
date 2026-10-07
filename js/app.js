@@ -148,6 +148,11 @@ function commitRealScan(r){
 const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
 /* Moteur d'interprétation cosmétique (js/engine) : l'interface appelle run() et affiche. Aucune règle de priorité, d'actif ou de routine ici. */
 const Engine=window.DermaiEngine;
+/* Pays d'achat (js/market.js) : choisi volontairement, conservé seulement dans ce navigateur, lu uniquement par l'affichage des offres. Jamais envoyé, jamais mêlé au profil, à une analyse
+   ni au moteur cosmétique. Mode démonstration : aucune offre réelle, donc aucun sélecteur. */
+const MK=window.DermaiMarket,MT=Engine.copy.MARKET_TEXTS;
+const marketStore=()=>{try{return window.localStorage}catch(e){return null}};
+state.market=DEMO_MODE?null:MK.read(marketStore());state.marketEdit=false;state.sheetProduct=null;
 /* Profil courant → moteur. Rien n'est mis en cache : toute modification (objectifs, niveau, confort) recalcule la routine à l'affichage suivant.
    L'analyse précédente (si elle existe) sert seulement à comparer, jamais de référence courante. */
 /* Catalogue de produits : DÉMONSTRATION en mode démo, RÉEL (js/engine/data/catalog.js, vide tant qu'aucune donnée vérifiée n'existe) en mode réel. Jamais mélangés. */
@@ -871,21 +876,53 @@ const fmtPrice=pr=>pr.currency===`XOF`?fmt(pr.amount):`${pr.amount.toLocaleStrin
 /* Prix d'une OFFRE : toujours dans la devise du pays de l'offre, jamais converti. Le franc CFA (XOF ou XAF) s'écrit FCFA ; les autres devises suivent la norme d'affichage. */
 const fmtMoney=(amount,cur)=>{if(cur===`XOF`||cur===`XAF`)return fmt(amount);try{return new Intl.NumberFormat(`fr-FR`,{style:`currency`,currency:cur,maximumFractionDigits:amount%1?2:0}).format(amount).replace(/[\u202f\u00a0\s]/g,NB)}catch(e){return `${amount.toLocaleString(`fr-FR`)}${NB}${cur}`}};
 const dFr=d=>new Date(d).toLocaleDateString(`fr-FR`,{day:`numeric`,month:`long`,year:`numeric`});
-const offerRow=o=>`<div class="offer"><div class="ofh"><b>${esc(o.retailer)}</b><span class="muted">${esc(o.typeLabel)}</span></div>
-  <div class="ofp"><span class="pv">${o.price!=null?fmtMoney(o.price,o.currency):`<span class="muted">${Engine.copy.OFFER_TEXTS.priceToCheck}</span>`}</span><span class="c-badge${o.availability===`in_stock`?` c-badge--good`:` c-badge--outline`}">${o.availabilityLabel}</span></div>
-  ${o.shipping===`international`?`<p class="muted s">${Engine.copy.OFFER_TEXTS.international}</p>`:``}${o.marketplace?`<p class="muted s">${Engine.copy.OFFER_TEXTS.marketplace}</p>`:``}
+/* Sélecteur de pays : un vrai <select> (étiquette, clavier, ouverture native sur téléphone), 44 px de haut au moins. Pays courants d'abord, puis tous les autres pays d'Afrique. */
+const marketSelect=id=>{
+  const g=MK.choices(),opt=c=>`<option value="${c.code}"${state.market===c.code?` selected`:``}>${esc(c.fr)}</option>`;
+  return `<div class="c-field mk-field"><label class="c-field__label" for="${id}">${MT.label}</label><select class="sel mk-sel" id="${id}" data-market>${state.market?``:`<option value="" selected disabled>${MT.placeholder}</option>`}<optgroup label="Pays courants">${g.featured.map(opt).join(``)}</optgroup><optgroup label="Autres pays d'Afrique">${g.others.map(opt).join(``)}</optgroup></select></div>`;
+};
+function setMarket(code,focusId){
+  if(DEMO_MODE||!MK.isCountry(code))return;
+  state.market=code;state.marketEdit=false;
+  const saved=MK.write(marketStore(),code);          // navigateur seulement ; si le stockage est refusé, le choix vaut pour la session
+  if(state.sheetProduct){const sc=document.querySelector(`.sheet`),top=sc?sc.scrollTop:0;sheet(productSheet(state.sheetProduct));const n=document.querySelector(`.sheet`);if(n)n.scrollTop=top}
+  render(true);toast(saved?MT.saved:`Pays retenu pour cette visite.`);
+  const el=focusId&&(document.getElementById(focusId)||document.querySelector(`[data-act="market-edit"][data-v="${focusId}"]`));if(el)el.focus();   // le clavier reste là où il était
+}
+/* Une offre. tier : local | regional | international (rien : liste groupée par pays). Le prix est celui de l'offre, dans SA devise, jamais converti ; l'absence de prix s'écrit « Prix à vérifier ». */
+const offerRow=(o,tier)=>{
+  const note=tier===`regional`?`<p class="muted s">${MT.regional} ${MT.shipCheck}</p>`:tier===`international`?`<p class="muted s">${o.shipping===`international`?MT.shipDeclared:MT.shipCheck}</p>`:o.shipping===`international`?`<p class="muted s">${Engine.copy.OFFER_TEXTS.international}</p>`:``;
+  const tag=tier===`local`?`<span class="c-badge c-badge--good">${MT.local}</span>`:tier?`<span class="c-badge c-badge--outline">${MT.international}</span>`:``;
+  return `<div class="offer"><div class="ofh"><b>${esc(o.retailer)}</b><span class="muted">${esc(o.typeLabel)}${tier&&tier!==`local`?` · ${esc(o.country)}`:``}</span></div>
+  ${tag?`<div>${tag}</div>`:``}
+  <div class="ofp"><span class="pv">${o.price!=null?`<span class="muted s">${MT.priceLabel} :</span> ${fmtMoney(o.price,o.currency)}`:`<span class="muted">${Engine.copy.OFFER_TEXTS.priceToCheck}</span>`}</span><span class="c-badge${o.availability===`in_stock`?` c-badge--good`:` c-badge--outline`}">${o.availabilityLabel}</span></div>
+  ${note}${o.marketplace?`<p class="muted s">${Engine.copy.OFFER_TEXTS.marketplace}</p>`:``}
   <p class="muted s">Relevé le ${dFr(o.checkedAt)} (${esc(o.source)}).</p>
   ${o.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Acheter en ligne</a>`:o.linkOnly?`<a class="c-btn c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Voir l'offre</a>`:``}</div>`;
-/* Offres groupées par pays : un pays n'est jamais déduit d'un autre, aucun pays par défaut. Texte neutre tant que le pays de l'utilisatrice n'est pas connu. */
-const offersBlock=c=>{
-  const by=new Map();c.offers.forEach(o=>{if(!by.has(o.market))by.set(o.market,[]);by.get(o.market).push(o)});
-  return `<section class="offers" aria-label="Où l'acheter"><h3 class="h3" style="margin-bottom:6px">Où l'acheter</h3><p class="muted" style="margin-bottom:12px">${Engine.copy.OFFER_TEXTS.neutral}</p>
-  ${c.hasOffers?[...by.entries()].map(([m,l])=>`<div class="ofc"><h4>${esc(l[0].country)}</h4>${l.map(offerRow).join(``)}</div>`).join(``):`<p class="muted">${Engine.copy.OFFER_TEXTS.none}</p>`}</section>`;
+};
+const byCountry=list=>{const by=new Map();list.forEach(o=>{if(!by.has(o.market))by.set(o.market,[]);by.get(o.market).push(o)});return [...by.values()].map(l=>`<div class="ofc"><h4>${esc(l[0].country)}</h4>${l.map(o=>offerRow(o)).join(``)}</div>`).join(``)};
+/* Options d'achat d'un produit réel. Pays choisi : ses offres d'abord (vendeur local), puis les offres régionales que le vendeur déclare, puis, repliées, les offres d'autres pays (achat en ligne, livraison à vérifier).
+   Aucun pays choisi : invitation à le choisir, offres connues repliées, groupées par pays. Aucune offre : « Aucune offre vérifiée », jamais « indisponible ». */
+const offersBlock=(p,c)=>{
+  const v=Engine.products.marketView(p,state.market),head=`<h3 class="h3" style="margin-bottom:6px">Options d'achat</h3>`;
+  if(!v.country)return `<section class="offers" aria-label="Options d'achat">${head}<p class="muted" style="margin-bottom:10px">${MT.prompt}</p>${marketSelect(`mk-sheet`)}
+    ${c.hasOffers?`<details class="mk-else"><summary>${MT.allKnown}</summary><p class="muted s" style="margin:8px 0">${Engine.copy.OFFER_TEXTS.neutral}</p>${byCountry(c.offers)}</details>`:`<p class="muted">${Engine.copy.OFFER_TEXTS.none}</p>`}</section>`;
+  const mine=v.local.map(o=>offerRow(o,`local`)).concat(v.regional.map(o=>offerRow(o,`regional`))),elsewhere=v.international;
+  return `<section class="offers" aria-label="Options d'achat">${head}<p class="muted" style="margin-bottom:10px">Options d'achat ${MK.pour(v.country)}. ${MT.otherCurrency}</p>${marketSelect(`mk-sheet`)}
+   <div class="ofc">${mine.length?mine.join(``):`<p class="muted">${MT.noLocal}</p>`}</div>
+   ${elsewhere.length?`<details class="mk-else"><summary>${MT.elsewhereTitle}</summary><p class="muted s" style="margin:8px 0">${MT.elsewhereHelp}</p>${elsewhere.map(o=>offerRow(o,`international`)).join(``)}</details>`:``}</section>`;
 };
 const offerSummary=c=>{
   if(!c.hasOffers)return `<span class="c-badge c-badge--outline">Offres à venir</span>`;
   const names=[...new Set(c.offers.map(o=>o.country))];
   return `<span class="c-badge c-badge--outline">${c.offers.length} offre${c.offers.length>1?`s`:``}</span><span class="muted">${names.length>2?`${names.length} pays`:esc(names.join(`, `))}</span>`;
+};
+/* Ligne commerciale d'une carte produit. Pays choisi : la meilleure offre du pays (disponibilité, prix, vendeur, pays) ou « Aucune offre vérifiée pour votre pays ». Sinon : résumé neutre. */
+const cardOffer=(p,c)=>{
+  if(!state.market)return {html:offerSummary(c),buy:null};
+  const v=Engine.products.marketView(p,state.market),mine=v.local.concat(v.regional),o=mine.find(x=>x.buyable)||mine[0];
+  if(!o)return {html:`<span class="muted">${MT.noLocalCard}</span>${v.international.length?`<span class="c-badge c-badge--outline">${MT.international}</span>`:``}`,buy:null};
+  return {html:`<span class="c-badge${o.availability===`in_stock`?` c-badge--good`:` c-badge--outline`}">${o.availabilityLabel}</span><span class="pv">${o.price!=null?fmtMoney(o.price,o.currency):`<span class="muted">${Engine.copy.OFFER_TEXTS.priceToCheck}</span>`}</span><span class="muted">${esc(o.retailer)} · ${esc(o.country)}${mine.length>1?` (+${mine.length-1})`:``}</span>`,buy:o.buyable?o.url:null};
 };
 const priceLine=p=>{const c=Engine.products.commerceOf(p);return c.price?fmtPrice(c.price):`<span class="muted">Prix à venir</span>`};
 const availBadge=c=>`<span class="c-badge${c.availability===`available`?` c-badge--good`:` c-badge--outline`}">${c.availabilityLabel}</span>`;
@@ -894,18 +931,27 @@ const mainActiveLabel=p=>{const id=Engine.products.primaryActive(p),a=id&&Engine
 const productMedia=p=>p.demo?bottle(p.type,p.color):(p.image&&p.image.src?`<img src="${esc(p.image.src)}" alt="${esc(p.image.alt)}" loading="lazy">`:`<div class="pimg-ph" role="img" aria-label="Image du produit à venir">${ic(`image`)}<span>Image à venir</span></div>`);
 const slotsOf=steps=>[...new Set(steps.map(s=>s.stepId.startsWith(`morning`)?`Matin`:`Soir`))].join(` et `);
 function productCard(p,o={}){
-  const c=Engine.products.commerceOf(p),act=mainActiveLabel(p);
-  return `<button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${o.inPlan?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${productMedia(p)}</div>
+  const c=Engine.products.commerceOf(p),act=mainActiveLabel(p),co=p.demo?null:cardOffer(p,c);
+  return `<div class="pcard-w"><button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${o.inPlan?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${productMedia(p)}</div>
    <div class="pb"><div class="br">${esc(p.brand)}${p.format?` · ${esc(p.format)}`:``}</div><div class="nm">${esc(p.name)}</div>
    <div class="role muted">${o.slots?`${o.slots} · `:``}${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}${act?` · ${act}`:``}</div>
-   <div class="pr">${p.demo?`${availBadge(c)}<span>${priceLine(p)}</span>`:offerSummary(c)}</div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}</div></button>`;
+   <div class="pr">${p.demo?`${availBadge(c)}<span>${priceLine(p)}</span>`:co.html}</div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}</div></button>
+   ${co&&co.buy&&(o.inPlan||noReal())?`<a class="c-btn c-btn--primary c-btn--block pbuy" href="${esc(co.buy)}" target="_blank" rel="noopener noreferrer">Acheter en ligne</a>`:``}</div>`;
 }
+/* Barre « pays d'achat » de la page Produits. Pas de pays : invitation, jamais de blocage (la page reste utilisable). Pays choisi : « Options d'achat pour le … », devise locale, Modifier. */
+const marketBar=()=>{
+  if(DEMO_MODE)return ``;
+  if(!state.market)return `<section class="c-card mk-bar" aria-label="${MT.label}"><h2 class="h3">${MT.question}</h2><p class="muted" style="margin:4px 0 12px">${MT.prompt}</p>${marketSelect(`mk-prod`)}<p class="muted s" style="margin-top:8px">${MT.help}</p></section>`;
+  const c=MK.byCode(state.market);
+  return `<section class="c-card mk-bar" aria-label="${MT.label}"><div class="mk-row"><div><h2 class="h3">Options d'achat ${MK.pour(c.code)}</h2><p class="muted s">${MT.currencyNote} ${MK.currencyLabel(c.currency)}. ${MT.otherCurrency}</p></div>
+   ${state.marketEdit?marketSelect(`mk-prod`):`<button class="c-btn c-btn--secondary" data-act="market-edit" data-v="mk-prod">Modifier</button>`}</div></section>`;
+};
 V.products=()=>{
   const f=state.filter,list=Engine.products.usable(catalogNow()),inF=p=>f===`all`||p.category===f;
   const head=`<div class="pagehead"><h1>${DEMO_MODE?`Exemples de produits`:`Produits pour ma routine`}</h1><p>${DEMO_MODE?`Un catalogue de démonstration, qui n'est pas personnalisé. Ceux de votre routine sont repérés.`:`DERMAI choisit d'abord les actifs de votre routine, puis les produits qui les contiennent.`}</p></div>`;
   if(!DEMO_MODE&&!list.length)return shell(`${head}<div class="c-card c-card--empty"><div class="c-empty">${ic(`layers`)}<h2 class="c-empty__title">Les produits arrivent bientôt</h2><p class="c-empty__text">DERMAI prépare son catalogue de produits. En attendant, votre routine indique déjà les types de soins et les actifs à chercher.</p><button class="c-btn c-btn--primary c-btn--block" data-go="${noReal()?`scan`:`routine`}">${noReal()?`Analyser ma peau`:`Voir ma routine`}</button></div></div><div style="margin-top:24px;max-width:520px">${disc()}</div>`,{back:true,title:`Produits`});
   const chips=`<div class="chips" style="margin-bottom:24px">${CAT_FILTERS.map(([v,name])=>`<button class="c-chip" data-act="filter" data-v="${v}" aria-pressed="${f===v}">${name}</button>`).join(``)}</div>`;
-  const note=DEMO_MODE?`<div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>`:``;
+  const note=marketBar()+(DEMO_MODE?`<div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>`:``);
   const foot=`<div style="margin-top:32px;max-width:520px">${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="progress">Suivre ma progression</button></div>`;
   if(noReal()){
     return shell(`${head}${note}<div class="c-notice u-my-5">${ic(`info`)}<div>Faites votre première analyse pour voir quels produits correspondent à votre routine.</div></div>${chips}<div class="pgrid">${list.filter(inF).map(p=>productCard(p)).join(``)}</div>${foot}`,{back:true,title:`Produits`});
@@ -924,22 +970,23 @@ const productIdentity=p=>{
   ${src.length?`<p class="muted s" style="margin:12px 0 18px">Fiche produit relevée le ${dFr(src[0].checkedAt)} : ${src.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.label)}</a>`).join(`, `)}. La composition peut varier selon le pays : vérifiez l'emballage.</p>`:``}`;
 };
 function productSheet(id){
+  state.sheetProduct=id;
   const p=Engine.products.byId(id,catalogNow());if(!p||!Engine.products.usable(catalogNow()).includes(p))return `<p class="muted">Ce produit n'est plus disponible dans le catalogue.</p><button class="link" data-act="close">Fermer</button>`;
   const A=Engine.actives,c=Engine.products.commerceOf(p);
-  let why=`Produit de démonstration, non lié à votre analyse.`;
+  let why=`Produit de démonstration, non lié à votre analyse.`,isRec=false;
   if(!noReal()){
     const eng=engineFor(SCANS[state.latest]),view=Engine.products.catalogView(eng.routinePlan,eng.productMatches,catalogNow());
     const rec=view.recommended.find(r=>r.productId===id),oth=view.others.find(o=>o.productId===id);
-    if(rec)why=`${slotsOf(rec.steps)} : ${rec.steps.map(s=>s.why).filter((w,i,a)=>a.indexOf(w)===i).join(` `)}`;
+    isRec=!!rec;if(rec)why=`${slotsOf(rec.steps)} : ${rec.steps.map(s=>s.why).filter((w,i,a)=>a.indexOf(w)===i).join(` `)}`;
     else if(oth)why=`Non retenu pour votre routine actuelle. ${oth.text}`;
   }else if(!DEMO_MODE)why=`Faites votre première analyse pour savoir si ce produit correspond à votre routine.`;
   const act=mainActiveLabel(p),secondary=Engine.products.ids(p).filter(i=>i!==Engine.products.primaryActive(p));
   return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:${p.image&&p.image.credit?`6px`:`18px`}">${productMedia(p)}</div>${!p.demo&&p.image&&p.image.credit?`<p class="muted s" style="margin-bottom:14px;font-size:12px">${esc(p.image.credit)}</p>`:``}
-  <p class="muted">${esc(p.brand)}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${esc(p.name)}</h2>
+  <p class="muted">${esc(p.brand)}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${esc(p.name)}</h2>${isRec?`<p style="margin:0 0 10px"><span class="c-badge c-badge--good">${MT.recommended}</span></p>`:``}
   ${p.demo?`<p style="color:var(--ink);display:flex;gap:10px;align-items:center;flex-wrap:wrap">${availBadge(c)}<span>${priceLine(p)}</span></p>`:(p.format?`<p class="muted">${esc(p.format)}</p>`:``)}
   <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p>${p.description?`<p class="muted" style="margin-top:8px">${esc(p.description)}</p>`:``}<p class="muted" style="margin-top:8px">${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}.${p.demo||p.skinTypesDocumented?` Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.`:``}</p></div>
   <div class="kv" style="margin-bottom:18px">${act?`<div><h4>Actif principal</h4><p>${act}</p></div>`:``}${secondary.length?`<div><h4>Autres actifs</h4><p>${secondary.map(i=>A.byId(i).label).join(`, `)}</p></div>`:``}<div><h4>Composition</h4><div class="chips" style="margin-top:6px">${p.ingredients.map(i=>`<span class="c-badge">${esc(i.label)}</span>`).join(``)}</div></div>${p.demo?`<div><h4>Vendeur</h4><p class="muted">${c.vendor?esc(c.vendor):`Données à venir.`}</p></div>`:``}</div>
-  ${p.demo?``:`${offersBlock(c)}${productIdentity(p)}`}
+  ${p.demo?``:`${offersBlock(p,c)}${productIdentity(p)}`}
   <div class="stack">${p.demo&&c.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Voir où l'acheter</a>`:``}<button class="link" data-act="close" style="justify-content:center">Fermer</button></div>`;
 }
 
@@ -988,6 +1035,13 @@ const accountSection=()=>{
     ${state.save.status===`error`?`<button class="link" data-act="retry-save">Réessayer</button>`:``}
     <div class="stack" style="margin-top:12px"><button class="c-btn c-btn--secondary c-btn--block" data-act="logout">Se déconnecter</button></div></section>`;
 };
+/* Profil : pays d'achat (préférence d'affichage des offres, conservée sur cet appareil). */
+const marketSection=()=>{
+  if(DEMO_MODE)return ``;
+  const c=state.market&&MK.byCode(state.market);
+  return `<section><div class="hd"><h2 class="h3">${MT.label}</h2></div>${c&&!state.marketEdit?`<div class="rowlink" style="border-top:1px solid var(--line)"><div class="grow"><span class="s">Pays sélectionné</span><b>${esc(c.fr)}</b><span class="s">${MT.currencyNote} ${MK.currencyLabel(c.currency)}</span></div><button class="c-btn c-btn--secondary" data-act="market-edit" data-v="mk-prof">Modifier</button></div>`:marketSelect(`mk-prof`)}
+   <p class="muted s" style="margin-top:10px">${MT.help}</p></section>`;
+};
 const sw=(k,label,sub)=>`<div class="rowlink"><div class="grow"><b>${label}</b><span class="s">${sub}</span></div><button class="c-switch" role="switch" aria-checked="${state.prefs[k]}" data-act="pref" data-v="${k}" aria-label="${label}"></button></div>`;
 V.profile=()=>{
   const none=noReal(),r=none?null:viewOf(SCANS[state.latest]);
@@ -1004,6 +1058,7 @@ V.profile=()=>{
      ${exclusionsSection()}
      <p class="muted" style="margin-top:12px">Ma routine est recalculée automatiquement lorsque je modifie ces préférences. ${signedIn()?`Elles sont enregistrées avec votre compte.`:state.account.status===`visitor`?`Créez un compte pour les retrouver sur vos prochains appareils.`:`Elles ne sont pas enregistrées définitivement pour l'instant.`}</p>
      ${none?``:`<div style="margin-top:12px"><p style="color:var(--ink);margin-bottom:10px">${engineFor(SCANS[state.latest]).routinePlan.summary}</p><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></div>`}</section>
+   ${marketSection()}
    ${DEMO_MODE?`<section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>`:``}
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
@@ -1017,7 +1072,7 @@ V.profile=()=>{
 V.privacy=()=>shell(`<div class="pagehead"><h1>Confidentialité</h1><p style="color:var(--ink);font-size:18px">${DEMO_MODE?`Vos photos sont utilisées pour analyser votre peau.`:`Votre photo sert uniquement à analyser votre peau. DERMAI ne la conserve pas.`}</p></div>
   <div class="grid2"><div class="col">
    <section><ul class="l-list" style="margin-top:0">${DEMO_MODE?`<li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li>`
-     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`layers`)}<span>Si vous êtes connecté, vos analyses peuvent être enregistrées dans votre compte pour afficher votre historique et votre progression. Seuls vos scores, vos priorités du moment et vos objectifs de ce jour sont conservés.</span></li><li>${ic(`camera`)}<span>Pour obtenir l'analyse, votre photo est transmise à notre service d'analyse. DERMAI n'en garde aucune copie.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil, et vos photos originales ne sont pas non plus enregistrées avec vos analyses.</span></li><li>${ic(`shield`)}<span>Ces données sont associées à votre compte : vous seul pouvez accéder à vos analyses.</span></li><li>${ic(`lock`)}<span>Votre adresse e-mail et votre mot de passe sont gérés par notre service d'authentification. DERMAI ne voit ni ne conserve votre mot de passe.</span></li><li>${ic(`trash`)}<span>Vous pouvez supprimer votre historique d'analyses, ou votre compte entier (profil et analyses compris), depuis « Gérer mes données ».</span></li><li>${ic(`eye`)}<span>Une analyse nécessite un compte. Sans compte, rien n'est conservé d'une session à l'autre.</span></li>`}</ul></section>
+     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`layers`)}<span>Si vous êtes connecté, vos analyses peuvent être enregistrées dans votre compte pour afficher votre historique et votre progression. Seuls vos scores, vos priorités du moment et vos objectifs de ce jour sont conservés.</span></li><li>${ic(`lock`)}<span>Si vous choisissez un pays pour vos achats, ce choix reste dans ce navigateur : il n'est pas envoyé à DERMAI, et DERMAI n'utilise ni votre position ni votre adresse IP.</span></li><li>${ic(`camera`)}<span>Pour obtenir l'analyse, votre photo est transmise à notre service d'analyse. DERMAI n'en garde aucune copie.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil, et vos photos originales ne sont pas non plus enregistrées avec vos analyses.</span></li><li>${ic(`shield`)}<span>Ces données sont associées à votre compte : vous seul pouvez accéder à vos analyses.</span></li><li>${ic(`lock`)}<span>Votre adresse e-mail et votre mot de passe sont gérés par notre service d'authentification. DERMAI ne voit ni ne conserve votre mot de passe.</span></li><li>${ic(`trash`)}<span>Vous pouvez supprimer votre historique d'analyses, ou votre compte entier (profil et analyses compris), depuis « Gérer mes données ».</span></li><li>${ic(`eye`)}<span>Une analyse nécessite un compte. Sans compte, rien n'est conservé d'une session à l'autre.</span></li>`}</ul></section>
    ${DEMO_MODE?`<section>${sw(`keep`,`Conserver mes photos`,`Pour comparer avant et maintenant`)}</section>`:``}
   </div><div class="col"><section><div class="hd"><h2 class="h3">Gérer mes données</h2></div>
    ${DEMO_MODE?`<button class="rowlink" data-act="confirm" data-v="photos" style="border-top:1px solid var(--line)">${ic(`camera`)}<div class="grow"><b>Supprimer mes photos</b><span class="s">Les analyses restent disponibles</span></div>${ic(`chev`)}</button>`:``}
@@ -1117,7 +1172,7 @@ function runAnalysis(){
 }
 function toast(m){const t=document.getElementById(`toast`);t.textContent=m;t.classList.add(`show`);clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove(`show`),2600)}
 function sheet(html){$ov.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true">${html}</div>`;$ov.classList.add(`open`);document.body.style.overflow=`hidden`}
-function closeSheet(){$ov.classList.remove(`open`);$ov.innerHTML=``;document.body.style.overflow=``}
+function closeSheet(){state.sheetProduct=null;$ov.classList.remove(`open`);$ov.innerHTML=``;document.body.style.overflow=``}
 function toggle(arr,v){const i=arr.indexOf(v);i>-1?arr.splice(i,1):arr.push(v)}
 /* Import de la photo de démonstration : réduite et gardée dans ce navigateur uniquement. */
 /* ---------- Mode réel : capture, état de la requête, erreurs ---------- */
@@ -1243,6 +1298,7 @@ function act(a,v,el){
     case `tick`:state.done[v]=!state.done[v];render(true);break;
     case `filter`:state.filter=v;render(true);break;
     case `product`:sheet(productSheet(v));break;
+    case `market-edit`:state.marketEdit=true;render(true);{const el=document.getElementById(v||`mk-prof`);if(el)el.focus()}break;
     case `setview`:state.view=Number(v);break;
     case `viewscan`:state.view=Number(v);go(`result`);break;
     case `pref`:state.prefs[v]=!state.prefs[v];render(true);break;
@@ -1262,6 +1318,7 @@ document.addEventListener(`click`,e=>{
 document.addEventListener(`change`,e=>{
   if(e.target.id===`realPhotoInput`){const f=e.target.files&&e.target.files[0];e.target.value=``;handleRealPhoto(f);return}
   if(e.target.id===`photoInput`){loadPhoto(e.target.files&&e.target.files[0]);e.target.value=``;return}
+  if(e.target.dataset&&e.target.dataset.market!==undefined){setMarket(e.target.value,e.target.id);return}
   const k=e.target.dataset&&e.target.dataset.change;if(!k)return;
   state[k]=Number(e.target.value);render(true);
 });

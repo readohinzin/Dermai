@@ -44,3 +44,19 @@
 /* Étroit (360 px) : l'étiquette « Dans ma routine » reste sur une ligne et ne recouvre pas le cadre « Image à venir ». */
 .pgrid .pimg .badge{white-space:nowrap;font-size:11px;padding:3px 8px;top:8px;left:8px}
 .pgrid .pimg .pimg-ph{padding-top:26px}
+
+/* Pays d'achat : barre de la page Produits, sélecteur (44 px minimum), carte avec bouton d'achat, offres d'autres pays repliées */
+.mk-field{display:grid;gap:6px;max-width:26rem}
+.mk-sel{width:100%;min-height:48px;font-size:16px}   /* 16 px : pas de zoom automatique sur iPhone */
+.mk-bar{margin:0 0 22px}
+.mk-bar .h3{margin:0}
+.mk-row{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.mk-row>div:first-child{flex:1 1 14rem;min-width:0}
+.mk-row .c-btn{min-height:44px}
+.mk-else{margin:14px 0;border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+.mk-else>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600;color:var(--ink)}
+.mk-else[open]>summary{margin-bottom:4px}
+.pcard-w{display:flex;flex-direction:column;gap:10px;min-width:0}
+.pcard-w .pbuy{min-height:44px}
+.pcard .pr .pv{font-weight:600;color:var(--ink)}
+.offer .pv{overflow-wrap:anywhere}

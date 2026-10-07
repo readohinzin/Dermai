@@ -122,6 +122,29 @@
     none: 'Aucune offre vérifiée pour le moment.',
     priceToCheck: 'Prix à vérifier'
   };
+  /* Pays d'achat et options d'achat selon le pays. Le pays ne sert qu'à présenter les offres : jamais à choisir un produit ou à changer une recommandation. */
+  const MARKET_TEXTS = {
+    label: 'Pays pour mes achats',
+    question: 'Où souhaitez-vous acheter vos produits ?',
+    prompt: 'Sélectionnez votre pays pour voir les options disponibles.',
+    placeholder: 'Choisir un pays',
+    help: 'Ce choix sert uniquement à afficher les offres d\'achat. Il ne change ni votre analyse, ni vos priorités, ni votre routine. Il reste sur cet appareil : DERMAI n\'utilise ni votre position ni votre adresse IP.',
+    saved: 'Pays enregistré sur cet appareil.',
+    noLocal: 'Aucune offre vérifiée pour ce pays pour le moment.',
+    noLocalCard: 'Aucune offre vérifiée pour votre pays pour le moment.',
+    elsewhereTitle: 'Voir les options d\'achat en ligne disponibles dans d\'autres pays',
+    elsewhereHelp: 'Achat en ligne depuis un autre pays. La livraison n\'est pas vérifiée pour votre pays : vérifiez-la lors de la commande (frais et douane possibles).',
+    local: 'Vendeur local',
+    regional: 'Le vendeur indique desservir votre pays.',
+    international: 'Achat en ligne / international',
+    shipCheck: 'Vérifier la livraison lors de la commande.',
+    shipDeclared: 'Livraison internationale annoncée par le vendeur : livraison selon le pays sélectionné, à vérifier lors de la commande.',
+    allKnown: 'Voir toutes les offres connues, par pays',
+    priceLabel: 'Prix relevé',
+    recommended: 'Produit recommandé',
+    currencyNote: 'Devise du pays :',
+    otherCurrency: 'Chaque prix est affiché dans la devise de son offre, sans conversion.'
+  };
   const AVAILABILITY_LABELS = { available: 'Disponible', unavailable: 'Indisponible', coming_soon: 'Bientôt disponible', unknown: 'Données à venir' };
 
   /* ---- personnalisation : explications structurées (pourquoi, pourquoi maintenant, pourquoi pas autre chose) ---- */
@@ -186,6 +209,6 @@
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });
