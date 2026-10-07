@@ -100,7 +100,12 @@ class PerfectCorpProvider extends SkinAnalysisProvider{
     const payload=await postJpeg(blob,onStatus,token);
     const normalized=normalizeSkinResult(payload.result);
     if(!normalized)throw userError(SCAN_ERR_GENERIC);
-    return toScan(normalized);
+    const scan=toScan(normalized);
+    /* Localisation : masques réels de Perfect Corp (data URL), contrôlés ; gardés en mémoire avec l'analyse en cours seulement
+       (jamais dans l'historique, le stockage local ou l'URL). Absents → aucune zone ne sera dessinée. */
+    const loc=window.DermaiFaceMap?DermaiFaceMap.sanitize(payload.localization,SkinModel.METRIC_KEYS):null;
+    if(loc)scan.localization=loc;
+    return scan;
   }
 }
 const userError=m=>Object.assign(new Error(m),{userMessage:m});
@@ -754,11 +759,24 @@ const goalCount=()=>`${state.goals.length}/3 objectifs sélectionnés`;
 const goalBadges=()=>state.goals.length?`<div class="chips" style="margin-bottom:10px">${state.goals.map(id=>`<span class="c-badge">${Engine.copy.GOAL_LABELS[id]}</span>`).join(``)}</div>`:``;
 /* Exclusions : architecture prête (état, moteur, recalcul), volontairement sans interface pour l'instant. Aucune information de santé n'est demandée. */
 const exclusionsSection=()=>``;
+/* Carte du visage : la photo analysée + le masque RÉEL renvoyé par Perfect Corp pour l'indicateur choisi (js/face-map.js).
+   Seuls les indicateurs pour lesquels un masque a été reçu sont proposés. Aucune zone n'est déduite d'un score, d'une priorité ou du type de peau. */
+function faceMapHtml(s,keys){
+  const sel=keys.includes(state.faceKey)?state.faceKey:keys[0],lab=k=>SkinModel.METRIC_LABELS[k],sc=k=>SkinModel.displayScore(s.normalized[k]&&s.normalized[k].uiScore);
+  return `<section class="c-facemap" aria-labelledby="fm-title"><p class="kicker">Localisation</p><div class="hd"><h2 class="h3" id="fm-title">Zones détectées sur votre photo</h2></div>
+   <p class="muted c-facemap__intro">Chaque zone colorée provient directement du service d'analyse. Choisissez un indicateur.</p>
+   <div class="chips c-facemap__chips">${keys.map(k=>`<button class="c-chip" data-act="facemap" data-v="${k}" aria-pressed="${k===sel}">${lab(k)}</button>`).join(``)}</div>
+   <figure class="c-facemap__fig"><div class="c-facemap__frame" data-facemap data-key="${sel}"><img src="${esc(s.photo)}" alt="Votre photo analysée"><canvas aria-hidden="true"></canvas>
+    <span class="c-facemap__label">${lab(sel)}${sc(sel)===null?``:` · ${sc(sel)}/100`}</span></div>
+    <figcaption class="c-facemap__status" data-fm-status role="status" aria-live="polite"></figcaption></figure>
+   <button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide?`Afficher la zone`:`Voir la photo sans la zone`}</button></section>`;
+}
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
   const s=SCANS[state.view],r=viewOf(s),g=r.global,eng=engineFor(s),P=eng.priorities;
   /* Analyse plus ancienne : on montre ce qui avait été relevé à cette date (priorités et objectifs enregistrés), jamais recalculé avec les règles ou le profil d'aujourd'hui. */
   const H=!!s.rec&&s.id!==state.latest,noPhoto=!DEMO_MODE&&!s.photo;
+  const fmKeys=!H&&!DEMO_MODE&&s.photo&&s.localization?SkinModel.METRIC_KEYS.filter(k=>s.localization[k]):[];
   const stored=m=>Object.assign({},m,{bandLabel:(SkinModel.BANDS.find(b=>b.key===m.band)||{}).label});
   const hero=`<div class="c-card c-card--result c-result"><div class="c-result__hero">${noPhoto?``:`<div class="c-result__photo">${portrait({photo:s.photo})}</div>`}
       <div class="c-score-block"><span class="c-result__kicker">Score global</span>${g.score===null?`<p class="c-result__na">Score global indisponible</p>`:`${scoreHtml(g,`xl`)}${bandBadge(g)}`}</div></div>
@@ -784,6 +802,7 @@ V.result=()=>{
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
+    ${fmKeys.length?faceMapHtml(s,fmKeys):``}
     <section><p class="kicker">Ce que DERMAI observe</p><div class="hd"><h2 class="h3">${H?`Repères à soutenir à cette date`:`Vos priorités`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
       ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.`:`Vos principaux repères à soutenir, d'après votre analyse.`} 100 correspond au meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
@@ -1148,6 +1167,10 @@ function render(keep){
 function after(keep,y){
   if(!motionCtl)motionCtl=DermaiMotion.init();
   motionCtl.scan($app,{route:state.route,key:state.route+`:`+(state.param==null?``:state.param),keep:!!keep,y});   // motion design : apparitions au défilement, compteurs, courbes (js/motion.js)
+  const fm=document.querySelector(`[data-facemap]`);
+  if(fm&&window.DermaiFaceMap){const sc=SCANS[state.view],key=fm.dataset.key;
+    DermaiFaceMap.mount(fm,{masks:sc&&sc.localization&&sc.localization[key],hidden:!!state.faceHide,onStatus:st=>{const el=document.querySelector(`[data-fm-status]`);
+      if(el)el.textContent=st===`ok`?``:st===`empty`?`Aucune zone localisée pour cet indicateur sur cette photo.`:`Localisation visuelle indisponible pour cet indicateur.`}})}
   if(state.route===`landing`){const el=document.querySelector(`[data-hc]`);if(el)heroCtl=DermaiHero.init(el,{reduced:false,actives:heroActives()})}
   if(state.route===`scan`&&state.scanStep>=1&&state.scanStep<=3){
     if(DEMO_MODE)timers.push(setTimeout(()=>{const c=document.getElementById(`cam`),q=document.getElementById(`qt`);if(c&&q){c.classList.add(`ready`);q.textContent=`Qualité de l'image : excellente`}},1000));
@@ -1307,6 +1330,8 @@ function act(a,v,el){
     case `signup`:{const n=document.getElementById(`f-name`),m=document.getElementById(`f-mail`);state.user.name=(n&&n.value.trim())||(DEMO_MODE?`Amina`:``);state.user.email=(m&&m.value.trim())||(DEMO_MODE?`amina@exemple.com`:``);go(`welcome`);break}
     case `goal`:{const r=Engine.toggleGoal(state.goals,v);state.goals=r.goals;if(v===`none`)state.noGoal=true;else if(!r.limited)state.noGoal=false;if(r.limited)toast(Engine.copy.GOAL_LIMIT);render(true);if(!r.limited)persist();break}
     case `level`:state.level=v;render(true);persist();break;
+    case `facemap`:state.faceKey=v;render(true);break;
+    case `facemap-hide`:state.faceHide=!state.faceHide;render(true);break;
     case `gentle`:state.gentle=!state.gentle;render(true);persist();break;
     case `logout`:logout();break;
     case `retry-save`:persist();break;

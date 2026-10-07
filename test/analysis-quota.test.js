@@ -16,6 +16,7 @@ delete process.env.DERMAI_MAX_ANALYSES_PER_PERIOD; delete process.env.DERMAI_ANA
 const auth = require('../server/auth'), quota = require('../server/quota'), perfectcorp = require('../server/perfectcorp');
 const config = require('../server/config');
 const handler = require('../api/skin-analysis.js');
+require('../server/masks').api.fetchImpl = async () => { throw new Error('hors ligne (test)'); };   // aucun téléchargement réseau de masque dans ces tests
 const JSON_RESP = require('./fixtures/perfectcorp-json-response.json');
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
 

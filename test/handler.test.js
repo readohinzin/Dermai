@@ -8,6 +8,7 @@ const { validateImage, readBody } = require('../server/validation');
 process.env.DERMAI_ANALYSIS_ENABLED = '1';   // verrou ouvert pour les tests ; les tests du verrou le referment explicitement
 const perfectcorp = require('../server/perfectcorp');
 const handler = require('../api/skin-analysis.js');
+require('../server/masks').api.fetchImpl = async () => { throw new Error('hors ligne (test)'); };   // aucun téléchargement réseau de masque dans ces tests
 
 /* Depuis l'étape 11.1, /api/skin-analysis exige une session Supabase valide (vérifiée auprès de Supabase : ici un faux GoTrue en mémoire).
    Ces tests de validation, de verrou et de résultat s'exécutent donc en tant qu'utilisateur connecté ; les refus sans session sont dans

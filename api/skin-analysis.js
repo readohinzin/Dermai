@@ -6,6 +6,7 @@ const auth = require('../server/auth');
 const quota = require('../server/quota');
 const { isAnalysisEnabled, isDebugRawEnabled } = require('../server/config');
 const { describeStructure } = require('../server/structure');
+const masks = require('../server/masks');   // localisation réelle : masques Perfect Corp, téléchargés ici, renvoyés en data URL
 /* Module partagé avec le navigateur (js/skin-model.js) : localise le résultat et ne garde que les champs autorisés. */
 const skinModel = require('../js/skin-model.js');
 const { diagnosticLines, repetitionLine } = require('../server/diagnostic');   // DIAGNOSTIC TEMPORAIRE (voir server/diagnostic.js)
@@ -70,8 +71,19 @@ async function handler(req, res) {
        éventuelle de skin_type / all dans le tableau, aujourd'hui non établie. */
     console.log('[DERMAI] Perfect Corp result path:', out.path, '| types lus :', out.types.join(','), '| types ignorés :', out.ignoredTypes.join(',') || 'aucun');
     const result = { schemaVersion: skinModel.SCHEMA_VERSION, normalized: out.normalized };
+    /* Localisation : uniquement les masques réellement renvoyés par Perfect Corp. Facultative : un échec ne bloque jamais l'analyse.
+       Les URL d'origine ne quittent pas le serveur ; rien n'est stocké. Clé absente quand aucun masque n'est exploitable. */
+    let localization = {};
+    try {
+      const m = await masks.collect(envelope);
+      localization = m.localization;
+      console.log('[DERMAI] Localization: metrics', m.stats.metrics, '| listed', m.stats.listed, '| kept', m.stats.kept);
+    } catch (e) { console.warn('[DERMAI] Localization unavailable'); }
+    const payload = { ok: true, result };
+    if (Object.keys(localization).length) payload.localization = localization;
     /* L'enveloppe brute ne part au navigateur que sur diagnostic explicite (DERMAI_DEBUG_RAW). */
-    return send(res, 200, isDebugRawEnabled() ? { ok: true, result, raw: envelope } : { ok: true, result });
+    if (isDebugRawEnabled()) payload.raw = envelope;
+    return send(res, 200, payload);
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('UNKNOWN', { cause: err });
     console.error('[DERMAI] Skin analysis failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
