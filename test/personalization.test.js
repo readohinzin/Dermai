@@ -80,7 +80,7 @@ test('P8 un objectif n\'est pas un diagnostic : il ne crée ni priorité, ni act
   }
   const r = run({}, {}, { goals: ['tone'] });
   assert.match(r.personalization.goals[0].text, /aucun actif n'est ajouté/);
-  assert.match(r.explanations.find(e => e.kind === 'mode').text, /ne fait pas ressortir de priorité forte/);
+  assert.match(r.explanations.find(e => e.kind === 'mode').text, /Aucune priorité forte ne ressort/);
 });
 
 test('P9 confort choisi par l\'utilisateur : aucun rétinoïde, aucun actif à forte irritation, base d\'hydratation, SPF', () => {

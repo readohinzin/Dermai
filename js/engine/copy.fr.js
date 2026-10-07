@@ -29,13 +29,14 @@
     return objectiveMatch ? base + ' Il correspond à votre objectif.' : base;
   }
   const MAINTENANCE = {
-    title: 'Votre analyse ne fait pas ressortir de priorité forte.',
-    text: 'Nous privilégions une routine d\'entretien : nettoyer doucement, hydrater et protéger du soleil.'
+    title: 'Aucune priorité forte ne ressort de cette analyse.',
+    text: 'Certains indicateurs peuvent toutefois être soutenus dans votre routine d\'entretien.'
   };
   const eyeInfo = labels => 'Votre analyse montre un indicateur plus faible au niveau du contour des yeux (' + joinList(labels.map(lower)) +
     '). C\'est une information : aucun actif n\'est proposé automatiquement pour cet indicateur.';
 
   const INFO_LABEL = 'À titre d\'information';
+  const EYE_GROUP_TITLE = 'Contour des yeux — à titre informatif';
   const INFO_TEXT = 'Cet indicateur est donné à titre d\'information. Il n\'appelle pas de recommandation automatique.';
   const INDICATOR_NOTES = {
     acne: 'Imperfections visibles', pigmentation: 'Taches et uniformité du teint', pores: 'Visibilité des pores', oiliness: 'Niveau d\'huile de la peau',
@@ -70,13 +71,15 @@
 
   /* ---- routine ---- */
   const TEXTURE = {
-    oily: 'texture légère, non comédogène', dry: 'texture plus riche', combination: 'texture légère à moyenne',
+    oily: 'texture adaptée à votre peau', dry: 'texture plus riche', combination: 'texture adaptée à votre peau',
     normal: 'texture standard', unknown: 'texture adaptée à votre peau'
   };
   const stepReason = {
     cleanse: 'Un nettoyage doux prépare la peau sans l\'agresser.',
     spf: 'La protection solaire accompagne tous les soins du plan.',
-    moisturize: (texture, labels) => 'Hydratation en ' + texture + (labels.length ? ', avec : ' + joinList(labels.map(lower)) : '') + '.',
+    moisturize: (texture, labels) => 'Une hydratation adaptée au confort de la peau' + (labels.length ? ', avec : ' + joinList(labels.map(lower)) : '') + '.',
+    /* Peau à profil gras : pourquoi un hydratant figure quand même dans la routine. Information générale, aucune promesse. */
+    moisturizeOily: 'L\'hydratation reste utile même lorsque la peau présente un profil gras.',
     owned: 'Vous utilisez déjà cette catégorie : gardez-la si elle vous convient.'
   };
   const NOTES = {
@@ -101,6 +104,14 @@
     if (kind === 'moisturize') return 'Hydratant pour l\'étape d\'hydratation de votre routine.' + (l ? ' Il contient des actifs de soutien retenus : ' + l + '.' : '');
     if (kind === 'cleanse') return 'Nettoyant doux pour l\'étape de nettoyage de votre routine.';
     return 'Protection solaire pour l\'étape du matin de votre routine.';
+  };
+  /* Rôle d'un produit recommandé : une phrase factuelle tirée de l'étape que le moteur lui a déjà attribuée (jamais une promesse, un score ou un classement). */
+  const productRole = (kind, labels) => {
+    const l = joinList((labels || []).map(lower));
+    if (kind === 'treatment') return 'Produit proposé pour le soin ciblé de votre routine' + (l ? ' (actif : ' + l + ')' : '') + '.';
+    if (kind === 'moisturize') return 'Produit proposé pour accompagner l\'hydratation de votre routine.';
+    if (kind === 'cleanse') return 'Produit proposé pour accompagner le nettoyage de votre routine.';
+    return 'Produit proposé pour accompagner la protection solaire de votre routine.';
   };
   /* Raisons réelles d'un produit non retenu (chacune correspond à une règle du moteur, jamais inventée). */
   const PRODUCT_REASONS = {
@@ -136,7 +147,8 @@
     elsewhereHelp: 'Achat en ligne depuis un autre pays. La livraison n\'est pas vérifiée pour votre pays : vérifiez-la lors de la commande (frais et douane possibles).',
     local: 'Vendeur local',
     regional: 'Le vendeur indique desservir votre pays.',
-    international: 'Achat en ligne / international',
+    international: 'Voir une offre internationale',
+    internationalTag: 'Offre internationale',
     shipCheck: 'Vérifier la livraison lors de la commande.',
     shipDeclared: 'Livraison internationale annoncée par le vendeur : livraison selon le pays sélectionné, à vérifier lors de la commande.',
     allKnown: 'Voir toutes les offres connues, par pays',
@@ -160,7 +172,7 @@
   const LEVEL_SHORT = { none: 'Minimal', simple: 'Simple', full: 'Complète' };
   const PERSONAL = {
     measured: labels => 'Votre analyse indique des repères plus faibles sur : ' + joinList(labels.map(lower)) + '.',
-    measuredNone: 'Votre analyse ne fait pas ressortir de priorité forte. Nous privilégions une routine d\'entretien.',
+    measuredNone: 'Aucune priorité forte ne ressort de cette analyse. Nous privilégions une routine d\'entretien.',
     goals: labels => 'Vous avez indiqué comme objectif : ' + joinList(labels.map(lower)) + '. Un objectif sert à départager des options, il ne crée pas de priorité.',
     skin: label => 'Votre analyse indique le profil : ' + label + '. Il sert de contexte (texture de l\'hydratant, prudence), pas de constat médical.',
     comfortAnalysis: 'Votre analyse suggère de privilégier le confort : actifs doux, hydratation, barrière et protection solaire d\'abord.',
@@ -216,6 +228,6 @@
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, productRole, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });

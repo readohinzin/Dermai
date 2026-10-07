@@ -15,6 +15,8 @@
 .c-concern-card .c-card__text{margin:var(--s-2) 0 0}
 
 .c-indicators{list-style:none;margin:0;padding:0}
+.c-indicators-group{margin-top:26px}
+.c-indicators-group__title{font-size:15px;font-weight:600;color:var(--ink);margin:0 0 4px;line-height:1.35}
 .c-indicator{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s-2) var(--s-3);align-items:center;padding:var(--s-3) 0;border-bottom:1px solid var(--line)}
 .c-indicator:last-child{border-bottom:0}
 .c-indicator__name{font-weight:600}

@@ -269,7 +269,7 @@ test('MK20 profil et produits : section « Pays pour mes achats » avec Modifier
 test('MK21 fiche et cartes : produit sans offre = « Produit recommandé » + message neutre ; international distingué du local ; livraison jamais affirmée', () => {
   const app = read('js/app.js');
   for (const k of ['local', 'international', 'shipCheck', 'shipDeclared', 'elsewhereTitle', 'noLocal']) assert.ok(copy.MARKET_TEXTS[k], k);
-  assert.equal(copy.MARKET_TEXTS.local, 'Vendeur local'); assert.equal(copy.MARKET_TEXTS.international, 'Achat en ligne / international');
+  assert.equal(copy.MARKET_TEXTS.local, 'Vendeur local'); assert.equal(copy.MARKET_TEXTS.international, 'Voir une offre internationale');
   assert.match(copy.MARKET_TEXTS.shipCheck, /Vérifier la livraison lors de la commande/);
   assert.match(copy.MARKET_TEXTS.elsewhereTitle, /options d'achat en ligne disponibles dans d'autres pays/);
   for (const t of Object.values(copy.MARKET_TEXTS)) assert.doesNotMatch(String(t), /Livraison au |livré au |livrable (au|en) |livraison garantie|livraison gratuite/i, 'aucune promesse de livraison');

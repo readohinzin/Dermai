@@ -90,9 +90,9 @@ test('RO7 produits déjà utilisés : l\'étape est marquée « déjà utilisée
 
 test('RO8 type de peau : texture de l\'hydratant adaptée, jamais une règle de classement', () => {
   const tex = skin => run({}, { skin }).routinePlan.slots.morning.find(s => s.kind === 'moisturize').texture;
-  assert.match(tex('Oily'), /légère, non comédogène/);
+  assert.match(tex('Oily'), /adaptée à votre peau/);          // aucune promesse de texture (ni « légère », ni « non comédogène »)
   assert.match(tex('Dry'), /plus riche/);
-  assert.match(tex('Combination'), /légère à moyenne/);
+  assert.match(tex('Combination'), /adaptée à votre peau/);
   assert.match(tex('Normal'), /standard/);
   assert.match(tex(null), /adaptée à votre peau/);
   assert.match(tex('Redness'), /adaptée à votre peau/);

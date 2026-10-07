@@ -770,10 +770,13 @@ V.result=()=>{
   const othersH=[...r.priorities,...r.others].sort((a,b)=>a.order-b.order).filter(m=>!s.rec||!H||!s.rec.priorities.some(p=>p.id===m.key)).map(m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
-  const others=H?othersH:eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(m=>m.score===null
+  const rest=H?[]:eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)),eyeOf=m=>m.score!==null&&isInfo(m);
+  const rowOf=m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :isInfo(m)?`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${infoBadge()}</span><span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span></li>`
-    :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
+    :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`;
+  /* Les indicateurs du contour des yeux sont donnés à titre d'information : ils sont regroupés à part, valeurs et contenus inchangés. */
+  const others=H?othersH:rest.filter(m=>!eyeOf(m)).map(rowOf).join(``),eyeRows=rest.filter(eyeOf).map(rowOf).join(``);
   const sv=state.analysisSave,svBox=!DEMO_MODE&&sv.scan===s&&sv.status!==`idle`?`<div class="c-notice${sv.status===`saved`?` c-notice--success`:``}" role="status" aria-live="polite">${ic(sv.status===`saved`?`check`:`info`)}<div>${sv.message}${sv.status===`error`?` <button class="link" data-act="retry-analysis">Réessayer</button>`:``}</div></div>`:``;
   return shell(`
   <div class="pagehead"><p class="kicker">Analyse du ${dateLabel(s)}${H?` · analyse précédente`:``}</p><h1>${H?`Votre analyse du ${dateLabel(s)}`:`Votre analyse`}</h1><p>Une analyse cosmétique de l'état apparent de votre peau.</p></div>
@@ -785,7 +788,7 @@ V.result=()=>{
       ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.`:`Vos principaux repères à soutenir, d'après votre analyse.`} 100 correspond au meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
     ${!H&&P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
-    <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul></section>
+    <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul>${eyeRows?`<div class="c-indicators-group"><h3 class="c-indicators-group__title">${Engine.copy.EYE_GROUP_TITLE}</h3><ul class="c-indicators">${eyeRows}</ul></div>`:``}</section>
     ${H?`<section><p class="kicker">Ce que vous souhaitiez travailler</p><div class="hd"><h2 class="h3">Vos objectifs à cette date</h2></div>
       ${s.rec.goals.length?`<div class="chips" style="margin-bottom:10px">${s.rec.goals.map(id=>`<span class="c-badge">${Engine.copy.GOAL_LABELS[id]}</span>`).join(``)}</div>`:`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi à cette date.</p>`}</section>
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine actuelle</h2></div>
@@ -859,7 +862,7 @@ V.routine=()=>{
   const whyBlock=st=>{const x=sel[st.activeId];if(!x)return ``;return `<details class="c-why"><summary>Pourquoi cet actif ?</summary><p>${x.why}</p><p>${x.whyNow}</p>${x.whyNot.map(n=>`<p>${n.text}</p>`).join(``)}</details>`};
   const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId,catalogNow());
-    return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>
+    return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>${st.kind===`moisturize`&&R.skinBase===`oily`?`<p class="c-routine-step__role">${Engine.copy.stepReason.moisturizeOily}</p>`:``}
       ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}<button class="link" data-go="active:${st.activeId}">Découvrir cet actif</button>`:``}
       ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Produit proposé : `}${esc(p.name)}</button>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
@@ -899,7 +902,7 @@ function setMarket(code,focusId){
 /* Une offre. tier : local | regional | international (rien : liste groupée par pays). Le prix est celui de l'offre, dans SA devise, jamais converti ; l'absence de prix s'écrit « Prix à vérifier ». */
 const offerRow=(o,tier)=>{
   const note=tier===`regional`?`<p class="muted s">${MT.regional} ${MT.shipCheck}</p>`:tier===`international`?`<p class="muted s">${o.shipping===`international`?MT.shipDeclared:MT.shipCheck}</p>`:o.shipping===`international`?`<p class="muted s">${Engine.copy.OFFER_TEXTS.international}</p>`:``;
-  const tag=tier===`local`?`<span class="c-badge c-badge--good">${MT.local}</span>`:tier?`<span class="c-badge c-badge--outline">${MT.international}</span>`:``;
+  const tag=tier===`local`?`<span class="c-badge c-badge--good">${MT.local}</span>`:tier?`<span class="c-badge c-badge--outline">${MT.internationalTag}</span>`:``;
   return `<div class="offer"><div class="ofh"><b>${esc(o.retailer)}</b><span class="muted">${esc(o.typeLabel)}${tier&&tier!==`local`?` · ${esc(o.country)}`:``}</span></div>
   ${tag?`<div>${tag}</div>`:``}
   ${o.seller?`<p class="muted s">Vendeur : ${esc(o.seller)}${o.city?` · ${esc(o.city)}`:``}</p>`:o.city?`<p class="muted s">${esc(o.city)}</p>`:``}
@@ -937,13 +940,15 @@ const availBadge=c=>`<span class="c-badge${c.availability===`available`?` c-badg
 const mainActiveLabel=p=>{const id=Engine.products.primaryActive(p),a=id&&Engine.actives.byId(id);return a?a.label:null};
 /* Image : produit de démonstration = illustration de flacon ; produit réel = sa photo si elle existe, sinon un cadre neutre « Image à venir » (jamais une fausse photo). */
 const productMedia=p=>p.demo?bottle(p.type,p.color):(p.image&&p.image.src?`<img src="${esc(p.image.src)}" alt="${esc(p.image.alt)}" loading="lazy">`:`<div class="pimg-ph" role="img" aria-label="Image du produit à venir">${ic(`image`)}<span>Image à venir</span></div>`);
+/* Une phrase factuelle par type d'étape que le moteur a déjà attribuée au produit (dédoublonnée matin/soir). */
+const roleOf=steps=>{const seen=new Set();return steps.filter(s=>{const k=s.kind+`:`+(s.activeIds||[]).join();return seen.has(k)?false:(seen.add(k),true)}).map(s=>Engine.copy.productRole(s.kind,(s.activeIds||[]).map(id=>Engine.actives.byId(id).label))).join(` `)};
 const slotsOf=steps=>[...new Set(steps.map(s=>s.stepId.startsWith(`morning`)?`Matin`:`Soir`))].join(` et `);
 function productCard(p,o={}){
   const c=Engine.products.commerceOf(p),act=mainActiveLabel(p),co=p.demo?null:cardOffer(p,c);
   return `<div class="pcard-w"><button class="pcard" data-act="product" data-v="${p.id}"><div class="pimg">${o.inPlan?`<span class="badge">Dans ma routine</span>`:``}${p.demo?`<span class="badge demo-b">Démo</span>`:``}${productMedia(p)}</div>
    <div class="pb"><div class="br">${esc(p.brand)}${p.format?` · ${esc(p.format)}`:``}</div><div class="nm">${esc(p.name)}</div>
    <div class="role muted">${o.slots?`${o.slots} · `:``}${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}${act?` · ${act}`:``}</div>
-   <div class="pr">${p.demo?`${availBadge(c)}<span>${priceLine(p)}</span>`:co.html}</div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}</div></button>
+   <div class="pr">${p.demo?`${availBadge(c)}<span>${priceLine(p)}</span>`:co.html}</div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}${o.role?`<p class="role-why muted">${o.role}</p>`:``}</div></button>
    ${co&&co.buy&&(o.inPlan||noReal())?`<a class="c-btn c-btn--primary c-btn--block pbuy" href="${esc(co.buy)}" target="_blank" rel="noopener noreferrer">Acheter en ligne</a>`:``}</div>`;
 }
 /* Barre « pays d'achat » de la page Produits. Pas de pays : invitation, jamais de blocage (la page reste utilisable). Pays choisi : « Options d'achat pour le … », devise locale, Modifier. */
@@ -968,7 +973,7 @@ V.products=()=>{
   const rec=view.recommended.map(r=>({p:Engine.products.byId(r.productId,catalogNow()),r})).filter(x=>inF(x.p));
   const oth=view.others.map(o=>({p:Engine.products.byId(o.productId,catalogNow()),o})).filter(x=>inF(x.p));
   return shell(`${head}${note}${chips}
-   <section><div class="hd"><h2 class="h3">Recommandés pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit recommandé dans cette catégorie.`:`Aucun produit du catalogue ne correspond encore aux étapes de votre routine.`}</p>`}</section>
+   <section><div class="hd"><h2 class="h3">Recommandés pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit recommandé dans cette catégorie.`:`Aucun produit du catalogue ne correspond encore aux étapes de votre routine.`}</p>`}</section>
    ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${foot}`,{back:true,title:`Produits`});
 };
 /* Identité vérifiée d'un produit réel : INCI (avec ses divergences éventuelles) et source fabricant datée. Jamais d'INCI inventé : sans liste, aucune ligne. */

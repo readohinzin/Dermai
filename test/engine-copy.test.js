@@ -57,8 +57,8 @@ test('CP4 formulations attendues : « Votre analyse… », « Cet indicateur est
   assert.match(copy.priorityReason({ band: 'mid', objectiveMatch: true }), /Il correspond à votre objectif\.$/);
   assert.match(copy.eyeInfo(['Cernes']), /^Votre analyse montre/);
   assert.match(copy.summary(['Pores', 'Hydratation'], 'action'), /^Une routine orientée vers : pores et hydratation\.$/);
-  assert.match(copy.MAINTENANCE.title, /^Votre analyse ne fait pas ressortir de priorité forte\./);
-  assert.match(copy.MAINTENANCE.text, /^Nous privilégions une routine d'entretien/);
+  assert.match(copy.MAINTENANCE.title, /^Aucune priorité forte ne ressort de cette analyse\./);
+  assert.match(copy.MAINTENANCE.text, /routine d'entretien/);
 });
 
 test('CP5 le vocabulaire reste « taches / uniformité du teint / éclat » : le catalogue ne promet ni éclaircissement ni guérison', () => {

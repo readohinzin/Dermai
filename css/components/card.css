@@ -28,7 +28,7 @@
 .pcard{text-align:left}
 .pcard .role{font-size:13px;margin:0 0 8px;overflow-wrap:anywhere}
 .pcard .pr{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:6px 10px}
-.pcard .why{font-size:13px;margin:8px 0 0}
+.pcard .why,.pcard .role-why{font-size:13px;margin:8px 0 0}
 .pgrid{align-items:start}
 
 /* Offres par pays (étape 14B) : une carte par offre, regroupées sous le nom du pays. */

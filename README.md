@@ -52,7 +52,7 @@ DERMAI est pensé pour toute l'Afrique : aucun pays par défaut, aucune offre d�
 - **Liste centralisée** : `js/engine/data/markets.js` (54 pays : code ISO, nom français, nom anglais, article, devise principale). Étendre = une ligne. `js/market.js` : préférence (lecture, écriture, liste du sélecteur, « pour le Bénin »).
 - **Stockage** : uniquement dans le navigateur (`localStorage`, clé `dermai.market`). Ce n'est pas une donnée d'analyse ni de personnalisation : il n'est ni dans le profil Supabase, ni dans une analyse (`goals_snapshot`), ni envoyé à Perfect Corp. Aucune table, aucune colonne, aucune migration. Conséquence : le choix suit l'appareil, pas le compte. Un stockage refusé par le navigateur ne casse rien (le choix vaut pour la visite).
 - **Moteur souverain** : le pays n'est lu que par l'affichage des offres (`marketView` dans `js/engine/products.js`, page Produits, fiche). Il ne change ni le score, ni les priorités, ni les actifs, ni la routine, ni le classement « Recommandés » / « Autres produits » (tests MK12, MK13).
-- **Hiérarchie des offres** : 1. offres du pays (« Vendeur local ») ; 2. offres régionales, seulement si le vendeur déclare desservir ce pays (`servesMarkets`) ; 3. offres d'autres pays (« Achat en ligne / international », repliées, « Vérifier la livraison lors de la commande ») ; 4. « Aucune offre vérifiée pour ce pays pour le moment. ». Une offre dont le vendeur indique une livraison locale n'est jamais proposée hors de son pays. Aucun score, aucun classement numérique.
+- **Hiérarchie des offres** : 1. offres du pays (« Vendeur local ») ; 2. offres régionales, seulement si le vendeur déclare desservir ce pays (`servesMarkets`) ; 3. offres d'autres pays (« Voir une offre internationale » (carte) / « Offre internationale » (ligne d'offre), repliées, « Vérifier la livraison lors de la commande ») ; 4. « Aucune offre vérifiée pour ce pays pour le moment. ». Une offre dont le vendeur indique une livraison locale n'est jamais proposée hors de son pays. Aucun score, aucun classement numérique.
 - **Prix et devises** : chaque prix reste dans la devise de son offre (jamais converti en FCFA), « Prix relevé » + date de relevé ; sans prix : « Prix à vérifier ». Disponibilité : En stock, Rupture de stock, Bientôt disponible, Disponibilité à vérifier (`unknown` n'est jamais « Disponible »).
 - **Bouton « Acheter en ligne »** : seulement avec un lien https réel, un vendeur identifié et une offre en stock ; sur une carte, seulement pour un produit retenu par la routine. Aucun lien généré, aucune affiliation, aucun suivi.
 - **Mode démonstration** : aucun sélecteur de pays, aucune offre réelle, produits marqués « Démo ».
@@ -104,3 +104,13 @@ Sur téléphone, l'écran de scan propose « Prendre une photo » (champ avec `c
 - **utilisable** sinon, avec la précision que le service d'analyse confirmera la détection du visage.
 
 Seuils volontairement indulgents (luminosité jugée sur les hautes lumières, pas sur la moyenne, pour ne pas pénaliser les peaux foncées) ; ce sont des heuristiques à ajuster avec de vraies photos. Le service d'analyse reste l'autorité : ses refus (visage, angle, lumière) sont déjà traduits en messages clairs. La photo n'est envoyée qu'au clic sur « Analyser ma peau ».
+
+## Passe UX finale après le premier vrai scan (textes seulement)
+
+- Aucune décision du moteur ne change (scores, interprétation, priorités, actifs, étapes de la routine, produits : mêmes résultats sur 1500 profils). Seules les phrases de présentation sont modifiées.
+- « Aucune priorité forte ne ressort de cette analyse. » suivie de « Certains indicateurs peuvent toutefois être soutenus dans votre routine d'entretien. »
+- Hydratation de la routine : « Une hydratation adaptée au confort de la peau » (plus de « légère » ni de « non comédogène »). Pour un profil gras, une phrase explique pourquoi un hydratant reste utile (`stepReason.moisturizeOily`, affichée par l'écran Routine, jamais par le moteur).
+- Produits recommandés : une phrase factuelle tirée de l'étape déjà retenue (`copy.productRole`), sans score ni classement.
+- Offre d'un autre pays : « Voir une offre internationale » sur la carte, « Offre internationale » sur la ligne d'offre ; aucune promesse de livraison.
+- Contour des yeux : les cinq indicateurs informatifs sont regroupés sous « Contour des yeux — à titre informatif » (valeurs et badges inchangés).
+- Tests : `test/ux-final.test.js`.
