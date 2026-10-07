@@ -71,7 +71,7 @@ const state={route:`landing`,param:null,stack:[],user:DEMO_MODE?{name:`Amina`,em
   goals:DEMO_MODE?[`tone`,`oil_pores`,`hydration`]:[],noGoal:false,level:DEMO_MODE?`simple`:``,cats:DEMO_MODE?[`cleanser`,`moisturizer`]:[],
   scanStep:0,shots:[false,false,false],retake:false,run:0,latest:0,view:0,tab:`am`,done:{},filter:`all`,
   gentle:false,exclusions:[],cmpA:0,cmpB:1,prefs:{reminder:true,tips:true,keep:false},photo:``,
-  scanStatus:`idle`,scanError:``,realBlob:null,realPreview:``};   // scanStatus : idle | capturing | uploading | processing | success | error
+  scanStatus:`idle`,scanError:``,realBlob:null,realPreview:``,photoCheck:null};   // scanStatus : idle | capturing | uploading | processing | success | error
 if(DEMO_MODE)try{state.photo=localStorage.getItem(`dermai_demo_photo`)||``}catch(e){}
 
 /* ---------- 2. FOURNISSEURS D'ANALYSE ----------
@@ -711,19 +711,26 @@ V.home=()=>{
 const TIPS=[[`glasses`,`Retirez vos lunettes`,`Pour voir le contour des yeux.`],[`sparkle`,`Évitez les filtres`,`Votre peau doit apparaître telle qu'elle est.`],[`sun`,`Placez-vous face à une lumière naturelle`,`Près d'une fenêtre, sans contre-jour.`],[`face`,`Gardez votre visage neutre`,`Sans sourire, cheveux dégagés.`]];
 const tipsHtml=()=>TIPS.map(t=>`<div class="tip"><span class="ico">${ic(t[0])}</span><div><b>${t[1]}</b><p class="muted">${t[2]}</p></div></div>`).join(``);
 const SHOT=[[`De face`,0],[`Profil gauche`,-7],[`Profil droit`,7]];
+/* Résultat de la vérification locale de la photo : utilisable / à vérifier (l'utilisatrice décide) / inutilisable (pas d'envoi). Sans vérification possible : message neutre. */
+const photoNotice=()=>{
+  const c=state.photoCheck;
+  if(!c)return `<div class="c-notice u-my-5">${ic(`check`)}<div><span class="c-notice__title">Photo prête</span>Le cadrage et la lumière sont vérifiés pendant l'analyse.</div></div>`;
+  const list=c.issues.length?`<ul style="margin:6px 0 0;padding-left:18px">${c.issues.map(i=>`<li>${esc(i.text)}</li>`).join(``)}</ul>`:``;
+  return `<div class="c-notice${c.level===`block`?` c-notice--error`:c.level===`ok`?` c-notice--success`:``} u-my-5" role="${c.level===`ok`?`status`:`alert`}" data-photo-check="${c.level}">${ic(c.level===`ok`?`check`:`info`)}<div><span class="c-notice__title">${esc(c.title)}</span>${esc(c.body)}${list}</div></div>`;
+};
 V.scan=()=>{
   const st=state.scanStep;
   const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn c-icon-btn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
   if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve pas.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
-  if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Choisir une autre photo</button></div>`}
-   ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:`<div class="c-notice u-my-5">${ic(`check`)}<div><span class="c-notice__title">Photo prête</span>Le cadrage et la lumière sont vérifiés pendant l'analyse.</div></div>`}
-   ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:`<button class="c-btn c-btn--primary c-btn--block" data-go="analyzing">${state.scanError?`Réessayer`:`Analyser ma peau`}</button>`}</div></div>`;
+  if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}${touchUi()?`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Prendre une autre photo</button><button class="c-btn c-btn--ghost c-btn--block" data-act="gallery">Choisir dans ma galerie</button>`:`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Choisir une autre photo</button>`}</div>`}
+   ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:photoNotice()}
+   ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:state.photoCheck&&state.photoCheck.level===`block`&&!state.scanError?``:`<button class="c-btn ${state.photoCheck&&state.photoCheck.level===`warn`&&!state.scanError?`c-btn--secondary`:`c-btn--primary`} c-btn--block" data-go="analyzing">${state.scanError?`Réessayer`:state.photoCheck&&state.photoCheck.level===`warn`?`Analyser quand même`:`Analyser ma peau`}</button>`}</div></div>`;
   const s=SHOT[st-1];
   return `<div class="scan">${head}<div class="scan-grid"><div><div class="segs">${(DEMO_MODE?[1,2,3]:[1]).map(i=>`<i class="${i<=st?`on`:``}"></i>`).join(``)}</div>
    <h2 class="cam-h">${st===1?`Positionnez votre visage<br>au centre`:st===2?`Tournez doucement<br>la tête vers la droite`:`Tournez doucement<br>la tête vers la gauche`}</h2>
    <div class="cam" id="cam"><div class="feed">${portrait({shift:s[1]})}</div><div class="frame"></div>${DEMO_MODE?`<div class="scanline"></div>`:``}<div class="label"><span>${s[0]}</span></div>${DEMO_MODE?`<div class="qual"><span class="qd"><i></i><i></i><i></i></span><span id="qt">Vérification de la lumière…</span></div>`:``}<div class="flash" id="flash"></div></div>
-   <p class="muted" style="text-align:center;margin:12px 0 18px">${DEMO_MODE?`Caméra simulée, photo de démonstration.`:`Prenez une photo de face ou choisissez-en une dans votre galerie.`}</p>
-   ${DEMO_MODE?`<button class="shutter" data-act="shutter" aria-label="Prendre la photo"><i></i></button>`:`<button class="c-btn c-btn--primary c-btn--block" data-act="shutter">Ajouter une photo</button>`}</div>
+   <p class="muted" style="text-align:center;margin:12px 0 18px">${DEMO_MODE?`Caméra simulée, photo de démonstration.`:touchUi()?`Prenez une photo de face ou choisissez-en une dans votre galerie. Elle reste sur votre appareil jusqu'à ce que vous lanciez l'analyse.`:`Choisissez une photo de face, bien éclairée. Elle reste sur votre appareil jusqu'à ce que vous lanciez l'analyse.`}</p>
+   ${DEMO_MODE?`<button class="shutter" data-act="shutter" aria-label="Prendre la photo"><i></i></button>`:`<div class="stack" style="gap:10px"><button class="c-btn c-btn--primary c-btn--block" data-act="shutter">${touchUi()?`Prendre une photo`:`Ajouter une photo`}</button>${touchUi()?`<button class="c-btn c-btn--secondary c-btn--block" data-act="gallery">Choisir dans ma galerie</button>`:``}</div>`}</div>
    <aside class="scan-side"><h2>Pour une bonne analyse</h2><div style="margin-top:14px">${tipsHtml()}</div></aside></div></div>`;
 };
 const AN_STEPS=[`Hydratation`,`Texture`,`Pores`,`Pigmentation`,`Acné`];
@@ -1186,17 +1193,29 @@ function setScanStatus(s){
 }
 function clearReal(){
   if(state.realPreview)URL.revokeObjectURL(state.realPreview);
-  state.realBlob=null;state.realPreview=``;state.scanError=``;state.scanQuota=false;state.scanStatus=`idle`;
+  state.realBlob=null;state.realPreview=``;state.photoCheck=null;state.scanError=``;state.scanQuota=false;state.scanStatus=`idle`;
 }
-function pickRealPhoto(){
-  let inp=document.getElementById(`realPhotoInput`);
-  if(!inp){
-    inp=document.createElement(`input`);
-    inp.type=`file`;inp.id=`realPhotoInput`;inp.accept=`image/*`;inp.setAttribute(`capture`,`user`);inp.hidden=true;
-    document.body.appendChild(inp);
-  }
-  state.scanStatus=`capturing`;
-  inp.click();
+/* Deux façons d'ajouter la photo : l'appareil photo (capture=user, téléphones seulement) ou la galerie / les fichiers (aucun attribut capture : sur téléphone, le sélecteur propose alors la photothèque).
+   Sur ordinateur il n'y a qu'un seul choix, le sélecteur de fichiers. Dans les deux cas la photo reste sur l'appareil jusqu'au lancement de l'analyse. */
+const touchUi=()=>{try{return matchMedia(`(pointer:coarse)`).matches}catch(e){return false}};
+function realInput(camera){
+  const id=camera?`realPhotoInput`:`realGalleryInput`;let inp=document.getElementById(id);
+  if(!inp){inp=document.createElement(`input`);inp.type=`file`;inp.id=id;inp.accept=`image/*`;if(camera)inp.setAttribute(`capture`,`user`);inp.hidden=true;document.body.appendChild(inp)}
+  return inp;
+}
+function pickRealPhoto(kind){state.scanStatus=`capturing`;realInput(kind===`camera`&&touchUi()).click()}
+/* Vérification locale de la photo choisie (js/photo-check.js) : taille, luminosité, netteté, et visage si le navigateur sait les détecter. Aucun envoi, aucune conservation. null = vérification impossible. */
+async function inspectPhoto(blob){
+  try{
+    const url=URL.createObjectURL(blob),im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+    URL.revokeObjectURL(url);
+    const w=im.naturalWidth,h=im.naturalHeight,k=Math.min(1,192/Math.max(w,h)),gw=Math.max(8,Math.round(w*k)),gh=Math.max(8,Math.round(h*k));
+    const c=document.createElement(`canvas`);c.width=gw;c.height=gh;const g=c.getContext(`2d`,{willReadFrequently:true});g.drawImage(im,0,0,gw,gh);
+    const d=g.getImageData(0,0,gw,gh).data,gray=new Uint8Array(gw*gh);for(let i=0;i<gray.length;i++)gray[i]=(d[i*4]*299+d[i*4+1]*587+d[i*4+2]*114)/1000|0;
+    let faces=null;
+    if(typeof window.FaceDetector===`function`){try{const list=await new FaceDetector({fastMode:true,maxDetectedFaces:4}).detect(im);faces={count:list.length,widthRatio:list.length===1?list[0].boundingBox.width/w:0}}catch(e){faces=null}}
+    return DermaiPhotoCheck.assess({width:w,height:h,gray,gw,gh,faces});
+  }catch(e){return null}
 }
 /* Photo → JPEG réduit (une seule compression, côté navigateur). Jamais écrite dans localStorage. */
 function jpegFromFile(file){
@@ -1227,10 +1246,10 @@ function jpegFromFile(file){
 async function handleRealPhoto(file){
   if(!file){state.scanStatus=`idle`;return}
   try{
-    const blob=await jpegFromFile(file);
+    const blob=await jpegFromFile(file),chk=await inspectPhoto(blob);
     if(state.route!==`scan`)return;
     clearReal();
-    state.realBlob=blob;state.realPreview=URL.createObjectURL(blob);
+    state.realBlob=blob;state.realPreview=URL.createObjectURL(blob);state.photoCheck=chk;
     state.shots=[true,false,false];state.retake=false;state.scanStep=4;
     render();scrollTo(0,0);
   }catch(err){
@@ -1242,6 +1261,7 @@ async function runRealAnalysis(){
   const tok=++anTok;
   if(needsLogin()){askLogin();return}
   if(!state.realBlob){toast(`Aucune photo à analyser. Veuillez prendre une photo.`);go(`scan`,null,{replace:true});return}
+  if(state.photoCheck&&state.photoCheck.level===`block`){toast(`Cette photo ne peut pas être analysée. Choisissez-en une autre.`);go(`scan`,null,{replace:true});return}   // jamais d'envoi d'une photo jugée inutilisable
   state.scanError=``;
   setScanStatus(`uploading`);
   try{
@@ -1293,8 +1313,9 @@ function act(a,v,el){
     case `finish-onb`:go(`home`,null,{reset:true});break;
     case `scan-start`:if(needsLogin()){askLogin();break}state.scanStep=1;render();scrollTo(0,0);break;
     case `scan-back`:if(!DEMO_MODE&&state.scanStep===4){state.scanStep=1;render()}else if(state.scanStep>=2&&state.scanStep<=3){state.scanStep--;render()}else if(state.scanStep===4&&!state.retake){state.scanStep=3;render()}else if(state.scanStep===1){state.scanStep=0;render()}else back();break;
-    case `shutter`:{if(!DEMO_MODE){pickRealPhoto();break}const i=state.scanStep-1;document.getElementById(`flash`).classList.add(`go`);state.shots[i]=true;timers.push(setTimeout(()=>{state.scanStep=state.retake?4:(i<2?i+2:4);state.retake=false;render()},430));break}
-    case `retake`:if(!DEMO_MODE){pickRealPhoto();break}state.shots[Number(v)]=false;state.scanStep=Number(v)+1;state.retake=true;render();scrollTo(0,0);break;
+    case `shutter`:{if(!DEMO_MODE){pickRealPhoto(`camera`);break}const i=state.scanStep-1;document.getElementById(`flash`).classList.add(`go`);state.shots[i]=true;timers.push(setTimeout(()=>{state.scanStep=state.retake?4:(i<2?i+2:4);state.retake=false;render()},430));break}
+    case `gallery`:if(!DEMO_MODE)pickRealPhoto(`file`);break;
+    case `retake`:if(!DEMO_MODE){pickRealPhoto(`camera`);break}state.shots[Number(v)]=false;state.scanStep=Number(v)+1;state.retake=true;render();scrollTo(0,0);break;
     case `tab`:state.tab=v;render(true);break;
     case `tick`:state.done[v]=!state.done[v];render(true);break;
     case `filter`:state.filter=v;render(true);break;
@@ -1317,7 +1338,7 @@ document.addEventListener(`click`,e=>{
   if(el.dataset.act)act(el.dataset.act,el.dataset.v,el);
 });
 document.addEventListener(`change`,e=>{
-  if(e.target.id===`realPhotoInput`){const f=e.target.files&&e.target.files[0];e.target.value=``;handleRealPhoto(f);return}
+  if(e.target.id===`realPhotoInput`||e.target.id===`realGalleryInput`){const f=e.target.files&&e.target.files[0];e.target.value=``;handleRealPhoto(f);return}
   if(e.target.id===`photoInput`){loadPhoto(e.target.files&&e.target.files[0]);e.target.value=``;return}
   if(e.target.dataset&&e.target.dataset.market!==undefined){setMarket(e.target.value,e.target.id);return}
   const k=e.target.dataset&&e.target.dataset.change;if(!k)return;

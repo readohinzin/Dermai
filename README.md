@@ -95,3 +95,12 @@ Priorités actuelles (ordre éditorial en vigueur, sans jugement de valeur) : vi
 ## Couche commerciale V1 (étape 20)
 
 Le moteur décide du produit ; le marché explique comment le trouver. `test/commercial-layer.test.js` fige les 15 offres intégrées (4 pays : Ghana, Nigeria, Kenya, Afrique du Sud), leurs liens (https, hôte cohérent avec le vendeur et le pays, fiche produit directe), la distinction `checkedAt` (relevé, toujours affiché « Relevé le … ») / `verifiedAt` (page réellement rouverte, jamais affiché comme « vérifié »), les textes (aucune garantie de prix, de stock ou de livraison, aucun comparatif), et les 594 cas pays × produit : offre locale, offres ailleurs seulement, aucune offre (« Aucune offre vérifiée pour ce pays pour le moment. »). Seule retouche de contenu : le texte d'une livraison internationale renseignée dans les données ne commence plus par « Disponible en ligne ».
+
+## Photo : appareil photo ou galerie, avec vérification locale (scan réel)
+
+Sur téléphone, l'écran de scan propose « Prendre une photo » (champ avec `capture=user`) et « Choisir dans ma galerie » (champ sans `capture`, donc la photothèque est proposée). Sur ordinateur, un seul bouton « Ajouter une photo » (sélecteur de fichiers). Avant tout envoi, `js/photo-check.js` examine la photo choisie sur l'appareil (aucun réseau, aucun stockage) :
+- **bloquant** (pas d'envoi) : trop petite, format panoramique, presque noire ou presque blanche ;
+- **à vérifier** (l'utilisatrice décide : « Analyser quand même ») : petite, sombre, surexposée, floue ; et, si le navigateur sait détecter les visages (`FaceDetector`, Chrome Android notamment), visage absent, multiple ou petit ;
+- **utilisable** sinon, avec la précision que le service d'analyse confirmera la détection du visage.
+
+Seuils volontairement indulgents (luminosité jugée sur les hautes lumières, pas sur la moyenne, pour ne pas pénaliser les peaux foncées) ; ce sont des heuristiques à ajuster avec de vraies photos. Le service d'analyse reste l'autorité : ses refus (visage, angle, lumière) sont déjà traduits en messages clairs. La photo n'est envoyée qu'au clic sur « Analyser ma peau ».
