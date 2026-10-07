@@ -47,3 +47,19 @@ test('B3 intégration : bouton accessible, image décorative aux dimensions fixe
   assert.match(css, /button\.brand\{[^}]*min-height:var\(--tap\)/, 'zone de toucher conservée');
   assert.ok(!/https?:\/\/[^"'\s)]*dermai[^"'\s)]*\.(webp|png)/i.test(app), 'logo servi par le projet');
 });
+
+test('B4 titre et aperçu de lien : plus de « maquette », description, Open Graph avec image de partage 1200x630', () => {
+  const html = read('index.html');
+  assert.match(html, /<title>DERMAI, analyse de peau et routine personnalisée<\/title>/);
+  assert.doesNotMatch(html, /maquette/i);
+  assert.match(html, /<meta name="description" content="[^"]{60,200}">/);
+  for (const re of [/property="og:title"/, /property="og:description"/, /property="og:type" content="website"/, /property="og:locale" content="fr_FR"/, /name="twitter:card" content="summary_large_image"/]) assert.match(html, re);
+  const img = html.match(/property="og:image" content="(https:\/\/[^"]+)"/)[1];
+  assert.equal(new URL(img).pathname, '/img/brand/og-image.jpg');
+  const jpg = buf('img/brand/og-image.jpg');
+  assert.equal(jpg[0], 0xff); assert.equal(jpg[1], 0xd8);
+  assert.ok(jpg.length < 300000, 'léger (< 300 Ko) pour les aperçus de messagerie');
+  // aucun texte visible « maquette » dans l'application, ni dans le README
+  assert.doesNotMatch(read('js/app.js').replace(/\/\*[\s\S]*?\*\//g, ''), /maquette/i);
+  assert.doesNotMatch(read('README.md').split('\n').slice(0, 5).join('\n'), /maquette/i);
+});

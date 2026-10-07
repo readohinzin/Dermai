@@ -1,6 +1,6 @@
 'use strict';
 /* =========================================================
-   DERMAI, maquette interactive v2
+   DERMAI, application web (interface)
    0. Configuration    1. Données fictives   2. Fournisseurs d'analyse
    3. Composants       4. Écrans             5. Navigation
 
@@ -618,7 +618,7 @@ const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="icon
     <div class="or">ou</div>
     <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Google</button>
     <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Apple</button>
-  </div><p class="muted" style="margin-top:22px">Maquette : aucun compte réel n'est créé.</p></div></div>`;
+  </div><p class="muted" style="margin-top:22px">Mode démonstration : aucun compte réel n'est créé.</p></div></div>`;
 const authForm=kind=>{
   const signup=kind===`signup`,A=state.account;
   return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button>${brandBtn(40)}</div>
@@ -1014,7 +1014,7 @@ V.profile=()=>{
    ${DEMO_MODE?`<button class="rowlink" data-act="pick-photo">${ic(`image`)}<div class="grow"><b>Photo de démonstration</b><span class="s">${photoSrc()?`Importée. Touchez pour la remplacer.`:`Importer une image générée par IA (personne fictive)`}</span></div>${ic(`chev`)}</button>${state.photo?`<button class="rowlink" data-act="clear-photo">${ic(`trash`)}<div class="grow"><b>Retirer la photo de démonstration</b></div></button>`:``}`:``}
    ${accountOn()?``:`<button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div></button>
    <button class="rowlink" data-go="landing" data-reset="1">${ic(`out`)}<div class="grow"><b>Se déconnecter</b></div></button>`}</section>
-   <p class="muted">${DEMO_MODE?`DERMAI, maquette v2. Données fictives.`:`DERMAI : analyse cosmétique visuelle, pas un diagnostic médical.`}</p>
+   <p class="muted">${DEMO_MODE?`DERMAI, mode démonstration. Données fictives.`:`DERMAI : analyse cosmétique visuelle, pas un diagnostic médical.`}</p>
   </div></div>`);
 };
 V.privacy=()=>shell(`<div class="pagehead"><h1>Confidentialité</h1><p style="color:var(--ink);font-size:18px">${DEMO_MODE?`Vos photos sont utilisées pour analyser votre peau.`:`Votre photo sert uniquement à analyser votre peau. DERMAI ne la conserve pas.`}</p></div>

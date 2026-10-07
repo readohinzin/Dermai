@@ -1,6 +1,6 @@
 # DERMAI
 
-Maquette interactive d'une application d'analyse de peau (français, mobile d'abord, responsive bureau).
+Application web d'analyse cosmétique de la peau et de routine personnalisée (français, mobile d'abord, responsive bureau). Un mode démonstration à données fictives existe à part.
 
 Fichiers : `index.html`, `css/styles.css`, `js/app.js`. Ouvre `index.html` dans un navigateur, aucune installation.
 
