@@ -121,7 +121,8 @@
     active_not_selected: 'Son actif n\'est pas retenu dans votre routine actuelle.',
     other_product_chosen: 'Un autre produit répond déjà à cette étape de votre routine.',
     owned: 'Vous avez indiqué utiliser déjà un produit pour cette étape.',
-    no_step: 'Cette étape n\'existe pas dans votre routine actuelle.'
+    no_step: 'Cette étape n\'existe pas dans votre routine actuelle.',
+    not_justified: 'Rien dans sa fiche ne le relie aux besoins de votre routine actuelle : il n\'est donc pas proposé.'
   };
   /* Offres par pays : libellés neutres, jamais un pays par défaut. */
   const OFFER_AVAILABILITY_LABELS = { in_stock: 'En stock', out_of_stock: 'Rupture de stock', coming_soon: 'Bientôt disponible', unknown: 'Disponibilité à vérifier' };
@@ -225,9 +226,88 @@
     }
   };
 
+  /* ---- synthèse personnalisée (js/engine/synthesis.js) ----
+     Phrases assemblées à partir des données réelles de l'analyse : jamais de valeur écrite en dur, jamais de vocabulaire médical. */
+  const li = (inds) => joinList(inds.map(i => lower(i.label) + ' (' + i.score + ')'));
+  const plural = (n, one, many) => (n > 1 ? many : one);
+  const your = inds => (inds.length > 1 ? 'Vos résultats ' : 'Votre ') + li(inds);
+  const SYNTH = {
+    li,
+    productsNone: 'Aucun produit du catalogue DERMAI n\'est relié à vos besoins actuels. Votre routine repose sur des produits de base de votre choix : un nettoyant doux, un hydratant que votre peau apprécie et une protection solaire.',
+    TIER_LABELS: { priority: 'Priorité', attention: 'Axe d\'attention', maintain: 'À maintenir', strength: 'Point fort' },
+    bands: (n, counts, bands) => 'Sur vos ' + n + ' indicateurs principaux, ' + joinList([
+      counts.good ? counts.good + ' ' + plural(counts.good, 'est', 'sont') + ' dans la plage « ' + bands.good.label + ' » (' + bands.good.min + ' et plus)' : null,
+      counts.mid ? counts.mid + ' « ' + bands.mid.label + ' » (' + bands.mid.min + ' à ' + (bands.good.min - 1) + ')' : null,
+      counts.low ? counts.low + ' « ' + bands.low.label + ' » (' + (bands.mid.min - 1) + ' et moins)' : null
+    ].filter(Boolean)) + '.',
+    strengths: inds => 'Vos résultats les plus favorables : ' + li(inds) + '.',
+    lowest: inds => 'Vos résultats les moins élevés : ' + li(inds) + '.',
+    domains: labels => plural(labels.length, 'Ils concernent surtout ce domaine : ', 'Ils concernent surtout : ') + joinList(labels.map(lower)) + '.',
+    homogeneous: gap => 'Vos indicateurs principaux sont très proches les uns des autres (' + gap + ' point' + (gap > 1 ? 's' : '') + ' d\'écart au plus) : aucun ne se détache.',
+    priorities: inds => 'Ce qui mérite votre attention en premier : ' + li(inds) + '.',
+    prioritiesWhy: (bands) => 'Ces indicateurs sont sous la plage « ' + bands.good.label + ' » : DERMAI leur réserve un soin ciblé.',
+    noPriority: (inds, bands) => (inds.length
+      ? 'Aucun indicateur principal n\'est sous la plage « ' + bands.good.label + ' » : même vos résultats les moins élevés, ' + li(inds) + ', sont à ' + bands.good.min + ' ou plus. '
+      : 'Aucun indicateur principal n\'est sous la plage « ' + bands.good.label + ' ». ') +
+      'Selon les règles actuelles de DERMAI, cela ne justifie pas de soin ciblé : votre routine reste une routine d\'entretien.',
+    beyondCap: inds => your(inds) + plural(inds.length, ' est aussi', ' sont aussi') + ' à soutenir : DERMAI limite la routine à trois priorités, introduites une à une.',
+    noLever: inds => your(inds) + plural(inds.length, ' est', ' sont') + ' à soutenir, mais DERMAI n\'a pas encore de soin ciblé validé pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
+    noGoal: focus => 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule' + (focus.length ? ', en suivant surtout ' + li(focus) + '.' : '.'),
+    goal: {
+      priority: (g, inds) => g + ' : rejoint une priorité de votre analyse (' + li(inds) + '). Elle passe en tête de votre routine.',
+      attention: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' fait', ' font') + ' partie de vos résultats les moins élevés. DERMAI ' + plural(inds.length, 'le', 'les') + ' place en tête de votre suivi.',
+      maintain: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' se situe', ' se situent') + ' dans la moyenne de vos résultats. La routine de base ' + plural(inds.length, 'l\'entretient.', 'les entretient.'),
+      strength: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' fait', ' font') + ' partie de vos points forts. L\'objectif est de ' + plural(inds.length, 'le', 'les') + ' maintenir.',
+      unavailable: g => g + ' : aucun indicateur correspondant n\'est disponible dans cette analyse.',
+      maintenance: (g, action) => g + (action ? ' : votre routine garde une base d\'entretien, en plus des priorités.' : ' : c\'est précisément ce que propose votre routine.')
+    },
+    strategy: {
+      action: (inds, n, level) => 'Stratégie : soutenir ' + li(inds) + ' avec ' + n + ' soin' + (n > 1 ? 's' : '') + ' ciblé' + (n > 1 ? 's' : '') + ', et entretenir le reste avec une routine ' + level + '.',
+      actionNoTreatment: inds => 'Stratégie : soutenir ' + li(inds) + ' par une routine d\'entretien attentive, sans soin ciblé pour l\'instant.',
+      goalFocus: inds => 'Stratégie : entretien, avec une attention particulière à ' + li(inds) + ', en lien avec votre objectif.',
+      focus: (inds, skin) => 'Stratégie : entretien' + (skin ? ' adapté à votre profil (' + lower(skin) + ')' : '') + ', en suivant surtout ' + li(inds) + '.',
+      even: skin => 'Stratégie : entretien de l\'ensemble' + (skin ? ', adapté à votre profil (' + lower(skin) + ')' : '') + ', sans axe particulier.'
+    },
+    skinContext: label => 'Votre type de peau (' + lower(label) + ') sert de contexte : il oriente la texture de l\'hydratant et la prudence, jamais à lui seul le choix d\'un produit.',
+    step: {
+      cleanse: { oily: 'Base de la routine. Avec un profil gras, un nettoyage doux matin et soir, sans frotter, garde la routine simple et régulière.',
+        dry: 'Base de la routine. Avec un profil sec, un nettoyant doux évite de tirailler la peau.',
+        combination: 'Base de la routine. Avec un profil mixte, un même nettoyant doux convient à l\'ensemble du visage.',
+        normal: 'Base de la routine : un nettoyage doux prépare la peau matin et soir.', unknown: 'Base de la routine : un nettoyage doux prépare la peau matin et soir.' },
+      cleanseAcne: ind => ' Votre ' + li([ind]) + ' fait partie de vos axes à suivre : un nettoyage régulier en est la base.',
+      moistSupports: (labels, inds) => 'Hydratant recherché avec ' + joinList(labels.map(lower)) + (inds.length ? ', retenu' + plural(labels.length, '', 's') + ' pour ' + li(inds) : '') + '.',
+      moistTier: {
+        priority: ind => 'Votre ' + li([ind]) + ' est une priorité : cette étape la soutient chaque jour.',
+        attention: ind => 'Votre ' + li([ind]) + ' fait partie de vos résultats les moins élevés : cette étape l\'entretient chaque jour.',
+        maintain: ind => 'Votre ' + li([ind]) + ' est dans la moyenne de vos résultats : cette étape l\'entretient.',
+        strength: ind => 'Votre ' + li([ind]) + ' est un point fort : cette étape aide à le maintenir.'
+      },
+      moistDry: 'Avec un profil sec, une texture plus riche est souvent plus confortable.',
+      spf: 'Chaque matin, la protection solaire fait partie de tout entretien.',
+      spfTone: inds => ' ' + your(inds) + plural(inds.length, ' fait', ' font') + ' partie de vos axes à suivre : la protection solaire quotidienne fait partie de l\'entretien du teint.',
+      spfExfoliant: ' Elle compte d\'autant plus avec un exfoliant dans la routine.',
+      treatment: (active, inds) => active + ' : retenu pour ' + li(inds) + '.',
+      owned: 'Vous utilisez déjà un produit pour cette étape : gardez-le s\'il vous convient.'
+    },
+    product: {
+      none: { moisturize: 'Aucun hydratant du catalogue DERMAI n\'est relié à vos besoins actuels : un hydratant que votre peau apprécie convient.',
+        cleanse: 'Le catalogue DERMAI ne propose pas encore de nettoyant.', spf: 'Le catalogue DERMAI ne propose pas encore de protection solaire.',
+        treatment: 'Aucun produit du catalogue DERMAI ne contient cet actif pour le moment.' },
+      targets: labels => ' La marque le présente pour : ' + joinList(labels.map(lower)) + '.'
+    }
+  };
+  /* Pourquoi CE produit plutôt qu'un autre (règle de départage réellement appliquée par products.match). */
+  const SELECTION = {
+    only: 'C\'est le seul produit du catalogue DERMAI qui remplit ces critères.',
+    more_actives: n => 'Parmi ' + n + ' produits possibles, c\'est celui qui contient le plus d\'ingrédients recherchés.',
+    skin: n => 'Parmi ' + n + ' produits possibles, c\'est celui dont la fiche correspond à votre type de peau.',
+    editorial: n => 'Parmi ' + n + ' produits possibles, il passe en premier selon le classement éditorial DERMAI pour cet actif.',
+    order: n => 'Parmi ' + n + ' produits équivalents, il est retenu selon l\'ordre du catalogue.'
+  };
+  const selectionText = sel => (!sel ? '' : sel.rule === 'only' ? SELECTION.only : SELECTION[sel.rule] ? SELECTION[sel.rule](sel.candidates) : '');
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, productRole, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });

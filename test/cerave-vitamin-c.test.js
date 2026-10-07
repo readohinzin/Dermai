@@ -134,7 +134,9 @@ test('C10 15, 16. échantillon de profils : le produit n\'apparaît dans « Reco
     const v = views(full, REAL), r = v.recommended.some(x => x.productId === ID), o = v.others.find(x => x.productId === ID), vc = hasVitC(full);
     // le produit ne change rien : mêmes priorités, actifs, routine, score, et mêmes recommandations pour les produits existants
     assert.deepEqual(full.priorities, base.priorities); assert.deepEqual(full.activePlan, base.activePlan); assert.deepEqual(full.routinePlan, base.routinePlan); assert.equal(full.interpretation.globalScore, base.interpretation.globalScore);
-    assert.equal(JSON.stringify(full.productMatches), JSON.stringify(base.productMatches), 'les produits déjà choisis ne sont jamais remplacés');
+    // `selection` décrit le départage (nombre de candidats) : il varie légitimement quand un candidat de plus existe ; le produit retenu, lui, ne change pas
+    const pick = ms => JSON.stringify(ms.map(m => Object.assign({}, m, { selection: undefined })));
+    assert.equal(pick(full.productMatches), pick(base.productMatches), 'les produits déjà choisis ne sont jamais remplacés');
     if (!vc) { without++; assert.equal(r, false, 'jamais recommandé si vitamin_c n\'est pas dans la routine'); }
     else { withVc++; assert.equal(r, false, 'les règles existantes retiennent déjà un produit à la vitamine C (ordre du catalogue) : il n\'est jamais substitué'); }
     assert.ok(r || o, 'toujours listé : recommandé ou « autres produits »');

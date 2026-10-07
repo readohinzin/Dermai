@@ -760,15 +760,7 @@ const goalBadges=()=>state.goals.length?`<div class="chips" style="margin-bottom
 /* Exclusions : architecture prête (état, moteur, recalcul), volontairement sans interface pour l'instant. Aucune information de santé n'est demandée. */
 const exclusionsSection=()=>``;
 /* Carte du visage : photo analysée + masques RÉELS de Perfect Corp. Aucune zone déduite d'un score, d'une priorité ou du type de peau. */
-function faceMapHtml(s,keys){
-  const sel=keys.includes(state.faceKey)?state.faceKey:`all`,lab=k=>SkinModel.METRIC_LABELS[k];
-  return `<section class="c-facemap" aria-labelledby="fm-title"><p class="kicker">Localisation</p><div class="hd"><h2 class="h3" id="fm-title">Zones détectées sur votre photo</h2></div>
-   <p class="muted c-facemap__intro">Chaque zone entourée provient directement du service d'analyse, avec le score de l'indicateur.</p>
-   <div class="chips c-facemap__chips">${[`all`,...keys].map(k=>`<button class="c-chip" data-act="facemap" data-v="${k}" aria-pressed="${k===sel}">${k===`all`?`Toutes les zones`:lab(k)}</button>`).join(``)}</div>
-   <figure class="c-facemap__fig"><div class="c-facemap__frame" data-facemap data-key="${sel}"><img src="${esc(s.photo)}" alt="Votre photo analysée"><canvas aria-hidden="true"></canvas><svg class="c-facemap__lines" aria-hidden="true"></svg><div class="c-facemap__tags"></div></div>
-    <figcaption class="c-facemap__status" data-fm-status role="status" aria-live="polite"></figcaption></figure>
-   <button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide?`Afficher les zones`:`Voir la photo sans les zones`}</button></section>`;
-}
+const faceMapHtml=(s,k)=>DermaiInsight.faceMap(s,k,state,esc);
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
   const s=SCANS[state.view],r=viewOf(s),g=r.global,eng=engineFor(s),P=eng.priorities;
@@ -800,10 +792,10 @@ V.result=()=>{
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
-    ${fmKeys.length?faceMapHtml(s,fmKeys):``}
+    ${fmKeys.length?faceMapHtml(s,fmKeys):``}${H?``:DermaiInsight.found(eng.synthesis)}
     <section><p class="kicker">Ce que DERMAI observe</p><div class="hd"><h2 class="h3">${H?`Repères à soutenir à cette date`:`Vos priorités`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
       ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.`:`Vos principaux repères à soutenir, d'après votre analyse.`} 100 correspond au meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
-      :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
+      :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${H?Engine.copy.MAINTENANCE.text:eng.synthesis.attention}</div></div>`}
     ${!H&&P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
     <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul>${eyeRows?`<div class="c-indicators-group"><h3 class="c-indicators-group__title">${Engine.copy.EYE_GROUP_TITLE}</h3><ul class="c-indicators">${eyeRows}</ul></div>`:``}</section>
     ${H?`<section><p class="kicker">Ce que vous souhaitiez travailler</p><div class="hd"><h2 class="h3">Vos objectifs à cette date</h2></div>
@@ -811,11 +803,11 @@ V.result=()=>{
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine actuelle</h2></div>
       <p class="muted" style="margin-bottom:14px">La routine affichée dans l'application correspond à votre analyse la plus récente.</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine actuelle</button></section>`:`    <section><p class="kicker">Ce que vous souhaitez travailler</p><div class="hd"><h2 class="h3">Vos objectifs</h2></div>
-      ${eng.personalization.goals.length?`${goalBadges()}<p class="muted" style="margin-bottom:10px">${goalCount()}. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><ul class="l-list" style="margin-top:0">${eng.personalization.goals.map(g=>`<li>${ic(`check`)}<span><b>${g.label}</b> : ${g.text}</span></li>`).join(``)}</ul>`
-        :`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi. Les objectifs sont facultatifs.</p>`}
+      ${eng.personalization.goals.length?`${goalBadges()}<p class="muted" style="margin-bottom:10px">${goalCount()}. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><ul class="l-list" style="margin-top:0">${eng.synthesis.goals.items.map(g=>`<li>${ic(`check`)}<span>${g.text}</span></li>`).join(``)}</ul>`
+        :`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi. Les objectifs sont facultatifs. ${eng.synthesis.goals.text}</p>`}
       <button class="link" data-go="profile">${eng.personalization.goals.length?`Modifier mes objectifs`:`Choisir mes objectifs`}</button></section>
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
-      <p style="color:var(--ink);margin-bottom:14px">${eng.personalization.headline}</p>
+      <p style="color:var(--ink);margin-bottom:14px">${eng.synthesis.strategy.text}</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>`}
     <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
@@ -874,19 +866,19 @@ V.active=id=>{
 /* Routine : générée par le moteur (priorités, actifs, type de peau, niveau de routine). */
 V.routine=()=>{
   if(noReal())return emptyScan(`Ma routine`,[`Aucune routine pour le moment`,`Faites votre première analyse pour obtenir une routine personnalisée.`],{back:true,title:`Routine`});
-  const eng=engineFor(SCANS[state.latest]),R=eng.routinePlan,PZ=eng.personalization,pm=Object.fromEntries(eng.productMatches.map(m=>[m.stepId,m]));
+  const eng=engineFor(SCANS[state.latest]),R=eng.routinePlan,PZ=eng.personalization,Y=eng.synthesis,pm=Object.fromEntries(eng.productMatches.map(m=>[m.stepId,m]));
   const sel=Object.fromEntries(PZ.selectedActives.map(x=>[x.activeId,x]));
   const whyBlock=st=>{const x=sel[st.activeId];if(!x)return ``;return `<details class="c-why"><summary>Pourquoi cet actif ?</summary><p>${x.why}</p><p>${x.whyNow}</p>${x.whyNot.map(n=>`<p>${n.text}</p>`).join(``)}</details>`};
   const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId,catalogNow());
-    return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${st.reason}</p>${st.kind===`moisturize`&&R.skinBase===`oily`?`<p class="c-routine-step__role">${Engine.copy.stepReason.moisturizeOily}</p>`:``}
+    return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${Y.steps[st.id]||st.reason}</p>
       ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}<button class="link" data-go="active:${st.activeId}">Découvrir cet actif</button>`:``}
-      ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Produit proposé : `}${esc(p.name)}</button>`:``}</div>
+      ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Produit proposé : `}${esc(p.name)}</button>`:Y.products[st.id]&&!DEMO_MODE&&(slot===`morning`||!R.slots.morning.some(x=>x.kind===st.kind&&x.activeId===st.activeId))?`<p class="c-routine-step__role muted">${Y.products[st.id].text}</p>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   const cautions=[...new Set(R.slots.morning.concat(R.slots.evening).filter(s=>s.kind===`treatment`).flatMap(s=>s.cautions))];
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>${R.summary}</p></div>
   <section class="sand" style="margin-bottom:28px"><h2 class="h3" style="margin-bottom:10px">Pourquoi cette routine ?</h2>
-    <ul class="l-list" style="margin-top:0">${PZ.rationale.slice(0,3).map(r=>`<li>${ic(`check`)}<span>${r.text}</span></li>`).join(``)}</ul>
+    <ul class="l-list" style="margin-top:0">${DermaiInsight.why(eng).map(t=>`<li>${ic(`check`)}<span>${t}</span></li>`).join(``)}</ul>
     ${PZ.approachNote?`<p class="muted" style="margin-top:10px">${PZ.approachNote}</p>`:``}${PZ.evolution.note?`<p class="muted" style="margin-top:10px">${PZ.evolution.note}</p>`:``}</section>
   <div class="grid2">${list(`morning`,`am`,`sun`,`Matin`)}${list(`evening`,`pm`,`moon`,`Soir`)}</div>
   <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">À retenir</h2>
@@ -990,7 +982,7 @@ V.products=()=>{
   const rec=view.recommended.map(r=>({p:Engine.products.byId(r.productId,catalogNow()),r})).filter(x=>inF(x.p));
   const oth=view.others.map(o=>({p:Engine.products.byId(o.productId,catalogNow()),o})).filter(x=>inF(x.p));
   return shell(`${head}${note}${chips}
-   <section><div class="hd"><h2 class="h3">Recommandés pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit recommandé dans cette catégorie.`:`Aucun produit du catalogue ne correspond encore aux étapes de votre routine.`}</p>`}</section>
+   <section><div class="hd"><h2 class="h3">Recommandés pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit recommandé dans cette catégorie.`:Engine.copy.SYNTH.productsNone}</p>`}</section>
    ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${foot}`,{back:true,title:`Produits`});
 };
 /* Identité vérifiée d'un produit réel : INCI (avec ses divergences éventuelles) et source fabricant datée. Jamais d'INCI inventé : sans liste, aucune ligne. */

@@ -25,3 +25,10 @@
 .c-indicator__score small{font-weight:500;color:var(--ink-3)}
 .c-indicator .c-bar{grid-column:1 / -1;height:6px}
 .c-indicator--na .c-indicator__name{color:var(--ink-2);font-weight:500}
+
+/* Synthèse (js/insight-view.js) : texte calculé + points forts / axes d'attention */
+.c-insight{margin-bottom:8px}
+.c-insight__text{color:var(--ink);margin:0 0 14px;line-height:1.55}
+.c-insight__group{margin-top:12px}
+.c-insight__label{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3,#6E5E64);margin:0 0 8px}
+.c-insight .chips{flex-wrap:wrap;gap:8px}

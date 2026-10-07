@@ -20,7 +20,7 @@ const tids = r => r.activePlan.treatments.map(t => t.activeId);
 test('X1 résultat → routine personnalisée : CTA, synthèse dynamique du moteur, trois niveaux distincts', () => {
   assert.match(app, /Voir ma routine personnalisée/);
   assert.match(app, /data-go="routine">Voir ma routine personnalisée/);
-  assert.match(app, /eng\.personalization\.headline/);
+  assert.match(app, /eng\.synthesis\.strategy\.text/);   // étape 22 : la stratégie calculée remplace le résumé générique
   for (const k of ['Ce que DERMAI observe', 'Ce que vous souhaitez travailler', 'Ce que DERMAI recommande']) assert.ok(app.includes(k), k);
   assert.match(app, /Le score global est une information séparée/);
   const r = run({ acne: 30, hydration: 40 }, {}, { goals: ['hydration'] });

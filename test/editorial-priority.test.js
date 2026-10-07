@@ -164,7 +164,9 @@ test('E16 non-régression : l\'ajout de la priorité ne change AUCUNE sortie (1 
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), n = norm(c.ui, c.o);
     const a = Engine.run(n, c.profile, { catalog: REAL }), b = Engine.run(n, c.profile, { catalog: noPrio });
-    assert.equal(JSON.stringify([a, P.catalogView(a.routinePlan, a.productMatches, REAL)]), JSON.stringify([b, P.catalogView(b.routinePlan, b.productMatches, noPrio)]), 'profil #' + s);
+    // étape 22 : `selection` (et la phrase qui l'explique) décrit la règle de départage appliquée ; sans priorité éditoriale elle devient « ordre du catalogue ». Le produit retenu, lui, ne change pas.
+    const nosel = function (k, v) { return k === 'selection' || k === 'synthesis' || k === 'why' ? undefined : v; };
+    assert.equal(JSON.stringify([a, P.catalogView(a.routinePlan, a.productMatches, REAL)], nosel), JSON.stringify([b, P.catalogView(b.routinePlan, b.productMatches, noPrio)], nosel), 'profil #' + s);
   }
 });
 

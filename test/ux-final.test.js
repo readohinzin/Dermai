@@ -41,9 +41,11 @@ test('UX3 peau à profil gras : une phrase explique pourquoi un hydratant figure
   assert.doesNotMatch(copy.stepReason.moisturizeOily, /déshydrat|Cicaplast|traite|soigne|guér|répar|médical/i);
   assert.equal(run({}, { skin: 'Oily' }).routinePlan.skinBase, 'oily');
   assert.notEqual(run({}, { skin: 'Dry' }).routinePlan.skinBase, 'oily');
-  // affichée sous l'étape d'hydratation de la routine, uniquement pour un profil gras
-  assert.match(app, /st\.kind===`moisturize`&&R\.skinBase===`oily`\?`<p class="c-routine-step__role">\$\{Engine\.copy\.stepReason\.moisturizeOily\}<\/p>`:``/);
-  assert.equal((app.match(/moisturizeOily/g) || []).length, 1);
+  // depuis l'étape 22 : portée par la justification de l'étape d'hydratation (synthèse du moteur), uniquement pour un profil gras
+  const step = skin => Engine.run(norm({}, { skin }), { goals: [], level: 'simple', cats: [] }).synthesis.steps['morning:moisturize'];
+  assert.ok(step('Oily').includes(copy.stepReason.moisturizeOily));
+  assert.ok(!step('Dry').includes(copy.stepReason.moisturizeOily) && !step('Normal').includes(copy.stepReason.moisturizeOily));
+  assert.match(app, /<p class="c-routine-step__role">\$\{Y\.steps\[st\.id\]\|\|st\.reason\}<\/p>/);
 });
 
 test('UX4 produits recommandés : une phrase factuelle tirée de l\'étape déjà retenue, sans score ni classement', () => {
@@ -87,15 +89,16 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
   assert.ok(info.length >= 1);
 });
 
-test('UX7 moteur strictement inchangé : mêmes scores, priorités, actifs, routine (étapes) et produits sur 1500 profils ; seules les phrases d\'hydratation changent', () => {
+test('UX7 décisions du moteur inchangées : mêmes scores, interprétation, priorités, actifs, routine et personnalisation sur 1500 profils', () => {
   const replacer = function (k, v) { return (k === 'texture' || (k === 'reason' && this.slot && this.kind)) ? undefined : v; };
   const out = [];
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
-    out.push(JSON.stringify([r, P.catalogView(r.routinePlan, r.productMatches, C.PRODUCTS)], replacer));
+    out.push(JSON.stringify([r.interpretation, r.priorities, r.activePlan, r.routinePlan, r.personalization], replacer));
   }
-  // empreinte calculée sur le moteur d'avant cette passe (commit de4af18) : identique, texte d'hydratation exclu
-  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), '269264a0d128d62813f3b13b0daf4820b71a9d52aefc8e886071c381af32cc5a');
+  /* Empreinte identique à celle du moteur d'avant l'étape 22 (commit 799a03e), vérifiée en exécutant les deux versions.
+     L'étape 22 ne change que la couche produits (justification obligatoire, voir test/synthesis.test.js) et ajoute la synthèse. */
+  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), '06052f301b7a1b6290a03c23377f60440434ae9cab42b71d311ccee7370dc5e0');
 });
 
 test('UX8 conseils par préoccupation : aucune promesse de texture légère ou non comédogène (même règle que la routine)', () => {

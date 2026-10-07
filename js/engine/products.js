@@ -282,18 +282,26 @@
            (exclusions, approche douce, composition) ont déjà écarté les produits incompatibles : la priorité ne les contourne jamais. Aucune donnée commerciale n'intervient. */
         const prio = p => (step.kind === 'treatment' && p.editorialPriority && Number.isInteger(p.editorialPriority[step.activeId])) ? p.editorialPriority[step.activeId] : null;
         const byPrio = (a, b) => { const x = prio(a.p), y = prio(b.p); return x === y ? 0 : x === null ? 1 : y === null ? -1 : x - y; };
+        /* Justification obligatoire (produits réels) : un produit n'est proposé que si sa fiche contient ce que l'étape recherche
+           (l'actif du soin ciblé, ou un ingrédient de soutien retenu pour l'hydratant). Une étape qui ne recherche rien (hydratant
+           d'entretien, nettoyant, protection solaire) ne reçoit aucun produit réel « par défaut ». Les produits de démonstration restent des exemples. */
+        if (!wanted.length) pool = pool.filter(c => c.p.demo === true);
         pool = pool.sort((a, b) => score(b) - score(a) || (skinOk(b.p, routine.skinBase) - skinOk(a.p, routine.skinBase)) || byPrio(a, b) || a.order - b.order);
         if (!pool.length) return;
         const p = pool[0].p, because = wanted.filter(id => ids(p).includes(id));
+        /* Règle de départage réellement appliquée (pour expliquer « pourquoi celui-ci plutôt qu'un autre ») */
+        const sec = pool[1];
+        const rule = !sec ? 'only' : score(pool[0]) !== score(sec) ? 'more_actives' : skinOk(p, routine.skinBase) !== skinOk(sec.p, routine.skinBase) ? 'skin' : byPrio(pool[0], sec) !== 0 ? 'editorial' : 'order';
         out.push({ stepId: step.id, kind: step.kind, productId: p.id, activeIds: because,
-          because: because.length ? copy.productBecause(because.map(id => actives.byId(id).label)) : null, demo: p.demo === true });
+          because: because.length ? copy.productBecause(because.map(id => actives.byId(id).label)) : null, demo: p.demo === true,
+          selection: { rule, candidates: pool.length } });
       });
     }
     return out;
   }
 
   /* « Pourquoi ce produit ? » : le rôle qu'il joue dans l'étape (dérivé de la sélection, jamais d'une donnée commerciale). */
-  const whyOf = m => copy.productWhy(m.kind, (m.activeIds || []).map(id => actives.byId(id).label));
+  const whyOf = m => [copy.productWhy(m.kind, (m.activeIds || []).map(id => actives.byId(id).label)), m.demo ? '' : copy.selectionText(m.selection)].filter(Boolean).join(' ');
 
   /* Vue du catalogue pour une routine : « Recommandés pour votre routine » et « Autres produits » (avec la raison RÉELLE du moteur).
      Aucune donnée commerciale n'intervient dans ce classement. */
@@ -315,7 +323,9 @@
       else {
         const open = relevant.filter(st => !st.owned);
         const reasons = open.map(st => rejection(p, st, ctx));
-        code = reasons.some(r => r === null) ? 'other_product_chosen' : reasons[0];
+        const fits = open.filter((st, k) => reasons[k] === null);
+        /* Compatible, mais l'étape n'a reçu aucun produit faute de justification : on le dit, sans prétendre qu'un autre a été préféré. */
+        code = fits.length ? (fits.some(st => matches.some(m => m.stepId === st.id)) || p.demo ? 'other_product_chosen' : 'not_justified') : reasons[0];
       }
       return { productId: p.id, reason: code, text: copy.PRODUCT_REASONS[code] };
     });

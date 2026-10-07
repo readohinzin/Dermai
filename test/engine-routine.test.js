@@ -121,7 +121,7 @@ test('RO11 produits : reliés par activeId (jamais par texte), sans score ni pou
   assert.ok(r.productMatches.length > 0);
   for (const m of r.productMatches) {
     assert.equal(m.demo, true);
-    assert.deepEqual(Object.keys(m).sort(), ['activeIds', 'because', 'demo', 'kind', 'productId', 'stepId']);
+    assert.deepEqual(Object.keys(m).sort(), ['activeIds', 'because', 'demo', 'kind', 'productId', 'selection', 'stepId']);   // selection : règle de départage réellement appliquée
     const p = products.byId(m.productId), step = steps(r).find(s => s.id === m.stepId);
     assert.ok(p, m.productId);
     if (step.kind === 'treatment') assert.ok(products.ids(p).includes(step.activeId), `${m.stepId} → ${p.id}`);

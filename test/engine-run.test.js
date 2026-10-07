@@ -17,7 +17,7 @@ const engineFiles = () => {
 
 test('RUN1 sortie centrale : interpretation, priorities, activePlan, routinePlan, productMatches, explanations', () => {
   const r = Engine.run(M.parseSkinResponse(FX).normalized, { goals: ['tone'], level: 'simple', cats: [] });
-  assert.deepEqual(Object.keys(r).sort(), ['activePlan', 'explanations', 'interpretation', 'personalization', 'priorities', 'productMatches', 'profile', 'routinePlan']);
+  assert.deepEqual(Object.keys(r).sort(), ['activePlan', 'explanations', 'interpretation', 'personalization', 'priorities', 'productMatches', 'profile', 'routinePlan', 'synthesis']);
   assert.equal(r.interpretation.indicators.length, 15);
   assert.ok(['action', 'maintenance'].includes(r.priorities.mode));
 });

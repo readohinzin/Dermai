@@ -6,9 +6,9 @@
   const E = root.DermaiEngine || {};
   const dep = isNode
     ? { indicators: require('./data/indicators.js'), activesData: require('./data/actives.js'), interpret: require('./interpret.js'), priorities: require('./priorities.js'),
-        actives: require('./actives.js'), personalization: require('./personalization.js'), routine: require('./routine.js'), products: require('./products.js'), copy: require('./copy.fr.js'), skin: require('../skin-model.js') }
+        actives: require('./actives.js'), personalization: require('./personalization.js'), routine: require('./routine.js'), products: require('./products.js'), synthesis: require('./synthesis.js'), copy: require('./copy.fr.js'), skin: require('../skin-model.js') }
     : { indicators: E.indicatorsData, activesData: E.activesData, interpret: E.interpret, priorities: E.priorities, actives: E.actives, personalization: E.personalization, routine: E.routine,
-        products: E.products, copy: E.copy, skin: root.SkinModel };
+        products: E.products, synthesis: E.synthesis, copy: E.copy, skin: root.SkinModel };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); Object.assign(NS, api); }
@@ -19,7 +19,7 @@
 
   /* Version des règles cosmétiques (priorités, personnalisation, actifs, routine). Enregistrée avec chaque analyse de l'historique pour que
      l'on sache avec quelles règles elle a été produite. À changer dès qu'une règle modifie une priorité ou une recommandation. */
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';   // 1.1.0 : un produit réel n'est plus proposé sans justification (étape 22)
 
   /* Profil : objectifs connus (3 au maximum), niveau de routine connu (sinon « simple »), catégories de produits déjà utilisées,
      confort demandé par l'utilisateur (préférence cosmétique) et exclusions (actifs que l'utilisateur ne souhaite pas, jamais une donnée de santé).
@@ -97,7 +97,9 @@
     }
     if (priorities.eyeInfo) explanations.push({ kind: 'info', text: priorities.eyeInfo, trace: { source: priorities.informational.map(i => idx(i.indicator)).join(', '), rule: 'contour des yeux : information seulement', result: 'aucun actif' } });
 
-    return { profile: prof, interpretation, priorities, personalization, activePlan, routinePlan, productMatches, explanations };
+    /* Synthèse personnalisée : lecture des décisions ci-dessus (rien de nouveau n'est décidé ici). */
+    const synthesis = dep.synthesis.build({ interpretation, priorities, profile: prof, routinePlan, productMatches, catalog: options && options.catalog, productsApi: dep.products });
+    return { profile: prof, interpretation, priorities, personalization, activePlan, routinePlan, productMatches, explanations, synthesis };
   }
 
   return { run, normalizeProfile, toggleGoal, goalList, MAX_GOALS: D.MAX_GOALS, VERSION };
