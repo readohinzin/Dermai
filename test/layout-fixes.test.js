@@ -24,3 +24,18 @@ test('LF2 mode réel : sans photo (analyse retrouvée, la photo n\'étant jamais
   assert.equal((app.match(/Votre photo apparaîtra ici/g) || []).length, 1);
   assert.match(app, /state\.route===`scan`\|\|state\.route===`analyzing`\?state\.realPreview/);
 });
+
+test('LF3 barre du bas (téléphone) : le libellé « Progression » ne déborde plus de sa pastille ; la police suit la largeur, les onglets restent ≥ 44 px', () => {
+  const nav = read('css/components/nav.css');
+  const block = nav.slice(nav.indexOf('@media (max-width:480px){\n  .nav.c-bottomnav'));
+  assert.match(block, /\.nav\.c-bottomnav\{left:8px;right:8px;padding:4px;gap:2px\}/);
+  assert.match(block, /\.c-bottomnav__item\{padding-inline:0;font-size:clamp\(9\.2px,calc\(\(100vw - 82px\) \/ 29\.5\),12px\)\}/);
+  // la règle suit la définition de base de l'onglet (même spécificité : la dernière l'emporte) et garde sa hauteur tactile
+  assert.ok(nav.indexOf('.c-bottomnav__item{display:flex') < nav.indexOf('clamp(9.2px'));
+  assert.match(nav, /\.c-bottomnav__item\{[^}]*min-height:52px;min-width:var\(--tap\)/);
+  // calcul : pour chaque largeur de téléphone, le libellé actif (≈ 5,9 × taille, Manrope 700) tient dans l'onglet avec une marge
+  for (const w of [320, 360, 375, 390, 414, 430, 480]) {
+    const f = Math.min(12, Math.max(9.2, (w - 82) / 29.5)), item = (w - 16 - 8 - 8) / 5, label = 5.86 * f;
+    assert.ok(item - label >= (w <= 320 ? 3 : 8), w + ' px : onglet ' + item.toFixed(1) + ' px pour un libellé de ' + label.toFixed(1) + ' px');
+  }
+});

@@ -37,3 +37,11 @@ button.brand{display:inline-flex;align-items:center;justify-content:center;line-
 
 /* Mode réel : une analyse retrouvée n'a plus sa photo (jamais conservée). La carte « Profil cutané » n'affiche alors aucun cadre vide : le texte prend toute la largeur. */
 .skin-now.nophoto .txt{max-width:none}
+
+/* Barre du bas sur téléphone : cinq onglets se partagent la largeur de l'écran. Le libellé le plus long (« Progression », en gras quand l'onglet est actif) mesure ≈ 5,9 × sa taille de police :
+   à 12 px il dépassait de la pastille dès 414 px de large et d'autant plus sur un écran plus étroit. La police se réduit donc avec la largeur (12 px dès ≈ 436 px, 9,2 px au plus bas),
+   et la barre gagne 8 px de largeur utile ; chaque libellé garde une marge de ≈ 5 px de chaque côté de sa pastille (≥ 1,5 px à 320 px). */
+@media (max-width:480px){
+  .nav.c-bottomnav{left:8px;right:8px;padding:4px;gap:2px}
+  .c-bottomnav__item{padding-inline:0;font-size:clamp(9.2px,calc((100vw - 82px) / 29.5),12px)}
+}
