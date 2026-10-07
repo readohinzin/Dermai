@@ -288,8 +288,6 @@ select.sel{min-height:44px;border-radius:99px;border:1px solid var(--line);backg
 .next .cal{width:54px;height:60px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;text-align:center;line-height:1.05;flex:none}
 .next .cal b{font-family:var(--serif);font-size:1.7rem;font-weight:400}
 .next .cal small{font-size:12px;color:var(--ink-3)}
-html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{animation:none!important;transition:none!important}
-@media (prefers-reduced-motion:reduce){html:not([data-motion]) *{animation:none!important;transition:none!important}}   /* sans script : le réglage du système s'applique */
 
 /* =========================================================
    DERMAI v2 : identité rose poudré, portrait, animations
@@ -440,5 +438,3 @@ h2{font-size:clamp(1.8rem,6vw,2.4rem);line-height:1.1}
 #app:not(.still) .main .col>*:nth-child(4){animation-delay:.24s}
 #app:not(.still) .hero-grid>div:nth-child(2){animation-delay:.15s}
 #app:not(.still) .meter i{transform-origin:left;animation:grow .9s .2s cubic-bezier(.2,.7,.2,1) both}
-html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{animation:none!important;transition:none!important}
-@media (prefers-reduced-motion:reduce){html:not([data-motion]) *{animation:none!important;transition:none!important}}   /* sans script : le réglage du système s'applique */

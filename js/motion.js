@@ -5,7 +5,7 @@
 
    Principes :
    - Aucun contenu n'est caché sans ce script : l'état initial (`opacity:0`...) n'existe que sous `html.m-on`, posé ici une fois l'observateur disponible.
-   - « Moins d'animations » (prefers-reduced-motion) : rien n'est installé, tout est visible et immobile.
+   - Les animations sont toujours actives, sur téléphone comme sur PC : aucun réglage ne les coupe (décision produit).
    - Les animations n'utilisent que `transform`, `opacity` et `translate` (rien qui force la mise en page) ; `will-change` retiré après l'effet.
    - Un re-rendu qui conserve l'état (`keep`) n'anime pas : cocher une case ne doit pas rejouer toute la page.
    Module partagé navigateur / Node : les règles et les fonctions pures sont testées sans navigateur. */
@@ -41,18 +41,6 @@
   };
   const ATTR = { words: 'mx', par: 'par', rise: 'm', left: 'm', right: 'm', scale: 'm', pop: 'm', fade: 'm', count: 'mx', bar: 'mx', draw: 'mx', dot: 'mx', line: 'mx', zones: 'mx' };
 
-  /* Préférence d'animations : « Automatique » suit le système (prefers-reduced-motion), « Activées » force les animations (utile sur un PC dont les effets Windows sont coupés,
-     ce qui est signalé comme « moins d'animations » au navigateur), « Réduites » les coupe. Mémorisée dans le navigateur (jamais envoyée). */
-  const KEY = 'dermai.motion';
-  const getPref = () => { try { const v = localStorage.getItem(KEY); return v === 'on' || v === 'off' ? v : 'auto'; } catch (e) { return 'auto'; } };
-  const setPref = v => { try { if (v === 'on' || v === 'off') localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) { /* stockage indisponible : la préférence ne persiste pas */ } };
-  const osReduces = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isReduced = (pref, os) => pref === 'off' || (pref !== 'on' && !!os);
-  const reduced = () => isReduced(getPref(), osReduces());
-  /* Pose data-motion sur <html> : les feuilles de style s'y appuient (et non plus directement sur le réglage du système) pour pouvoir être contournées par « Activées ». */
-  const apply = () => { if (typeof document !== 'undefined') document.documentElement.setAttribute('data-motion', reduced() ? 'reduce' : 'full'); };
-  if (typeof document !== 'undefined') apply();
-
   /* Fonctions pures */
   const delayOf = (i, o) => { o = o || {}; const step = o.step == null ? 90 : o.step, max = o.max == null ? 7 : o.max; return (o.delay || 0) + (o.stagger ? Math.min(i, max) * step : 0); };
   const countOf = txt => { const m = /^\s*(\d{1,4})(?:[.,](\d))?\s*$/.exec(String(txt)); return m ? { value: +(m[1] + (m[2] ? '.' + m[2] : '')), decimals: m[2] ? 1 : 0 } : null; };
@@ -73,9 +61,8 @@
   function init(opts) {
     opts = opts || {};
     const doc = document, html = doc.documentElement;
-    const reducedNow = opts.reduced == null ? reduced() : !!opts.reduced;
     const ctl = { active: false, scan() {}, stop() {}, reveal() {} };
-    if (reducedNow || typeof IntersectionObserver !== 'function') return ctl;
+    if (typeof IntersectionObserver !== 'function') return ctl;
     html.classList.add('m-on'); ctl.active = true;
 
     let parList = [], io = null, route = '', raf = [], zoneTimers = [], fallback = null, stopped = false, lastKey = null, played = false;
@@ -118,8 +105,11 @@
       if (!rootEl) return;
       parList = [];   // parallaxe au défilement : toujours reconstruite, même pour un re-rendu qui conserve l'état
       for (const [sel, effect, ro] of RULES[route] || []) if (effect === 'par') { let l; try { l = [...rootEl.querySelectorAll(sel)]; } catch (e) { continue; } for (const el of l) { el.setAttribute('data-par', ro && ro.f ? String(ro.f) : '0.15'); parList.push(el); } }
-      if (o.keep && o.key === lastKey && played) { kick(); return; }
+      /* Re-rendu qui conserve l'état : le DOM est NEUF (innerHTML), donc rien n'y est balisé. Ce qui est déjà passé à l'écran reste immobile ; ce qui est plus bas
+         s'anime encore à l'arrivée. (Ex. accueil : le compte se vérifie en réseau, puis la page est redessinée ; sans cela aucun effet ne jouait sur téléphone.) */
+      const replay = !!(o.keep && o.key === lastKey && played);
       lastKey = o.key == null ? route : o.key; played = false;
+      const foldY = (innerHeight || 800) * 0.92;
       const rules = RULES[route] || [];
       const groups = new Map(); const targets = [];
       for (const [sel, effect, ro] of rules) {
@@ -127,6 +117,7 @@
         for (const el of list) {
           if (skip(el) || el.hasAttribute('data-' + ATTR[effect])) continue;
           if (effect === 'par') continue;
+          if (replay && el.getBoundingClientRect().top + window.scrollY - (o.y == null ? window.scrollY : o.y) < foldY) continue;   // o.y : défilement conservé par le re-rendu
           if (effect === 'words') { if (el.children.length || !el.textContent.trim()) continue; splitWords(el); }
           const key = (el.parentElement || rootEl);
           const gk = groups.get(key) || new Map(); groups.set(key, gk);
@@ -140,6 +131,7 @@
         }
       }
       kick();
+      if (replay) played = true;
       if (!targets.length) return;
       played = true;
       const vh = innerHeight || 800;
@@ -167,6 +159,10 @@
       if (pendingPointer && hc && fine) { const r = hc.getBoundingClientRect(); hc.style.setProperty('--px', (((pendingPointer.x - r.left) / r.width) * 2 - 1).toFixed(3)); hc.style.setProperty('--py', (((pendingPointer.y - r.top) / r.height) * 2 - 1).toFixed(3)); }
       if (pendingPointer && hc && fine) { const r = hc.getBoundingClientRect(); hc.style.setProperty('--mx', ((pendingPointer.x - r.left) / r.width * 100).toFixed(1) + '%'); hc.style.setProperty('--my', ((pendingPointer.y - r.top) / r.height * 100).toFixed(1) + '%'); hc.style.setProperty('--so', '1'); }
       const vh = innerHeight || 800;
+      if (route === 'landing') for (const sec of doc.querySelectorAll('.sec')) {   // défilement « lié au doigt » : chaque section reçoit sa position (-1 haut ... +1 bas) pour ses décors
+        const r = sec.getBoundingClientRect(); if (r.bottom < -100 || r.top > vh + 100) continue;
+        sec.style.setProperty('--sp', Math.max(-1.2, Math.min(1.2, ((r.top + r.height / 2) - vh / 2) / vh)).toFixed(3));
+      }
       for (const el of parList) {   // parallaxe au défilement : chaque plan avance à sa vitesse (propriété translate, indépendante des apparitions)
         if (!el.isConnected) continue;
         const r = el.getBoundingClientRect(); if (r.bottom < -200 || r.top > vh + 200) continue;
@@ -208,5 +204,5 @@
     return ctl;
   }
 
-  return { RULES, ATTR, delayOf, countOf, skip, init, getPref, setPref, osReduces, isReduced, reduced, apply, KEY };
+  return { RULES, ATTR, delayOf, countOf, skip, init };
 });

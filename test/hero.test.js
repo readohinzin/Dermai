@@ -100,7 +100,6 @@ test('H6 CSS : thèmes pastel, animations limitées à la diapositive active, co
   assert.doesNotMatch(css.replace(/@keyframes[^{]+\{[\s\S]*?\}\s*\}/g, ''), /\.hc-slide(?!\.is-active)[^{]*\{[^}]*animation:/, 'aucune animation hors diapositive active');
   assert.match(css, /\.hc-pause,\.hc-dot\{width:44px;height:44px/);
   assert.match(css, /\.hc-stage\{display:grid\}/); assert.match(css, /\.hc-slide\{grid-area:1\/1/);
-  assert.match(read('css/base.css'), /prefers-reduced-motion:reduce/);
   assert.match(read('css/styles.css'), /@import url\("components\/hero\.css"\) layer\(components\);/);
   assert.doesNotMatch(css, /\.(?:lvl|lb|prio|prio-top|prio-sub|mini|ex|lv-change|dbl)(?![\w-])/, 'aucune classe de l\'ancien système de niveaux');
 });
@@ -111,7 +110,7 @@ test('H7 branchement : module chargé avant l\'application, démarré à l\'accu
   assert.match(app, /DermaiHero\.html\(\{cta:\{go:signedIn\(\)\?`scan`:`signup`\},labels:SkinModel\.METRIC_LABELS,actives:heroActives\(\),sparkle:/);
   assert.match(app, /const HERO_ACTIVES=\[`niacinamide`,`azelaic`,`vitamin_c`,`hyaluronic`,`ceramides`\]/);
   assert.match(app, /function render\(keep\)\{\s*const y=window\.scrollY;\s*stopHero\(\);/);
-  assert.match(app, /if\(state\.route===`landing`\)\{const el=document\.querySelector\(`\[data-hc\]`\);if\(el\)heroCtl=DermaiHero\.init\(el,\{reduced:/);
+  assert.match(app, /if\(state\.route===`landing`\)\{const el=document\.querySelector\(`\[data-hc\]`\);if\(el\)heroCtl=DermaiHero\.init\(el,\{reduced:false,/);
   for (const id of ['how', 'observe', 'routine-sec', 'evolve']) assert.match(app, new RegExp(`id="${id}"`), id);
   for (const s of Hero.SLIDES) assert.ok(app.includes(`id="${s.more[0]}"`), 'cible du bouton secondaire : ' + s.more[0]);
   // l'ancien visage du hero n'est plus utilisé dans la bannière, la section « Ce que DERMAI observe » garde le sien ; le trio de visages est décoratif et décrit une fois

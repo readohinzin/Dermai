@@ -527,9 +527,6 @@ const HERO_ACTIVES=[`niacinamide`,`azelaic`,`vitamin_c`,`hyaluronic`,`ceramides`
 const heroActives=()=>HERO_ACTIVES.map(id=>Engine.actives.byId(id)).filter(Boolean).map(x=>({label:x.label,summary:x.summary}));
 /* Trio de visages (personnes fictives, fournies pour l'application) : la diversité des peaux, sans scores ni diagnostic. Image décorative, décrite une seule fois pour les lecteurs d'écran. */
 const faces=ids=>`<div class="faces" role="img" aria-label="Trois portraits fictifs de femmes, aux peaux et aux cheveux différents">${ids.map((n,i)=>`<span class="fc fc--${i+1}" aria-hidden="true"><img src="${DermaiHero.personSrc(n)}" width="504" height="504" alt="" loading="lazy" decoding="async"></span>`).join(``)}</div>`;
-/* Interrupteur d'animations (accueil et profil) : Automatique suit le système ; Activées force ; Réduites coupe. Voir js/motion.js. */
-const motionPrefUI=()=>{const p=DermaiMotion.getPref(),b=(v,txt)=>`<button class="c-seg__btn" data-act="motion-pref" data-v="${v}" aria-pressed="${p===v}">${txt}</button>`;
-  return `<div class="motion-pref"><span class="muted">Animations</span><div class="c-seg" role="group" aria-label="Animations">${b(`auto`,`Automatique`)}${b(`on`,`Activées`)}${b(`off`,`Réduites`)}</div>${p===`auto`&&DermaiMotion.osReduces()?`<p class="muted s">Votre appareil demande moins d'animations : elles sont donc réduites. Choisissez « Activées » pour les voir.</p>`:``}</div>`};
 /* Bandeau défilant des quinze indicateurs (décor animé : les mêmes noms sont listés dans « Ce que DERMAI observe », donc masqué aux lecteurs d'écran). */
 const marquee=()=>{const row=SkinModel.METRIC_KEYS.map(k=>`<span>${esc(SkinModel.METRIC_LABELS[k])}</span><i>●</i>`).join(``);return `<div class="mq" aria-hidden="true"><div class="mq-track"><div class="mq-row">${row}</div><div class="mq-row">${row}</div></div></div>`};
 let heroCtl=null,motionCtl=null;
@@ -604,7 +601,7 @@ V.landing=()=>{
   </div></section>
 
   <section class="sec alt" style="text-align:center"><div class="wrap"><h2>Commencez par une analyse</h2><div class="cta-row" style="justify-content:center;margin-top:26px"><button class="c-btn c-btn--primary" data-go="signup">Analyser ma peau</button></div></div></section>
-  <footer class="foot"><div class="wrap">DERMAI fournit une analyse cosmétique visuelle et des recommandations de soin. Il ne remplace pas l'avis d'un professionnel de santé.${motionPrefUI()}</div></footer>`;
+  <footer class="foot"><div class="wrap">DERMAI fournit une analyse cosmétique visuelle et des recommandations de soin. Il ne remplace pas l'avis d'un professionnel de santé.</div></footer>`;
 };
 
 /* Inscription */
@@ -997,7 +994,6 @@ V.profile=()=>{
   return shell(`<div class="hello"><div style="display:flex;gap:16px;align-items:center"><span class="avatar" style="width:64px;height:64px;font-size:2rem">${initial()}</span><div><h1 style="font-size:2.1rem">${esc(state.user.name)||`Mon profil`}</h1>${state.user.email&&!signedIn()?`<p class="muted">${esc(state.user.email)}</p>`:``}</div></div></div>
   <div class="grid2"><div class="col">
    ${accountSection()}
-   <section><div class="hd"><h2 class="h3">Animations</h2></div>${motionPrefUI()}</section>
    <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(SCANS[state.latest]).priorities.items)}`}</section>
    <section><div class="hd"><h2 class="h3">Mes objectifs</h2><span class="muted">${goalCount()}</span></div><p class="muted" style="margin-bottom:10px">Facultatif, trois au maximum. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p>
      <div class="chips">${Engine.goalList().map(g=>`<button class="c-chip" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}">${g.label}</button>`).join(``)}<button class="c-chip" data-act="goal" data-v="none" aria-pressed="${state.noGoal}">${Engine.copy.NO_GOAL}</button></div></section>
@@ -1078,13 +1074,13 @@ function render(keep){
   stopHero();
   $app.classList.toggle(`still`,!!keep);
   $app.innerHTML=(V[state.route]||V.home)(state.param);
-  after(!!keep);
+  after(!!keep,y);
   if(keep)scrollTo(0,y);
 }
-function after(keep){
-  if(!motionCtl)motionCtl=DermaiMotion.init({reduced:DermaiMotion.reduced()});
-  motionCtl.scan($app,{route:state.route,key:state.route+`:`+(state.param==null?``:state.param),keep:!!keep});   // motion design : apparitions au défilement, compteurs, courbes (js/motion.js)
-  if(state.route===`landing`){const el=document.querySelector(`[data-hc]`);if(el)heroCtl=DermaiHero.init(el,{reduced:DermaiMotion.reduced(),actives:heroActives()})}
+function after(keep,y){
+  if(!motionCtl)motionCtl=DermaiMotion.init();
+  motionCtl.scan($app,{route:state.route,key:state.route+`:`+(state.param==null?``:state.param),keep:!!keep,y});   // motion design : apparitions au défilement, compteurs, courbes (js/motion.js)
+  if(state.route===`landing`){const el=document.querySelector(`[data-hc]`);if(el)heroCtl=DermaiHero.init(el,{reduced:false,actives:heroActives()})}
   if(state.route===`scan`&&state.scanStep>=1&&state.scanStep<=3){
     if(DEMO_MODE)timers.push(setTimeout(()=>{const c=document.getElementById(`cam`),q=document.getElementById(`qt`);if(c&&q){c.classList.add(`ready`);q.textContent=`Qualité de l'image : excellente`}},1000));
     else{const q=document.getElementById(`qt`);if(q)q.textContent=`Visage de face, bien éclairé`}
@@ -1226,7 +1222,6 @@ function act(a,v,el){
   switch(a){
     case `back`:back();break;
     case `close`:closeSheet();break;
-    case `motion-pref`:DermaiMotion.setPref(v);DermaiMotion.apply();stopHero();if(motionCtl){motionCtl.stop();motionCtl=null}render();break;
     case `scroll`:document.getElementById(v).scrollIntoView({behavior:`smooth`});break;
     case `signup`:{const n=document.getElementById(`f-name`),m=document.getElementById(`f-mail`);state.user.name=(n&&n.value.trim())||(DEMO_MODE?`Amina`:``);state.user.email=(m&&m.value.trim())||(DEMO_MODE?`amina@exemple.com`:``);go(`welcome`);break}
     case `goal`:{const r=Engine.toggleGoal(state.goals,v);state.goals=r.goals;if(v===`none`)state.noGoal=true;else if(!r.limited)state.noGoal=false;if(r.limited)toast(Engine.copy.GOAL_LIMIT);render(true);if(!r.limited)persist();break}

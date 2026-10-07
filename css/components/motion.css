@@ -1,5 +1,4 @@
-/* Motion design (voir js/motion.js). Les états de départ (invisible, décalé, à zéro) n'existent QUE sous html.m-on, posé par le script quand l'animation est
-   possible : sans script, ou avec « moins d'animations », tout est visible et immobile. Seuls transform, opacity et translate sont animés. */
+/* Motion design (voir js/motion.js). Les états de départ (invisible, décalé, à zéro) n'existent QUE sous html.m-on, posé par le script une fois l'observateur disponible : sans script, tout est visible et immobile. Seuls transform, opacity et translate sont animés. */
 
 /* Les éléments décalés avant leur apparition ne doivent jamais élargir la page (défilement horizontal sur téléphone) : `clip` ne crée pas de conteneur de défilement,
    l'en-tête collant continue de fonctionner. */
@@ -79,9 +78,41 @@
 .pgrid,.hc-art{perspective:1100px}
 .pcard,.acard,.c-concern-card,.hc-face{transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s ease,background-color .25s ease,border-color .25s ease,rotate .5s cubic-bezier(.2,.8,.2,1)}
 
-/* Interrupteur d'animations */
-.motion-pref{display:grid;gap:8px;justify-items:start;margin-top:14px;font-size:14px}
-.motion-pref{width:100%}
-.motion-pref .c-seg{display:flex;flex-wrap:wrap;gap:4px;width:100%;max-width:26rem}
-.motion-pref .c-seg__btn{flex:1 1 auto;min-width:0;padding-inline:12px;font-size:14px;justify-content:center}
-.motion-pref .s{font-size:13px;max-width:34em}
+/* Mouvement continu sous la bannière : visible même sans défiler, et sans dépendre du moment où une section entre à l'écran (toujours actif, téléphone comme PC).
+   Les animations utilisent les propriétés individuelles scale / translate, qui se composent avec les apparitions (transform) sans les gêner. */
+.sec{position:relative;overflow:clip}
+.sec>.wrap{position:relative;z-index:1}
+/* décors liés au défilement : deux halos qui glissent à des vitesses différentes selon la position de la section (--sp posé par le script) */
+.sec::before,.sec::after{content:"";position:absolute;border-radius:50%;pointer-events:none;z-index:0}
+.sec::before{width:min(78vw,420px);height:min(78vw,420px);right:-18%;top:-14%;background:radial-gradient(circle,rgba(201,127,106,.30),transparent 68%);translate:calc(var(--sp,0) * -120px) calc(var(--sp,0) * 90px);animation:mDrift 9s ease-in-out infinite alternate}
+.sec::after{width:min(58vw,300px);height:min(58vw,300px);left:-14%;bottom:-18%;background:radial-gradient(circle,rgba(84,47,59,.16),transparent 68%);translate:calc(var(--sp,0) * 150px) calc(var(--sp,0) * -70px);animation:mDrift 11s ease-in-out -4s infinite alternate-reverse}
+.sec.alt::before{background:radial-gradient(circle,rgba(255,255,255,.75),transparent 68%)}
+@keyframes mDrift{from{scale:.88;opacity:.7}to{scale:1.18;opacity:1}}
+
+/* Comment ça marche : les numéros battent, une lueur passe sous chaque ligne d'indicateurs, les icônes du parcours montent et descendent à tour de rôle */
+.steps3 .num{display:inline-block;animation:mBeat 2.6s ease-in-out infinite}
+.steps3 .s:nth-child(2) .num{animation-delay:.5s}
+.steps3 .s:nth-child(3) .num{animation-delay:1s}
+@keyframes mBeat{0%,100%{scale:1}45%{scale:1.22}}
+.plist>div{position:relative;overflow:hidden}
+.plist>div::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--rose-deep),var(--accent),transparent);translate:-100% 0;animation:mSweep 4.2s ease-in-out infinite}
+.plist>div:nth-child(2n)::after{animation-delay:.7s}
+.plist>div:nth-child(3n)::after{animation-delay:1.5s}
+.plist>div:nth-child(5n)::after{animation-delay:2.3s}
+@keyframes mSweep{0%{translate:-100% 0}55%,100%{translate:100% 0}}
+.flowstrip .ico{animation:mBob 3s ease-in-out infinite}
+.flowstrip>div:nth-child(2) .ico{animation-delay:.4s}
+.flowstrip>div:nth-child(3) .ico{animation-delay:.8s}
+.flowstrip>div:nth-child(4) .ico{animation-delay:1.2s}
+@keyframes mBob{0%,100%{translate:0 0}50%{translate:0 -9px}}
+/* visage : un trait de balayage lumineux parcourt le portrait, comme un scanner */
+.facebox::after{content:"";position:absolute;left:10px;right:10px;top:10px;height:3px;border-radius:3px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);box-shadow:0 0 18px 6px rgba(255,214,200,.75);animation:mScan 4.2s ease-in-out infinite}
+@keyframes mScan{0%{translate:0 0;opacity:0}12%{opacity:1}88%{opacity:1}100%{translate:0 min(92vw,360px);opacity:0}}
+.l-list svg{animation:mTick 2.4s ease-in-out infinite}
+.l-list li:nth-child(2) svg{animation-delay:.5s}
+.l-list li:nth-child(3) svg{animation-delay:1s}
+@keyframes mTick{0%,100%{scale:1}40%{scale:1.35}}
+/* résultats et suivi : un reflet traverse les barres de score */
+.c-bar__fill{position:relative;overflow:hidden}
+.c-bar__fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);translate:-100% 0;animation:mSweep 3.4s ease-in-out infinite}
+.skin-now .mf{animation:mFloat 6s ease-in-out infinite}
