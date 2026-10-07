@@ -8,7 +8,8 @@
    vide tant qu'aucune donnée vérifiée n'existe). L'appelant choisit le catalogue ; sans choix, le moteur utilise la démonstration (tests).
 
    MODÈLE D'UN PRODUIT (voir validateProduct) :
-     éditorial (décidé par DERMAI) : id, name, brand, category, ingredients [{ activeId | null, label }], skinTypes, targets, description, active, demo
+     éditorial (décidé par DERMAI) : id, name, brand, category, ingredients [{ activeId | null, label }], skinTypes, targets, description, active, demo, editorialPriority (facultatif)
+     Départage entre produits compatibles avec le même actif : actifs recherchés présents, type de peau, `editorialPriority[actif]` explicite (1 = d'abord), puis ordre du catalogue en repli. Indépendant du marché.
      identité vérifiée (produits réels) : status ('validated' | 'to_verify'), format, inci, sources [{ kind, label, url, checkedAt, method }], verification
      commercial, produits RÉELS : `offers` [{ market, retailer, type, currency, price, availability, url, source, checkedAt, shipping }]. UN produit, PLUSIEURS offres,
        chacune propre à UN pays (code ISO), avec SA devise, SON prix, SA disponibilité, SON vendeur, SA source et SA date. Aucun prix ni aucune disponibilité global(e),
@@ -109,6 +110,12 @@
     if (!Array.isArray(p.targets) || p.targets.some(t => !dep.skin.METRIC_KEYS.includes(t))) e.push('indicateurs ciblés invalides');
     if (p.category === 'serum' && Array.isArray(p.ingredients) && !p.ingredients.some(i => i && i.activeId)) e.push('un soin ciblé doit être relié à un actif');
     if (p.primaryActiveId != null && !(Array.isArray(p.ingredients) && p.ingredients.some(i => i && i.activeId === p.primaryActiveId))) e.push('actif principal absent des ingrédients');
+    /* editorialPriority : { activeId: entier ≥ 1 } — ordre éditorial voulu par DERMAI entre produits compatibles avec le MÊME actif (1 = d'abord). Valeur relative, sans calcul, jamais affichée. */
+    if (p.editorialPriority != null) {
+      const ep = p.editorialPriority;
+      if (typeof ep !== 'object' || Array.isArray(ep)) e.push('editorialPriority doit être un objet { actif: rang }');
+      else for (const [k, v] of Object.entries(ep)) { if (!Array.isArray(p.ingredients) || !ids(p).includes(k)) e.push('editorialPriority : actif non relié au produit : ' + k); if (!(Number.isInteger(v) && v >= 1 && v <= 99)) e.push('editorialPriority : rang entier de 1 à 99 attendu (' + k + ')'); }
+    }
     if (p.description != null && !text(p.description, 300)) e.push('description invalide');
     if (p.active != null && typeof p.active !== 'boolean') e.push('active doit être un booléen');
     if (typeof p.demo !== 'boolean') e.push('demo doit être vrai ou faux');
@@ -270,7 +277,12 @@
         const score = ({ p }) => wanted.filter(id => ids(p).includes(id)).length;
         let pool = candidates;
         if (step.kind === 'moisturize' && wanted.length) pool = candidates.filter(c => score(c) > 0);
-        pool = pool.sort((a, b) => score(b) - score(a) || (skinOk(b.p, routine.skinBase) - skinOk(a.p, routine.skinBase)) || a.order - b.order);
+        /* Départage, dans l'ordre : 1. actifs recherchés présents ; 2. compatibilité avec le type de peau ; 3. PRIORITÉ ÉDITORIALE explicite (p.editorialPriority[actif du pas], 1 = d'abord) ;
+           4. ordre du catalogue. Les produits sans priorité explicite pour cet actif passent après ceux qui en ont une, puis suivent l'ordre du catalogue (aucune valeur inventée). Les filtres
+           (exclusions, approche douce, composition) ont déjà écarté les produits incompatibles : la priorité ne les contourne jamais. Aucune donnée commerciale n'intervient. */
+        const prio = p => (step.kind === 'treatment' && p.editorialPriority && Number.isInteger(p.editorialPriority[step.activeId])) ? p.editorialPriority[step.activeId] : null;
+        const byPrio = (a, b) => { const x = prio(a.p), y = prio(b.p); return x === y ? 0 : x === null ? 1 : y === null ? -1 : x - y; };
+        pool = pool.sort((a, b) => score(b) - score(a) || (skinOk(b.p, routine.skinBase) - skinOk(a.p, routine.skinBase)) || byPrio(a, b) || a.order - b.order);
         if (!pool.length) return;
         const p = pool[0].p, because = wanted.filter(id => ids(p).includes(id));
         out.push({ stepId: step.id, kind: step.kind, productId: p.id, activeIds: because,

@@ -17,6 +17,9 @@
                    source: '…', checkedAt: 'AAAA-MM-JJ' } ],
        image: { src: 'img/products/….jpg', alt: '…' } | null }
    Une annonce de place de marché est une offre de type « marketplace » : ce n'est pas une preuve d'authenticité ni de distribution officielle.
+   editorialPriority (facultatif) : { activeId: rang } — décision éditoriale DERMAI entre produits compatibles avec le MÊME actif (1 = d'abord). Renseigné seulement là où plusieurs produits concourent
+   réellement pour un même pas de routine : vitamin_c (Ascorbyl Glucoside 1, CeraVe Skin Renewing 2) et salicylic (Salicylic Acid 2 % 1, La Roche-Posay Pure Vitamin C10 2). C'est l'ordre éditorial
+   ACTUEL, pas un jugement de valeur : il ne dit rien de l'efficacité, du prix ni de la marque. Sans priorité explicite, les produits suivent l'ordre du catalogue, après ceux qui en ont une.
    Aucun champ de score ou de « correspondance ». Les champs commerciaux plats (price, vendor, url, availability) sont interdits ici : tout passe par `offers`.
    Le rétinoïde reste « à valider » : un produit qui en contient n'est jamais recommandé automatiquement.
 
@@ -50,7 +53,7 @@
 
   const PRODUCTS = [
     { id: 'to-salicylic-2-solution', name: 'Salicylic Acid 2% Solution', brand: TO, format: '30 ml', category: 'serum',
-      ingredients: [{ activeId: 'salicylic', label: 'Acide salicylique 2 %' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'salicylic',
+      ingredients: [{ activeId: 'salicylic', label: 'Acide salicylique 2 %' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'salicylic', editorialPriority: { salicylic: 1 },
       skinTypes: ['all'], skinTypesDocumented: false, targets: ['acne'],
       description: 'Solution aqueuse à 2 % d\'acide salicylique, présentée par la marque pour les peaux sujettes aux imperfections. Formule en solution aqueuse : à ne pas confondre avec la version anhydre.',
       active: true, demo: false, status: 'validated',
@@ -86,7 +89,7 @@
       ], image: { src: 'img/products/to-azelaic-acid-10.webp', alt: 'Tube The Ordinary Azelaic Acid Suspension 10%', sourceUrl: 'https://theordinary.com/en-us/azelaic-acid-suspension-10-exfoliator-100407.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'to-ascorbyl-glucoside-12', name: 'Ascorbyl Glucoside Solution 12%', brand: TO, format: '30 ml', category: 'serum',
-      ingredients: [{ activeId: 'vitamin_c', label: 'Ascorbyl glucoside 12 % (dérivé de vitamine C)' }], primaryActiveId: 'vitamin_c',
+      ingredients: [{ activeId: 'vitamin_c', label: 'Ascorbyl glucoside 12 % (dérivé de vitamine C)' }], primaryActiveId: 'vitamin_c', editorialPriority: { vitamin_c: 1 },
       skinTypes: ['all'], skinTypesDocumented: true, targets: ['pigmentation', 'radiance'],
       description: 'Solution aqueuse à 12 % d\'ascorbyl glucoside, un dérivé hydrosoluble de la vitamine C qui s\'y convertit sur la peau selon la marque. Protection solaire conseillée le jour.',
       active: true, demo: false, status: 'validated',
@@ -147,7 +150,7 @@
       image: { src: 'img/products/cerave-blemish-control-gel.webp', alt: 'Tube CeraVe Blemish Control Gel', sourceUrl: 'https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel', checkedAt: D, credit: 'Visuel : CeraVe' } },
 
     { id: 'cerave-skin-renewing-vitamin-c-serum', name: 'Skin Renewing Vitamin C Serum', brand: 'CeraVe', format: '30 ml', category: 'serum',
-      ingredients: [{ activeId: 'vitamin_c', label: 'Vitamine C pure (acide ascorbique, 10 % selon la marque)' }, { activeId: null, label: 'Trois céramides (NP, AP, EOP)' }, { activeId: null, label: 'Acide hyaluronique (hyaluronate de sodium)' }, { activeId: null, label: 'Panthénol (vitamine B5)' }], primaryActiveId: 'vitamin_c',
+      ingredients: [{ activeId: 'vitamin_c', label: 'Vitamine C pure (acide ascorbique, 10 % selon la marque)' }, { activeId: null, label: 'Trois céramides (NP, AP, EOP)' }, { activeId: null, label: 'Acide hyaluronique (hyaluronate de sodium)' }, { activeId: null, label: 'Panthénol (vitamine B5)' }], primaryActiveId: 'vitamin_c', editorialPriority: { vitamin_c: 2 },
       skinTypes: ['all'], skinTypesDocumented: true, targets: ['pigmentation', 'radiance', 'wrinkles'],
       description: 'Sérum à la vitamine C pure (acide ascorbique, 10 % selon la marque), avec trois céramides, de l\'acide hyaluronique et du panthénol. Présenté par la marque pour l\'éclat et l\'apparence du teint ; le matin, visage et cou, hors contour des yeux.',
       active: true, demo: false, status: 'validated',
@@ -185,7 +188,7 @@
       ], image: { src: 'img/products/lrp-cicaplast-baume-b5-plus.webp', alt: 'Tube La Roche-Posay Cicaplast Baume B5+', sourceUrl: 'https://africa.laroche-posay.com/en-za/cicaplast/cicaplast-baume-b5-plus', checkedAt: D, credit: 'Visuel : La Roche-Posay' } },
 
     { id: 'lrp-pure-vitamin-c10-serum', name: 'Pure Vitamin C10 Serum', brand: 'La Roche-Posay', format: '30 ml', category: 'serum',
-      ingredients: [{ activeId: 'vitamin_c', label: 'Vitamine C pure (acide ascorbique)' }, { activeId: 'salicylic', label: 'Acide salicylique' }, { activeId: 'hyaluronic', label: 'Hyaluronate de sodium et acide hyaluronique hydrolysé' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'vitamin_c',
+      ingredients: [{ activeId: 'vitamin_c', label: 'Vitamine C pure (acide ascorbique)' }, { activeId: 'salicylic', label: 'Acide salicylique' }, { activeId: 'hyaluronic', label: 'Hyaluronate de sodium et acide hyaluronique hydrolysé' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'vitamin_c', editorialPriority: { salicylic: 2 },
       skinTypes: ['all'], skinTypesDocumented: false, targets: ['radiance', 'wrinkles'],
       description: 'Sérum anti-rides et antioxydant à la vitamine C pure, avec de l\'acide salicylique et de l\'acide hyaluronique, présenté par la marque pour les peaux sensibles. Contient un exfoliant en plus de la vitamine C.',
       active: true, demo: false, status: 'validated',

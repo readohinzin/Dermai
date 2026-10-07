@@ -193,7 +193,7 @@ test('S9 TEST M, N, O : prix, disponibilité, vendeur d\'une offre réelle modif
   }
 });
 
-test('S10 produits multiples pour un même actif (vitamin_c) : le pays ne décide pas ; le départage existant = ordre du catalogue ; documenté, non modifié', () => {
+test('S10 produits multiples pour un même actif (vitamin_c) : le pays et les offres ne décident pas ; le départage est la priorité éditoriale explicite (étape 19)', () => {
   const A = P.byId('to-ascorbyl-glucoside-12', REAL), C = P.byId('cerave-skin-renewing-vitamin-c-serum', REAL);
   assert.ok(P.ids(A).includes('vitamin_c') && P.ids(C).includes('vitamin_c'));
   const profile = { goals: ['tone'], level: 'full', cats: [] }, n = norm({ pigmentation: 25, radiance: 40 });
@@ -204,12 +204,13 @@ test('S10 produits multiples pour un même actif (vitamin_c) : le pays ne décid
   // un seul des deux est retenu par pas ; le départage ne regarde ni le pays ni l'offre : il suit l'ordre du catalogue
   assert.deepEqual(base.filter(id => id === C.id || id === A.id), [A.id], 'The Ordinary Ascorbyl Glucoside précède CeraVe dans le catalogue : il est retenu');
   const reversed = REAL.slice().reverse(); const rev = chosen(reversed);
-  assert.deepEqual(rev.filter(id => id === C.id || id === A.id), [P.usable(reversed).find(p => p.id === C.id || p.id === A.id).id], 'ordre du catalogue inversé → le choix suit l\'ordre : c\'est bien le mécanisme de départage');
+  assert.deepEqual(rev.filter(id => id === C.id || id === A.id), [A.id], 'étape 19 : le départage est la PRIORITÉ ÉDITORIALE explicite, plus l\'ordre physique du catalogue : inverser le catalogue ne change pas le choix');
+  assert.deepEqual(chosen(REAL), base);
   // donner à CeraVe toutes les offres du monde ne change rien
   const boosted = REAL.map(p => p.id === C.id ? Object.assign({}, p, { offers: MD.COUNTRIES.map(c => ({ market: c.code, retailer: 'V' + c.code, type: 'retailer', currency: c.currency, price: 1, availability: 'in_stock', url: 'https://boutique-vraie.org/' + c.code, shipping: null, source: 'test', checkedAt: '2026-10-07' })) }) : p);
   assert.deepEqual(chosen(boosted), base);
   const src = strip(read('js/engine/products.js'));
-  assert.match(fnBody(src, 'function match('), /sort\(\(a, b\) => score\(b\) - score\(a\) \|\| \(skinOk\(b\.p, routine\.skinBase\) - skinOk\(a\.p, routine\.skinBase\)\) \|\| a\.order - b\.order\)/, 'départage : nombre d\'actifs recherchés, puis type de peau, puis ordre du catalogue');
+  assert.match(fnBody(src, 'function match('), /sort\(\(a, b\) => score\(b\) - score\(a\) \|\| \(skinOk\(b\.p, routine\.skinBase\) - skinOk\(a\.p, routine\.skinBase\)\) \|\| byPrio\(a, b\) \|\| a\.order - b\.order\)/, 'départage : actifs recherchés, type de peau, priorité éditoriale explicite, puis ordre du catalogue en repli');
   assert.equal(PROFILES.length > 0, true);
 });
 
