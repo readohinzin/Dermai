@@ -129,6 +129,7 @@
     const slides = [...rootEl.querySelectorAll('.hc-slide')], dots = [...rootEl.querySelectorAll('.hc-dot')], stage = rootEl.querySelector('.hc-stage');
     const pauseBtn = rootEl.querySelector('[data-hc-pause]');
     const setT = opts.schedule || ((fn, ms) => setTimeout(fn, ms)), clearT = opts.cancel || clearTimeout;
+    const leaving = [];   // minuteurs qui retirent is-leaving une fois le fondu de sortie terminé
     let idx = 0, timer = null, playing = !reduced, hover = false, focus = false, hidden = document.hidden, offscreen = false, raf = [], chipTimer = null, stopped = false;
 
     const play = () => playing && !hover && !focus && !hidden && !offscreen && !reduced && !stopped;
@@ -152,7 +153,7 @@
     }
     function show(i, manual) {
       idx = (i + slides.length) % slides.length;
-      slides.forEach((s, n) => { const on = n === idx; s.classList.toggle('is-active', on); if (on) { s.removeAttribute('aria-hidden'); s.removeAttribute('inert'); } else { s.setAttribute('aria-hidden', 'true'); s.setAttribute('inert', ''); } });
+      slides.forEach((s, n) => { const on = n === idx; if (!on && s.classList.contains('is-active')) { s.classList.add('is-leaving'); leaving.push(setT(() => s.classList.remove('is-leaving'), 1400)); } if (on) s.classList.remove('is-leaving'); s.classList.toggle('is-active', on); if (on) { s.removeAttribute('aria-hidden'); s.removeAttribute('inert'); } else { s.setAttribute('aria-hidden', 'true'); s.setAttribute('inert', ''); } });
       dots.forEach((d, n) => { d.classList.toggle('is-on', n === idx); if (n === idx) d.setAttribute('aria-current', 'true'); else d.removeAttribute('aria-current'); });
       stage.setAttribute('aria-live', manual || !play() ? 'polite' : 'off');
       rootEl.classList.remove('is-restart'); void rootEl.offsetWidth; rootEl.classList.add('is-restart');   // relance la barre de progression du point actif
@@ -182,7 +183,7 @@
     let io = null;
     if (typeof IntersectionObserver === 'function') { io = new IntersectionObserver(en => { offscreen = !en[0].isIntersecting; schedule(); }, { threshold: 0.15 }); io.observe(rootEl); }
     show(0, false);
-    return { stop() { stopped = true; clearT(timer); clearInterval(chipTimer); cancelRaf(); cleanups.forEach(f => f()); if (io) io.disconnect(); }, show, get index() { return idx; } };
+    return { stop() { stopped = true; clearT(timer); leaving.forEach(clearT); clearInterval(chipTimer); cancelRaf(); cleanups.forEach(f => f()); if (io) io.disconnect(); }, show, get index() { return idx; } };
   }
 
   return { SLIDES, BUBBLES, PROGRESS, PIC, PEOPLE, DURATION, SR_NOTE, personSrc, anchor, lm, html, init };

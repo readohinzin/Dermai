@@ -95,9 +95,9 @@ test('H5 durée, commandes et accessibilité du pilote : pause, hors écran, ong
 test('H6 CSS : thèmes pastel, animations limitées à la diapositive active, commandes de 44 px, mouvement réduit couvert', () => {
   const css = read('css/components/hero.css');
   for (const t of ['rose', 'lilac', 'sand', 'sky']) assert.match(css, new RegExp(`\\.hc-t-${t}\\{`));
-  assert.match(css, /\.hc-slide\.is-active \.hc-h \.ln>span\{animation:hcMask/);
+  assert.match(css, /\.hc-slide:is\(\.is-active,\.is-leaving\) \.hc-h \.ln>span\{animation:hcMask/);
   assert.doesNotMatch(css, /\.hc-h \.ln>span\{[^}]*transform:/, 'le texte du titre n\'est jamais décalé hors animation');
-  assert.doesNotMatch(css.replace(/@keyframes[^{]+\{[\s\S]*?\}\s*\}/g, ''), /\.hc-slide(?!\.is-active)[^{]*\{[^}]*animation:/, 'aucune animation hors diapositive active');
+  assert.doesNotMatch(css.replace(/@keyframes[^{]+\{[\s\S]*?\}\s*\}/g, ''), /\.hc-slide(?!\.is-active|\.is-leaving|:is\(\.is-active,\.is-leaving\))[^{]*\{[^}]*animation:/, 'aucune animation hors diapositive active');
   assert.match(css, /\.hc-pause,\.hc-dot\{width:44px;height:44px/);
   assert.match(css, /\.hc-stage\{display:grid\}/); assert.match(css, /\.hc-slide\{grid-area:1\/1/);
   assert.match(read('css/styles.css'), /@import url\("components\/hero\.css"\) layer\(components\);/);
@@ -116,4 +116,18 @@ test('H7 branchement : module chargé avant l\'application, démarré à l\'accu
   // l'ancien visage du hero n'est plus utilisé dans la bannière, la section « Ce que DERMAI observe » garde le sien ; le trio de visages est décoratif et décrit une fois
   assert.equal((app.match(/<div class="facebox">\$\{portrait\(/g) || []).length, 1);
   assert.match(app, /\$\{faces\(\[4,5,1\]\)\}/); assert.match(app, /role="img" aria-label="Trois portraits fictifs de femmes/); assert.match(app, /<span class="fc fc--\$\{i\+1\}" aria-hidden="true"><img src="\$\{DermaiHero\.personSrc\(n\)\}" width="504" height="504" alt=""/);
+});
+
+test('H8 transitions douces : fondu enchaîné entre diapositives, entrées en fondu sans mouvement brusque, sortie sans coupure d\'animations', () => {
+  const css = read('css/components/hero.css'), js = read('js/hero.js');
+  assert.match(css, /\.hc-slide\.is-active\{opacity:1;visibility:visible;z-index:1;transition:opacity 1\.2s ease-in-out/, 'la diapositive entrante apparaît en 1,2 s, au-dessus');
+  assert.match(css, /\.hc-slide\{[^}]*transition:opacity \.8s ease-in-out \.4s,visibility 0s linear 1\.2s\}/, 'la sortante reste pleine puis s\'efface');
+  assert.doesNotMatch(css, /clip-path:circle/, 'plus de disque qui s\'ouvre à bord net');
+  assert.match(css, /@keyframes hcWipe\{from\{opacity:0;transform:scale\(1\.06\)\}/);
+  const px = re => Math.abs(+css.match(re)[1]);
+  assert.ok(px(/@keyframes hcArt\{from\{opacity:0;transform:translateX\((-?\d+)px\)/) <= 20 && px(/@keyframes hcUp\{from\{opacity:0;transform:translateY\((-?\d+)px\)/) <= 20, 'décalages d\'entrée faibles');
+  assert.match(css, /@keyframes hcMask\{from\{opacity:0;transform:translateY\(55%\)\}/, 'le titre monte en fondu');
+  assert.doesNotMatch(css, /animation:[^;}]*cubic-bezier\(\.2,1\.[0-9]+,/, 'plus de rebond (dépassement) à l\'entrée des diapositives');
+  assert.match(css, /\.hc-slide\.is-leaving :is\(\.hc-kick,\.hc-h,\.hc-p,\.hc-cta,\.hc-act,\.hc-prog\)\{animation:hcOut \.5s ease both\}/, 'le texte sortant s\'efface avant que le suivant n\'arrive');
+  assert.match(js, /s\.classList\.add\('is-leaving'\)/); assert.match(js, /leaving\.forEach\(clearT\)/, 'minuteurs de sortie nettoyés à l\'arrêt');
 });
