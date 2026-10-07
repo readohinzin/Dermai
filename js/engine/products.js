@@ -79,6 +79,8 @@
     for (const [k, max] of [['seller', 80], ['city', 60], ['stockNote', 100]]) if (o[k] != null && !text(o[k], max)) e.push('offre : ' + k + ' invalide');
     if (!text(o.source, 160)) e.push('offre : source manquante');
     if (!isDate(o.checkedAt)) e.push('offre : date de vérification manquante');
+    /* checkedAt = date du RELEVÉ (source, recherche). verifiedAt = date d'une vérification indépendante par DERMAI, absente tant qu'aucune n'a eu lieu : un relevé n'est pas une vérification. */
+    if (o.verifiedAt != null && !isDate(o.verifiedAt)) e.push('offre : date de vérification indépendante invalide');
     if (o.url != null && !isRealLink(o.url)) e.push('offre : lien d\'achat invalide (https réel obligatoire)');
     if (o.price != null) {
       if (!(typeof o.price === 'number' && Number.isFinite(o.price) && o.price > 0)) e.push('offre : prix invalide');
@@ -183,7 +185,7 @@
       const link = o.url && isRealLink(o.url) ? o.url : null;
       return { market: o.market, country: MARKETS[o.market], retailer: o.retailer, type: o.type, typeLabel: copy.OFFER_TYPE_LABELS[o.type],
         marketplace: o.type === 'marketplace', currency: o.price != null ? o.currency : (o.currency || null), price: o.price != null ? o.price : null,
-        availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null, seller: o.seller || null, city: o.city || null, stockNote: o.stockNote || null, serves: Array.isArray(o.servesMarkets) ? o.servesMarkets.slice() : null,
+        availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null, seller: o.seller || null, verifiedAt: o.verifiedAt || null, city: o.city || null, stockNote: o.stockNote || null, serves: Array.isArray(o.servesMarkets) ? o.servesMarkets.slice() : null,
         url: link, buyable: !!(link && o.availability === 'in_stock'), linkOnly: !!(link && o.availability === 'unknown'), source: o.source, checkedAt: o.checkedAt };
     }).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
   }

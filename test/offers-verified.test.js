@@ -24,11 +24,15 @@ const EXPECTED = [
   ['lrp-cicaplast-baume-b5-plus', 'NG', 'Care to Beauty Nigeria', null, 'retailer', 'NGN', 27103.4, 'in_stock', 'https://www.caretobeauty.com/ng/la-roche-posay-cicaplast-baume-b5-ultra-repairing-soothing-balm-40ml'],
   ['to-mandelic-acid-10-ha', 'KE', 'Jumia Kenya', null, 'marketplace', 'KES', 3800, 'in_stock', 'https://www.jumia.co.ke/the-ordinary-mandelic-acid-10-ha-328723982.html'],
   ['to-ascorbyl-glucoside-12', 'KE', 'Jumia Kenya', null, 'marketplace', 'KES', 1699, 'in_stock', 'https://www.jumia.co.ke/ascorbyl-glucoside-solution-12-vitamin-c-serum-water-based-antioxidant-face-serum-for-uneven-skin-tone-dullness-skin-smoothness-vegan-30ml-the-ordinary-mpg10747273.html'],
-  ['cerave-blemish-control-gel', 'ZA', 'Dermastore', null, 'retailer', 'ZAR', 300, 'in_stock', 'https://dermastore.co.za/cerave-blemish-control-gel/']
+  ['cerave-blemish-control-gel', 'ZA', 'Dermastore', null, 'retailer', 'ZAR', 300, 'in_stock', 'https://dermastore.co.za/cerave-blemish-control-gel/'],
+  /* étape 17 : CeraVe Skin Renewing Vitamin C Serum */
+  ['cerave-skin-renewing-vitamin-c-serum', 'ZA', 'Clicks', null, 'retailer', 'ZAR', 550, 'in_stock', 'https://www.clicks.co.za/cerave_skin-renew-vitamin-c-serum-30ml/p/405225'],
+  ['cerave-skin-renewing-vitamin-c-serum', 'KE', 'Cosmetics Kenya', null, 'retailer', 'KES', 4995, 'unknown', 'https://cosmetics.ke/skincare/vitamin-c-serums/cerave-vitamin-c-serum/'],
+  ['cerave-skin-renewing-vitamin-c-serum', 'NG', 'Konga', null, 'marketplace', 'NGN', 25481, 'unknown', 'https://www.konga.com/product/cerave-skin-renewing-vitamin-c-serum-6770300']
 ];
 const offerOf = (id, market, retailer) => P.offersOf(P.byId(id, REAL)).find(o => o.market === market && o.retailer === retailer);
 
-test('V1 les 12 offres du catalogue réel correspondent exactement aux relevés fournis (produit, pays, vendeur, devise, prix, disponibilité, lien)', () => {
+test('V1 les 15 offres du catalogue réel correspondent exactement aux relevés fournis (produit, pays, vendeur, devise, prix, disponibilité, lien)', () => {
   const all = REAL.flatMap(p => P.offersOf(p).map(o => [p.id, o]));
   assert.equal(all.length, EXPECTED.length, 'aucune offre de plus ni de moins');
   for (const [id, market, retailer, seller, type, cur, price, avail, url] of EXPECTED) {
@@ -52,6 +56,7 @@ test('V3 date : checkedAt = date d\'intégration (2026-10-07) pour les offres de
   for (const [id, market, retailer] of EXPECTED) {
     const raw = P.byId(id, REAL).offers.find(o => o.market === market && o.retailer === retailer);
     assert.equal(raw.checkedAt, retailer === 'Dermastore' ? '2026-10-06' : DAY, id + ' / ' + market);
+    assert.equal(raw.verifiedAt, retailer === 'Dermastore' ? '2026-10-06' : undefined, 'seule la page Dermastore a été ouverte directement : aucune autre offre n\'est présentée comme vérifiée');
   }
   assert.match(read('js/engine/data/catalog.js'), /n'ont PAS pu être rouvertes depuis l'environnement d'intégration/, 'la méthode (relevés fournis, non rouverts) est documentée');
 });
@@ -109,7 +114,7 @@ function copy() { return require('../js/engine/copy.fr.js'); }
 
 test('V8 disponibilité : in_stock seulement quand la page affiche un stock ; unknown sinon ; « few units left » reste une note, pas un statut', () => {
   const inStock = EXPECTED.filter(e => e[7] === 'in_stock').map(e => e[0] + ':' + e[1] + ':' + e[2]).sort();
-  assert.deepEqual(inStock, ['cerave-blemish-control-gel:NG:Jumia Nigeria', 'cerave-blemish-control-gel:ZA:Dermastore', 'cerave-hydrating-ha-serum:NG:Jumia Nigeria', 'lrp-cicaplast-baume-b5-plus:NG:Care to Beauty Nigeria',
+  assert.deepEqual(inStock, ['cerave-blemish-control-gel:NG:Jumia Nigeria', 'cerave-blemish-control-gel:ZA:Dermastore', 'cerave-hydrating-ha-serum:NG:Jumia Nigeria', 'cerave-skin-renewing-vitamin-c-serum:ZA:Clicks', 'lrp-cicaplast-baume-b5-plus:NG:Care to Beauty Nigeria',
     'to-ascorbyl-glucoside-12:KE:Jumia Kenya', 'to-mandelic-acid-10-ha:KE:Jumia Kenya', 'to-niacinamide-10-zinc-1:GH:Jumia Ghana']);
   for (const o of REAL.flatMap(p => P.offersOf(p))) assert.ok(P.OFFER_AVAILABILITY.includes(o.availability), 'aucun statut hors modèle');
   assert.equal(offerOf('to-niacinamide-10-zinc-1', 'GH', 'Jumia Ghana').stockNote, 'Peu d\'unités restantes');
@@ -153,11 +158,10 @@ test('V11 Care to Beauty : l\'offre du Nigeria est propre au Nigeria ; aucune li
   assert.equal(view.international[0].shipping, null); assert.match(require('../js/engine/copy.fr.js').MARKET_TEXTS.shipCheck, /Vérifier la livraison/);
 });
 
-test('V12 aucun nouveau produit, aucun nouvel actif : le catalogue garde ses 13 produits et ses actifs', () => {
+test('V12 catalogue : les 13 produits de l\'étape 16 inchangés (même ordre), plus CeraVe Skin Renewing Vitamin C Serum (étape 17) ; aucun nouvel actif', () => {
   assert.deepEqual(REAL.map(p => p.id), ['to-salicylic-2-solution', 'to-niacinamide-10-zinc-1', 'to-azelaic-acid-10', 'to-ascorbyl-glucoside-12', 'to-mandelic-acid-10-ha', 'to-hyaluronic-b5-ceramides', 'cerave-hydrating-ha-serum',
-    'cerave-blemish-control-gel', 'lrp-effaclar-duo-m', 'lrp-cicaplast-baume-b5-plus', 'lrp-pure-vitamin-c10-serum', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum']);
+    'cerave-blemish-control-gel', 'cerave-skin-renewing-vitamin-c-serum', 'lrp-effaclar-duo-m', 'lrp-cicaplast-baume-b5-plus', 'lrp-pure-vitamin-c10-serum', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum']);
   assert.deepEqual(P.validateCatalog(REAL), []);
-  assert.doesNotMatch(JSON.stringify(REAL.map(p => p.id + p.name)), /vitamin c serum.*cerave|skin renewing/i, 'CeraVe Skin Renewing Vitamin C Serum n\'est pas au catalogue : ses offres ne sont pas intégrées');
   assert.ok(!REAL.some(p => /natural moisturizing/i.test(p.name)), 'NMF + HA absent du catalogue : non intégré');
 });
 

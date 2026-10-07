@@ -44,6 +44,8 @@
   const MD = 'Page fabricant ouverte directement (téléchargement HTTP) et lue le jour du relevé';
   const src = (label, url, kind) => ({ kind: kind || 'manufacturer', label, url, checkedAt: D, method: M });
   const direct = (label, url) => ({ kind: 'manufacturer', label, url, checkedAt: D, method: MD });
+  const MF = 'Fiche fabricant relevée par l\'équipe DERMAI et fournie au projet ; page non rouverte depuis l\'environnement d\'intégration (réseau bloqué)';
+  const fournie = (label, url) => ({ kind: 'manufacturer', label, url, checkedAt: D2, method: MF });
   const TO = 'The Ordinary';
 
   const PRODUCTS = [
@@ -140,9 +142,26 @@
       inciNote: 'Liste lue sur la page CeraVe Afrique (« Targeted Facial Blemish-Control Gel », format 40 ml). La version américaine « Acne Control Gel » est un autre produit.',
       sources: [direct('CeraVe Afrique : Targeted Facial Blemish-Control Gel (40 ml)', 'https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel')],
       offers: [{ market: 'ZA', retailer: 'Dermastore', type: 'retailer', currency: 'ZAR', price: 300, availability: 'in_stock', url: 'https://dermastore.co.za/cerave-blemish-control-gel/', shipping: null,
-                 source: 'Page produit Dermastore ouverte directement : prix (300 ZAR), stock et format 40 ml lus sur la page ; lien cité par la page CeraVe Afrique', checkedAt: D },
+                 source: 'Page produit Dermastore ouverte directement : prix (300 ZAR), stock et format 40 ml lus sur la page ; lien cité par la page CeraVe Afrique', checkedAt: D, verifiedAt: D },
         { market: 'NG', retailer: 'Jumia Nigeria', type: 'marketplace', currency: 'NGN', price: 2999, availability: 'in_stock', url: 'https://www.jumia.com.ng/cerave-blemish-control-gel-with-ahabha-40ml-420162558.html', shipping: null, source: 'Jumia Nigeria : fiche produit', checkedAt: D2 }],
       image: { src: 'img/products/cerave-blemish-control-gel.webp', alt: 'Tube CeraVe Blemish Control Gel', sourceUrl: 'https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel', checkedAt: D, credit: 'Visuel : CeraVe' } },
+
+    { id: 'cerave-skin-renewing-vitamin-c-serum', name: 'Skin Renewing Vitamin C Serum', brand: 'CeraVe', format: '30 ml', category: 'serum',
+      ingredients: [{ activeId: 'vitamin_c', label: 'Vitamine C pure (acide ascorbique, 10 % selon la marque)' }, { activeId: null, label: 'Trois céramides (NP, AP, EOP)' }, { activeId: null, label: 'Acide hyaluronique (hyaluronate de sodium)' }, { activeId: null, label: 'Panthénol (vitamine B5)' }], primaryActiveId: 'vitamin_c',
+      skinTypes: ['all'], skinTypesDocumented: true, targets: ['pigmentation', 'radiance', 'wrinkles'],
+      description: 'Sérum à la vitamine C pure (acide ascorbique, 10 % selon la marque), avec trois céramides, de l\'acide hyaluronique et du panthénol. Présenté par la marque pour l\'éclat et l\'apparence du teint ; le matin, visage et cou, hors contour des yeux.',
+      active: true, demo: false, status: 'validated',
+      inci: ['Water', 'Ascorbic Acid', 'Glycerin', 'Dimethicone', 'Cetearyl Ethylhexanoate', 'Alcohol Denat.', 'Sodium Hydroxide', 'Ammonium Polyacryloyldimethyl Taurate', 'Panthenol', 'Ceramide NP', 'Ceramide AP', 'Ceramide EOP', 'Carbomer', 'Cetearyl Alcohol', 'Behentrimonium Methosulfate', 'Sodium Hyaluronate', 'Sodium Lauroyl Lactylate', 'Cholesterol', 'Phenoxyethanol', 'Tocopheryl Acetate', 'Disodium EDTA', 'Isopropyl Myristate', 'Caprylyl Glycol', 'Xanthan Gum', 'Phytosphingosine', 'Ethylhexylglycerin'],
+      inciNote: 'Liste publiée par CeraVe au moment du relevé : la marque la met à jour régulièrement et recommande de vérifier l\'emballage. Les céramides, l\'acide hyaluronique, le panthénol et l\'alcool dénaturé figurent dans la formule mais ne créent aucun actif DERMAI : seul l\'actif « Vitamine C » est retenu.',
+      sources: [fournie('CeraVe : Skin Renewing Vitamin C Serum (30 ml)', 'https://www.cerave.com/skincare/facial-serums/skin-renewing-vitamin-c-serum')],
+      /* Offres : `checkedAt` est la date du RELEVÉ (recherche), pas une vérification indépendante par DERMAI (`verifiedAt`, absent ici). À revérifier avant tout lancement public.
+         Non intégrées : Dis-Chem (Afrique du Sud, 530 ZAR repérés) faute de lien vendeur direct ; Jumia Nigeria « Generic » (7 999 NGN), qui n'est pas une offre CeraVe officielle. */
+      offers: [
+        { market: 'ZA', retailer: 'Clicks', type: 'retailer', currency: 'ZAR', price: 550, availability: 'in_stock', url: 'https://www.clicks.co.za/cerave_skin-renew-vitamin-c-serum-30ml/p/405225', shipping: null, source: 'Clicks South Africa : fiche produit', checkedAt: D2 },
+        { market: 'KE', retailer: 'Cosmetics Kenya', type: 'retailer', currency: 'KES', price: 4995, availability: 'unknown', url: 'https://cosmetics.ke/skincare/vitamin-c-serums/cerave-vitamin-c-serum/', shipping: null, source: 'Cosmetics Kenya : fiche produit', checkedAt: D2 },
+        { market: 'NG', retailer: 'Konga', type: 'marketplace', currency: 'NGN', price: 25481, availability: 'unknown', stockNote: 'Achat proposé sur la fiche, sous réserve de disponibilité locale', url: 'https://www.konga.com/product/cerave-skin-renewing-vitamin-c-serum-6770300', shipping: null, source: 'Konga : fiche produit', checkedAt: D2 }
+      ],
+      image: null },
 
     { id: 'lrp-effaclar-duo-m', name: 'Effaclar Duo+M', brand: 'La Roche-Posay', format: '40 ml', category: 'serum',
       ingredients: [{ activeId: 'niacinamide', label: 'Niacinamide' }, { activeId: 'salicylic', label: 'Acide salicylique 0,5 % (fiche US) et dérivé LHA : à confirmer selon le pays' }, { activeId: null, label: 'Zinc PCA' }], primaryActiveId: 'niacinamide',

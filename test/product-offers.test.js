@@ -35,7 +35,7 @@ test('OF1 A/B : les 8 préoccupations ont leurs 2 candidats dans le catalogue ; 
   }
   const distinct = new Set(Object.values(BRIEF).flat());
   assert.equal(distinct.size, 13, '13 produits distincts, certains partagés entre préoccupations');
-  assert.equal(REAL.length, 13);
+  assert.equal(REAL.length, 14, '13 produits du brief initial + CeraVe Skin Renewing Vitamin C Serum (étape 17)');
   assert.ok(Object.values(BRIEF).flat().filter(id => id === 'to-niacinamide-10-zinc-1').length === 2, 'un produit partagé');
 });
 
@@ -85,7 +85,7 @@ test('OF4 F/G : statut — validé = identité complète (nom, marque, format, I
     }
   }
   assert.deepEqual(REAL.filter(p => p.status === 'to_verify').map(p => p.id).sort(), ['lrp-effaclar-duo-m', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum']);
-  assert.equal(products.usable(REAL).length, 10);
+  assert.equal(products.usable(REAL).length, 11);
   // une seule version de chaque produit (aucun mélange ancienne / nouvelle formule)
   assert.equal(REAL.filter(p => /Hyaluronic Acid 2%/.test(p.name)).length, 1);
   assert.match(byId('to-hyaluronic-b5-ceramides').name, /with Ceramides/);
@@ -110,7 +110,7 @@ test('OF6 K : aucune donnée commerciale globale ; aucune offre inventée ; la l
   }
   // offres livrées : Dermastore (étape 14B, page ouverte et lue) et les relevés de l'étape 16 (voir test/offers-verified.test.js pour le détail exact)
   const shipped = REAL.flatMap(p => p.offers.map(o => [p.id, o]));
-  assert.equal(shipped.length, 12);
+  assert.equal(shipped.length, 15);
   const dz = shipped.find(([id, o]) => id === 'cerave-blemish-control-gel' && o.market === 'ZA')[1];
   assert.equal(dz.price, 300); assert.equal(dz.currency, 'ZAR'); assert.equal(dz.availability, 'in_stock'); assert.equal(dz.type, 'retailer');
   assert.equal(dz.url, 'https://dermastore.co.za/cerave-blemish-control-gel/'); assert.match(dz.source, /ouverte directement/); assert.equal(dz.checkedAt, '2026-10-06');
@@ -122,7 +122,7 @@ test('OF6 K : aucune donnée commerciale globale ; aucune offre inventée ; la l
 
 test('OF6b images : fichiers du projet, WebP valides, produit reconnaissable, provenance connue ; sans image vérifiable : « Image à venir »', () => {
   const withImg = REAL.filter(p => p.image), without = REAL.filter(p => !p.image);
-  assert.deepEqual(without.map(p => p.id).sort(), ['cerave-hydrating-ha-serum', 'lrp-effaclar-duo-m', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum'], 'jamais d\'image pour un produit non validé, ni sans source ouverte');
+  assert.deepEqual(without.map(p => p.id).sort(), ['cerave-hydrating-ha-serum', 'cerave-skin-renewing-vitamin-c-serum', 'lrp-effaclar-duo-m', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum'], 'jamais d\'image pour un produit non validé, ni sans source ouverte');
   assert.equal(withImg.length, 9);
   for (const p of withImg) {
     assert.equal(p.status, 'validated');
