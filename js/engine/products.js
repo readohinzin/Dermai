@@ -179,6 +179,7 @@
   /* ---------- Données commerciales, sous une forme sûre à afficher ---------- */
   /* Offres d'un produit réel, sous une forme sûre à afficher. Chaque offre reste liée à SON pays, SA devise, SON prix et SA date : aucune conversion,
      aucune moyenne, aucune offre « globale ». Trié par pays (ordre alphabétique français) puis vendeur : l'ordre n'exprime aucune préférence. */
+  /* Bouton d'achat = offre « ready » (stock indiqué + prix + lien https) ; « Voir l'offre » = offre « partial » qui a un lien (stock inconnu ou prix absent) ; rupture ou bientôt disponible : aucun bouton. */
   function offersOf(p) {
     if (!p || p.demo === true || !Array.isArray(p.offers)) return [];
     return p.offers.filter(o => validateOffer(o, false).length === 0).map(o => {
@@ -186,8 +187,9 @@
       return { market: o.market, country: MARKETS[o.market], retailer: o.retailer, type: o.type, typeLabel: copy.OFFER_TYPE_LABELS[o.type],
         marketplace: o.type === 'marketplace', currency: o.price != null ? o.currency : (o.currency || null), price: o.price != null ? o.price : null,
         availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null, seller: o.seller || null, verifiedAt: o.verifiedAt || null, city: o.city || null, stockNote: o.stockNote || null, serves: Array.isArray(o.servesMarkets) ? o.servesMarkets.slice() : null,
-        quality: null, url: link, buyable: !!(link && o.availability === 'in_stock'), linkOnly: !!(link && o.availability === 'unknown'), source: o.source, checkedAt: o.checkedAt };
-    }).map(o => Object.assign(o, { quality: qualityOf(o) })).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
+        quality: null, url: link, buyable: false, linkOnly: false, source: o.source, checkedAt: o.checkedAt };
+    })
+      .map(o => { const quality = qualityOf(o); return Object.assign(o, { quality, buyable: quality === 'ready', linkOnly: quality === 'partial' && !!o.url }); }).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
   }
   /* Qualité d'une offre : un classement GROSSIER pour l'AFFICHAGE, jamais un score ni un pourcentage. ready = stock indiqué, prix présent et lien https ; partial = au moins une information
      manque ou n'est pas confirmée (stock inconnu, prix ou lien absent) ; unavailable = rupture ou bientôt disponible. Les offres d'un même niveau (pays / régional / autres pays) sont
