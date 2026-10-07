@@ -389,6 +389,11 @@ async function logout(){
   resetPrivateState();go(`landing`,null,{reset:true});toast(`Vous êtes déconnecté.`);
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':`&amp;`,'<':`&lt;`,'>':`&gt;`,'"':`&quot;`}[c]));
+/* Logo DERMAI : le mot « dermai. » (en-têtes, écrans de connexion) et le « d » seul (accueil de bienvenue). Fichiers du projet, fond transparent ; le bouton garde son nom
+   accessible « DERMAI, page d'accueil » (l'image est décorative, alt vide). Dimensions fixes : aucun décalage de mise en page au chargement. */
+const BRAND_AR=360/125,MARK_AR=261/320;
+const brandBtn=h=>`<button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil"><img class="brand-logo" src="img/brand/dermai-logo-360.webp" width="${Math.round(h*BRAND_AR)}" height="${h}" alt="" decoding="async"></button>`;
+const markBtn=h=>`<button class="brand brand--mark" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="margin-bottom:28px"><img class="brand-logo" src="img/brand/dermai-mark-256.webp" width="${Math.round(h*MARK_AR)}" height="${h}" alt="" decoding="async"></button>`;
 const NB=`\u00a0`;
 const fmt=n=>n.toLocaleString(`fr-FR`).replace(/[\u202f\u00a0\s]/g,NB)+NB+`FCFA`;
 const ICONS={
@@ -510,8 +515,8 @@ function shell(inner,{title=``,back=false}={}){
   const tab=TAB_OF[state.route];
   const navBtns=cls=>NAV.map(n=>`<button ${cls?`class="${cls}" `:``}data-go="${n[0]}" data-reset="1" ${tab===n[0]?`aria-current="page"`:``}>${ic(n[2])}<span>${n[1]}</span></button>`).join(``);
   return `<div class="app">
-    <aside class="rail"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil">DERMAI</button><nav aria-label="Navigation principale">${navBtns()}</nav><small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></aside>
-    <main class="main"><div class="m-brand"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil">DERMAI</button></div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
+    <aside class="rail">${brandBtn(52)}<nav aria-label="Navigation principale">${navBtns()}</nav><small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></aside>
+    <main class="main"><div class="m-brand">${brandBtn(44)}</div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
     <nav class="nav c-bottomnav" aria-label="Navigation principale">${navBtns(`c-bottomnav__item`)}</nav>
   </div>`;
 }
@@ -519,7 +524,7 @@ const V={};
 
 /* Landing */
 V.landing=()=>{
-  return `<header class="l-top"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil">DERMAI</button>${signedIn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Mon espace</button>`:accountOn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="login">Se connecter</button>`:`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button>`}</header>
+  return `<header class="l-top">${brandBtn(44)}${signedIn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Mon espace</button>`:accountOn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="login">Se connecter</button>`:`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button>`}</header>
   <section class="hero"><div class="wrap hero-grid">
     <div>
       <p class="tagline">${ic(`sparkle`)} Analyse cosmétique assistée par IA</p>
@@ -603,7 +608,7 @@ V.landing=()=>{
 };
 
 /* Inscription */
-const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
+const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button>${brandBtn(40)}</div>
   <div class="body"><h1>Créez votre compte</h1><p style="margin:10px 0 26px">Une minute suffit pour personnaliser votre expérience.</p>
   <div class="stack" style="gap:16px">
     <div class="c-field"><label class="c-field__label" for="f-name">Prénom</label><input class="c-input" id="f-name" autocomplete="given-name" value="${DEMO_MODE?`Amina`:``}"></div>
@@ -616,7 +621,7 @@ const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="icon
   </div><p class="muted" style="margin-top:22px">Maquette : aucun compte réel n'est créé.</p></div></div>`;
 const authForm=kind=>{
   const signup=kind===`signup`,A=state.account;
-  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
+  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button>${brandBtn(40)}</div>
   <div class="body"><h1>${signup?`Créez votre compte`:`Content de vous revoir`}</h1><p style="margin:10px 0 22px">${signup?`Retrouvez vos objectifs et vos préférences sur vos prochains appareils.`:`Connectez-vous pour retrouver vos préférences.`}</p>
   ${A.info?`<div class="c-notice c-notice--success u-my-5" role="status">${ic(`check`)}<div>${A.info}</div></div>`:``}
   ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
@@ -633,7 +638,7 @@ const authForm=kind=>{
 /* Mot de passe oublié : un e-mail de Supabase contient un lien vers le site ; la réponse est la même que l'adresse existe ou non. */
 V.forgot=()=>{
   const A=state.account;if(!accountOn())return V.login();
-  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="login" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
+  return `<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="login" aria-label="Retour">${ic(`back`)}</button>${brandBtn(40)}</div>
   <div class="body"><h1>Mot de passe oublié</h1><p style="margin:10px 0 22px">Saisissez l'adresse de votre compte. Nous vous enverrons un lien pour choisir un nouveau mot de passe.</p>
   ${A.info?`<div class="c-notice c-notice--success u-my-5" role="status">${ic(`check`)}<div>${A.info}</div></div>`:``}
   ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
@@ -646,7 +651,7 @@ V.forgot=()=>{
 /* Nouveau mot de passe, après un lien de récupération : la session ouverte par le lien sert uniquement à cette modification. */
 V.reset=()=>{
   const A=state.account;if(!signedIn()||!A.recovery)return V.login();
-  return `<div class="flow"><div class="flowtop"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div>
+  return `<div class="flow"><div class="flowtop">${brandBtn(40)}</div>
   <div class="body"><h1>Nouveau mot de passe</h1><p style="margin:10px 0 22px">Choisissez un nouveau mot de passe pour ${esc(A.email)}.</p>
   ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
   <form class="stack" style="gap:16px" data-form="reset" novalidate>
@@ -655,9 +660,9 @@ V.reset=()=>{
     <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">Enregistrer</button>
   </form></div></div>`;
 };
-V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="font-size:1.3rem">DERMAI</button></div><div class="body"><h1>Bienvenue sur DERMAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
+V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button>${brandBtn(40)}</div><div class="body"><h1>Bienvenue sur DERMAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
 V.login=()=>accountOn()?authForm(`login`):V.signup();
-V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center"><button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="margin-bottom:34px">DERMAI</button><h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
+V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center">${markBtn(132)}<h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
 
 /* Onboarding */
 V.onb=n=>{

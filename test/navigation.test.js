@@ -33,8 +33,11 @@ test('N3 connecté et arrivé à la racine : son espace s\'ouvre ; une page choi
 
 test('N4 le logo DERMAI est un bouton vers la page d\'accueil, partout', () => {
   assert.doesNotMatch(app, /<span class="brand"/);
-  const logos = app.match(/<button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil"/g) || [];
+  // depuis l'étape 14B le logo est une image : un seul gabarit de bouton (brandBtn / markBtn), utilisé partout
+  assert.ok((app.match(/<button class="brand( brand--mark)?" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil"/g) || []).length === 2);
+  const logos = app.match(/\$\{(brandBtn|markBtn)\(\d+\)\}/g) || [];
   assert.ok(logos.length >= 6, String(logos.length));
+  assert.doesNotMatch(app, />DERMAI<\/button>/, 'plus de logo en texte');
   assert.match(app, /<div class="m-brand">/, 'logo aussi en tête des pages de l\'application sur mobile');
   const css = fs.readFileSync(path.join(__dirname, '../css/components/nav.css'), 'utf8');
   assert.match(css, /button\.brand\{[^}]*min-height:var\(--tap\)/);
