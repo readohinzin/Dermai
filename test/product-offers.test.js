@@ -108,10 +108,10 @@ test('OF6 K : aucune donnée commerciale globale ; aucune offre inventée ; la l
     assert.ok(Array.isArray(p.offers));
     for (const o of p.offers) { assert.ok(o.source && o.checkedAt); if (o.price != null) assert.ok(o.currency); }
   }
-  // seule offre livrée : Dermastore (Afrique du Sud), page produit ouverte et lue ; le lien BuyBetter cité par CeraVe renvoie 404 : aucune offre pour le Nigeria
+  // offres livrées : Dermastore (étape 14B, page ouverte et lue) et les relevés de l'étape 16 (voir test/offers-verified.test.js pour le détail exact)
   const shipped = REAL.flatMap(p => p.offers.map(o => [p.id, o]));
-  assert.deepEqual(shipped.map(([id, o]) => id + ':' + o.market + ':' + o.retailer), ['cerave-blemish-control-gel:ZA:Dermastore']);
-  const dz = shipped[0][1];
+  assert.equal(shipped.length, 12);
+  const dz = shipped.find(([id, o]) => id === 'cerave-blemish-control-gel' && o.market === 'ZA')[1];
   assert.equal(dz.price, 300); assert.equal(dz.currency, 'ZAR'); assert.equal(dz.availability, 'in_stock'); assert.equal(dz.type, 'retailer');
   assert.equal(dz.url, 'https://dermastore.co.za/cerave-blemish-control-gel/'); assert.match(dz.source, /ouverte directement/); assert.equal(dz.checkedAt, '2026-10-06');
   assert.ok(!JSON.stringify(REAL).includes('buybetter.ng'), 'lien mort : retiré');

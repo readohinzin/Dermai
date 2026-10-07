@@ -23,6 +23,10 @@
    IMAGES : seul un visuel dont la provenance est connue est ajouté (fichier du projet dans img/products/, page d'origine, date, crédit à la marque), tiré de la page
    fabricant du produit ; sinon `image: null` et l'interface affiche « Image à venir ». Visuels recadrés en carré (fond transparent) et convertis en WebP.
 
+   OFFRES (2026-10-07, étape 16) : prix, vendeur, disponibilité et lien viennent de relevés faits sur les pages marchandes (Jumia, Konga, Swanky Beauty Supply, Care to Beauty) et fournis à
+   DERMAI ; `checkedAt` est la date d'intégration. Ces pages n'ont PAS pu être rouvertes depuis l'environnement d'intégration (réseau bloqué) : chaque offre reste un instantané commercial
+   (prix et stock changent), à revérifier avant tout lancement public. Aucun prix n'est converti ; le prix barré d'une annonce n'est jamais le prix actuel. Un statut « in_stock » n'est posé
+   que si la page affiche un stock ; sinon « unknown ». « Few units left » s'écrit en note de stock (stockNote), sans nouveau statut.
    ÉTAT (2026-10-06) : les pages fabricant de The Ordinary (6 produits), CeraVe Afrique (Blemish Control Gel) et La Roche-Posay Afrique (Cicaplast, Pure
    Vitamin C10) ont été ouvertes et lues directement ; les autres produits reposent encore sur des recherches web ciblées (méthode indiquée dans chaque source).
    Revendeurs : la page Dermastore (Afrique du Sud) a été ouverte et lue (prix, stock, format). Le lien BuyBetter (Nigeria) cité par la page CeraVe Afrique renvoie une
@@ -35,6 +39,7 @@
   'use strict';
 
   const D = '2026-10-06';
+  const D2 = '2026-10-07';   // date d'intégration des offres ci-dessous (étape 16)
   const M = 'Recherche web ciblée sur le domaine du fabricant (résumé de la fiche ; page non ouverte directement, accès réseau bloqué)';
   const MD = 'Page fabricant ouverte directement (téléchargement HTTP) et lue le jour du relevé';
   const src = (label, url, kind) => ({ kind: kind || 'manufacturer', label, url, checkedAt: D, method: M });
@@ -50,7 +55,9 @@
       inci: ['Salicylic Acid 2%', 'Water', 'Chlorphenesin', 'Citric Acid', 'Glycerin', 'Isoceteth-20', 'Pentylene Glycol', 'Phenoxyethanol', 'Saccharide Isomerate', 'Sodium Citrate', 'Sodium Hydroxide', 'Xanthan Gum'],
       inciNote: 'La fiche fabricant liste l\'actif (acide salicylique 2 %) puis les ingrédients inactifs, dans cet ordre.',
       sources: [direct('The Ordinary : Salicylic Acid 2% Solution (30 ml)', 'https://theordinary.com/en-us/salicylic-acid-2-solution-acne-control-100098.html')],
-      offers: [], image: { src: 'img/products/to-salicylic-2-solution.webp', alt: 'Flacon The Ordinary Salicylic Acid 2% Solution', sourceUrl: 'https://theordinary.com/en-us/salicylic-acid-2-solution-acne-control-100098.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
+      offers: [
+        { market: 'NG', retailer: 'Konga', seller: 'SebuFTech Ventures', type: 'marketplace', currency: 'NGN', price: 9500, availability: 'unknown', stockNote: 'Achat proposé sur la fiche, sous réserve de disponibilité locale', url: 'https://www.konga.com/product/the-ordinary-salicylic-acid-2-solution-30ml-4559112', shipping: null, source: 'Konga : fiche produit', checkedAt: D2 }
+      ], image: { src: 'img/products/to-salicylic-2-solution.webp', alt: 'Flacon The Ordinary Salicylic Acid 2% Solution', sourceUrl: 'https://theordinary.com/en-us/salicylic-acid-2-solution-acne-control-100098.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'to-niacinamide-10-zinc-1', name: 'Niacinamide 10% + Zinc 1%', brand: TO, format: '30 ml', category: 'serum',
       ingredients: [{ activeId: 'niacinamide', label: 'Niacinamide 10 %' }, { activeId: null, label: 'Zinc PCA 1 %' }], primaryActiveId: 'niacinamide',
@@ -60,7 +67,10 @@
       inci: ['Aqua (Water)', 'Niacinamide', 'Pentylene Glycol', 'Zinc PCA', 'Dimethyl Isosorbide', 'Tamarindus Indica Seed Gum', 'Xanthan Gum', 'Isoceteth-20', 'Ethoxydiglycol', 'Phenoxyethanol', 'Chlorphenesin'],
       inciNote: 'La fiche fabricant inclut Dimethyl Isosorbide (une liste tierce plus ancienne ne l\'incluait pas : la fiche officielle fait foi). La marque précise que la liste peut varier selon la date et la région d\'achat : vérifiez l\'emballage.',
       sources: [direct('The Ordinary : Niacinamide 10% + Zinc 1% (Oil Control Serum)', 'https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html')],
-      offers: [], image: { src: 'img/products/to-niacinamide-10-zinc-1.webp', alt: 'Flacon The Ordinary Niacinamide 10% + Zinc 1%', sourceUrl: 'https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
+      offers: [
+        { market: 'GH', retailer: 'Jumia Ghana', type: 'marketplace', currency: 'GHS', price: 200, availability: 'in_stock', stockNote: 'Peu d\'unités restantes', url: 'https://www.jumia.com.gh/the-ordinary-niacinamide-10-zinc-1-30ml-300877098.html', shipping: null, source: 'Jumia Ghana : fiche produit', checkedAt: D2 },
+        { market: 'NG', retailer: 'Konga', seller: 'SebuFTech Ventures', type: 'marketplace', currency: 'NGN', price: 9990, availability: 'unknown', stockNote: 'Achat proposé sur la fiche, sous réserve de disponibilité locale', url: 'https://www.konga.com/product/the-ordinary-niacinamide-10-zinc-1-30ml-4559110', shipping: null, source: 'Konga : fiche produit', checkedAt: D2 }
+      ], image: { src: 'img/products/to-niacinamide-10-zinc-1.webp', alt: 'Flacon The Ordinary Niacinamide 10% + Zinc 1%', sourceUrl: 'https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'to-azelaic-acid-10', name: 'Azelaic Acid Suspension 10%', brand: TO, format: '30 ml', category: 'serum',
       ingredients: [{ activeId: 'azelaic', label: 'Acide azélaïque 10 %' }], primaryActiveId: 'azelaic',
@@ -69,7 +79,9 @@
       active: true, demo: false, status: 'validated',
       inci: ['Aqua (Water)', 'Isodecyl Neopentanoate', 'Dimethicone', 'Azelaic Acid', 'Dimethicone/Bis-Isobutyl PPG-20 Crosspolymer', 'Dimethyl Isosorbide', 'Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer', 'Polysilicone-11', 'Isohexadecane', 'Tocopherol', 'Trisodium Ethylenediamine Disuccinate', 'Isoceteth-20', 'Polysorbate 60', 'Triethanolamine', 'Ethoxydiglycol', 'Phenoxyethanol', 'Chlorphenesin'],
       sources: [direct('The Ordinary : Azelaic Acid Suspension 10% (30 ml)', 'https://theordinary.com/en-us/azelaic-acid-suspension-10-exfoliator-100407.html')],
-      offers: [], image: { src: 'img/products/to-azelaic-acid-10.webp', alt: 'Tube The Ordinary Azelaic Acid Suspension 10%', sourceUrl: 'https://theordinary.com/en-us/azelaic-acid-suspension-10-exfoliator-100407.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
+      offers: [
+        { market: 'NG', retailer: 'Konga', seller: 'Posh Gallery', type: 'marketplace', currency: 'NGN', price: 22000, availability: 'unknown', stockNote: 'Achat proposé sur la fiche, sous réserve de disponibilité locale', url: 'https://www.konga.com/product/the-ordinary-azelaic-acid-suspension-10-6852441', shipping: null, source: 'Konga : fiche produit', checkedAt: D2 }
+      ], image: { src: 'img/products/to-azelaic-acid-10.webp', alt: 'Tube The Ordinary Azelaic Acid Suspension 10%', sourceUrl: 'https://theordinary.com/en-us/azelaic-acid-suspension-10-exfoliator-100407.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'to-ascorbyl-glucoside-12', name: 'Ascorbyl Glucoside Solution 12%', brand: TO, format: '30 ml', category: 'serum',
       ingredients: [{ activeId: 'vitamin_c', label: 'Ascorbyl glucoside 12 % (dérivé de vitamine C)' }], primaryActiveId: 'vitamin_c',
@@ -79,7 +91,10 @@
       inci: ['Aqua (Water)', 'Ascorbyl Glucoside', 'Propanediol', 'Aminomethyl Propanol', 'Triethanolamine', 'Isoceteth-20', 'Xanthan Gum', 'Dimethyl Isosorbide', 'Ethoxydiglycol', 'Trisodium Ethylenediamine Disuccinate', '1,2-Hexanediol', 'Caprylyl Glycol'],
       inciNote: 'Dérivé de vitamine C (pas de l\'acide ascorbique pur) : rattaché à l\'actif DERMAI « Vitamine C » sans prétendre à la même puissance.',
       sources: [direct('The Ordinary : Ascorbyl Glucoside Solution 12% (30 ml)', 'https://theordinary.com/en-us/ascorbyl-glucoside-solution-12-vitamin-c-100405.html')],
-      offers: [], image: { src: 'img/products/to-ascorbyl-glucoside-12.webp', alt: 'Flacon The Ordinary Ascorbyl Glucoside Solution 12%', sourceUrl: 'https://theordinary.com/en-us/ascorbyl-glucoside-solution-12-vitamin-c-100405.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
+      offers: [
+        { market: 'NG', retailer: 'Konga', seller: 'smile time', type: 'marketplace', currency: 'NGN', price: 10000, availability: 'unknown', stockNote: 'Achat proposé sur la fiche, sous réserve de disponibilité locale', url: 'https://www.konga.com/product/the-ordinary-ascorbyl-glucoside-solution-12-30ml-6447242', shipping: null, source: 'Konga : fiche produit', checkedAt: D2 },
+        { market: 'KE', retailer: 'Jumia Kenya', type: 'marketplace', currency: 'KES', price: 1699, availability: 'in_stock', stockNote: '5 unités restantes', url: 'https://www.jumia.co.ke/ascorbyl-glucoside-solution-12-vitamin-c-serum-water-based-antioxidant-face-serum-for-uneven-skin-tone-dullness-skin-smoothness-vegan-30ml-the-ordinary-mpg10747273.html', shipping: null, source: 'Jumia Kenya : fiche produit', checkedAt: D2 }
+      ], image: { src: 'img/products/to-ascorbyl-glucoside-12.webp', alt: 'Flacon The Ordinary Ascorbyl Glucoside Solution 12%', sourceUrl: 'https://theordinary.com/en-us/ascorbyl-glucoside-solution-12-vitamin-c-100405.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'to-mandelic-acid-10-ha', name: 'Mandelic Acid 10% + HA', brand: TO, format: '30 ml', category: 'serum',
       ingredients: [{ activeId: 'aha_pha', label: 'Acide mandélique 10 % (AHA)' }, { activeId: 'hyaluronic', label: 'Hyaluronate de sodium (crosspolymère)' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'aha_pha',
@@ -89,7 +104,10 @@
       inci: ['Propanediol', 'Aqua (Water)', 'Mandelic Acid', 'Glycerin', 'Dimethyl Isosorbide', 'Sodium Hyaluronate Crosspolymer', 'Tasmannia Lanceolata Fruit/Leaf Extract', 'Pentylene Glycol', 'Polysorbate 20', 'Sodium Hydroxide', 'Ethylhexylglycerin', '1,2-Hexanediol', 'Caprylyl Glycol'],
       inciNote: 'Rattaché à l\'actif DERMAI existant « Exfoliants chimiques AHA ou PHA » : aucun actif « mandélique » n\'est créé.',
       sources: [direct('The Ordinary : Mandelic Acid 10% + HA (30 ml)', 'https://theordinary.com/en-us/mandelic-acid-10-ha-exfoliator-100429.html')],
-      offers: [], image: { src: 'img/products/to-mandelic-acid-10-ha.webp', alt: 'Flacon The Ordinary Mandelic Acid 10% + HA', sourceUrl: 'https://theordinary.com/en-us/mandelic-acid-10-ha-exfoliator-100429.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
+      offers: [
+        { market: 'GH', retailer: 'Swanky Beauty Supply', city: 'Accra', type: 'retailer', currency: 'GHS', price: 220, availability: 'unknown', stockNote: 'Retrait en boutique proposé ; stock non affiché', url: 'https://www.swankybeautygh.com/products/the-ordinary-mandelic-acid-10-ha', shipping: null, source: 'Swanky Beauty Supply Ghana : fiche produit', checkedAt: D2 },
+        { market: 'KE', retailer: 'Jumia Kenya', type: 'marketplace', currency: 'KES', price: 3800, availability: 'in_stock', stockNote: 'Peu d\'unités restantes', url: 'https://www.jumia.co.ke/the-ordinary-mandelic-acid-10-ha-328723982.html', shipping: null, source: 'Jumia Kenya : fiche produit', checkedAt: D2 }
+      ], image: { src: 'img/products/to-mandelic-acid-10-ha.webp', alt: 'Flacon The Ordinary Mandelic Acid 10% + HA', sourceUrl: 'https://theordinary.com/en-us/mandelic-acid-10-ha-exfoliator-100429.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'to-hyaluronic-b5-ceramides', name: 'Hyaluronic Acid 2% + B5 (with Ceramides)', brand: TO, format: '30 ml', category: 'serum',
       ingredients: [{ activeId: 'hyaluronic', label: 'Acide hyaluronique (5 formes)' }, { activeId: 'panthenol', label: 'Pro-vitamine B5 (panthénol)' }, { activeId: 'ceramides', label: 'Céramides (selon la marque ; phospholipides et sphingolipides dans l\'INCI)' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'hyaluronic',
@@ -109,7 +127,9 @@
       inci: ['Aqua / Water', 'Glycerin', 'Cetearyl Ethylhexanoate', 'Dimethicone', 'Ammonium Polyacryloyldimethyl Taurate', 'Sodium Hyaluronate', 'Panthenol', 'Ceramide NP', 'Ceramide AP', 'Ceramide EOP', 'Carbomer', 'Cetearyl Alcohol', 'Behentrimonium Methosulfate', 'Sodium Hydroxide', 'Sodium Lauroyl Lactylate', 'Cholesterol', 'Phenoxyethanol', 'Disodium EDTA', 'Isopropyl Myristate', 'Caprylyl Glycol', 'Citric Acid', 'Xanthan Gum', 'Phytosphingosine', 'Ethylhexylglycerin'],
       inciNote: 'Liste relevée pour la version des sites cerave.com et cerave.co.uk ; la formule vendue dans un pays donné peut différer.',
       sources: [src('CeraVe : Hydrating Hyaluronic Acid Serum', 'https://www.cerave.com/skincare/facial-serums/hydrating-hyaluronic-acid-serum'), src('CeraVe UK : Hydrating Hyaluronic Acid Face Serum', 'https://www.cerave.co.uk/skincare/moisturisers/hydrating-hyaluronic-acid-serum')],
-      offers: [], image: null },
+      offers: [
+        { market: 'NG', retailer: 'Jumia Nigeria', seller: 'Annette Trudan', type: 'marketplace', currency: 'NGN', price: 4150, availability: 'in_stock', url: 'https://www.jumia.com.ng/cerave-hydrating-hyaluronic-acid-serum-30ml-420211821.html', shipping: null, source: 'Jumia Nigeria : fiche produit', checkedAt: D2 }
+      ], image: null },
 
     { id: 'cerave-blemish-control-gel', name: 'Blemish Control Gel', brand: 'CeraVe', format: '40 ml', category: 'serum',
       ingredients: [{ activeId: 'salicylic', label: 'Acide salicylique 2 %' }, { activeId: 'aha_pha', label: 'Acides glycolique et lactique (AHA)' }, { activeId: 'niacinamide', label: 'Niacinamide' }, { activeId: 'ceramides', label: 'Céramides NP, AP, EOP' }, { activeId: 'hyaluronic', label: 'Hyaluronate de sodium' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'salicylic',
@@ -120,7 +140,8 @@
       inciNote: 'Liste lue sur la page CeraVe Afrique (« Targeted Facial Blemish-Control Gel », format 40 ml). La version américaine « Acne Control Gel » est un autre produit.',
       sources: [direct('CeraVe Afrique : Targeted Facial Blemish-Control Gel (40 ml)', 'https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel')],
       offers: [{ market: 'ZA', retailer: 'Dermastore', type: 'retailer', currency: 'ZAR', price: 300, availability: 'in_stock', url: 'https://dermastore.co.za/cerave-blemish-control-gel/', shipping: null,
-                 source: 'Page produit Dermastore ouverte directement : prix (300 ZAR), stock et format 40 ml lus sur la page ; lien cité par la page CeraVe Afrique', checkedAt: D }],
+                 source: 'Page produit Dermastore ouverte directement : prix (300 ZAR), stock et format 40 ml lus sur la page ; lien cité par la page CeraVe Afrique', checkedAt: D },
+        { market: 'NG', retailer: 'Jumia Nigeria', type: 'marketplace', currency: 'NGN', price: 2999, availability: 'in_stock', url: 'https://www.jumia.com.ng/cerave-blemish-control-gel-with-ahabha-40ml-420162558.html', shipping: null, source: 'Jumia Nigeria : fiche produit', checkedAt: D2 }],
       image: { src: 'img/products/cerave-blemish-control-gel.webp', alt: 'Tube CeraVe Blemish Control Gel', sourceUrl: 'https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel', checkedAt: D, credit: 'Visuel : CeraVe' } },
 
     { id: 'lrp-effaclar-duo-m', name: 'Effaclar Duo+M', brand: 'La Roche-Posay', format: '40 ml', category: 'serum',
@@ -140,7 +161,9 @@
       inci: ['Aqua', 'Hydrogenated Polyisobutene', 'Dimethicone', 'Glycerin', 'Butyrospermum Parkii Butter / Shea Butter', 'Panthenol', 'Propanediol', 'Butylene Glycol', 'Aluminum Starch Octenylsuccinate', 'Cetyl PEG/PPG-10/1 Dimethicone', 'Trihydroxystearin', 'Zinc Gluconate', 'Madecassoside', 'Tribioma', 'Manganese Gluconate', 'Silica', 'Aluminum Hydroxide', 'Magnesium Sulfate', 'Disodium EDTA', 'Copper Gluconate', 'Capryloyl Glycine', 'Citric Acid', 'Acetylated Glycol Stearate', 'Polyglyceryl-4 Isostearate', 'Tocopherol', 'Pentaerythrityl Tetra-Di-T-Butyl Hydroxyhydrocinnamate', 'CI 77891 / Titanium Dioxide'],
       inciNote: 'Liste lue sur la page La Roche-Posay Afrique (elle diffère de celle du site britannique : pas d\'extrait de Centella, du cuivre en plus). Formule « Baume B5+ » ; l\'ancien « Baume B5 » et la version avec indice solaire sont d\'autres produits.',
       sources: [direct('La Roche-Posay Afrique : Cicaplast Baume B5 Plus (formats 15, 40 et 100 ml)', 'https://africa.laroche-posay.com/en-za/cicaplast/cicaplast-baume-b5-plus')],
-      offers: [], image: { src: 'img/products/lrp-cicaplast-baume-b5-plus.webp', alt: 'Tube La Roche-Posay Cicaplast Baume B5+', sourceUrl: 'https://africa.laroche-posay.com/en-za/cicaplast/cicaplast-baume-b5-plus', checkedAt: D, credit: 'Visuel : La Roche-Posay' } },
+      offers: [
+        { market: 'NG', retailer: 'Care to Beauty Nigeria', type: 'retailer', currency: 'NGN', price: 27103.4, availability: 'in_stock', stockNote: 'Prêt à expédier', url: 'https://www.caretobeauty.com/ng/la-roche-posay-cicaplast-baume-b5-ultra-repairing-soothing-balm-40ml', shipping: null, source: 'Care to Beauty Nigeria : fiche produit (transporteurs Nigeria indiqués ; livraison hors Nigeria non établie)', checkedAt: D2 }
+      ], image: { src: 'img/products/lrp-cicaplast-baume-b5-plus.webp', alt: 'Tube La Roche-Posay Cicaplast Baume B5+', sourceUrl: 'https://africa.laroche-posay.com/en-za/cicaplast/cicaplast-baume-b5-plus', checkedAt: D, credit: 'Visuel : La Roche-Posay' } },
 
     { id: 'lrp-pure-vitamin-c10-serum', name: 'Pure Vitamin C10 Serum', brand: 'La Roche-Posay', format: '30 ml', category: 'serum',
       ingredients: [{ activeId: 'vitamin_c', label: 'Vitamine C pure (acide ascorbique)' }, { activeId: 'salicylic', label: 'Acide salicylique' }, { activeId: 'hyaluronic', label: 'Hyaluronate de sodium et acide hyaluronique hydrolysé' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'vitamin_c',

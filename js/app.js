@@ -895,7 +895,8 @@ const offerRow=(o,tier)=>{
   const tag=tier===`local`?`<span class="c-badge c-badge--good">${MT.local}</span>`:tier?`<span class="c-badge c-badge--outline">${MT.international}</span>`:``;
   return `<div class="offer"><div class="ofh"><b>${esc(o.retailer)}</b><span class="muted">${esc(o.typeLabel)}${tier&&tier!==`local`?` · ${esc(o.country)}`:``}</span></div>
   ${tag?`<div>${tag}</div>`:``}
-  <div class="ofp"><span class="pv">${o.price!=null?`<span class="muted s">${MT.priceLabel} :</span> ${fmtMoney(o.price,o.currency)}`:`<span class="muted">${Engine.copy.OFFER_TEXTS.priceToCheck}</span>`}</span><span class="c-badge${o.availability===`in_stock`?` c-badge--good`:` c-badge--outline`}">${o.availabilityLabel}</span></div>
+  ${o.seller?`<p class="muted s">Vendeur : ${esc(o.seller)}${o.city?` · ${esc(o.city)}`:``}</p>`:o.city?`<p class="muted s">${esc(o.city)}</p>`:``}
+  <div class="ofp"><span class="pv">${o.price!=null?`<span class="muted s">${MT.priceLabel} :</span> ${fmtMoney(o.price,o.currency)}`:`<span class="muted">${Engine.copy.OFFER_TEXTS.priceToCheck}</span>`}</span><span class="c-badge${o.availability===`in_stock`?` c-badge--good`:` c-badge--outline`}">${o.availabilityLabel}</span>${o.stockNote?`<span class="muted s">${esc(o.stockNote)}</span>`:``}</div>
   ${note}${o.marketplace?`<p class="muted s">${Engine.copy.OFFER_TEXTS.marketplace}</p>`:``}
   <p class="muted s">Relevé le ${dFr(o.checkedAt)} (${esc(o.source)}).</p>
   ${o.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Acheter en ligne</a>`:o.linkOnly?`<a class="c-btn c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Voir l'offre</a>`:``}</div>`;

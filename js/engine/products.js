@@ -74,6 +74,9 @@
     /* servesMarkets : pays que le VENDEUR indique lui-même desservir (offre « régionale »). Jamais déduit d'une devise ou d'une zone ; absent = inconnu. */
     if (o.servesMarkets != null && !(Array.isArray(o.servesMarkets) && o.servesMarkets.length > 0 && o.servesMarkets.length <= 60 && new Set(o.servesMarkets).size === o.servesMarkets.length
       && o.servesMarkets.every(c => Object.prototype.hasOwnProperty.call(MARKETS, c)))) e.push('offre : pays desservis invalides (codes ISO connus, sans doublon)');
+    /* seller : vendeur exact d'une place de marché (le retailer reste « Jumia », « Konga »...) ; city : ville du point de vente ; stockNote : mention de stock lue sur la page (« Peu d'unités restantes »),
+       sans changer le statut de disponibilité. Facultatifs, jamais inventés. */
+    for (const [k, max] of [['seller', 80], ['city', 60], ['stockNote', 100]]) if (o[k] != null && !text(o[k], max)) e.push('offre : ' + k + ' invalide');
     if (!text(o.source, 160)) e.push('offre : source manquante');
     if (!isDate(o.checkedAt)) e.push('offre : date de vérification manquante');
     if (o.url != null && !isRealLink(o.url)) e.push('offre : lien d\'achat invalide (https réel obligatoire)');
@@ -180,7 +183,7 @@
       const link = o.url && isRealLink(o.url) ? o.url : null;
       return { market: o.market, country: MARKETS[o.market], retailer: o.retailer, type: o.type, typeLabel: copy.OFFER_TYPE_LABELS[o.type],
         marketplace: o.type === 'marketplace', currency: o.price != null ? o.currency : (o.currency || null), price: o.price != null ? o.price : null,
-        availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null, serves: Array.isArray(o.servesMarkets) ? o.servesMarkets.slice() : null,
+        availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null, seller: o.seller || null, city: o.city || null, stockNote: o.stockNote || null, serves: Array.isArray(o.servesMarkets) ? o.servesMarkets.slice() : null,
         url: link, buyable: !!(link && o.availability === 'in_stock'), linkOnly: !!(link && o.availability === 'unknown'), source: o.source, checkedAt: o.checkedAt };
     }).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
   }

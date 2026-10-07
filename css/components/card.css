@@ -60,3 +60,7 @@
 .pcard-w .pbuy{min-height:44px}
 .pcard .pr .pv{font-weight:600;color:var(--ink)}
 .offer .pv{overflow-wrap:anywhere}
+
+/* Fiche produit : une composition à libellés longs ne doit jamais élargir la fiche (téléphone 360 px) */
+.kv>div{min-width:0}
+.kv .chips .c-badge{white-space:normal;max-width:100%;height:auto;line-height:1.25;padding-block:5px;overflow-wrap:anywhere}

@@ -56,3 +56,13 @@ DERMAI est pensé pour toute l'Afrique : aucun pays par défaut, aucune offre d�
 - **Prix et devises** : chaque prix reste dans la devise de son offre (jamais converti en FCFA), « Prix relevé » + date de relevé ; sans prix : « Prix à vérifier ». Disponibilité : En stock, Rupture de stock, Bientôt disponible, Disponibilité à vérifier (`unknown` n'est jamais « Disponible »).
 - **Bouton « Acheter en ligne »** : seulement avec un lien https réel, un vendeur identifié et une offre en stock ; sur une carte, seulement pour un produit retenu par la routine. Aucun lien généré, aucune affiliation, aucun suivi.
 - **Mode démonstration** : aucun sélecteur de pays, aucune offre réelle, produits marqués « Démo ».
+
+## Offres commerciales vérifiées (étape 16)
+
+12 offres réelles intégrées (8 produits du catalogue existant, aucun nouveau produit ni actif) : **Ghana** (Jumia Ghana, Swanky Beauty Supply à Accra), **Nigeria** (Konga, Jumia Nigeria, Care to Beauty Nigeria), **Kenya** (Jumia Kenya) et **Afrique du Sud** (Dermastore, étape 14B). Aucun autre pays : Bénin, Togo, Côte d'Ivoire, Sénégal, Cameroun, Maroc... n'ont « aucune offre vérifiée intégrée » (ce n'est pas une indisponibilité).
+
+- Chaque offre : `market`, `retailer`, `type`, `currency`, `price`, `availability`, `url`, `source`, `checkedAt` ; le pays affiché vient du code ISO. Champs facultatifs ajoutés : `seller` (vendeur exact d'une place de marché : Jumia et Konga restent `marketplace`), `city`, `stockNote` (« Peu d'unités restantes », « 5 unités restantes » : une note, jamais un statut).
+- `in_stock` seulement quand la page affiche un stock ; `unknown` sinon (Konga : « achat proposé, sous réserve de disponibilité locale » ; Swanky : retrait proposé, stock non affiché).
+- `checkedAt` = date d'intégration (2026-10-07) : un instantané commercial, pas un prix permanent. Ces pages marchandes n'ont pas pu être rouvertes depuis l'environnement d'intégration (réseau bloqué) : prix et stock sont ceux des relevés fournis, à revérifier avant un lancement public. Le prix barré d'une annonce n'est jamais enregistré. Aucune conversion de devise.
+- Non intégré faute de produit au catalogue : CeraVe Skin Renewing Vitamin C Serum (Nigeria, Kenya, Afrique du Sud, PriceCheck), The Ordinary Natural Moisturizing Factors + HA. Non intégré faute de lien produit et de prix : Care to Beauty Ghana. PriceCheck (comparateur) n'est ni vendeur ni source.
+- Test d'absence d'impact : `test/offers-verified.test.js` (V13) compare 100 profils avec et sans offres : sorties du moteur identiques.

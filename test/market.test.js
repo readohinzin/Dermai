@@ -17,7 +17,7 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
 const fnBody = (src, sig) => { const i = src.indexOf(sig); assert.ok(i >= 0, 'fonction introuvable : ' + sig); let d = 0, j = src.indexOf('{', i); const s0 = j; for (; j < src.length; j++) { if (src[j] === '{') d++; else if (src[j] === '}' && --d === 0) break; } return src.slice(s0, j + 1); };
 const memory = (init) => { const m = new Map(init ? Object.entries(init) : []); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), raw: m }; };
-const REAL = CAT.PRODUCTS, blemish = P.byId('cerave-blemish-control-gel', REAL), noOffer = P.byId('cerave-hydrating-ha-serum', REAL);
+const REAL = CAT.PRODUCTS, blemish = P.byId('cerave-blemish-control-gel', REAL), noOffer = P.byId('to-hyaluronic-b5-ceramides', REAL);
 const mkOffer = o => Object.assign({ retailer: 'Vendeur', type: 'retailer', availability: 'in_stock', source: 'Page du vendeur', checkedAt: '2026-10-07' }, o);
 const mkProduct = offers => Object.assign({}, blemish, { id: 'test-product', offers });
 
@@ -55,7 +55,7 @@ test('MK3 A. aucun pays choisi : aucun pays par défaut, aucun blocage', () => {
   const v = P.marketView(blemish, null);
   assert.equal(v.country, null); assert.equal(v.tier, 'no-country'); assert.deepEqual([v.local, v.regional, v.international], [[], [], []]);
   assert.equal(P.marketView(blemish, 'XX').tier, 'no-country', 'un code inconnu vaut « pas de pays »');
-  assert.equal(v.all.length, 1, 'les offres connues restent consultables');
+  assert.equal(v.all.length, 2, 'les offres connues (Afrique du Sud, Nigeria) restent consultables');
 });
 
 test('MK4 B, C, Q. pays choisi, modifié, retrouvé après rechargement ; valeurs invalides refusées ; stockage indisponible sans plantage', () => {
@@ -230,7 +230,8 @@ test('MK17 S. aucun faux prix : chaque prix du catalogue réel a sa devise, sa s
   let offers = 0;
   for (const p of REAL) for (const o of (p.offers || [])) { offers++; assert.deepEqual(P.validateOffer(o), [], p.id); if (o.price != null) assert.ok(o.currency && o.source && o.checkedAt, p.id); }
   assert.ok(offers >= 1);
-  for (const c of Market.COUNTRIES) if (c.code !== 'ZA') for (const p of REAL) assert.equal(P.marketView(p, c.code).local.length, 0, c.code + ' / ' + p.id + ' : aucune offre locale inventée');
+  const covered = new Set(['GH', 'KE', 'NG', 'ZA']);   // pays pour lesquels des offres vérifiées ont été intégrées (étape 16)
+  for (const c of Market.COUNTRIES) if (!covered.has(c.code)) for (const p of REAL) assert.equal(P.marketView(p, c.code).local.length, 0, c.code + ' / ' + p.id + ' : aucune offre locale inventée');
   assert.doesNotMatch(JSON.stringify(MD), /price|prix|vendor|retailer/i, 'la liste des pays ne contient aucune donnée commerciale');
 });
 
