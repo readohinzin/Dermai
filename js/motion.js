@@ -24,7 +24,7 @@
       ['.sec h2', 'rise'], ['.sec .wrap > p, .two > div > p', 'rise', { delay: 90 }],
       ['.steps3 .s', 'rise', { stagger: 1, step: 140 }], ['.steps3 .num', 'pop', { stagger: 1, step: 140, delay: 200 }],
       ['.plist > div', 'left', { stagger: 1, step: 55, max: 9 }],
-      ['.two .c-card', 'scale'], ['.two .facebox', 'right'], ['.facebox', 'zones'],
+      ['.two .c-card', 'scale'], ['.faces .fc', 'pop', { stagger: 1, step: 150 }], ['.two .facebox', 'right'], ['.facebox', 'zones'],
       ['.sec .rowlink', 'left', { stagger: 1, step: 110 }], ['.l-list li', 'rise', { stagger: 1 }],
       ['.flowstrip', 'line'], ['.flowstrip > div', 'pop', { stagger: 1, step: 160, delay: 300 }],
       ['.sec.alt[style*="center"] h2', 'rise'], ['.sec.alt[style*="center"] .c-btn', 'pop', { delay: 250 }]

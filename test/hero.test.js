@@ -53,19 +53,35 @@ test('H3 aucune promesse inventée : pas de pourcentage de correspondance, pas d
   assert.match(html, /Exemples d'actifs :/, 'équivalent texte des pastilles pour les lecteurs d\'écran');
 });
 
-test('H4 portraits : une seule image du projet (personne fictive), aucune image distante, texte alternatif descriptif, WebP transparent léger', () => {
+test('H4 portraits : six personnes fictives fournies (fond détouré), un visage différent par diapositive, repères propres à chaque visage, aucune image distante', () => {
   const imgs = [...html.matchAll(/<img [^>]*>/g)].map(m => m[0]);
   assert.equal(imgs.length, 4);
-  for (const i of imgs) { assert.match(i, /src="img\/hero\/portrait-cutout\.webp"/); assert.match(i, /alt="Portrait fictif d'une femme[^"]+"/); assert.match(i, /width="900" height="900"/); }
+  assert.deepEqual(imgs.map(i => i.match(/src="img\/people\/(woman-\d)\.webp"/)[1]), ['woman-1', 'woman-2', 'woman-6', 'woman-3'], 'un visage différent à chaque diapositive');
+  for (const i of imgs) { assert.match(i, /alt="Portrait fictif d'une femme[^"]+"/); assert.match(i, /width="504" height="504"/); }
   assert.match(imgs[0], /fetchpriority="high"/); assert.match(imgs[1], /loading="lazy"/);
   assert.doesNotMatch(html, /src="https?:/);
-  const b = fs.readFileSync(path.join(root, Hero.PORTRAIT));
-  assert.equal(b.slice(0, 4).toString('latin1'), 'RIFF'); assert.equal(b.slice(8, 12).toString('latin1'), 'WEBP');
-  assert.equal(b.slice(12, 16).toString('latin1'), 'VP8X'); assert.ok((b[20] & 0x10) !== 0, 'canal alpha');
-  assert.equal(1 + (b[24] | (b[25] << 8) | (b[26] << 16)), 900);
-  assert.ok(b.length < 120000, 'poids ' + b.length);
-  // la seule personne montrée est celle du projet (déjà présentée comme fictive) : aucun autre fichier portrait dans la bannière
-  assert.deepEqual(fs.readdirSync(path.join(root, 'img/hero')), ['portrait-cutout.webp']);
+  const files = fs.readdirSync(path.join(root, 'img/people')).sort();
+  assert.deepEqual(files, [1, 2, 3, 4, 5, 6].map(n => `woman-${n}.webp`), 'six portraits, aucun fichier en trop');
+  for (const f of files) {
+    const b = fs.readFileSync(path.join(root, 'img/people', f));
+    assert.equal(b.slice(0, 4).toString('latin1'), 'RIFF', f); assert.equal(b.slice(8, 12).toString('latin1'), 'WEBP', f);
+    assert.equal(b.slice(12, 16).toString('latin1'), 'VP8X', f); assert.ok((b[20] & 0x10) !== 0, f + ' : canal alpha (fond détouré)');
+    assert.equal(1 + (b[24] | (b[25] << 8) | (b[26] << 16)), 504, f); assert.equal(1 + (b[27] | (b[28] << 8) | (b[29] << 16)), 504, f);
+    assert.ok(b.length < 40000, f + ' : poids ' + b.length);
+  }
+  assert.equal(fs.existsSync(path.join(root, 'img/hero')), false, 'l\'ancien portrait de la bannière est retiré');
+  // repères : chaque visage a ses yeux, sa bouche, son ovale, tous dans la tuile et dans un ordre cohérent
+  for (const n of [1, 2, 3, 4, 5, 6]) {
+    const p = Hero.PEOPLE[n]; assert.ok(p, 'repères du visage ' + n);
+    for (const pt of [p.eL, p.eR, p.m]) assert.ok(pt.every(v => v > 0 && v < 504));
+    assert.ok(p.eR[0] > p.eL[0] + 80 && p.m[1] > Math.max(p.eL[1], p.eR[1]) + 90, 'bouche sous les yeux, yeux écartés');
+    assert.ok(p.f[2] > 100 && p.f[3] > 150 && p.f[0] - p.f[2] > 0 && p.f[0] + p.f[2] < 504);
+  }
+  // le cadre de scan suit l'ovale du visage de la diapositive 1 (visage 1), pas un ovale figé
+  const L1 = Hero.lm(1); assert.match(html, new RegExp(`<ellipse cx="${L1.f[0]}" cy="${L1.f[1]}" rx="${L1.f[2]}" ry="${L1.f[3]}"/>`));
+  // les ancrages tombent sur le visage, y compris tête penchée (visage 2)
+  const A = Hero.anchor(Hero.lm(2), 'eR', 0.19, 0.63); assert.ok(A[0] > 600 && A[0] < 900 && A[1] > 500 && A[1] < 800, JSON.stringify(A));
+  assert.ok(!/NaN|undefined/.test(html));
 });
 
 test('H5 durée, commandes et accessibilité du pilote : pause, hors écran, onglet caché, mouvement réduit, clavier, balayage', () => {
@@ -98,6 +114,7 @@ test('H7 branchement : module chargé avant l\'application, démarré à l\'accu
   assert.match(app, /if\(state\.route===`landing`\)\{const el=document\.querySelector\(`\[data-hc\]`\);if\(el\)heroCtl=DermaiHero\.init\(el,\{reduced:/);
   for (const id of ['how', 'observe', 'routine-sec', 'evolve']) assert.match(app, new RegExp(`id="${id}"`), id);
   for (const s of Hero.SLIDES) assert.ok(app.includes(`id="${s.more[0]}"`), 'cible du bouton secondaire : ' + s.more[0]);
-  // l'ancien visage du hero n'est plus utilisé dans la bannière, la section « Ce que DERMAI observe » garde le sien
+  // l'ancien visage du hero n'est plus utilisé dans la bannière, la section « Ce que DERMAI observe » garde le sien ; le trio de visages est décoratif et décrit une fois
   assert.equal((app.match(/<div class="facebox">\$\{portrait\(/g) || []).length, 1);
+  assert.match(app, /\$\{faces\(\[4,5,1\]\)\}/); assert.match(app, /role="img" aria-label="Trois portraits fictifs de femmes/); assert.match(app, /<span class="fc fc--\$\{i\+1\}" aria-hidden="true"><img src="\$\{DermaiHero\.personSrc\(n\)\}" width="504" height="504" alt=""/);
 });

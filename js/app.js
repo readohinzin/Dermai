@@ -525,6 +525,8 @@ const V={};
 /* Landing : bannière en carrousel (js/hero.js). Les actifs montrés sont des actifs DERMAI validés, avec leur résumé réel (jamais un texte inventé). */
 const HERO_ACTIVES=[`niacinamide`,`azelaic`,`vitamin_c`,`hyaluronic`,`ceramides`];
 const heroActives=()=>HERO_ACTIVES.map(id=>Engine.actives.byId(id)).filter(Boolean).map(x=>({label:x.label,summary:x.summary}));
+/* Trio de visages (personnes fictives, fournies pour l'application) : la diversité des peaux, sans scores ni diagnostic. Image décorative, décrite une seule fois pour les lecteurs d'écran. */
+const faces=ids=>`<div class="faces" role="img" aria-label="Trois portraits fictifs de femmes, aux peaux et aux cheveux différents">${ids.map((n,i)=>`<span class="fc fc--${i+1}" aria-hidden="true"><img src="${DermaiHero.personSrc(n)}" width="504" height="504" alt="" loading="lazy" decoding="async"></span>`).join(``)}</div>`;
 let heroCtl=null,motionCtl=null;
 const stopHero=()=>{if(heroCtl){heroCtl.stop();heroCtl=null}};
 V.landing=()=>{
@@ -565,6 +567,7 @@ V.landing=()=>{
       <div class="rowlink"><span class="idx">03</span><div class="grow"><b>Des étapes classées matin et soir</b><span class="s">Nettoyage, soin ciblé, hydratation, protection solaire.</span></div></div>
     </div>
     <div>
+      ${faces([4,5,1])}
       <h2>Deux peaux ne se ressemblent pas</h2>
       <p style="margin-top:14px;max-width:30em">Vos objectifs, votre routine actuelle et votre analyse se combinent pour choisir les actifs qui comptent pour vous. Pas plus.</p>
     </div>

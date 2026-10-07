@@ -15,53 +15,76 @@
   'use strict';
 
   const DURATION = 7000;                       // durée d'une diapositive (ms)
-  const PORTRAIT = 'img/hero/portrait-cutout.webp';
+  /* Six portraits fournis (personnes fictives, fond détouré, 504 x 504). Repères relevés sur chaque photo : yeux gauche et droit, bouche, ovale du visage (cx, cy, rx, ry),
+     en pixels de la tuile ; ils servent à caler cadre de scan, bulles et lignes sur LE visage affiché (un visage différent par diapositive). */
+  const TILE = 504;
+  const PEOPLE = {
+    1: { eL: [185, 210], eR: [335, 212], m: [258, 372], f: [260, 250, 155, 205] },
+    2: { eL: [243, 205], eR: [374, 228], m: [301, 368], f: [260, 255, 160, 205] },
+    3: { eL: [187, 208], eR: [340, 210], m: [262, 368], f: [257, 250, 145, 205] },
+    4: { eL: [205, 186], eR: [340, 221], m: [258, 348], f: [252, 240, 150, 195] },
+    5: { eL: [186, 208], eR: [331, 221], m: [251, 354], f: [249, 254, 143, 198] },
+    6: { eL: [147, 221], eR: [292, 206], m: [237, 366], f: [270, 260, 160, 190] }
+  };
+  const personSrc = n => 'img/people/woman-' + n + '.webp';
+  const k1000 = v => Math.round(v * 1000 / TILE);
+  const lm = n => { const p = PEOPLE[n], o = {}; for (const key of ['eL', 'eR', 'm']) o[key] = p[key].map(k1000); o.f = p.f.map(k1000); return o; };
+  /* Point du visage défini par rapport aux yeux : (a, b) en unités de la distance entre les pupilles, selon l'axe des yeux (a) puis son perpendiculaire vers le bas (b). La tête peut être penchée. */
+  const anchor = (L, from, a, b) => {
+    const dx = L.eR[0] - L.eL[0], dy = L.eR[1] - L.eL[1], d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d, o = L[from];
+    return [Math.round(o[0] + (a * ux - b * uy) * d), Math.round(o[1] + (a * uy + b * ux) * d)];
+  };
   const SR_NOTE = 'Exemple illustratif : personne fictive, scores d\'exemple, aucun résultat réel.';   // lu par les lecteurs d\'écran ; plus affiché à l\'écran
 
   /* Contenu : une diapositive = un message, dit une fois. Les valeurs de scores sont des EXEMPLES (100 = meilleur résultat, comme dans l'application). */
   const SLIDES = [
     { id: 'scan', theme: 'rose', kicker: 'Analyse cosmétique assistée par IA', title: ['Votre peau.', 'Votre analyse.', 'Votre routine.'],
       text: 'Analysez visuellement votre peau et découvrez une routine personnalisée adaptée à vos besoins.', more: ['how', 'En savoir plus'],
-      alt: 'Portrait fictif d\'une femme, avec un cadre de détection du visage' },
+      person: 1, alt: 'Portrait fictif d\'une femme, avec un cadre de détection du visage' },
     { id: 'scores', theme: 'lilac', kicker: 'Votre analyse', title: ['Des scores clairs,', 'zone par zone.'],
       text: 'DERMAI lit quinze indicateurs visibles sur l\'ensemble du visage et vous donne un score de 0 à 100 pour chacun, 100 étant le meilleur résultat.', more: ['observe', 'Ce que DERMAI observe'],
-      alt: 'Portrait fictif d\'une femme, avec des scores d\'exemple placés autour du visage' },
+      person: 2, alt: 'Portrait fictif d\'une femme, avec des scores d\'exemple placés autour du visage' },
     { id: 'actives', theme: 'sand', kicker: 'Votre routine', title: ['Des actifs choisis', 'pour vous.'],
       text: 'Des actifs cosmétiques en lien avec vos priorités, introduits un par un, avec leurs précautions.', more: ['routine-sec', 'Voir la routine'],
-      alt: 'Portrait fictif d\'une femme, avec des exemples d\'actifs cosmétiques' },
+      person: 6, alt: 'Portrait fictif d\'une femme, avec des exemples d\'actifs cosmétiques' },
     { id: 'progress', theme: 'sky', kicker: 'Votre évolution', title: ['Votre peau évolue.', 'Suivez-la.'],
       text: 'Refaites une analyse quand vous voulez : DERMAI la compare à vos observations précédentes.', more: ['evolve', 'En savoir plus'],
-      alt: 'Portrait fictif d\'une femme, avec un exemple de suivi du score global' }
+      person: 3, alt: 'Portrait fictif d\'une femme, avec un exemple de suivi du score global' }
   ];
 
-  /* Scores d'exemple (diapositive 2) : position de la bulle et du point d'ancrage sur le visage, en pour mille du cadre du portrait. */
-  const PIC = { s: 0.8, ox: 100, oy: 200 };                      // le portrait occupe 80 % du cadre, en bas et centré : il reste de la place pour les bulles et les cartes
-  const toFrame = (x, y) => [Math.round(PIC.ox + x * PIC.s), Math.round(PIC.oy + y * PIC.s)];
+  /* Cadre du portrait : il occupe 80 % de la largeur, en bas ; son décalage horizontal dépend de la diapositive (place pour la carte d'actifs, la carte de suivi).
+     Un point du portrait (millièmes de la tuile) devient un point du cadre (millièmes du cadre) par toFrame. */
+  const PIC = { s: 0.8, oy: 200, ox: { scan: 100, scores: 100, actives: 20, progress: 200 } };
+  const toFrame = (x, y, id) => [Math.round(PIC.ox[id] + x * PIC.s), Math.round(PIC.oy + y * PIC.s)];
+  /* Scores d'exemple (diapositive 2) : bulle (x, y en millièmes du CADRE), point d'ancrage sur le visage défini par rapport aux yeux ou à la bouche. */
   const BUBBLES = [
-    { k: 'hydration', v: 64, x: 120, y: 270, ax: 360, ay: 455 }, { k: 'pores', v: 58, x: 95, y: 500, ax: 335, ay: 580 }, { k: 'texture', v: 76, x: 150, y: 730, ax: 440, ay: 740 },
-    { k: 'pigmentation', v: 52, x: 880, y: 270, ax: 655, ay: 440 }, { k: 'redness', v: 81, x: 905, y: 500, ax: 685, ay: 580 }, { k: 'oiliness', v: 69, x: 850, y: 730, ax: 590, ay: 740 }
+    { k: 'hydration', v: 64, x: 120, y: 270, from: 'eL', a: -0.06, b: 0.135 }, { k: 'pores', v: 58, x: 95, y: 500, from: 'eL', a: -0.15, b: 0.62 }, { k: 'texture', v: 76, x: 150, y: 730, from: 'm', a: -0.25, b: 0.19 },
+    { k: 'pigmentation', v: 52, x: 880, y: 270, from: 'eR', a: 0.08, b: 0.1 }, { k: 'redness', v: 81, x: 905, y: 500, from: 'eR', a: 0.19, b: 0.63 }, { k: 'oiliness', v: 69, x: 850, y: 730, from: 'm', a: 0.33, b: 0.19 }
   ];
   const band = v => (v >= 70 ? 'good' : v >= 55 ? 'mid' : 'low');
   const PROGRESS = { from: 58, to: 72, points: [58, 61, 60, 66, 69, 72] };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-  /* Surcouche de la diapositive 1 : cadre de détection, anneau de suivi, maillage de points et balayage, tous dans le repère du portrait (1000 x 1000). */
-  const scanOverlay = () => `<svg class="hc-ov" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false">
-    <defs><clipPath id="hcFace"><ellipse cx="505" cy="520" rx="262" ry="345"/></clipPath>
+  /* Surcouche de la diapositive 1 : cadre de détection, anneau de suivi, maillage de points et balayage, dans le repère du portrait (1000 x 1000), calés sur l'ovale du visage. */
+  const scanOverlay = n => {
+    const L = lm(n), [cx, cy, rx, ry] = L.f, k = rx / 262, fx = Math.round(rx * 1.1), fy = Math.round(ry * 1.1), x0 = cx - fx, x1 = cx + fx, y0 = cy - fy, y1 = cy + fy, c = Math.round(65 * k), r = Math.round(10 * k);
+    const brk = `<path pathLength="1" d="M${x0} ${y0 + c + r}V${y0 + r}a${r} ${r} 0 0 1 ${r}-${r}h${c}"/><path pathLength="1" d="M${x1} ${y0 + c + r}V${y0 + r}a${r} ${r} 0 0 0-${r}-${r}h-${c}"/><path pathLength="1" d="M${x0} ${y1 - c - r}v${c}a${r} ${r} 0 0 0 ${r} ${r}h${c}"/><path pathLength="1" d="M${x1} ${y1 - c - r}v${c}a${r} ${r} 0 0 1-${r} ${r}h-${c}"/>`;
+    return `<svg class="hc-ov" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false">
+    <defs><clipPath id="hcFace"><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/></clipPath>
       <pattern id="hcDots" width="34" height="34" patternUnits="userSpaceOnUse"><circle cx="17" cy="17" r="2.8" fill="#fff"/></pattern>
       <linearGradient id="hcSweep" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
-    <g clip-path="url(#hcFace)"><rect class="hc-dots" x="230" y="170" width="560" height="700" fill="url(#hcDots)"/><rect class="hc-sweep" x="230" y="170" width="560" height="16" fill="url(#hcSweep)"/></g>
-    <circle class="hc-ring" cx="505" cy="520" r="372" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="230 110 90 420"/>
-    <g class="hc-brk" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-      <path pathLength="1" d="M215 200V135a10 10 0 0 1 10-10h65"/><path pathLength="1" d="M795 200V135a10 10 0 0 0-10-10h-65"/><path pathLength="1" d="M215 810v65a10 10 0 0 0 10 10h65"/><path pathLength="1" d="M795 810v65a10 10 0 0 1-10 10h-65"/></g></svg>`;
+    <g clip-path="url(#hcFace)"><rect class="hc-dots" x="${cx - rx}" y="${cy - ry}" width="${2 * rx}" height="${2 * ry}" fill="url(#hcDots)"/><rect class="hc-sweep" x="${cx - rx}" y="${cy - ry}" width="${2 * rx}" height="16" fill="url(#hcSweep)" style="--sw:${2 * ry - 16}px"/></g>
+    <circle class="hc-ring" cx="${cx}" cy="${cy}" r="${Math.round(ry * 1.07)}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="230 110 90 420" style="transform-origin:${cx}px ${cy}px"/>
+    <g class="hc-brk" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">${brk}</g></svg>`;
+  };
 
   const bubbleHtml = (b, i, labels) => `<div class="hc-b hc-b--${band(b.v)}" style="left:${b.x / 10}%;top:${b.y / 10}%;--v:${b.v};--p:${b.v};--d:${i}" data-v="${b.v}"><span class="n">${b.v}</span><span class="l">${esc(labels[b.k] || b.k)}</span></div>`;
-  const scoresOverlay = labels => `<svg class="hc-ov" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false">${BUBBLES.map((b, i) => { const [fx, fy] = toFrame(b.ax, b.ay); return `<line class="hc-ln" style="--d:${i}" x1="${b.x}" y1="${b.y}" x2="${fx}" y2="${fy}" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle class="hc-pt" style="--d:${i}" cx="${fx}" cy="${fy}" r="9" fill="#fff"/>`; }).join('')}</svg>${BUBBLES.map((b, i) => bubbleHtml(b, i, labels)).join('')}`;
+  const scoresOverlay = (labels, n) => { const L = lm(n); return `<svg class="hc-ov" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false">${BUBBLES.map((b, i) => { const [ax, ay] = anchor(L, b.from, b.a, b.b), [fx, fy] = toFrame(ax, ay, 'scores'); return `<line class="hc-ln" style="--d:${i}" x1="${b.x}" y1="${b.y}" x2="${fx}" y2="${fy}" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle class="hc-pt" style="--d:${i}" cx="${fx}" cy="${fy}" r="9" fill="#fff"/>`; }).join('')}</svg>${BUBBLES.map((b, i) => bubbleHtml(b, i, labels)).join('')}`; };
 
-  const activesOverlay = actives => `<svg class="hc-ov" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false"><line class="hc-ln hc-ln--act" x1="700" y1="300" x2="590" y2="610" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle class="hc-pt hc-pt--act" cx="590" cy="610" r="9" fill="#fff"/></svg>
+  const activesOverlay = (actives, n) => { const [ax, ay] = anchor(lm(n), 'eR', 0.19, 0.63), [fx, fy] = toFrame(ax, ay, 'actives'); return `<svg class="hc-ov" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false"><line class="hc-ln hc-ln--act" x1="700" y1="300" x2="${fx}" y2="${fy}" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle class="hc-pt hc-pt--act" cx="${fx}" cy="${fy}" r="9" fill="#fff"/></svg>
     <div class="hc-act" aria-hidden="true"><span class="k">Actif</span><b class="nm" data-act-name>${esc(actives[0].label)}</b><span class="sm" data-act-sum>${esc(actives[0].summary)}</span></div>
     <div class="hc-chips" aria-hidden="true">${actives.map((a, i) => `<span class="hc-chip hc-chip--${i % 5}${i === 0 ? ' is-on' : ''}" data-i="${i}" style="--i:${i}"><svg viewBox="0 0 24 24"><path d="M12 3.5c3.2 3.9 5.2 6.7 5.2 9.6a5.2 5.2 0 0 1-10.4 0c0-2.9 2-5.7 5.2-9.6z" fill="currentColor"/></svg></span>`).join('')}</div>
-    <p class="u-sr">Exemples d'actifs : ${actives.map(a => esc(a.label)).join(', ')}.</p>`;
+    <p class="u-sr">Exemples d'actifs : ${actives.map(a => esc(a.label)).join(', ')}.</p>`; };
 
   const progressOverlay = () => {
     const pts = PROGRESS.points, mx = Math.max(...pts), mn = Math.min(...pts), W = 150, H = 44;
@@ -74,7 +97,7 @@
   /* ctx : { cta: { go }, labels: { clé de métrique: libellé }, actives: [{ label, summary }], extraFirst: html }. Aucun état de l'application ici. */
   function html(ctx) {
     const labels = ctx.labels || {}, actives = (ctx.actives && ctx.actives.length ? ctx.actives : [{ label: 'Niacinamide', summary: 'Polyvalent et doux' }]).slice(0, 5);
-    const pic = { scan: scanOverlay() }, outer = { scores: scoresOverlay(labels), actives: activesOverlay(actives), progress: progressOverlay() };
+    const pic = n => ({ scan: scanOverlay(n) }), outer = n => ({ scores: scoresOverlay(labels, n), actives: activesOverlay(actives, n), progress: progressOverlay() });
     const slide = (s, i) => {
       const H = i === 0 ? 'h1' : 'h2';
       return `<article class="hc-slide hc-t-${s.theme}${i === 0 ? ' is-active' : ''}" data-i="${i}" role="group" aria-roledescription="diapositive" aria-label="${i + 1} sur ${SLIDES.length}"${i === 0 ? '' : ' aria-hidden="true" inert'}>
@@ -87,7 +110,7 @@
           <div class="cta-row hc-cta"><button class="c-btn c-btn--primary" data-go="${ctx.cta && ctx.cta.go || 'signup'}">Analyser ma peau</button><button class="c-btn c-btn--secondary" data-act="scroll" data-v="${s.more[0]}">${esc(s.more[1])}</button></div>
           ${i === 0 && ctx.extraFirst ? `<div style="margin-top:20px">${ctx.extraFirst}</div>` : ''}
         </div>
-        <div class="hc-art"><p class="u-sr">${SR_NOTE}</p><div class="hc-face hc-face--${s.id}"><div class="hc-pic"><img src="${PORTRAIT}" width="900" height="900" alt="${esc(s.alt)}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>${pic[s.id] || ''}</div>${outer[s.id] || ''}</div></div>
+        <div class="hc-art"><p class="u-sr">${SR_NOTE}</p><div class="hc-face hc-face--${s.id}"><div class="hc-pic"><img src="${personSrc(s.person)}" width="504" height="504" alt="${esc(s.alt)}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>${pic(s.person)[s.id] || ''}</div>${outer(s.person)[s.id] || ''}</div></div>
       </div></article>`;
     };
     return `<section class="hc" data-hc aria-roledescription="carrousel" aria-label="Présentation de DERMAI">
@@ -162,5 +185,5 @@
     return { stop() { stopped = true; clearT(timer); clearInterval(chipTimer); cancelRaf(); cleanups.forEach(f => f()); if (io) io.disconnect(); }, show, get index() { return idx; } };
   }
 
-  return { SLIDES, BUBBLES, PROGRESS, PIC, DURATION, PORTRAIT, SR_NOTE, html, init };
+  return { SLIDES, BUBBLES, PROGRESS, PIC, PEOPLE, DURATION, SR_NOTE, personSrc, anchor, lm, html, init };
 });
