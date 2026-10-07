@@ -27,8 +27,13 @@ button.brand:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radi
 /* Logo en tête des pages de l'application sur mobile (la colonne latérale du bureau porte déjà le logo). */
 .m-brand{display:flex;justify-content:center;padding-top:var(--s-1)}
 @media (min-width:920px){.m-brand{display:none}}
+/* L'en-tête « retour » avait une marge haute de -20 px (pour couvrir le remplissage de la page) : sous le logo mobile, elle en cachait le bas. Le logo garde sa hauteur entière. */
+.m-brand+.top{margin-top:0}
 
 /* Logo image (étape 14B) : le bouton garde sa zone de toucher ; l'image ne déborde jamais et ne se déforme pas. */
 .brand .brand-logo{display:block;max-width:100%;height:auto}
 button.brand{display:inline-flex;align-items:center;justify-content:center;line-height:0}
 .rail .brand{align-self:flex-start;justify-content:flex-start;padding-left:var(--s-2);margin-bottom:var(--s-3)}
+
+/* Mode réel : une analyse retrouvée n'a plus sa photo (jamais conservée). La carte « Profil cutané » n'affiche alors aucun cadre vide : le texte prend toute la largeur. */
+.skin-now.nophoto .txt{max-width:none}

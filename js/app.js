@@ -688,7 +688,7 @@ V.home=()=>{
   <header class="hello"><div><p class="kicker">Bonjour${state.user.name?` ${esc(state.user.name)}`:``}</p><h1>Votre peau aujourd'hui</h1></div><button class="avatar" data-go="profile" data-reset="1" aria-label="Mon profil">${initial()}</button></header>
   <div class="grid2">
    <div class="col">
-    <section class="skin-now"><div class="mf">${portrait({photo:s.photo})}</div>
+    <section class="skin-now${!DEMO_MODE&&!s.photo?` nophoto`:``}">${!DEMO_MODE&&!s.photo?``:`<div class="mf">${portrait({photo:s.photo})}</div>`}
       <div class="txt"><p class="kicker">Profil cutané</p><p class="big" style="font-size:${stype.length>16?`1.9rem`:`2.9rem`};margin:6px 0 10px">${stype}</p>${g.score===null?`<p class="muted">Score global indisponible</p>`:`<p class="muted">Score global <b style="color:var(--ink)">${g.score}/100</b></p><p style="margin-top:6px">${bandBadge(g)}</p>`}${top2.length?`<p class="muted" style="margin-top:6px">Priorités : ${top2.join(` et `)}.</p>`:`<p class="muted" style="margin-top:6px">Routine d'entretien.</p>`}</div>
       <button class="c-btn c-btn--primary c-btn--sm" data-go="result" data-act="setview" data-v="${state.latest}">Voir mon analyse</button></section>
     <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length?`<p class="muted" style="margin-bottom:8px">Les indicateurs à soutenir en premier, d'après votre analyse.</p><ul class="c-list">${P.items.map(m=>`<li><button class="c-list-row" data-go="concern:${m.indicator}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${bandBadge(m)}${ic(`chev`)}</button></li>`).join(``)}</ul>`:`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}</section>
@@ -817,7 +817,7 @@ V.concern=id=>{
   <div class="grid2">
    <div class="col">
     <section><h1>${label}</h1><div class="c-score-block" style="margin:16px 0 12px">${info?`<span class="c-score c-score--xl"><span class="c-score__value">${m.score}</span><span class="c-score__unit">/100</span></span>${infoBadge()}`:`${scoreHtml(m,`xl`)}${bandBadge(m)}`}</div>${info?`<span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span>`:barHtml(m)}<p style="margin-top:18px;font-size:18px;color:var(--ink)">${info?Engine.copy.INFO_TEXT:IND_TXT[m.band]}</p></section>
-    <section class="facebox">${portrait({photo:s.photo})}</section>
+    ${!DEMO_MODE&&!s.photo?``:`<section class="facebox">${portrait({photo:s.photo})}</section>`}
    </div>
    <div class="col">
     ${levers.length?`<section><div class="hd"><h2 class="h3">Ce qui peut aider</h2></div><p class="muted" style="margin-bottom:14px">Actifs cosmétiques souvent utilisés pour cet indicateur. Ceux de votre plan sont dans « Ma routine ».</p><div class="stack" style="gap:12px">${levers.map((a,i)=>activeCard(a.id,i)).join(``)}</div></section>`
