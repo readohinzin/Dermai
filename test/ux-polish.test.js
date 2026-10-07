@@ -18,8 +18,11 @@ test('UX1 l\'illustration de l\'accueil est un fichier JPEG, plus une image int�
 });
 
 test('UX2 accueil réel : l\'illustration et l\'exemple sont identifiés comme fictifs ; le démo n\'est pas modifié', () => {
-  assert.equal((app.match(/Illustration : personne fictive, aucun résultat réel\./g) || []).length, 2);
+  // depuis l'étape 14C la mention de la bannière vit dans js/hero.js (affichée hors démo) ; celle de la section « Ce que DERMAI observe » reste dans l'application
+  assert.equal((app.match(/Illustration : personne fictive, aucun résultat réel\./g) || []).length, 1);
   assert.match(app, /\$\{DEMO_MODE\?``:`<p class="muted"[^`]*Illustration : personne fictive/);
+  assert.match(app, /note:!DEMO_MODE/);
+  assert.match(fs.readFileSync(path.join(__dirname, '../js/hero.js'), 'utf8'), /const NOTE = 'Illustration : personne fictive, aucun résultat réel\.';/);
   assert.match(app, /Exemple illustratif, données fictives\./);
 });
 

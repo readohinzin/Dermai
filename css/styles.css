@@ -18,4 +18,5 @@
 @import url("components/media.css") layer(components);
 @import url("components/list.css") layer(components);
 @import url("components/result.css") layer(components);
+@import url("components/hero.css") layer(components);
 @import url("utilities.css") layer(utilities);

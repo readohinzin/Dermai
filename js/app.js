@@ -522,22 +522,14 @@ function shell(inner,{title=``,back=false}={}){
 }
 const V={};
 
-/* Landing */
+/* Landing : bannière en carrousel (js/hero.js). Les actifs montrés sont des actifs DERMAI validés, avec leur résumé réel (jamais un texte inventé). */
+const HERO_ACTIVES=[`niacinamide`,`azelaic`,`vitamin_c`,`hyaluronic`,`ceramides`];
+const heroActives=()=>HERO_ACTIVES.map(id=>Engine.actives.byId(id)).filter(Boolean).map(x=>({label:x.label,summary:x.summary}));
+let heroCtl=null;
+const stopHero=()=>{if(heroCtl){heroCtl.stop();heroCtl=null}};
 V.landing=()=>{
   return `<header class="l-top">${brandBtn(44)}${signedIn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Mon espace</button>`:accountOn()?`<button class="c-btn c-btn--tonal c-btn--sm" data-go="login">Se connecter</button>`:`<button class="c-btn c-btn--tonal c-btn--sm" data-go="home" data-reset="1">Se connecter</button>`}</header>
-  <section class="hero"><div class="wrap hero-grid">
-    <div>
-      <p class="tagline">${ic(`sparkle`)} Analyse cosmétique assistée par IA</p>
-      <h1 class="hero-h">Votre peau.<br>Votre analyse.<br>Votre routine.</h1>
-      <p class="lead">Analysez visuellement votre peau et découvrez une routine personnalisée adaptée à vos besoins.</p>
-      <div class="cta-row"><button class="c-btn c-btn--primary" data-go="${signedIn()?`scan`:`signup`}">Analyser ma peau</button><button class="c-btn c-btn--secondary" data-act="scroll" data-v="how">En savoir plus</button></div>
-      ${DEMO_MODE?`<div style="margin-top:20px">${demoTag()}</div>`:``}
-    </div>
-    <div class="hero-art">
-      <div class="facebox">${portrait({importBtn:true,decor:true})}</div>
-      ${DEMO_MODE?``:`<p class="muted" style="margin-top:8px;text-align:center;font-size:13px">Illustration : personne fictive, aucun résultat réel.</p>`}
-    </div>
-  </div>
+  <section class="hc-wrap">${DermaiHero.html({cta:{go:signedIn()?`scan`:`signup`},labels:SkinModel.METRIC_LABELS,actives:heroActives(),note:!DEMO_MODE,sparkle:ic(`sparkle`),extraFirst:DEMO_MODE?demoTag():``})}
   <div class="wrap"><div class="flowstrip" aria-label="Le principe">
     <div><span class="ico">${ic(`camera`)}</span>Photo</div><div><span class="ico">${ic(`sparkle`)}</span>Intelligence artificielle</div><div><span class="ico">${ic(`eye`)}</span>Analyse</div><div><span class="ico">${ic(`routine`)}</span>Routine personnalisée</div>
   </div></div></section>
@@ -551,7 +543,7 @@ V.landing=()=>{
     </div>
   </div></section>
 
-  <section class="sec"><div class="wrap two">
+  <section class="sec" id="observe"><div class="wrap two">
     <div>
       <h2>Ce que DERMAI observe</h2>
       <p style="margin-top:14px">Quinze indicateurs visibles, lus sur l'ensemble du visage.</p>
@@ -578,7 +570,7 @@ V.landing=()=>{
     </div>
   </div></section>
 
-  <section class="sec"><div class="wrap two">
+  <section class="sec" id="routine-sec"><div class="wrap two">
     <div>
       <h2>Une routine claire, matin et soir</h2>
       <p style="margin-top:14px;max-width:30em">Chaque étape a un rôle et un ordre. Vous cochez au fil de la journée.</p>
@@ -589,7 +581,7 @@ V.landing=()=>{
     </div>
   </div></section>
 
-  <section class="sec alt"><div class="wrap two rev">
+  <section class="sec alt" id="evolve"><div class="wrap two rev">
     <div class="c-card"><p class="kicker">Score global</p>${gchart(LANDING_EXAMPLE)}<p class="muted" style="margin-top:6px">Exemple illustratif, données fictives.</p></div>
     <div><h2>Votre peau évolue.</h2><p style="margin-top:14px;max-width:30em">Refaites une analyse quand vous voulez. DERMAI la compare à vos observations précédentes.</p></div>
   </div></section>
@@ -1074,12 +1066,14 @@ function syncHash(replace){
 function back(){const p=state.stack.pop();if(p){go(p.route,p.param,{replace:true})}else go(`home`,null,{replace:true})}
 function render(keep){
   const y=window.scrollY;
+  stopHero();
   $app.classList.toggle(`still`,!!keep);
   $app.innerHTML=(V[state.route]||V.home)(state.param);
   after();
   if(keep)scrollTo(0,y);
 }
 function after(){
+  if(state.route===`landing`){const el=document.querySelector(`[data-hc]`);if(el)heroCtl=DermaiHero.init(el,{reduced:window.matchMedia&&matchMedia(`(prefers-reduced-motion: reduce)`).matches,actives:heroActives()})}
   if(state.route===`scan`&&state.scanStep>=1&&state.scanStep<=3){
     if(DEMO_MODE)timers.push(setTimeout(()=>{const c=document.getElementById(`cam`),q=document.getElementById(`qt`);if(c&&q){c.classList.add(`ready`);q.textContent=`Qualité de l'image : excellente`}},1000));
     else{const q=document.getElementById(`qt`);if(q)q.textContent=`Visage de face, bien éclairé`}

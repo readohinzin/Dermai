@@ -1,0 +1,131 @@
+/* Bannière d'accueil en carrousel (voir js/hero.js). Quatre diapositives superposées dans la même cellule de grille : la hauteur de la bannière est celle de la plus
+   haute, jamais de saut au changement. Fonds dégradés pastel (un thème par diapositive), texte foncé sur fond clair. Les animations ne tournent QUE sur la diapositive
+   active ; « moins d'animations » (base.css) les réduit à presque rien et js/hero.js arrête alors le défilement automatique. */
+.hc-wrap{padding:0 0 56px}
+.hc{position:relative;isolation:isolate}
+.hc-stage{display:grid}
+.hc-slide{grid-area:1/1;position:relative;overflow:hidden;min-width:0;opacity:0;visibility:hidden;transition:opacity .9s ease,visibility 0s linear .9s}
+.hc-slide.is-active{opacity:1;visibility:visible;transition:opacity .9s ease,visibility 0s}
+
+/* Thèmes de fond */
+.hc-t-rose{--g1:#FDE9EC;--g2:#F7CBD3;--g3:#FFD9B8}
+.hc-t-lilac{--g1:#EFE7F8;--g2:#F8D9E6;--g3:#D9CBF0}
+.hc-t-sand{--g1:#FDF0DC;--g2:#F6D0B5;--g3:#FFE0A8}
+.hc-t-sky{--g1:#E6EAFB;--g2:#F5DAEA;--g3:#CAD6F6}
+.hc-bg{position:absolute;inset:0;z-index:0;background:linear-gradient(135deg,var(--g1) 0%,var(--g2) 100%)}
+.hc-bg i{position:absolute;border-radius:50%;filter:blur(64px);opacity:.8}
+.hc-bg i:nth-child(1){width:min(46vw,620px);height:min(46vw,620px);min-width:260px;min-height:260px;right:-8%;top:-14%;background:var(--g3)}
+.hc-bg i:nth-child(2){width:min(38vw,520px);height:min(38vw,520px);min-width:220px;min-height:220px;left:-10%;bottom:-22%;background:color-mix(in srgb,var(--g2) 55%,#fff)}
+.hc-slide.is-active .hc-bg i:nth-child(1){animation:hcFloat 16s ease-in-out infinite alternate}
+.hc-slide.is-active .hc-bg i:nth-child(2){animation:hcFloat 19s -6s ease-in-out infinite alternate-reverse}
+
+/* Mise en page : texte puis portrait sur mobile, deux colonnes sur grand écran. La place des commandes (points, pause, mention) est réservée en bas. */
+.hc-in{position:relative;z-index:1;display:grid;gap:6px;max-width:1180px;margin:0 auto;padding:22px 20px 104px;box-sizing:border-box}
+.hc-copy{min-width:0}
+.hc-kick{margin:0}
+.hc-h{font-size:clamp(2.3rem,9vw,4.5rem);line-height:1.02;margin:16px 0 14px;color:var(--ink);max-width:12em}
+.hc-p{font-size:clamp(16px,2.2vw,19px);max-width:30em;margin:0 0 24px;color:var(--ink-2)}
+.hc-art{align-self:end;justify-self:center;width:min(100%,480px);min-width:0;margin-top:-9%;transform:translateX(var(--sx,0))}
+.hc-face{position:relative;aspect-ratio:1/1}
+.hc-face--actives{--sx:0}
+.hc-pic{position:absolute;left:10%;bottom:0;width:80%;aspect-ratio:1/1}
+.hc-pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 18px 28px rgba(84,47,59,.2));
+  /* La photo d'origine coupe la chevelure en haut et les épaules sur les côtés : fondu sur les bords pour qu'aucun bord net ne se voie. */
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 76%,transparent 100%),linear-gradient(to right,transparent 0,#000 14%,#000 86%,transparent 100%);
+  -webkit-mask-composite:source-in;mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 76%,transparent 100%),linear-gradient(to right,transparent 0,#000 14%,#000 86%,transparent 100%);mask-composite:intersect}
+.hc-ov{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 1px 3px rgba(84,47,59,.4))}
+@media (min-width:920px){
+  .hc-in{grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);align-items:center;gap:32px;padding:30px 48px 76px;min-height:clamp(560px,78svh,720px)}
+  .hc-copy{padding-bottom:24px}
+  .hc-art{width:min(100%,540px);margin-top:0}
+  .hc-h{margin:20px 0 18px;font-size:clamp(2.3rem,5.4vw,4.5rem)}
+}
+/* Tablette (une colonne) : texte contenu, portrait plus petit, pour que la bannière reste compacte */
+@media (min-width:600px) and (max-width:919px){.hc-h{font-size:clamp(2.6rem,6.4vw,3.4rem)}.hc-copy{max-width:560px}.hc-art{width:min(100%,400px)}}
+@media (max-width:480px){.hc-cta .c-btn{flex:1 1 100%}}
+
+/* Entrée de la diapositive active */
+.hc-slide.is-active .hc-kick{animation:hcUp .7s .05s both}
+.hc-slide.is-active .hc-h{animation:hcUp .8s .15s both}
+.hc-slide.is-active .hc-p{animation:hcUp .8s .25s both}
+.hc-slide.is-active .hc-cta{animation:hcUp .8s .35s both}
+.hc-slide.is-active .hc-face{animation:hcArt 1.1s .1s both cubic-bezier(.2,.8,.2,1)}
+
+/* Diapositive 1 : cadre de détection, anneau de suivi, points et balayage */
+.hc-ring{transform-origin:505px 520px}
+.hc-slide.is-active .hc-brk path{animation:hcDraw 1s .5s backwards}
+.hc-slide.is-active .hc-ring{animation:hcSpin 11s linear infinite,hcFade .8s .6s backwards}
+.hc-slide.is-active .hc-dots{animation:hcDots 2.6s ease-in-out infinite}
+.hc-slide.is-active .hc-sweep{animation:hcSweep 3s ease-in-out infinite}
+.hc-dots{opacity:.5}
+
+/* Diapositive 2 : scores par zone (bulles à anneau de progression) */
+.hc-b{--c:#2E7D5B;--bs:clamp(46px,9.5vw,62px);position:absolute;width:var(--bs);height:var(--bs);transform:translate(-50%,-50%);border-radius:50%;display:grid;place-items:center;
+  background:conic-gradient(var(--c) calc(var(--p) * 1%),rgba(255,255,255,.8) 0);box-shadow:0 8px 20px -8px rgba(84,47,59,.4)}
+.hc-b::after{content:"";position:absolute;inset:5px;border-radius:50%;background:#fff}
+.hc-b .n{position:relative;z-index:1;font-weight:800;font-size:clamp(14px,2.6vw,18px);color:var(--c);font-variant-numeric:tabular-nums}
+.hc-b .l{position:absolute;z-index:1;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;white-space:nowrap;font-size:11.5px;font-weight:700;color:var(--ink);background:rgba(255,255,255,.82);padding:2px 8px;border-radius:99px}
+.hc-b--mid{--c:#B06F12}
+.hc-b--low{--c:#B03A48}
+.hc-slide.is-active .hc-b{animation:hcPop .6s calc(.35s + var(--d) * .13s) both cubic-bezier(.2,1.5,.4,1)}
+.hc-slide.is-active .hc-ln,.hc-slide.is-active .hc-pt{animation:hcFade .5s calc(.25s + var(--d,0) * .13s) both}
+
+/* Diapositive 3 : actifs (carte et pastilles qui défilent) */
+.hc-face--actives .hc-pic{left:2%}
+.hc-act{position:absolute;right:0;top:8%;width:36%;box-sizing:border-box;padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 10px 26px -12px rgba(84,47,59,.4);display:grid;gap:2px}
+.hc-act .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--accent)}
+.hc-act .nm{font-family:var(--serif);font-weight:400;font-size:clamp(1.05rem,3.2vw,1.45rem);line-height:1.1;color:var(--ink)}
+.hc-act .sm{font-size:12.5px;line-height:1.3;color:var(--ink-2)}
+.hc-slide.is-active .hc-act{animation:hcUp .7s .5s both}
+.hc-chips{position:absolute;left:0;right:0;bottom:2%;display:flex;justify-content:center;gap:clamp(6px,1.6vw,12px)}
+.hc-chip{width:clamp(38px,8.5vw,52px);height:clamp(38px,8.5vw,52px);border-radius:50%;display:grid;place-items:center;color:var(--accent);background:rgba(255,255,255,.85);box-shadow:0 6px 16px -8px rgba(84,47,59,.5);border:3px solid transparent;transition:transform .35s cubic-bezier(.2,1.4,.4,1),border-color .3s,background .3s}
+.hc-chip svg{width:46%;height:46%}
+.hc-chip--0{color:#B05A6B}.hc-chip--1{color:#C47F1F}.hc-chip--2{color:#B8801F}.hc-chip--3{color:#3F8F6B}.hc-chip--4{color:#7B5FB0}
+.hc-chip.is-on{transform:scale(1.14);border-color:var(--accent);background:#fff}
+.hc-slide.is-active .hc-chip{animation:hcChip .55s calc(.4s + var(--i,0) * .08s) backwards cubic-bezier(.2,1.5,.4,1)}
+
+/* Diapositive 4 : suivi du score (carte avec anneau et courbe) */
+.hc-face--progress .hc-pic{left:20%}
+.hc-prog{position:absolute;left:0;top:16%;width:38%;box-sizing:border-box;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 12px 28px -12px rgba(84,47,59,.4);display:grid;gap:8px}
+.hc-prog .ring{position:relative;width:clamp(58px,13vw,84px);aspect-ratio:1/1}
+.hc-prog .ring svg{display:block;width:100%;height:100%}
+.hc-prog .ring .n{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:clamp(17px,4vw,24px);color:var(--accent);font-variant-numeric:tabular-nums}
+.hc-prog .arc{stroke-dashoffset:calc(264 - 264 * var(--to) / 100)}
+.hc-prog .tx{display:grid;gap:2px;min-width:0}
+.hc-prog .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--accent)}
+.hc-prog .dl{display:inline-block;font-size:12.5px;font-weight:700;color:#2E7D5B}
+.hc-prog .sp{display:block;width:100%;height:34px;margin-top:2px}
+.hc-prog .xp{font-size:11px;color:var(--ink-2)}
+.hc-slide.is-active .hc-prog{animation:hcUp .7s .45s both}
+.hc-slide.is-active .hc-prog .arc{animation:hcArc 1.4s .5s both ease-out}
+.hc-slide.is-active .hc-prog .ln{stroke-dasharray:1;animation:hcLine 1.4s .7s both ease-out}
+@media (min-width:920px){.hc-prog{width:36%}}
+
+/* Commandes : points avec barre de progression (zone de toucher 44 px), pause, mention */
+.hc-ctl{position:absolute;left:0;right:0;bottom:0;z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 20px 14px}
+@media (min-width:920px){.hc-ctl{flex-direction:row;justify-content:space-between;align-items:center;max-width:1180px;margin:0 auto;padding:0 48px 18px}}
+.hc-dots-row{pointer-events:auto;display:inline-flex;align-items:center;gap:0;padding:0 6px;border-radius:99px;background:rgba(255,255,255,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.hc-pause,.hc-dot{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;padding:0;cursor:pointer;color:var(--accent);border-radius:50%}
+.hc-pause svg{width:20px;height:20px}
+.hc .p2{display:none}
+.hc.is-user-paused .p1{display:none}
+.hc.is-user-paused .p2{display:block}
+.hc-dot i{display:block;position:relative;width:26px;height:4px;border-radius:2px;background:rgba(84,47,59,.22);overflow:hidden}
+.hc-dot.is-on i::after{content:"";position:absolute;inset:0;background:var(--accent);transform-origin:left center;transform:scaleX(1)}
+.hc.is-restart .hc-dot.is-on i::after{animation:hcFill 7s linear both}
+.hc.is-paused .hc-dot.is-on i::after{animation-play-state:paused}
+.hc-cap{pointer-events:auto;margin:0;font-size:12.5px;color:var(--ink-2);background:rgba(255,255,255,.72);padding:3px 12px;border-radius:99px;text-align:center}
+
+@keyframes hcUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes hcArt{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes hcFade{from{opacity:0}to{opacity:1}}
+@keyframes hcPop{from{opacity:0;transform:translate(-50%,-50%) scale(.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes hcChip{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes hcFloat{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-4%,5%,0) scale(1.12)}}
+@keyframes hcDraw{from{stroke-dasharray:1;stroke-dashoffset:1}to{stroke-dasharray:1;stroke-dashoffset:0}}
+@keyframes hcSpin{to{transform:rotate(360deg)}}
+@keyframes hcDots{0%,100%{opacity:.18}50%{opacity:.72}}
+@keyframes hcSweep{0%{transform:translateY(0)}50%{transform:translateY(690px)}100%{transform:translateY(0)}}
+@keyframes hcFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes hcArc{from{stroke-dashoffset:264}}
+@keyframes hcLine{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
