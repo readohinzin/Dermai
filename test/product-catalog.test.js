@@ -19,7 +19,7 @@ const TSRC = [{ kind: 'manufacturer', label: 'Fiche de test', url: 'https://fabr
 const P = (id, category, ingredients, extra) => Object.assign({ id, name: 'Produit de test ' + id, brand: 'Marque de test', category, ingredients, skinTypes: ['all'], targets: ['acne'], active: true, demo: false,
   status: 'validated', format: '30 ml', inci: ['Aqua / Water'], sources: TSRC, offers: [] }, extra || {});
 const OFFER = (extra) => Object.assign({ market: 'BJ', retailer: 'Boutique de test', type: 'retailer', currency: 'XOF', price: 9500, availability: 'in_stock', url: 'https://vendeur-de-test.shop/produit', shipping: 'local', source: 'Relevé de test', checkedAt: '2026-10-01' }, extra || {});
-const FULL = { description: 'Fiche de test.', offers: [OFFER()], image: { src: 'img/products/test.jpg', alt: 'Produit de test' } };
+const FULL = { description: 'Fiche de test.', offers: [OFFER()], image: { src: 'img/products/test.jpg', alt: 'Produit de test', sourceUrl: 'https://fabricant-de-test.com/fiche', checkedAt: '2026-10-01', credit: 'Visuel : Marque de test' } };
 const FIX = [
   P('cl-a', 'cleanser', [ing('glycerin')]),
   P('cl-strong', 'cleanser', [ing('glycerin'), ing('salicylic')]),

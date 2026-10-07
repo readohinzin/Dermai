@@ -152,6 +152,11 @@
     if (p.image != null) {
       const okSrc = p.image && typeof p.image.src === 'string' && (/^img\/products\/[\w.-]+\.(jpe?g|png|webp)$/i.test(p.image.src) || isHttps(p.image.src));
       if (!okSrc || !text(p.image.alt, 120)) e.push('image invalide (fichier img/products/ ou https, texte alternatif obligatoire)');
+      // produit réel : une image n'est acceptée que si sa provenance est connue (page d'origine, date, crédit) et qu'elle est un fichier du projet
+      if (p.demo !== true && p.image && okSrc) {
+        if (!/^img\/products\/[\w.-]+\.(jpe?g|png|webp)$/i.test(p.image.src)) e.push('image réelle : fichier du projet obligatoire (img/products/)');
+        if (!isRealLink(p.image.sourceUrl) || !isDate(p.image.checkedAt) || !text(p.image.credit, 80)) e.push('image réelle : page d\'origine (https), date et crédit obligatoires');
+      }
     }
     return e;
   }

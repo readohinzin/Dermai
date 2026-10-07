@@ -932,7 +932,7 @@ function productSheet(id){
     else if(oth)why=`Non retenu pour votre routine actuelle. ${oth.text}`;
   }else if(!DEMO_MODE)why=`Faites votre première analyse pour savoir si ce produit correspond à votre routine.`;
   const act=mainActiveLabel(p),secondary=Engine.products.ids(p).filter(i=>i!==Engine.products.primaryActive(p));
-  return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:18px">${productMedia(p)}</div>
+  return `<div class="pimg" style="aspect-ratio:1.5/1;margin-bottom:${p.image&&p.image.credit?`6px`:`18px`}">${productMedia(p)}</div>${!p.demo&&p.image&&p.image.credit?`<p class="muted s" style="margin-bottom:14px;font-size:12px">${esc(p.image.credit)}</p>`:``}
   <p class="muted">${esc(p.brand)}${p.demo?`, produit de démonstration`:``}</p><h2 style="font-size:1.9rem;margin:4px 0 10px">${esc(p.name)}</h2>
   ${p.demo?`<p style="color:var(--ink);display:flex;gap:10px;align-items:center;flex-wrap:wrap">${availBadge(c)}<span>${priceLine(p)}</span></p>`:(p.format?`<p class="muted">${esc(p.format)}</p>`:``)}
   <div class="c-card" style="margin:18px 0"><b>Pourquoi ce produit ?</b><p class="muted" style="margin-top:6px">${why}</p>${p.description?`<p class="muted" style="margin-top:8px">${esc(p.description)}</p>`:``}<p class="muted" style="margin-top:8px">${Engine.copy.PRODUCT_CATEGORY_LABELS[p.category]}.${p.demo||p.skinTypesDocumented?` Convient à : ${p.skinTypes.map(t=>SKIN_FR[t]).join(`, `)}.`:``}</p></div>

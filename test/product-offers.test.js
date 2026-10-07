@@ -116,9 +116,34 @@ test('OF6 K : aucune donnée commerciale globale ; aucune offre inventée ; la l
   assert.equal(dz.url, 'https://dermastore.co.za/cerave-blemish-control-gel/'); assert.match(dz.source, /ouverte directement/); assert.equal(dz.checkedAt, '2026-10-06');
   assert.ok(!JSON.stringify(REAL).includes('buybetter.ng'), 'lien mort : retiré');
   assert.ok(shipped.every(([id]) => byId(id).status === 'validated'));
-  assert.ok(REAL.every(p => p.image === null), 'aucune image vérifiable : « Image à venir »');
   const text = JSON.stringify(REAL);
   assert.doesNotMatch(text, /\d\s?%\s?(de )?(correspondance|compatib)/i);
+});
+
+test('OF6b images : fichiers du projet, WebP valides, produit reconnaissable, provenance connue ; sans image vérifiable : « Image à venir »', () => {
+  const withImg = REAL.filter(p => p.image), without = REAL.filter(p => !p.image);
+  assert.deepEqual(without.map(p => p.id).sort(), ['cerave-hydrating-ha-serum', 'lrp-effaclar-duo-m', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum'], 'jamais d\'image pour un produit non validé, ni sans source ouverte');
+  assert.equal(withImg.length, 9);
+  for (const p of withImg) {
+    assert.equal(p.status, 'validated');
+    assert.equal(p.image.src, 'img/products/' + p.id + '.webp');
+    const f = path.join(__dirname, '..', p.image.src), b = fs.readFileSync(f);
+    assert.equal(b.slice(0, 4).toString('latin1'), 'RIFF', p.id); assert.equal(b.slice(8, 12).toString('latin1'), 'WEBP', p.id);
+    assert.ok(b.length > 2000 && b.length < 60000, p.id + ' : poids ' + b.length);
+    assert.ok(p.image.alt.length > 10 && p.image.alt.includes(p.name.split(' ')[0]) || /Flacon|Tube/.test(p.image.alt), p.id);
+    assert.match(p.image.sourceUrl, /^https:\/\/(theordinary\.com|africa\.cerave\.com|africa\.laroche-posay\.com)\//, p.id + ' : source fabricant');
+    assert.ok(p.sources.some(s => s.url === p.image.sourceUrl), p.id + ' : la page de l\'image est une source du produit');
+    assert.equal(p.image.checkedAt, '2026-10-06'); assert.match(p.image.credit, /^Visuel : (The Ordinary|CeraVe|La Roche-Posay)$/);
+    assert.ok(p.image.credit.includes(p.brand), p.id);
+  }
+  const files = fs.readdirSync(path.join(__dirname, '../img/products')).filter(x => x !== '.gitkeep').sort();
+  assert.deepEqual(files, withImg.map(p => p.id + '.webp').sort(), 'aucun fichier orphelin');
+  // les validateurs refusent une image sans provenance, ou distante
+  const bad = (img, re) => assert.ok(products.validateProduct({ ...byId('to-azelaic-acid-10'), image: img }).some(m => re.test(m)), JSON.stringify(img));
+  bad({ src: 'img/products/x.webp', alt: 'Tube' }, /page d'origine/);
+  bad({ src: 'https://cdn.exemple-site.com/x.png', alt: 'Tube', sourceUrl: 'https://theordinary.com/p', checkedAt: '2026-10-06', credit: 'Visuel : X' }, /fichier du projet/);
+  bad({ src: 'img/products/x.webp', alt: '', sourceUrl: 'https://theordinary.com/p', checkedAt: '2026-10-06', credit: 'Visuel : X' }, /image invalide/);
+  bad({ src: 'img/products/x.webp', alt: 'Tube', sourceUrl: 'http://theordinary.com/p', checkedAt: '2026-10-06', credit: 'Visuel : X' }, /page d'origine/);
 });
 
 test('OF7 L/M : une offre exige pays, vendeur, type, disponibilité, source, date ; le prix exige sa devise ; devises cohérentes avec le pays ; aucun faux lien', () => {

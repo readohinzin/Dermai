@@ -22,7 +22,7 @@
 /* Numéro d'ordre des actifs : contraste suffisant (la teinte rose clair d'origine était trop pâle sur fond blanc). */
 .acard .idx{color:var(--ink-3)}
 /* Cartes produit : image (ou cadre neutre « Image à venir »), nom, marque, rôle, disponibilité, prix. Rien d'autre sur la carte. */
-.pimg img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.pimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:10px;box-sizing:border-box;border-radius:inherit}
 .pimg-ph{display:grid;place-items:center;gap:6px;color:var(--ink-3);font-size:var(--fs-sm);text-align:center;padding:var(--s-3)}
 .pimg-ph svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.5}
 .pcard{text-align:left}
