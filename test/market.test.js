@@ -122,7 +122,7 @@ test('MK8 G, H. plusieurs offres et plusieurs devises : chaque offre séparée, 
   assert.deepEqual(v.local.map(o => [o.retailer, o.currency, o.price]), [['A', 'NGN', 14000], ['Z', 'NGN', 15000]], 'chaque offre garde sa devise, ordre déterministe');
   assert.deepEqual(new Set(v.international.map(o => o.currency)), new Set(['GHS', 'XOF', 'KES']));
   const c = P.commerceOf(p); assert.equal(c.price, null, 'aucun prix global');
-  assert.doesNotMatch(JSON.stringify(v), /converted|conversion|total|sum|average|moyenne/i);
+  assert.doesNotMatch(JSON.stringify(v), /converted|conversion|\btotal\b|\bsum\b|average|moyenne/i);
   assert.ok(P.validateOffer(mkOffer({ market: 'NG', currency: 'XOF', price: 100 })).length, 'XOF au Nigeria refusé');
   assert.ok(P.validateOffer(mkOffer({ market: 'BJ', currency: 'NGN', price: 100 })).length, 'naira au Bénin refusé');
   assert.ok(P.validateOffer(Object.assign(mkOffer({ market: 'BJ', currency: 'XOF', price: 100 }), { converted: 1 })).length, 'champ « converted » interdit');

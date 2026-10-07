@@ -909,7 +909,7 @@ const offersBlock=(p,c)=>{
   if(!v.country)return `<section class="offers" aria-label="Options d'achat">${head}<p class="muted" style="margin-bottom:10px">${MT.prompt}</p>${marketSelect(`mk-sheet`)}
     ${c.hasOffers?`<details class="mk-else"><summary>${MT.allKnown}</summary><p class="muted s" style="margin:8px 0">${Engine.copy.OFFER_TEXTS.neutral}</p>${byCountry(c.offers)}</details>`:`<p class="muted">${Engine.copy.OFFER_TEXTS.none}</p>`}</section>`;
   const mine=v.local.map(o=>offerRow(o,`local`)).concat(v.regional.map(o=>offerRow(o,`regional`))),elsewhere=v.international;
-  return `<section class="offers" aria-label="Options d'achat">${head}<p class="muted" style="margin-bottom:10px">Options d'achat ${MK.pour(v.country)}. ${MT.otherCurrency}</p>${marketSelect(`mk-sheet`)}
+  return `<section class="offers" aria-label="Options d'achat">${head}<p class="muted" style="margin-bottom:8px">Options d'achat ${MK.pour(v.country)}. ${MT.otherCurrency}</p><p style="margin-bottom:10px"><span class="c-badge${v.summary===`ready`?` c-badge--good`:` c-badge--outline`}" data-summary="${v.summary}">${MT.summary[v.summary]}</span></p>${marketSelect(`mk-sheet`)}
    <div class="ofc">${mine.length?mine.join(``):`<p class="muted">${MT.noLocal}</p>`}</div>
    ${elsewhere.length?`<details class="mk-else"><summary>${MT.elsewhereTitle}</summary><p class="muted s" style="margin:8px 0">${MT.elsewhereHelp}</p>${elsewhere.map(o=>offerRow(o,`international`)).join(``)}</details>`:``}</section>`;
 };

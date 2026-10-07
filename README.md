@@ -73,3 +73,11 @@ Produit réel `cerave-skin-renewing-vitamin-c-serum` (30 ml, soin ciblé, actif 
 
 - **Place dans le catalogue** : à la suite des autres produits CeraVe. Les règles du moteur (inchangées) retiennent, pour un pas vitamine C, le premier produit compatible dans l'ordre du catalogue : The Ordinary Ascorbyl Glucoside 12 % passe donc avant lui, et CeraVe apparaît dans « Autres produits » (raison : un autre produit a été choisi). Il est recommandé dès qu'il est le seul candidat à la vitamine C, jamais forcé, jamais si l'actif est exclu ou absent de la routine.
 - **Offres** : Clicks (Afrique du Sud, 550 ZAR, en stock), Cosmetics Kenya (4 995 KES, disponibilité inconnue), Konga (Nigeria, 25 481 NGN, disponibilité inconnue). `checkedAt` = date du relevé, pas une vérification indépendante : le champ facultatif `verifiedAt` (vérification indépendante par DERMAI) n'est renseigné que pour Dermastore (page ouverte directement). À revérifier avant tout lancement public. Non intégrées : Dis-Chem (pas de lien vendeur direct), fiche Jumia Nigeria « Generic » (n'est pas une offre CeraVe officielle).
+
+## Qualité des offres (affichage seulement)
+
+Chaîne : actif retenu → produits compatibles → exclusions / approche douce → **choix du produit (moteur, inchangé)** → offres du pays sélectionné → qualité de l'offre. Le pays et la qualité n'agissent qu'après le choix du produit : ils ne font jamais passer un produit de « Autres produits » à « Recommandés » (test Q4 : mêmes sections pour les 54 pays et avec ou sans offres).
+
+- `qualityOf` (dans `products.js`) classe grossièrement chaque offre : `ready` (stock indiqué, prix et lien https), `partial` (stock inconnu, prix ou lien absent), `unavailable` (rupture, bientôt disponible). Ce n'est ni un score ni un pourcentage. Dans un même niveau (pays, régional, autres pays), les offres sont présentées dans cet ordre.
+- `marketView(...).summary` résume le pays : « Offre locale : stock et prix indiqués au relevé », « Offre locale à vérifier : stock, prix ou lien non confirmé », « Offre locale : rupture ou bientôt disponible », « Offres dans d'autres pays seulement », « Aucune offre vérifiée pour ce pays pour le moment. » (affiché sur la fiche produit).
+- Le bouton « Acheter en ligne » n'existe que pour une offre `ready`.

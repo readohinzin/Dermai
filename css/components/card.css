@@ -64,3 +64,6 @@
 /* Fiche produit : une composition à libellés longs ne doit jamais élargir la fiche (téléphone 360 px) */
 .kv>div{min-width:0}
 .kv .chips .c-badge{white-space:normal;max-width:100%;height:auto;line-height:1.25;padding-block:5px;overflow-wrap:anywhere}
+
+/* Résumé d'offre du pays : un libellé long passe à la ligne au lieu d'élargir la fiche */
+.offers .c-badge{white-space:normal;max-width:100%;height:auto;line-height:1.25;padding-block:5px;overflow-wrap:anywhere}

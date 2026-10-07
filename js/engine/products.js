@@ -186,9 +186,15 @@
       return { market: o.market, country: MARKETS[o.market], retailer: o.retailer, type: o.type, typeLabel: copy.OFFER_TYPE_LABELS[o.type],
         marketplace: o.type === 'marketplace', currency: o.price != null ? o.currency : (o.currency || null), price: o.price != null ? o.price : null,
         availability: o.availability, availabilityLabel: copy.OFFER_AVAILABILITY_LABELS[o.availability], shipping: o.shipping || null, seller: o.seller || null, verifiedAt: o.verifiedAt || null, city: o.city || null, stockNote: o.stockNote || null, serves: Array.isArray(o.servesMarkets) ? o.servesMarkets.slice() : null,
-        url: link, buyable: !!(link && o.availability === 'in_stock'), linkOnly: !!(link && o.availability === 'unknown'), source: o.source, checkedAt: o.checkedAt };
-    }).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
+        quality: null, url: link, buyable: !!(link && o.availability === 'in_stock'), linkOnly: !!(link && o.availability === 'unknown'), source: o.source, checkedAt: o.checkedAt };
+    }).map(o => Object.assign(o, { quality: qualityOf(o) })).sort((a, b) => a.country.localeCompare(b.country, 'fr') || a.retailer.localeCompare(b.retailer, 'fr'));
   }
+  /* Qualité d'une offre : un classement GROSSIER pour l'AFFICHAGE, jamais un score ni un pourcentage. ready = stock indiqué, prix présent et lien https ; partial = au moins une information
+     manque ou n'est pas confirmée (stock inconnu, prix ou lien absent) ; unavailable = rupture ou bientôt disponible. Les offres d'un même niveau (pays / régional / autres pays) sont
+     présentées dans cet ordre ; l'ordre ne dit rien d'autre et ne touche jamais le choix du produit. */
+  const QUALITY = ['ready', 'partial', 'unavailable'];
+  const qualityOf = o => (o.availability === 'out_of_stock' || o.availability === 'coming_soon') ? 'unavailable' : (o.availability === 'in_stock' && o.price != null && o.url) ? 'ready' : 'partial';
+  const byQuality = list => list.map((o, i) => ({ o, i })).sort((a, b) => QUALITY.indexOf(a.o.quality) - QUALITY.indexOf(b.o.quality) || a.i - b.i).map(x => x.o);
   /* Offres d'un produit POUR UN PAYS D'ACHAT (choisi par l'utilisatrice). Hiérarchie simple, sans score : 1. offres du pays ; 2. offres régionales, seulement si le vendeur
      déclare desservir ce pays (servesMarkets) ; 3. offres d'autres pays (achat en ligne, livraison à vérifier) ; 4. aucune. Une offre dont le vendeur indique une livraison
      « locale » (shipping: 'local') n'est jamais proposée hors de son pays. Le pays ne retire ni n'ajoute aucun produit et ne change aucune recommandation : il ne sert qu'à
@@ -196,12 +202,15 @@
   function marketView(p, country) {
     const all = offersOf(p), code = typeof country === 'string' && Object.prototype.hasOwnProperty.call(MARKETS, country) ? country : null;
     const base = { country: code, countryName: code ? MARKETS[code] : null, all, hasOffers: all.length > 0 };
-    if (!code) return Object.assign(base, { local: [], regional: [], international: [], tier: 'no-country' });
-    const local = all.filter(o => o.market === code);
+    if (!code) return Object.assign(base, { local: [], regional: [], international: [], tier: 'no-country', summary: null });
+    const local = byQuality(all.filter(o => o.market === code));
     const rest = all.filter(o => o.market !== code);
-    const regional = rest.filter(o => o.serves && o.serves.includes(code));
-    const international = rest.filter(o => !(o.serves && o.serves.includes(code)) && o.shipping !== 'local');
-    return Object.assign(base, { local, regional, international, tier: local.length ? 'local' : regional.length ? 'regional' : international.length ? 'international' : 'none' });
+    const regional = byQuality(rest.filter(o => o.serves && o.serves.includes(code)));
+    const international = byQuality(rest.filter(o => !(o.serves && o.serves.includes(code)) && o.shipping !== 'local'));
+    const tier = local.length ? 'local' : regional.length ? 'regional' : international.length ? 'international' : 'none';
+    /* Résumé pour le pays : la meilleure qualité parmi les offres du pays (locales ou régionales), sinon « autres pays seulement », sinon « aucune ». */
+    const mine = local.concat(regional), summary = mine.length ? byQuality(mine)[0].quality : international.length ? 'elsewhere' : 'none';
+    return Object.assign(base, { local, regional, international, tier, summary });
   }
   /* Données commerciales d'un produit. Réel : uniquement `offers` (les champs plats sont nuls). Démonstration : anciens champs plats, jamais de prix réel. */
   function commerceOf(p) {
@@ -310,6 +319,6 @@
       price: null, currency: null, vendor: p.vendor || null, availability: p.availability || null, url: p.url || null };
   }
 
-  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, catalogView, commerceOf, offersOf, marketView, validateOffer, primaryActive, validateProduct, validateCatalog,
+  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, catalogView, commerceOf, offersOf, marketView, QUALITY, validateOffer, primaryActive, validateProduct, validateCatalog,
     stepCategory, CATALOG_FIELDS, toCatalogEntry };
 });

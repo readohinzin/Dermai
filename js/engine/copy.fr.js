@@ -142,6 +142,13 @@
     allKnown: 'Voir toutes les offres connues, par pays',
     priceLabel: 'Prix relevé',
     recommended: 'Produit recommandé',
+    summary: {
+      ready: 'Offre locale : stock et prix indiqués au relevé',
+      partial: 'Offre locale à vérifier : stock, prix ou lien non confirmé',
+      unavailable: 'Offre locale : rupture ou bientôt disponible',
+      elsewhere: 'Offres dans d\'autres pays seulement',
+      none: 'Aucune offre vérifiée pour ce pays pour le moment.'
+    },
     currencyNote: 'Devise du pays :',
     otherCurrency: 'Chaque prix est affiché dans la devise de son offre, sans conversion.'
   };
