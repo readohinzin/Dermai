@@ -759,17 +759,15 @@ const goalCount=()=>`${state.goals.length}/3 objectifs sélectionnés`;
 const goalBadges=()=>state.goals.length?`<div class="chips" style="margin-bottom:10px">${state.goals.map(id=>`<span class="c-badge">${Engine.copy.GOAL_LABELS[id]}</span>`).join(``)}</div>`:``;
 /* Exclusions : architecture prête (état, moteur, recalcul), volontairement sans interface pour l'instant. Aucune information de santé n'est demandée. */
 const exclusionsSection=()=>``;
-/* Carte du visage : la photo analysée + le masque RÉEL renvoyé par Perfect Corp pour l'indicateur choisi (js/face-map.js).
-   Seuls les indicateurs pour lesquels un masque a été reçu sont proposés. Aucune zone n'est déduite d'un score, d'une priorité ou du type de peau. */
+/* Carte du visage : photo analysée + masques RÉELS de Perfect Corp. Aucune zone déduite d'un score, d'une priorité ou du type de peau. */
 function faceMapHtml(s,keys){
-  const sel=keys.includes(state.faceKey)?state.faceKey:keys[0],lab=k=>SkinModel.METRIC_LABELS[k],sc=k=>SkinModel.displayScore(s.normalized[k]&&s.normalized[k].uiScore);
+  const sel=keys.includes(state.faceKey)?state.faceKey:`all`,lab=k=>SkinModel.METRIC_LABELS[k];
   return `<section class="c-facemap" aria-labelledby="fm-title"><p class="kicker">Localisation</p><div class="hd"><h2 class="h3" id="fm-title">Zones détectées sur votre photo</h2></div>
-   <p class="muted c-facemap__intro">Chaque zone colorée provient directement du service d'analyse. Choisissez un indicateur.</p>
-   <div class="chips c-facemap__chips">${keys.map(k=>`<button class="c-chip" data-act="facemap" data-v="${k}" aria-pressed="${k===sel}">${lab(k)}</button>`).join(``)}</div>
-   <figure class="c-facemap__fig"><div class="c-facemap__frame" data-facemap data-key="${sel}"><img src="${esc(s.photo)}" alt="Votre photo analysée"><canvas aria-hidden="true"></canvas>
-    <span class="c-facemap__label">${lab(sel)}${sc(sel)===null?``:` · ${sc(sel)}/100`}</span></div>
+   <p class="muted c-facemap__intro">Chaque zone entourée provient directement du service d'analyse, avec le score de l'indicateur.</p>
+   <div class="chips c-facemap__chips">${[`all`,...keys].map(k=>`<button class="c-chip" data-act="facemap" data-v="${k}" aria-pressed="${k===sel}">${k===`all`?`Toutes les zones`:lab(k)}</button>`).join(``)}</div>
+   <figure class="c-facemap__fig"><div class="c-facemap__frame" data-facemap data-key="${sel}"><img src="${esc(s.photo)}" alt="Votre photo analysée"><canvas aria-hidden="true"></canvas><svg class="c-facemap__lines" aria-hidden="true"></svg><div class="c-facemap__tags"></div></div>
     <figcaption class="c-facemap__status" data-fm-status role="status" aria-live="polite"></figcaption></figure>
-   <button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide?`Afficher la zone`:`Voir la photo sans la zone`}</button></section>`;
+   <button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide?`Afficher les zones`:`Voir la photo sans les zones`}</button></section>`;
 }
 V.result=()=>{
   if(noReal())return emptyScan(`Votre analyse`,EMPTY_MSG,{back:true,title:`Analyse`});
@@ -1169,8 +1167,10 @@ function after(keep,y){
   motionCtl.scan($app,{route:state.route,key:state.route+`:`+(state.param==null?``:state.param),keep:!!keep,y});   // motion design : apparitions au défilement, compteurs, courbes (js/motion.js)
   const fm=document.querySelector(`[data-facemap]`);
   if(fm&&window.DermaiFaceMap){const sc=SCANS[state.view],key=fm.dataset.key;
-    DermaiFaceMap.mount(fm,{masks:sc&&sc.localization&&sc.localization[key],hidden:!!state.faceHide,onStatus:st=>{const el=document.querySelector(`[data-fm-status]`);
-      if(el)el.textContent=st===`ok`?``:st===`empty`?`Aucune zone localisée pour cet indicateur sur cette photo.`:`Localisation visuelle indisponible pour cet indicateur.`}})}
+    const loc=(sc&&sc.localization)||{},keys=key===`all`?SkinModel.METRIC_KEYS.filter(k=>loc[k]):[key];
+    const items=keys.map(k=>({key:k,label:SkinModel.METRIC_LABELS[k],score:SkinModel.displayScore(sc.normalized[k]&&sc.normalized[k].uiScore),masks:loc[k]}));
+    DermaiFaceMap.mount(fm,{items,hidden:!!state.faceHide,onStatus:failed=>{const el=document.querySelector(`[data-fm-status]`);
+      if(el)el.textContent=failed.length?`Localisation visuelle indisponible pour : ${failed.join(`, `)}.`:``}})}
   if(state.route===`landing`){const el=document.querySelector(`[data-hc]`);if(el)heroCtl=DermaiHero.init(el,{reduced:false,actives:heroActives()})}
   if(state.route===`scan`&&state.scanStep>=1&&state.scanStep<=3){
     if(DEMO_MODE)timers.push(setTimeout(()=>{const c=document.getElementById(`cam`),q=document.getElementById(`qt`);if(c&&q){c.classList.add(`ready`);q.textContent=`Qualité de l'image : excellente`}},1000));
