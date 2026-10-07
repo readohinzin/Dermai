@@ -61,7 +61,7 @@ const CONCERNS={
   hydration:{label:`Hydratation`,
     tips:[`Appliquez votre hydratant sur peau légèrement humide.`,`Évitez les eaux de nettoyage trop chaudes.`]},
   acne:{label:`Acné`,
-    tips:[`Laver régulièrement sa taie d'oreiller et nettoyer son téléphone fait partie d'une routine soignée.`,`Préférez des textures légères, non comédogènes.`]}
+    tips:[`Laver régulièrement sa taie d'oreiller et nettoyer son téléphone fait partie d'une routine soignée.`,`Introduisez un nouveau produit à la fois pour repérer ce que votre peau supporte.`]}
 };
 const CIDS=[`pigmentation`,`pores`,`hydration`,`acne`];
 /* Exemple illustratif de la page d'accueil : trois scores globaux fictifs, passés par le même chemin que les vrais (SkinModel.globalSeries). */

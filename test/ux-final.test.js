@@ -97,3 +97,11 @@ test('UX7 moteur strictement inchangé : mêmes scores, priorités, actifs, rout
   // empreinte calculée sur le moteur d'avant cette passe (commit de4af18) : identique, texte d'hydratation exclu
   assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), '269264a0d128d62813f3b13b0daf4820b71a9d52aefc8e886071c381af32cc5a');
 });
+
+test('UX8 conseils par préoccupation : aucune promesse de texture légère ou non comédogène (même règle que la routine)', () => {
+  const block = app.slice(app.indexOf('const CONCERNS'), app.indexOf('const CIDS'));
+  assert.ok(block.length > 200);
+  assert.doesNotMatch(block, /non com[ée]dog[eè]ne|textures? légères?/i);
+  assert.match(block, /Introduisez un nouveau produit à la fois/);
+  assert.doesNotMatch(app, /non com[ée]dog[eè]ne/i);
+});
