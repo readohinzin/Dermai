@@ -14,8 +14,13 @@ const stripCss = src => src.replace(/\/\*[\s\S]*?\*\//g, '');
 const APP = stripJs(read('js/app.js'));
 const MODEL = stripJs(read('js/skin-model.js'));
 
-test('N1 js/app.js : aucune lecture de rawScore / raw_score, aucune formule 100 − score, aucune note sur 10', () => {
-  assert.doesNotMatch(APP, /\brawScore\b|\braw_score\b/);
+test('N1 js/app.js : rawScore jamais lu pour l\'affichage (seulement transmis à l\'historique), aucune formule 100 − score, aucune note sur 10', () => {
+  /* Étape 25 : rawScore est enregistré (recordOfScan) et relu (scanOfRecord) pour que le moteur décide comme le jour de l'analyse.
+     Nulle part ailleurs dans l'interface : il n'est jamais affiché. */
+  const cut = (src, a, b) => src.slice(0, src.indexOf(a)) + src.slice(src.indexOf(b));
+  const display = cut(cut(APP, 'function scanOfRecord', 'const reindex='), 'function recordOfScan', 'function isRecordable');
+  assert.doesNotMatch(display, /\brawScore\b|\braw_score\b|rawMetrics/);
+  assert.equal((APP.match(/\brawScore\b/g) || []).length, 2, 'exactement : enregistrement et relecture');
   assert.doesNotMatch(APP, /\b100\s*-\s*(?:s\b|s\[|v\b|a\b|raw|x\b|m\b|score)/i, '100 - <score>');
   assert.doesNotMatch(APP, /\(\s*\w+\s*\/\s*10\s*\)\s*\.toFixed|\/10\b/, 'note sur 10');
 });

@@ -14,9 +14,11 @@ const tids = r => [...r.activePlan.treatments, ...r.activePlan.supports].map(t =
 const ROOT = path.join(__dirname, '..');
 
 test('RT1 rides et fermeté faibles : aucun rétinoïde auto-sélectionné (tous niveaux)', () => {
-  for (const level of ['none', 'simple', 'full']) for (const v of [0, 15, 30, 50, 60])
-    assert.ok(!tids(run({ wrinkles: v, firmness: v }, {}, { level })).includes('retinoid'), level + v);
-  assert.ok(tids(run({ wrinkles: 20, firmness: 20 }, {}, { level: 'simple' })).includes('vitamin_c'), 'le moteur reste utile : autre levier validé');
+  for (const goals of [[], ['aging']]) for (const level of ['none', 'simple', 'full']) for (const v of [0, 15, 30, 50, 60])
+    assert.ok(!tids(run({ wrinkles: v, firmness: v }, {}, { level, goals })).includes('retinoid'), level + v);
+  /* Étape 25 : rides = information sauf objectif « rides et fermeté » ; fermeté = descriptive. Avec l'objectif, un levier validé reste possible. */
+  assert.deepEqual(tids(run({ wrinkles: 20, firmness: 20 }, {}, { level: 'simple' })), [], 'sans objectif : aucun actif');
+  assert.ok(tids(run({ wrinkles: 20, firmness: 20 }, {}, { level: 'simple', goals: ['aging'] })).includes('vitamin_c'), 'le moteur reste utile : autre levier validé');
 });
 
 test('RT2 texture faible : aucun rétinoïde auto-sélectionné', () => {

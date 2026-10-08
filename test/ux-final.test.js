@@ -14,8 +14,9 @@ const app = read('js/app.js');
 const STEPS = r => [...r.routinePlan.slots.morning, ...r.routinePlan.slots.evening];
 
 test('UX1 « aucune priorité forte » : message mesuré, sans « parfaite », « aucun problème » ni diagnostic', () => {
-  assert.equal(copy.MAINTENANCE.title, 'Aucune priorité forte ne ressort de cette analyse.');
-  assert.equal(copy.MAINTENANCE.text, 'Certains indicateurs peuvent toutefois être soutenus dans votre routine d\'entretien.');
+  /* Étape 25 : « priorité » est réservé à une vraie décision DERMAI ; sans besoin retenu, on le dit simplement. */
+  assert.equal(copy.MAINTENANCE.title, 'DERMAI ne retient aucun besoin particulier.');
+  assert.equal(copy.MAINTENANCE.text, 'Votre routine reste une routine d\'entretien de base : nettoyage doux, hydratation et protection solaire.');
   const all = [copy.MAINTENANCE.title, copy.MAINTENANCE.text, copy.PERSONAL.measuredNone].join(' ');
   assert.doesNotMatch(all, /parfait|aucun probl[eè]me|aucune imperfection|tout va bien|diagnostic/i);
   assert.doesNotMatch(all, /ne fait pas ressortir/);
@@ -78,7 +79,9 @@ test('UX5 offre internationale : « Voir une offre internationale », aucune pro
 
 test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un titre, valeurs et badges inchangés', () => {
   assert.equal(copy.EYE_GROUP_TITLE, 'Contour des yeux — à titre informatif');
-  assert.match(app, /const rest=H\?\[\]:eng\.interpretation\.indicators\.filter\(i=>!P\.items\.some\(p=>p\.indicator===i\.id\)\),eyeOf=m=>m\.score!==null&&isInfo\(m\)/);
+  assert.match(app, /const rest=H\?\[\]:eng\.interpretation\.indicators\.filter\(i=>!P\.items\.some\(p=>p\.indicator===i\.id\)\)\.map\(asShown\),eyeOf=m=>m\.score!==null&&isInfo\(m\)/);
+  assert.match(app, /asShown=m=>Object\.assign\(\{\},m,\{band:m\.uiBand,bandLabel:m\.uiBandLabel\}\)/, 'badges et barres : bande du score affiché, jamais la décision');
+  assert.equal((app.match(/P\.items\.map\(asShown\)/g) || []).length, 2, 'accueil et résultat : besoins retenus affichés avec le score affiché et « Retenu par DERMAI »');
   assert.match(app, /others=H\?othersH:rest\.filter\(m=>!eyeOf\(m\)\)\.map\(rowOf\)\.join\(``\),eyeRows=rest\.filter\(eyeOf\)\.map\(rowOf\)\.join\(``\)/);
   assert.match(app, /\$\{eyeRows\?`<div class="c-indicators-group"><h3 class="c-indicators-group__title">\$\{Engine\.copy\.EYE_GROUP_TITLE\}<\/h3><ul class="c-indicators">\$\{eyeRows\}<\/ul><\/div>`:``\}/);
   // chaque ligne informative garde son badge « À titre d'information » et aucune recommandation
@@ -89,16 +92,18 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
   assert.ok(info.length >= 1);
 });
 
-test('UX7 décisions du moteur inchangées : mêmes scores, interprétation, priorités, actifs, routine et personnalisation sur 1500 profils', () => {
+test('UX7 empreinte des décisions du moteur (règles 1.2.0) sur 1500 profils : toute variation doit être voulue', () => {
   const replacer = function (k, v) { return (k === 'texture' || (k === 'reason' && this.slot && this.kind)) ? undefined : v; };
   const out = [];
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
     out.push(JSON.stringify([r.interpretation, r.priorities, r.activePlan, r.routinePlan, r.personalization], replacer));
   }
-  /* Empreinte identique à celle du moteur d'avant l'étape 22 (commit 799a03e), vérifiée en exécutant les deux versions.
-     L'étape 22 ne change que la couche produits (justification obligatoire, voir test/synthesis.test.js) et ajoute la synthèse. */
-  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), '06052f301b7a1b6290a03c23377f60440434ae9cab42b71d311ccee7370dc5e0');
+  /* Étape 25 (règles 1.2.0) : empreinte changée VOLONTAIREMENT (ancienne : 06052f30…, règles 1.1.0). Ces 1500 profils n'ont pas de
+     rawScore : ils sont lus en compatibilité (score affiché, repères 61 / 31), et la comparaison exécutée sur les deux versions montre
+     que chaque décision modifiée l'est par les rôles des indicateurs (niveau d'huile, texture, fermeté descriptifs ; radiance et rides
+     soumises à un objectif), y compris la place libérée sous le plafond de trois. Aucun autre changement. */
+  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), 'eb08f3bd0fe778bc0ebfdade9381e8e5898f9d0d4280711c6a54688ea3a64800');
 });
 
 test('UX8 conseils par préoccupation : aucune promesse de texture légère ou non comédogène (même règle que la routine)', () => {

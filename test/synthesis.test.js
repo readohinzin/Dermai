@@ -15,25 +15,36 @@ const run = (ui, o = {}, profile = {}) => Engine.run(norm(ui, Object.assign({ sk
 const ids = list => list.map(i => i.id);
 const REF = { acne: 70, pores: 81, oiliness: 67, texture: 69, hydration: 67, redness: 99, pigmentation: 72, wrinkles: 79, firmness: 78, radiance: 65 };
 const REF_O = { skin: 'Oily', global: 75, age: 29 };
-const texts = y => [y.found, y.attention, y.goals.text, y.strategy.text, y.strategy.skinContext || '', ...Object.values(y.steps), ...Object.values(y.products).map(p => p.text)].join(' ');
+const texts = y => [...Object.values(y.sections), y.goals.text, y.strategy.skinContext || '', y.scoreNote, ...Object.values(y.steps), ...Object.values(y.products).map(p => p.text)].join(' ');
+const BASE = 'Cette étape fait partie de l\'entretien de base.';
 
-test('S0 scénario de référence (dernier résultat réel) : lecture cohérente, explicable, sans priorité forte', () => {
+/* Étape 25 : quatre parties distinctes (ce que l'analyse montre / vos résultats les moins élevés / ce que DERMAI retient / votre
+   stratégie). Le cas de référence n'a pas de rawScore (seul l'écran a été relevé) : il est lu en compatibilité, rien n'est inventé. */
+test('S0 scénario de référence (dernier résultat réel, sans rawScore) : quatre parties, aucun besoin inventé, aucun lien causal', () => {
   const r = run(REF, REF_O), y = r.synthesis;
   assert.equal(r.priorities.mode, 'maintenance');
+  assert.equal(y.basis, 'ui', 'aucun rawScore : compatibilité');
   assert.deepEqual(ids(y.tiers.priority), []);
-  assert.deepEqual(ids(y.tiers.attention), ['radiance', 'oiliness', 'hydration']);
+  assert.deepEqual(ids(y.tiers.lowest), ['radiance', 'oiliness', 'hydration']);
   assert.deepEqual(ids(y.tiers.strength), ['redness', 'pores', 'wrinkles']);
-  assert.deepEqual(ids(y.tiers.maintain), ['texture', 'acne', 'pigmentation', 'firmness']);
-  assert.match(y.found, /Sur vos 10 indicateurs principaux, 10 sont dans la plage « Bien » \(61 et plus\)\./);
-  assert.match(y.found, /plus favorables : rougeurs \(99\), pores \(81\) et rides \(79\)/);
-  assert.match(y.found, /moins élevés : radiance \(65\), niveau d'huile \(67\) et hydratation \(67\)/);
-  assert.match(y.attention, /même vos résultats les moins élevés, radiance \(65\), niveau d'huile \(67\) et hydratation \(67\), sont à 61 ou plus\. Selon les règles actuelles de DERMAI, cela ne justifie pas de soin ciblé/);
-  assert.match(y.goals.text, /^Vous n'avez pas indiqué d'objectif : DERMAI s'appuie sur votre analyse seule, en suivant surtout radiance \(65\)/);
-  assert.match(y.strategy.text, /^Stratégie : entretien adapté à votre profil \(peau grasse\), en suivant surtout radiance \(65\)/);
-  assert.match(y.steps['morning:moisturize'], /Votre hydratation \(67\) fait partie de vos résultats les moins élevés/);
-  assert.match(y.steps['morning:spf'], /Votre radiance \(65\) fait partie de vos axes à suivre/);
+  assert.deepEqual(ids(y.tiers.other), ['texture', 'acne', 'pigmentation', 'firmness']);
+  assert.deepEqual(y.titles, { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DERMAI retient', strategy: 'Votre stratégie' });
+  assert.equal(y.sections.shows, 'Votre analyse donne 10 indicateurs principaux, de 65 à 99 sur 100. Vos résultats les plus élevés : rougeurs (99), pores (81) et rides (79). Profil de peau indiqué par l\'analyse : peau grasse.');
+  assert.equal(y.sections.lowest, 'Radiance (65), niveau d\'huile (67) et hydratation (67). C\'est une comparaison entre vos propres résultats : un résultat moins élevé n\'est pas forcément un besoin.');
+  assert.match(y.sections.retained, /^DERMAI ne retient aucun besoin particulier : aucun indicateur sur lequel DERMAI peut agir n'est sous ses repères\. Votre routine reste une routine d'entretien\./);
+  assert.match(y.sections.retained, /Niveau d'huile \(67\) : résultat décrit sans soin ciblé automatique/);
+  assert.match(y.sections.retained, /Cette analyse ne contient pas de données brutes : DERMAI applique ses repères au score affiché, sans rien reconstruire\./);
+  assert.doesNotMatch(y.sections.retained, /radiance/i, 'une radiance favorable ne devient jamais un problème');
+  assert.equal(y.sections.strategy, 'Stratégie : entretien de base (nettoyage doux, hydratation, protection solaire), adapté à votre profil (peau grasse). Aucun soin ciblé n\'est ajouté.');
+  assert.equal(y.goals.text, 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule.');
+  assert.equal(y.scoreNote, 'Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DERMAI utilisent séparément les données brutes de l\'analyse.');
+  // étapes de base : dites telles quelles, sans lien causal avec un score
+  for (const id of ['morning:cleanse', 'morning:moisturize', 'morning:spf', 'evening:cleanse', 'evening:moisturize']) assert.ok(y.steps[id].startsWith(BASE), id);
+  assert.equal(y.steps['morning:spf'], BASE);
   assert.match(y.steps['morning:cleanse'], /profil gras/);
-  // produits : le Cicaplast n'est plus proposé par défaut ; il n'est pas présenté comme adapté
+  assert.doesNotMatch(Object.values(y.steps).join(' '), /\(\d+\)|entretient|radiance|axes?/i);
+  assert.doesNotMatch(texts(y), /entretient votre score|axes? d'attention|axes? à suivre|en suivant surtout|radiance[^.]*protection solaire|protection solaire[^.]*radiance/i);
+  // produits : aucun par défaut ; le Cicaplast n'est pas présenté comme adapté
   assert.deepEqual(r.productMatches, []);
   assert.equal(y.products['morning:moisturize'].status, 'none');
   const v = P.catalogView(r.routinePlan, r.productMatches, REAL);
@@ -42,54 +53,58 @@ test('S0 scénario de référence (dernier résultat réel) : lecture cohérente
   for (const f of ['js/engine/synthesis.js']) assert.doesNotMatch(code(f), /\b(65|67|69|70|72|75|78|79|81|99)\b/, f);
 });
 
-test('S1 cas 1 profil globalement favorable → entretien, explication sans vocabulaire générique', () => {
+test('S1 cas 1 profil globalement favorable → entretien, rien ne se détache', () => {
   const r = run({}, { fill: 88 }), y = r.synthesis;
   assert.equal(r.priorities.mode, 'maintenance');
   assert.equal(y.strategy.mode, 'maintenance');
   assert.equal(y.homogeneous, true);
-  assert.match(y.found, /très proches les uns des autres/);
-  assert.match(y.strategy.text, /entretien de l'ensemble/);
-  assert.match(y.attention, /Aucun indicateur principal n'est sous la plage « Bien »/);
+  assert.deepEqual(y.tiers.lowest, []);
+  assert.match(y.sections.lowest, /très proches les uns des autres : aucun ne se détache/);
+  assert.match(y.strategy.text, /^Stratégie : entretien de base/);
+  assert.match(y.sections.retained, /^DERMAI ne retient aucun besoin particulier/);
 });
 
-test('S2 cas 2 un axe nettement moins favorable → identifié comme priorité', () => {
+test('S2 cas 2 un résultat sous les repères, avec une règle DERMAI → besoin retenu', () => {
   const y = run({ hydration: 40 }).synthesis;
   assert.deepEqual(ids(y.tiers.priority), ['hydration']);
-  assert.match(y.attention, /Ce qui mérite votre attention en premier : hydratation \(40\)/);
+  assert.match(y.sections.retained, /^DERMAI retient un besoin à soutenir pour : hydratation \(40\)\. D'après les données de l'analyse, ce résultat est sous les repères DERMAI/);
   assert.equal(y.strategy.mode, 'action');
 });
 
-test('S3 cas 3 deux axes moins favorables → hiérarchie : bande la plus basse d\'abord', () => {
+test('S3 cas 3 deux besoins → hiérarchie : repère le plus bas d\'abord', () => {
   const y = run({ pigmentation: 45, acne: 25 }).synthesis;
   assert.deepEqual(ids(y.tiers.priority), ['acne', 'pigmentation']);
   assert.match(y.strategy.text, /^Stratégie : soutenir acné \(25\) et pigmentation \(45\) avec/);
 });
 
 const MIX = { radiance: 65, acne: 67, pigmentation: 72 };
-test('S4 / S5 / S7 objectifs : même analyse, objectifs différents → stratégie différente, fondée sur les données', () => {
-  const none = run(MIX, { fill: 86 }).synthesis, tone = run(MIX, { fill: 86 }, { goals: ['tone'] }).synthesis, blem = run(MIX, { fill: 86 }, { goals: ['blemishes'] }).synthesis;
-  assert.match(tone.strategy.text, /attention particulière à radiance \(65\) et pigmentation \(72\)|attention particulière à radiance \(65\)/);
-  assert.match(tone.strategy.text, /en lien avec votre objectif/);
-  assert.equal(tone.goals.items[0].tier, 'attention');
-  assert.match(blem.strategy.text, /attention particulière à acné \(67\)/);
-  assert.equal(blem.goals.items[0].tier, 'attention');
-  assert.notEqual(tone.strategy.text, blem.strategy.text);
-  assert.notEqual(none.strategy.text, tone.strategy.text);
-  assert.deepEqual(none.strategy.focus, ['radiance', 'acne', 'pigmentation']);
-  assert.deepEqual(blem.strategy.focus, ['acne', 'radiance', 'pigmentation'], 'l\'axe relié à l\'objectif passe en tête du suivi');
-  // un objectif ne crée ni priorité ni soin ciblé (règle existante conservée)
-  for (const y of [tone, blem]) assert.deepEqual(y.tiers.priority, []);
-  // objectif sur un point fort : on le dit, sans inventer d'axe
+test('S4 / S5 / S7 objectifs : même analyse, objectifs différents → stratégie différente seulement s\'il existe une base exploitable', () => {
+  const ui = { hydration: 50, pores: 55, radiance: 45 };
+  const none = run(ui).synthesis, pores = run(ui, {}, { goals: ['oil_pores'] }).synthesis, tone = run(ui, {}, { goals: ['tone'] }).synthesis;
+  assert.deepEqual(none.strategy.focus, ['hydration', 'pores'], 'radiance : information seulement sans objectif');
+  assert.deepEqual(pores.strategy.focus, ['pores', 'hydration'], 'l\'objectif départage dans le même repère');
+  assert.deepEqual(tone.strategy.focus, ['radiance', 'hydration', 'pores'], 'objectif « teint » + radiance sous les repères : règle explicite ouverte');
+  assert.notEqual(none.strategy.text, pores.strategy.text); assert.notEqual(none.strategy.text, tone.strategy.text);
+  assert.match(none.sections.retained, /Radiance \(45\) : information seulement\. DERMAI n'y associe un soin que si vous choisissez l'objectif « teint et taches »\./);
+  assert.match(pores.goals.items[0].text, /^Niveau d'huile et pores : rejoint un besoin retenu par DERMAI \(pores \(55\)\)/);
+  // objectif « éclat / teint » avec une radiance favorable : aucun problème créé
+  const fav = run(MIX, { fill: 86 }, { goals: ['tone'] }), y = fav.synthesis;
+  assert.deepEqual(fav.priorities.items, []);
+  assert.equal(y.goals.items[0].status, 'no_signal');
+  assert.match(y.goals.items[0].text, /^Teint et taches : radiance \(65\) et pigmentation \(72\) ne font pas ressortir de besoin selon les repères DERMAI : aucun soin ciblé n'est ajouté à ce titre\.$/);
+  assert.doesNotMatch(texts(y), /radiance \(65\)[^.]*(besoin à soutenir|sous les repères DERMAI :)/);
+  // objectif sur un résultat élevé : on le dit, sans inventer de besoin
   const strong = run(Object.assign({ redness: 97 }, MIX), { fill: 86 }, { goals: ['redness_comfort'] }).synthesis;
-  assert.equal(strong.goals.items[0].tier, 'strength');
-  assert.match(strong.goals.items[0].text, /fait partie de vos points forts/);
+  assert.equal(strong.goals.items[0].status, 'no_signal');
+  assert.deepEqual(strong.tiers.priority, []);
 });
 
-test('S6 type de peau : contexte (étapes formulées différemment), jamais à lui seul un produit', () => {
+test('S6 type de peau : contexte (étapes formulées différemment), jamais à lui seul un produit ni une priorité', () => {
   const oily = run(MIX, { skin: 'Oily', fill: 86 }), dry = run(MIX, { skin: 'Dry', fill: 86 });
   assert.notEqual(oily.synthesis.steps['morning:cleanse'], dry.synthesis.steps['morning:cleanse']);
   assert.notEqual(oily.synthesis.steps['morning:moisturize'], dry.synthesis.steps['morning:moisturize']);
-  assert.match(oily.synthesis.strategy.skinContext, /jamais à lui seul le choix d'un produit/);
+  assert.match(oily.synthesis.strategy.skinContext, /jamais à lui seul le choix d'un soin/);
+  assert.deepEqual(oily.priorities.items, []); assert.deepEqual(dry.priorities.items, []);
   // le type de peau seul ne fait choisir aucun produit réel
   assert.deepEqual(oily.productMatches.filter(m => m.kind !== 'treatment'), []);
 });
@@ -116,7 +131,7 @@ test('S11 produit sans justification : jamais proposé ni présenté comme adapt
       assert.ok(m.activeIds.length > 0, 'tout produit réel proposé contient ce que son étape recherche (' + m.productId + ')');
       assert.ok(st.kind === 'treatment' ? m.activeIds.includes(st.activeId) : m.activeIds.every(id => st.supportIds.includes(id)));
       assert.ok(['only', 'more_actives', 'skin', 'editorial', 'order'].includes(m.selection.rule));
-      assert.match(r.synthesis.products[m.stepId].text, /(Ce soin le contient|actifs de soutien retenus).*(seul produit|Parmi \d+ produits)/);
+      assert.match(r.synthesis.products[m.stepId].text, /^Proposé par DERMAI\. .*(Ce soin le contient|actifs de soutien retenus).*(seul produit|Parmi \d+ produits)/);
     }
   }
   // le Cicaplast reste proposé quand sa composition répond à un besoin réel (soutien retenu), avec la raison
@@ -130,13 +145,13 @@ test('S12 aucun objectif : la stratégie vient de l\'analyse seule, sans objecti
   const y = run(MIX, { fill: 86 }).synthesis;
   assert.equal(y.goals.mode, 'none');
   assert.deepEqual(y.goals.items, []);
-  assert.match(y.goals.text, /^Vous n'avez pas indiqué d'objectif/);
+  assert.equal(y.goals.text, 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule.');
   assert.doesNotMatch(y.strategy.text, /objectif/);
 });
 
 test('S13 contour des yeux : informatif, jamais dans la hiérarchie ni la stratégie', () => {
   const y = run({ eyeBag: 15, darkCircle: 20, tearTrough: 25 }, { fill: 85 }).synthesis;
-  const all = [...y.tiers.priority, ...y.tiers.attention, ...y.tiers.maintain, ...y.tiers.strength].map(i => i.id);
+  const all = [...y.tiers.priority, ...y.tiers.lowest, ...y.tiers.other, ...y.tiers.strength].map(i => i.id);
   for (const k of ['eyeBag', 'darkCircle', 'tearTrough', 'droopyUpperEyelid', 'droopyLowerEyelid']) assert.ok(!all.includes(k), k);
   assert.ok(y.informative.some(i => i.id === 'eyeBag'));
   assert.doesNotMatch(y.strategy.text, /poches|cernes|vallée/i);
@@ -148,29 +163,28 @@ test('S14 ancienne analyse ou données partielles : la synthèse fonctionne ; l\
   assert.equal(r.synthesis.strategy.skinContext, null);
   const app = read('js/app.js');
   assert.match(app, /\$\{H\?``:DermaiInsight\.found\(eng\.synthesis\)\}/);                 // analyse ancienne : pas de synthèse recalculée
-  assert.match(app, /\$\{H\?Engine\.copy\.MAINTENANCE\.text:eng\.synthesis\.attention\}/);
+  assert.match(app, /\$\{Engine\.copy\.MAINTENANCE\.text\}/);
 });
 
-test('S15 sémantique Perfect Corp et déterminisme : un score plus élevé n\'est jamais moins favorable ; mêmes entrées, même sortie', () => {
+test('S15 sémantique Perfect Corp et déterminisme : un résultat plus élevé n\'est jamais moins favorable ; mêmes entrées, même sortie', () => {
+  const val = (a, id) => a.interpretation.indicators.find(x => x.id === id);
   for (let s = 1; s <= 600; s++) {
     const c = randomCase(s * 29 + 3), n = norm(c.ui, c.o);
     const a = Engine.run(n, c.profile, { catalog: REAL }), b = Engine.run(n, c.profile, { catalog: REAL });
     assert.deepEqual(a.synthesis, b.synthesis);
-    const y = a.synthesis;
-    const att = y.tiers.attention.filter(i => i.band === 'good'), str = y.tiers.strength;
-    if (att.length && str.length) assert.ok(Math.max(...att.map(i => i.score)) <= Math.min(...str.map(i => i.score)), 'profil #' + s);
-    for (const t of ['priority', 'attention', 'maintain', 'strength']) for (const i of y.tiers[t]) assert.equal(i.score, a.interpretation.indicators.find(x => x.id === i.id).score, 'score inchangé');
-    // groupes plafonnés à MAX_PRIORITIES (3) dans la plage « Bien » ; les indicateurs « à soutenir » non retenus restent tous visibles (jamais masqués)
-    assert.ok(att.length <= 3 && y.tiers.strength.length <= 3);
-    for (const i of y.tiers.attention.filter(x => x.band !== 'good')) assert.ok(!y.tiers.priority.some(p => p.id === i.id));
-    assert.doesNotMatch(texts(y), /maladie|souffr|diagnostic|pathologi|traitement|guéri|parfait|undefined|NaN|null/i, 'profil #' + s);
+    const y = a.synthesis, low = y.tiers.lowest, str = y.tiers.strength;
+    if (low.length && str.length) assert.ok(Math.max(...low.map(i => val(a, i.id).value)) <= Math.min(...str.map(i => val(a, i.id).value)), 'profil #' + s);
+    for (const t of ['priority', 'lowest', 'other', 'strength']) for (const i of y.tiers[t]) assert.equal(i.score, val(a, i.id).score, 'score affiché inchangé');
+    assert.ok(low.length <= 3 && str.length <= 3);
+    for (const i of y.tiers.priority) assert.ok(i.band === 'low' || i.band === 'mid', 'un besoin retenu est toujours sous les repères');
+    assert.doesNotMatch(texts(y), /maladie|souffr|diagnostic|pathologi|traitement|guéri|parfait|probl[eè]me|undefined|NaN|null/i, 'profil #' + s);
   }
-  // aucune nouvelle valeur seuil : la synthèse lit les bandes existantes et TREND_STEP
+  // aucune valeur seuil dans la synthèse : elle lit la configuration de décision (data/decision.js) et MAX_PRIORITIES
   const src = code('js/engine/synthesis.js');
-  assert.match(src, /skin\.BANDS/); assert.match(src, /skin\.TREND_STEP/); assert.match(src, /MAX_PRIORITIES/);
-  assert.doesNotMatch(src, /\b(3[01]|6[01]|50|40|80|90)\b/);
+  assert.match(src, /DEC\.TIE_TOLERANCE/); assert.match(src, /MAX_PRIORITIES/);
+  assert.doesNotMatch(src, /\b(25|3[01]|50|6[01]|40|80|90)\b/);
 });
 
-test('S16 version des règles : changée, puisque la règle des produits change', () => {
-  assert.equal(Engine.VERSION, '1.1.0');
+test('S16 version des règles : 1.2.0, puisque les décisions passent sur le rawScore', () => {
+  assert.equal(Engine.VERSION, '1.2.0');
 });

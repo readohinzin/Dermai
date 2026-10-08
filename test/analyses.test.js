@@ -89,7 +89,8 @@ test('H6 pages de 20 : de la plus récente à la plus ancienne, suite disponible
   assert.deepEqual(p3.analyses.map(a => a.globalScore), [51]); assert.equal(p3.hasMore, false);
   const def = fake.log.filter(l => l.method === 'GET' && l.path.startsWith('/rest/v1/skin_analyses')).pop();
   assert.match(def.path, /order=analyzed_at\.desc/);
-  assert.doesNotMatch(def.path, /select=\*|photo|task|raw|url/i, 'colonnes utiles seulement');
+  assert.doesNotMatch(def.path, /select=\*|photo|task|mask|url/i, 'colonnes utiles seulement');
+  assert.match(def.path, /select=id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version,raw_metrics&/, 'raw_metrics : seule colonne ajoutée (décision du moteur)');
   const big = await acc.listAnalyses({ limit: 5000 });
   assert.match(fake.log[fake.log.length - 1].path, /limit=51\b/, 'jamais plus de 50 par page');
   assert.equal(big.ok, true);
@@ -162,3 +163,39 @@ test('H12 lignes illisibles ignorées, jamais inventées ; aucune valeur hors é
   assert.deepEqual(a.priorities, [{ id: 'acne', label: 'Acné', score: 63, band: 'good' }]); assert.deepEqual(a.goals, ['tone']);
   for (const bad of [null, {}, { id: 'x' }, Object.assign({}, good, { analyzed_at: 'pas une date' }), Object.assign({}, good, { metrics: null }), Object.assign({}, good, { metrics: [1] })]) assert.equal(Account.analysisFromRow(bad), null);
 });
+
+/* Étape 25 : le raw_score sert aux décisions du moteur ; il est enregistré pour qu'une analyse relue soit décidée comme le jour même. */
+test('H20 raw_metrics : rawScore enregistrés tels quels (jamais arrondis), clés inconnues et valeurs invalides écartées, relus à l\'identique', async () => {
+  const { acc, fake } = setup();
+  await acc.signUp('a@exemple.com', 'motdepasse1');
+  const raw = { acne: 65.8439, pores: 41.18226081132889, hydration: 42.08343029022217, redness: 100, texture: 101, oiliness: -1, wrinkles: '50', inconnu: 12, firmness: null };
+  assert.deepEqual(await acc.saveAnalysis(sample(1, { rawMetrics: raw })), { ok: true });
+  const w = fake.log.filter(l => l.method === 'POST' && l.path.startsWith('/rest/v1/skin_analyses')).pop();
+  assert.deepEqual(w.body.raw_metrics, { acne: 65.8439, pores: 41.18226081132889, hydration: 42.08343029022217, redness: 100 });
+  assert.doesNotMatch(JSON.stringify(w.body), /user_id|photo|mask|task|https?:|data:|url/i);
+  const back = (await acc.listAnalyses()).analyses[0];
+  assert.deepEqual(back.rawMetrics, { acne: 65.8439, pores: 41.18226081132889, hydration: 42.08343029022217, redness: 100 });
+  assert.deepEqual(back.metrics.acne, 63, 'le score affiché reste celui enregistré');
+  // sans rawScore (analyse ancienne ou incomplète) : aucune colonne raw_metrics envoyée, rien d'inventé à la relecture
+  const row = Account.analysisToRow(sample(2));
+  assert.equal('raw_metrics' in row, false);
+  assert.deepEqual(Account.analysisFromRow(Object.assign({ id: UUID(2), analyzed_at: new Date().toISOString(), metrics: { acne: 50 } })).rawMetrics, {});
+});
+
+test('H21 base sans la colonne raw_metrics (migration pas encore appliquée) : enregistrement et lecture continuent, sans rawScore', async () => {
+  const { acc, fake } = setup();
+  fake.state.rawColumn = false;
+  await acc.signUp('a@exemple.com', 'motdepasse1');
+  assert.deepEqual(await acc.saveAnalysis(sample(1, { rawMetrics: { acne: 40.5 } })), { ok: true });
+  const posts = fake.log.filter(l => l.method === 'POST' && l.path.startsWith('/rest/v1/skin_analyses'));
+  assert.equal(posts.length, 2, 'un seul nouvel essai, sans la colonne');
+  assert.ok(posts[0].body.raw_metrics); assert.equal('raw_metrics' in posts[1].body, false);
+  const r = await acc.listAnalyses();
+  assert.equal(r.ok, true); assert.equal(r.analyses.length, 1); assert.deepEqual(r.analyses[0].rawMetrics, {});
+  const gets = fake.log.filter(l => l.method === 'GET' && l.path.startsWith('/rest/v1/skin_analyses'));
+  assert.match(gets[0].path, /raw_metrics/); assert.doesNotMatch(gets[1].path, /raw_metrics/);
+  // une autre erreur n'est jamais confondue avec la colonne manquante
+  fake.state.failAnalyses = true;
+  assert.equal((await acc.saveAnalysis(sample(3, { rawMetrics: { acne: 40.5 } }))).ok, false);
+});
+

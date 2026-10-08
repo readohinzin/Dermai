@@ -5,6 +5,7 @@
    dans profiles-db.test.js. */
 const METRICS = ['acne', 'pores', 'oiliness', 'texture', 'hydration', 'redness', 'pigmentation', 'wrinkles', 'firmness', 'radiance', 'eyeBag', 'tearTrough', 'darkCircle', 'droopyUpperEyelid', 'droopyLowerEyelid'];
 const ANALYSIS_COLS = ['id', 'user_id', 'analyzed_at', 'global_score', 'skin_type', 'skin_age', 'metrics', 'priorities', 'goals_snapshot', 'engine_version'];
+const okRaw = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;   // raw_metrics (migration 20261009120000)
 const okScore = v => v === null || (Number.isInteger(v) && v >= 0 && v <= 100);
 const GOALS = ['hydration', 'oil_pores', 'blemishes', 'tone', 'redness_comfort', 'texture', 'aging', 'maintenance'];
 
@@ -17,7 +18,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
   const refresh = new Map();          // refresh_token -> sub
   let n = 0, clock = 1_800_000_000;
   const log = [];
-  const state = { now: () => clock, advance: s => { clock += s; }, failNetwork: false, failRest: false, failAuth: false, failAnalyses: false, failAnalysesOnce: 0, failAuthUser: false, failQuota: false, quotaMissing: false, failDelete: false, rateLimit: false };
+  const state = { now: () => clock, advance: s => { clock += s; }, failNetwork: false, failRest: false, failAuth: false, failAnalyses: false, failAnalysesOnce: 0, failAuthUser: false, failQuota: false, quotaMissing: false, failDelete: false, rateLimit: false, rawColumn: true };   // rawColumn : false = migration raw_metrics pas encore appliquée
   const resp = (status, body) => ({ ok: status >= 200 && status < 300, status, text: async () => (body === undefined ? '' : JSON.stringify(body)) });
   const mkSession = u => {
     const access = 'at-' + (++n) + '.pl-' + n + '.sg-' + n, rt = 'rt-' + (++n);
@@ -124,11 +125,13 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
       const mine = analyses.get(t.sub) || [], method = init.method || 'GET';
       if (method === 'GET') {
+        const cols = (u.searchParams.get('select') || '').split(',');
+        if (cols.includes('raw_metrics') && !state.rawColumn) return resp(400, { code: '42703', message: 'column skin_analyses.raw_metrics does not exist' });
         const lim = Number(u.searchParams.get('limit')) || 1000, off = Number(u.searchParams.get('offset')) || 0, desc = /desc/.test(u.searchParams.get('order') || '');
         state.listCalls = (state.listCalls || 0) + 1;
         const sorted = [...mine].sort((a, b) => (Date.parse(a.analyzed_at) - Date.parse(b.analyzed_at)) || (a.id < b.id ? -1 : 1));
         if (desc) sorted.reverse();
-        return resp(200, sorted.slice(off, off + lim).map(r => Object.assign({}, r, { user_id: undefined })));   // user_id n'est jamais lu (colonnes demandées seulement)
+        return resp(200, sorted.slice(off, off + lim).map(r => { const o = Object.assign({}, r, { user_id: undefined }); if (!cols.includes('raw_metrics')) delete o.raw_metrics; else if (!o.raw_metrics) o.raw_metrics = {}; return o; }));   // user_id n'est jamais lu (colonnes demandées seulement)
       }
       if (method === 'DELETE') {
         if (!u.search) return resp(400, { code: '21000', message: 'DELETE requires a WHERE clause' });
@@ -136,7 +139,10 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       }
       if (method === 'POST') {
         if (body.user_id && body.user_id !== t.sub) return resp(403, { code: '42501', message: 'new row violates row-level security policy' });
-        if (Object.keys(body).some(k => !ANALYSIS_COLS.includes(k))) return resp(400, { code: 'PGRST204', message: 'unknown column' });
+        const cols = state.rawColumn ? [...ANALYSIS_COLS, 'raw_metrics'] : ANALYSIS_COLS, unknown = Object.keys(body).find(k => !cols.includes(k));
+        if (unknown) return resp(400, { code: 'PGRST204', message: `Could not find the '${unknown}' column of 'skin_analyses' in the schema cache` });
+        const rm = body.raw_metrics;
+        if (rm !== undefined && (!rm || typeof rm !== 'object' || Array.isArray(rm) || Object.entries(rm).some(([k, v]) => !METRICS.includes(k) || !okRaw(v)))) return resp(400, { code: '23514', message: 'violates check constraint' });
         const m = body.metrics;
         if (!m || typeof m !== 'object' || Array.isArray(m) || Object.entries(m).some(([k, v]) => !METRICS.includes(k) || !okScore(v))) return resp(400, { code: '23514', message: 'violates check constraint' });
         if (!okScore(body.global_score === undefined ? null : body.global_score) || !body.engine_version) return resp(400, { code: '23514', message: 'violates check constraint' });

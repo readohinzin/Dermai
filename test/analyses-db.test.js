@@ -10,6 +10,7 @@ const { spawnSync } = require('node:child_process');
 
 const BIN = ['/usr/lib/postgresql/16/bin', '/usr/lib/postgresql/15/bin', '/usr/lib/postgresql/17/bin', '/usr/local/bin'].find(d => fs.existsSync(path.join(d, 'initdb')));
 const MIGRATION = fs.readFileSync(path.join(__dirname, '../supabase/migrations/20261007120000_create_skin_analyses.sql'), 'utf8');
+const RAW_MIGRATION = fs.readFileSync(path.join(__dirname, '../supabase/migrations/20261009120000_skin_analyses_raw_metrics.sql'), 'utf8');
 const PORT = 54000 + Math.floor(Math.random() * 900);
 const A = '11111111-1111-1111-1111-111111111111', B = '22222222-2222-2222-2222-222222222222';
 const asRoot = process.getuid && process.getuid() === 0;
@@ -48,7 +49,7 @@ test('AD0 démarrage d\'un PostgreSQL jetable et application de la migration', l
   assert.ok(psql(`insert into auth.users values ('${A}', 'a@exemple.com'), ('${B}', 'b@exemple.com');`).ok);
 });
 
-test('AD1 la table ne contient que des scores : aucune photo, masque, URL, task_id, JSON brut ni rawScore', live, () => {
+test('AD1 migration initiale : que des scores affichés, aucune photo, masque, URL, task_id, JSON brut (raw_metrics vient de la migration AD11)', live, () => {
   if (!up) return;
   const cols = psql(`select string_agg(column_name, ',' order by ordinal_position) from information_schema.columns where table_schema='public' and table_name='skin_analyses';`).out;
   assert.equal(cols, 'id,user_id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version,created_at');
@@ -144,6 +145,27 @@ test('AD9 migration : RLS activée, politiques « propre ligne », aucune modifi
   assert.doesNotMatch(MIGRATION, /for update/i);
   assert.doesNotMatch(MIGRATION, /service_role|using \(true\)|with check \(true\)|(^|\s)to\s+(anon|public)\b(?!\.)/im);
   assert.match(MIGRATION, /grant select, insert, delete on public\.skin_analyses to authenticated/);
+});
+
+test('AD11 migration raw_metrics (étape 25) : anciennes lignes vides, rawScore 0-100 acceptés tels quels, tout le reste refusé', live, () => {
+  if (!up) return;
+  const before = psql(`select count(*) from public.skin_analyses;`).out;
+  const m = psql(RAW_MIGRATION);
+  assert.ok(m.ok, m.err);
+  assert.ok(psql(RAW_MIGRATION).ok, 'migration rejouable');
+  const cols = psql(`select string_agg(column_name, ',' order by ordinal_position) from information_schema.columns where table_schema='public' and table_name='skin_analyses';`).out;
+  assert.equal(cols, 'id,user_id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version,created_at,raw_metrics');
+  assert.equal(psql(`select count(*) from public.skin_analyses where raw_metrics <> '{}'::jsonb;`).out, '0', 'anciennes lignes : rien de reconstruit');
+  assert.equal(psql(`select count(*) from public.skin_analyses;`).out, before);
+  const insRaw = raw => psql(`insert into public.skin_analyses (${base}, raw_metrics) values (${baseVals()}, '${raw}'::jsonb) returning raw_metrics ->> 'pores';`, { role: 'authenticated', sub: A });
+  const ok = insRaw('{"acne":65.8439,"pores":41.18226081132889,"redness":100,"hydration":0}');
+  assert.ok(ok.ok, ok.err);
+  assert.equal(ok.out.split('\n')[0], '41.18226081132889', 'jamais arrondi');
+  for (const bad of ['{"acne":101}', '{"acne":-0.5}', '{"acne":"40"}', '{"acne":null}', '{"rawScore":40}', '{"photo":"data:x"}', '{"acne":{"raw":40}}', '[40]'])
+    assert.equal(insRaw(bad).ok, false, bad);
+  assert.ok(ins(base, baseVals(), A).ok, 'ancienne application (sans raw_metrics) : toujours acceptée');
+  assert.match(RAW_MIGRATION, /grant execute on function public\.dermai_valid_raw_metrics\(jsonb\) to authenticated/);
+  assert.doesNotMatch(RAW_MIGRATION.replace(/^(--|comment on).*$/gm, ''), /photo|mask|url|task|service_role|for update|to anon/i);
 });
 
 test('AD10 arrêt du PostgreSQL jetable', live, () => {

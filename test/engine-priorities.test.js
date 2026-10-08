@@ -15,7 +15,7 @@ test('PR2 un seul score faible : une seule priorité, avec sa raison et son expl
   assert.deepEqual(ids(r.priorities.items), ['pores']);
   const it = r.priorities.items[0];
   assert.deepEqual([it.score, it.band, it.domain, it.objectiveMatch, it.actionability, it.confidence, it.rank], [40, 'mid', 'oil_pores', false, 'actionable', 'medium', 1]);
-  assert.match(it.reason, /actuellement plus faible/);
+  assert.match(it.reason, /sous les repères DERMAI : DERMAI le retient comme besoin à soutenir\./);
   assert.equal(r.priorities.mode, 'action');
 });
 
@@ -25,9 +25,9 @@ test('PR3 plusieurs scores faibles : bande la plus basse d\'abord, puis score le
   assert.equal(r.priorities.items[0].band, 'low');
 });
 
-test('PR4 scores égaux : ordre fixe des indicateurs (déterministe)', () => {
-  const r = run({ pores: 45, acne: 45, texture: 45 });
-  assert.deepEqual(ids(r.priorities.items), ['acne', 'pores', 'texture']);
+test('PR4 scores égaux : ordre fixe des indicateurs (déterministe) ; un indicateur descriptif (texture) n\'entre jamais', () => {
+  const r = run({ pores: 45, acne: 45, texture: 45, hydration: 45 });
+  assert.deepEqual(ids(r.priorities.items), ['acne', 'pores', 'hydration']);
 });
 
 test('PR5 stabilité : un écart de 2 points ou moins ne change pas le classement ; au-delà, le score le plus bas passe devant', () => {
@@ -71,7 +71,7 @@ test('PR10 aucun indicateur actionnable sous « Bien » : mode maintenance, jama
   const r = run({ acne: 61, pores: 90, hydration: 100 });
   assert.equal(r.priorities.mode, 'maintenance');
   assert.deepEqual(r.priorities.items, []);
-  assert.ok(r.explanations.some(e => e.kind === 'mode' && /Aucune priorité forte ne ressort/.test(e.text)));
+  assert.ok(r.explanations.some(e => e.kind === 'mode' && /DERMAI ne retient aucun besoin particulier/.test(e.text)));
   assert.equal(run({ acne: 60 }).priorities.mode, 'action');                                  // 60 : « À soutenir »
 });
 
@@ -101,10 +101,11 @@ test('PR13 bandes : 61 « Bien » (non éligible), 60 « À soutenir », 30 « �
   assert.equal(run({ acne: 31 }).priorities.items[0].band, 'mid');
 });
 
-test('PR14 priorités indépendantes du score global, de l\'âge cutané, du type de peau (ordre) et de rawScore', () => {
+test('PR14 priorités indépendantes du score global, de l\'âge cutané et du type de peau (ordre)', () => {
+  /* rawScore n'est plus dans cette liste : depuis l'étape 25, c'est lui qui décide quand il est complet (voir R1 à R14). */
   const ui = { acne: 45, pores: 30, hydration: 55 };
-  const base = run(ui, { global: 10, age: 60, raw: 1 });
-  for (const o of [{ global: 95, age: 20, raw: 99 }, { global: null, age: null, raw: null }, { skin: 'Dry' }, { skin: 'Oily' }]) {
+  const base = run(ui, { global: 10, age: 60 });
+  for (const o of [{ global: 95, age: 20 }, { global: null, age: null }, { skin: 'Dry' }, { skin: 'Oily' }]) {
     assert.deepEqual(ids(run(ui, o).priorities.items), ids(base.priorities.items), JSON.stringify(o));
   }
 });

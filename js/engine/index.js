@@ -19,7 +19,8 @@
 
   /* Version des règles cosmétiques (priorités, personnalisation, actifs, routine). Enregistrée avec chaque analyse de l'historique pour que
      l'on sache avec quelles règles elle a été produite. À changer dès qu'une règle modifie une priorité ou une recommandation. */
-  const VERSION = '1.1.0';   // 1.1.0 : un produit réel n'est plus proposé sans justification (étape 22)
+  const VERSION = '1.2.0';   // 1.1.0 : un produit réel n'est plus proposé sans justification (étape 22)
+                             // 1.2.0 : décisions sur raw_score (repères DERMAI provisoires), rôles des indicateurs, ui_score pour l'affichage seulement
 
   /* Profil : objectifs connus (3 au maximum), niveau de routine connu (sinon « simple »), catégories de produits déjà utilisées,
      confort demandé par l'utilisateur (préférence cosmétique) et exclusions (actifs que l'utilisateur ne souhaite pas, jamais une donnée de santé).
@@ -69,12 +70,13 @@
     const personalization = dep.personalization.finalize(pers, eff, priorities, activePlan, routinePlan, prev);
 
     const explanations = [];
-    const idx = id => { const i = interpretation.indicators.find(x => x.id === id); return i ? `${id}=${i.score} (${i.band})` : id; };
+    /* Trace interne (jamais affichée) : valeur de décision, sa base (raw ou ui en compatibilité) et le repère. */
+    const idx = id => { const i = interpretation.indicators.find(x => x.id === id); return i ? `${id}=${i.value} (${i.basis}, ${i.band})` : id; };
     explanations.push({ kind: 'mode', text: priorities.mode === 'maintenance' ? copy.MAINTENANCE.title : copy.summary(priorities.items.map(i => i.label), 'action'),
       trace: { source: 'priorities.items=' + priorities.items.length, rule: 'mode', result: priorities.mode } });
     for (const it of priorities.items) {
       explanations.push({ kind: 'priority', indicator: it.indicator, text: it.reason,
-        trace: { source: idx(it.indicator) + (it.objectiveMatch ? ' + objectif ' + it.domain : ''), rule: 'éligibilité (bande, levier) puis ordre (bande, objectif, score)', result: 'priorité ' + it.rank } });
+        trace: { source: idx(it.indicator) + (it.objectiveMatch ? ' + objectif ' + it.domain : ''), rule: 'éligibilité (repère, rôle, levier) puis ordre (repère, objectif, valeur de décision)', result: 'priorité ' + it.rank } });
     }
     for (const t of activePlan.treatments) {
       const a = dep.actives.byId(t.activeId);
@@ -90,7 +92,7 @@
       explanations.push({ kind: 'deferred', activeId: d.activeId, text: copy.DEFERRED[d.kind],
         trace: { source: d.indicators.map(idx).join(', '), rule: d.kind, result: 'écarté ' + d.activeId } });
     }
-    for (const g of personalization.goals) explanations.push({ kind: 'goal', goal: g.id, text: g.text, trace: { source: 'objectif ' + g.id, rule: 'les objectifs départagent, ils ne créent ni priorité ni actif', result: g.status } });
+    for (const g of personalization.goals) explanations.push({ kind: 'goal', goal: g.id, text: g.text, trace: { source: 'objectif ' + g.id, rule: 'les objectifs départagent ; ils n\'ouvrent radiance ou rides qu\'avec leur objectif, sous les repères, jamais un résultat favorable', result: g.status } });
     if (eff.context.comfortMode) {
       explanations.push({ kind: 'context', text: eff.context.comfortReasons.join() === 'user_preference' ? copy.PERSONAL.comfortUser : copy.NOTES.comfort,
         trace: { source: eff.context.comfortReasons.join(', '), rule: 'mode confort', result: 'actifs doux d\'abord' } });
@@ -98,7 +100,7 @@
     if (priorities.eyeInfo) explanations.push({ kind: 'info', text: priorities.eyeInfo, trace: { source: priorities.informational.map(i => idx(i.indicator)).join(', '), rule: 'contour des yeux : information seulement', result: 'aucun actif' } });
 
     /* Synthèse personnalisée : lecture des décisions ci-dessus (rien de nouveau n'est décidé ici). */
-    const synthesis = dep.synthesis.build({ interpretation, priorities, profile: prof, routinePlan, productMatches, catalog: options && options.catalog, productsApi: dep.products });
+    const synthesis = dep.synthesis.build({ interpretation, priorities, profile: prof, goalStatuses: personalization.goals, routinePlan, productMatches, catalog: options && options.catalog, productsApi: dep.products });
     return { profile: prof, interpretation, priorities, personalization, activePlan, routinePlan, productMatches, explanations, synthesis };
   }
 

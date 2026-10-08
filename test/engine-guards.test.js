@@ -23,22 +23,24 @@ test('G2 texture faible : jamais de salicylique automatique', () => {
   for (const v of [0, 20, 40, 55]) for (const level of ['none', 'simple', 'full']) assert.ok(!tids(only('texture', v, {}, { level })).includes('salicylic'));
 });
 
-test('G3 radiance faible : jamais de niacinamide automatique ; vitamine C et AHA/PHA restent possibles', () => {
+test('G3 radiance faible : information seulement sans objectif ; avec l\'objectif teint, jamais de niacinamide, vitamine C possible', () => {
   assert.ok(!data.PREFERENCE.radiance.includes('niacinamide'));
-  for (const v of [0, 30, 55]) assert.ok(!tids(only('radiance', v)).includes('niacinamide'));
-  assert.deepEqual(tids(only('radiance', 30)), ['vitamin_c']);
+  for (const v of [0, 30, 55]) assert.deepEqual(tids(only('radiance', v)), [], 'sans objectif : aucun actif (étape 25)');
+  for (const v of [0, 30, 55]) assert.ok(!tids(only('radiance', v, {}, { goals: ['tone'] })).includes('niacinamide'));
+  assert.deepEqual(tids(only('radiance', 30, {}, { goals: ['tone'] })), ['vitamin_c']);
   assert.ok(data.PREFERENCE.radiance.includes('aha_pha'));
   assert.ok(actives.byId('niacinamide'), 'niacinamide reste au catalogue');
 });
 
 test('G4 routine minimale (none) : jamais de rétinoïde (aujourd\'hui « à_valider » ; garde-fou conservé si validé)', () => {
-  for (const ind of ['wrinkles', 'firmness', 'texture']) assert.ok(!tids(only(ind, 10, {}, { level: 'none' })).includes('retinoid'), ind);
+  const aging = { goals: ['aging'] };   // rides : soumis à l'objectif « rides et fermeté » (étape 25) ; fermeté et texture : descriptifs
+  for (const ind of ['wrinkles', 'firmness', 'texture']) assert.ok(!tids(only(ind, 10, {}, { level: 'none', ...aging })).includes('retinoid'), ind);
   withRetinoidFirst(() => {
-    for (const ind of ['wrinkles', 'firmness']) assert.ok(!tids(only(ind, 10, {}, { level: 'none' })).includes('retinoid'), ind);
-    const r = only('wrinkles', 10, {}, { level: 'none' });
+    for (const ind of ['wrinkles', 'firmness']) assert.ok(!tids(only(ind, 10, {}, { level: 'none', ...aging })).includes('retinoid'), ind);
+    const r = only('wrinkles', 10, {}, { level: 'none', ...aging });
     assert.ok(r.activePlan.deferred.some(d => d.activeId === 'retinoid' && d.kind === 'minimal'));
     assert.match(r.explanations.map(e => e.text).join(' '), /volontairement minimale/);
-    assert.ok(tids(only('wrinkles', 10, {}, { level: 'simple' })).includes('retinoid'), 'disponible aux autres niveaux');
+    assert.ok(tids(only('wrinkles', 10, {}, { level: 'simple', ...aging })).includes('retinoid'), 'disponible aux autres niveaux');
   });
 });
 
@@ -77,10 +79,16 @@ test('G8 contour des yeux : informatif, jamais une priorité ni un actif', () =>
   }
 });
 
-test('G9 rawScore : modifié artificiellement, aucun changement de décision', () => {
-  const a = run({ acne: 30, wrinkles: 40 }, { raw: 5 }), b = run({ acne: 30, wrinkles: 40 }, { raw: 95 });
-  assert.deepEqual(a.priorities, b.priorities);
+test('G9 rawScore complet : il décide seul ; le score affiché ne change aucune décision', () => {
+  /* Étape 25 : quand chaque indicateur a un rawScore, les décisions lisent le rawScore (repères DERMAI provisoires) ; le ui_score ne sert
+     plus qu'à l'affichage. Même raw, ui très différents → mêmes décisions. */
+  const raw = { acne: 30, hydration: 40 };
+  const a = run({ acne: 95, hydration: 90 }, { rawMap: raw, rawFill: 80 }), b = run({ acne: 20, hydration: 10 }, { rawMap: raw, rawFill: 80 });
+  const dec = r => r.priorities.items.map(i => [i.indicator, i.band, i.value]);
+  assert.deepEqual(dec(a), [['acne', 'mid', 30], ['hydration', 'mid', 40]]);
+  assert.deepEqual(dec(a), dec(b));
   assert.deepEqual(a.activePlan, b.activePlan);
+  assert.deepEqual(a.priorities.items.map(i => i.score), [95, 90], 'le score affiché reste le ui_score');
 });
 
 test('G10 uiScore absent : indicateur indisponible, aucune recommandation fondée dessus', () => {

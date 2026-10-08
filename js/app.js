@@ -147,7 +147,7 @@ function commitRealScan(r){
   r.id=SCANS.length;SCANS.push(r);
   const last=SCANS.length-1;
   state.latest=r.id;state.view=r.id;state.cmpA=Math.max(last-1,0);state.cmpB=last;   // la progression compare la dernière analyse à la précédente
-  r.rec=recordOfScan(r);                                                              // photo, masque, task_id et rawScore n'en font jamais partie
+  r.rec=recordOfScan(r);                                                              // photo, masque et task_id n'en font jamais partie
   saveScan(r);                                                                        // sans attendre : le résultat s'affiche d'abord
 }
 const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
@@ -237,10 +237,10 @@ async function enterSession(user,fresh){
 const newAnalysisId=()=>{try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}
   return `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c===`x`?r:(r&3|8)).toString(16)})};
 const tsOf=s=>s.rec?Date.parse(s.rec.analyzedAt):s.id;
-/* Une ligne enregistrée → un scan de l'application. Seuls les scores enregistrés sont relus (uiScore, 0-100) : aucune photo, aucun rawScore. */
+/* Une ligne enregistrée → un scan. Scores enregistrés seulement (uiScore ; rawScore s'il a été enregistré, sinon null : jamais reconstruit). Aucune photo. */
 function scanOfRecord(a){
   const n=SkinModel.sanitizeNormalized({schemaVersion:SkinModel.SCHEMA_VERSION,normalized:Object.assign({globalScore:a.globalScore,skinAge:a.skinAge,skinType:{whole:a.skinType}},
-    Object.fromEntries(SkinModel.METRIC_KEYS.map(k=>[k,{uiScore:a.metrics[k]}])))});
+    Object.fromEntries(SkinModel.METRIC_KEYS.map(k=>[k,{uiScore:a.metrics[k],rawScore:(a.rawMetrics||{})[k]}])))});
   return n?Object.assign({id:null,real:true,saved:true,day:null,rec:a},SkinModel.scanLabels(new Date(a.analyzedAt)),{normalized:n}):null;
 }
 const reindex=()=>SCANS.forEach((s,i)=>{s.id=i});
@@ -290,9 +290,9 @@ const inflight=new Set();
 const softAnalysisStatus=()=>{if(state.route===`result`)render(true)};
 function recordOfScan(sc){
   const n=sc.normalized,r=viewOf(sc),metrics={};
-  SkinModel.METRIC_KEYS.forEach(k=>{metrics[k]=SkinModel.displayScore(n[k]&&n[k].uiScore)});
+  const raw={};SkinModel.METRIC_KEYS.forEach(k=>{metrics[k]=SkinModel.displayScore(n[k]&&n[k].uiScore);const v=n[k]&&n[k].rawScore;if(typeof v===`number`&&v>=0&&v<=100)raw[k]=v});
   return{id:newAnalysisId(),analyzedAt:sc.analyzedAt,globalScore:r.global.score,skinType:(n.skinType&&n.skinType.whole)||null,skinAge:r.skinAge,metrics,
-    priorities:engineFor(sc).priorities.items.map(m=>({id:m.indicator,label:m.label,score:m.score,band:m.band})),goals:[...state.goals],engineVersion:Engine.VERSION};
+    rawMetrics:raw,priorities:engineFor(sc).priorities.items.map(m=>({id:m.indicator,label:m.label,score:m.score,band:m.uiBand})),goals:[...state.goals],engineVersion:Engine.VERSION};
 }
 /* Une analyse n'est enregistrée que si tous ses scores présents sont exploitables (0-100) et qu'au moins un indicateur l'est : rien d'inventé. */
 function isRecordable(sc){
@@ -499,6 +499,8 @@ const skinLabelOf=s=>{const r=viewOf(s);return r.skinType?r.skinType.label:null}
 const skinLabel=r=>r.skinType?r.skinType.label:`Type de peau indisponible`;
 const scoreHtml=(v,size)=>v.score===null?`<span class="c-score c-score--${size} c-score--null"><span class="c-score__value">–</span></span>`
   :`<span class="c-score c-score--${size} c-score--${v.band}"><span class="c-score__value">${v.score}</span><span class="c-score__unit">/100</span></span>`;
+/* Badges et barres : bande du score AFFICHÉ (ui). Un besoin retenu par le moteur (décision sur raw) porte « Retenu par DERMAI », jamais une bande. */
+const KEPT=`<span class="c-badge c-badge--mid">Retenu par DERMAI</span>`,asShown=m=>Object.assign({},m,{band:m.uiBand,bandLabel:m.uiBandLabel});
 const bandBadge=v=>v.band?`<span class="c-badge c-badge--${v.band}">${v.bandLabel}</span>`:`<span class="c-badge c-badge--outline">Donnée indisponible</span>`;
 const barHtml=v=>v.score===null?``:`<span class="c-bar c-bar--${v.band}" role="img" aria-label="${v.score} sur 100" style="--value:${v.score}"><span class="c-bar__fill"></span></span>`;
 /* Points du score global : seules les analyses ayant un score global valide (jamais de 0 ni de point inventé). */
@@ -696,7 +698,7 @@ V.home=()=>{
     <section class="skin-now${!DEMO_MODE&&!s.photo?` nophoto`:``}">${!DEMO_MODE&&!s.photo?``:`<div class="mf">${portrait({photo:s.photo})}</div>`}
       <div class="txt"><p class="kicker">Profil cutané</p><p class="big" style="font-size:${stype.length>16?`1.9rem`:`2.9rem`};margin:6px 0 10px">${stype}</p>${g.score===null?`<p class="muted">Score global indisponible</p>`:`<p class="muted">Score global <b style="color:var(--ink)">${g.score}/100</b></p><p style="margin-top:6px">${bandBadge(g)}</p>`}${top2.length?`<p class="muted" style="margin-top:6px">Priorités : ${top2.join(` et `)}.</p>`:`<p class="muted" style="margin-top:6px">Routine d'entretien.</p>`}</div>
       <button class="c-btn c-btn--primary c-btn--sm" data-go="result" data-act="setview" data-v="${state.latest}">Voir mon analyse</button></section>
-    <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length?`<p class="muted" style="margin-bottom:8px">Les indicateurs à soutenir en premier, d'après votre analyse.</p><ul class="c-list">${P.items.map(m=>`<li><button class="c-list-row" data-go="concern:${m.indicator}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${bandBadge(m)}${ic(`chev`)}</button></li>`).join(``)}</ul>`:`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}</section>
+    <section><div class="hd"><h2 class="h3">Vos priorités</h2></div>${P.items.length?`<p class="muted" style="margin-bottom:8px">Les besoins que DERMAI retient, d'après votre analyse.</p><ul class="c-list">${P.items.map(asShown).map(m=>`<li><button class="c-list-row" data-go="concern:${m.indicator}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${KEPT}${ic(`chev`)}</button></li>`).join(``)}</ul>`:`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}</section>
     <section><div class="hd"><h2 class="h3">Explorer</h2></div>
       <button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Ceux de votre plan, et pourquoi</span></div>${ic(`chev`)}</button>
       <button class="rowlink" data-go="products"><div class="grow"><b>${DEMO_MODE?`Exemples de produits`:`Produits pour ma routine`}</b><span class="s">${DEMO_MODE?`Exemples de démonstration`:Engine.products.usable(catalogNow()).length?`Pour chaque étape de votre routine`:`Catalogue en préparation`}</span></div>${ic(`chev`)}</button></section>
@@ -753,7 +755,7 @@ const SCORE_SENTENCE={good:`Votre analyse indique un état apparent plutôt favo
 /* Indicateurs informatifs (contour des yeux) : jamais de bande d'alerte ni d'incitation à l'action, un libellé neutre à la place. */
 const infoBadge=()=>`<span class="c-badge c-badge--outline">${Engine.copy.INFO_LABEL}</span>`;
 const isInfo=m=>m.actionability===`informative`;
-const IND_TXT={good:`Ce repère est dans une bonne zone.`,mid:`Ce repère est plus faible : il peut être soutenu.`,low:`Ce repère est nettement plus faible : il peut être soutenu en priorité.`};
+const IND_TXT={good:`Ce score affiché est dans la zone haute.`,mid:`Ce score affiché est dans la zone intermédiaire.`,low:`Ce score affiché est dans la zone basse.`};
 /* Objectifs : affichage commun (résultat, profil). Les libellés viennent du moteur, jamais les identifiants techniques. */
 const goalCount=()=>`${state.goals.length}/3 objectifs sélectionnés`;
 const goalBadges=()=>state.goals.length?`<div class="chips" style="margin-bottom:10px">${state.goals.map(id=>`<span class="c-badge">${Engine.copy.GOAL_LABELS[id]}</span>`).join(``)}</div>`:``;
@@ -767,18 +769,17 @@ V.result=()=>{
   /* Analyse plus ancienne : on montre ce qui avait été relevé à cette date (priorités et objectifs enregistrés), jamais recalculé avec les règles ou le profil d'aujourd'hui. */
   const H=!!s.rec&&s.id!==state.latest,noPhoto=!DEMO_MODE&&!s.photo;
   const fmKeys=!H&&!DEMO_MODE&&s.photo&&s.localization?SkinModel.METRIC_KEYS.filter(k=>s.localization[k]):[];
-  const stored=m=>Object.assign({},m,{bandLabel:(SkinModel.BANDS.find(b=>b.key===m.band)||{}).label});
   const hero=`<div class="c-card c-card--result c-result"><div class="c-result__hero">${noPhoto?``:`<div class="c-result__photo">${portrait({photo:s.photo})}</div>`}
       <div class="c-score-block"><span class="c-result__kicker">Score global</span>${g.score===null?`<p class="c-result__na">Score global indisponible</p>`:`${scoreHtml(g,`xl`)}${bandBadge(g)}`}</div></div>
       ${g.score===null?``:`<p class="c-result__sentence">${SCORE_SENTENCE[g.band]}</p>`}</div>`;
   const type=`<div class="c-card"><p class="c-disclaimer">Type de peau</p>${r.skinType?`<h2 class="c-card__title">${r.skinType.label}</h2><p class="c-card__text">${r.skinType.description}</p>`:`<p class="c-card__text">Type de peau indisponible.</p>`}
       ${r.skinAge===null?``:`<div class="c-result__age"><b>Âge cutané estimé : ${r.skinAge} ans</b><p class="c-disclaimer">Estimation cosmétique, ce n'est pas un âge biologique.</p></div>`}</div>`;
-  const prio=H?s.rec.priorities.map(stored).map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}<div class="c-concern-card__foot">${bandBadge(m)}</div></div>`).join(``):P.items.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
-      <div class="c-concern-card__foot">${bandBadge(m)}${m.objectiveMatch?`<span class="c-badge c-badge--outline">Votre objectif</span>`:``}</div><p class="c-card__text"><b>Pourquoi cette priorité ?</b> ${m.reason}</p><button class="link" data-go="concern:${m.indicator}">Voir le détail</button></div>`).join(``);
+  const prio=H?s.rec.priorities.map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}<div class="c-concern-card__foot">${KEPT}</div></div>`).join(``):P.items.map(asShown).map(m=>`<div class="c-concern-card c-concern-card--static"><div class="c-concern-card__head"><h3 class="c-concern-card__name">${m.label}</h3>${scoreHtml(m,`m`)}</div>${barHtml(m)}
+      <div class="c-concern-card__foot">${KEPT}${m.objectiveMatch?`<span class="c-badge c-badge--outline">Votre objectif</span>`:``}</div><p class="c-card__text"><b>Pourquoi cette priorité ?</b> ${m.reason}</p><button class="link" data-go="concern:${m.indicator}">Voir le détail</button></div>`).join(``);
   const othersH=[...r.priorities,...r.others].sort((a,b)=>a.order-b.order).filter(m=>!s.rec||!H||!s.rec.priorities.some(p=>p.id===m.key)).map(m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
-  const rest=H?[]:eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)),eyeOf=m=>m.score!==null&&isInfo(m);
+  const rest=H?[]:eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(asShown),eyeOf=m=>m.score!==null&&isInfo(m);
   const rowOf=m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :isInfo(m)?`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${infoBadge()}</span><span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span></li>`
@@ -794,8 +795,8 @@ V.result=()=>{
    <div class="col">
     ${fmKeys.length?faceMapHtml(s,fmKeys):``}${H?``:DermaiInsight.found(eng.synthesis)}
     <section><p class="kicker">Ce que DERMAI observe</p><div class="hd"><h2 class="h3">${H?`Repères à soutenir à cette date`:`Vos priorités`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
-      ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.`:`Vos principaux repères à soutenir, d'après votre analyse.`} 100 correspond au meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
-      :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${H?Engine.copy.MAINTENANCE.text:eng.synthesis.attention}</div></div>`}
+      ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.`:`Les besoins que DERMAI retient d'après les données de votre analyse.`} Le score affiché va de 0 à 100, 100 = meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
+      :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
     ${!H&&P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
     <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul>${eyeRows?`<div class="c-indicators-group"><h3 class="c-indicators-group__title">${Engine.copy.EYE_GROUP_TITLE}</h3><ul class="c-indicators">${eyeRows}</ul></div>`:``}</section>
     ${H?`<section><p class="kicker">Ce que vous souhaitiez travailler</p><div class="hd"><h2 class="h3">Vos objectifs à cette date</h2></div>
@@ -873,7 +874,7 @@ V.routine=()=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId,catalogNow());
     return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${Y.steps[st.id]||st.reason}</p>
       ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}<button class="link" data-go="active:${st.activeId}">Découvrir cet actif</button>`:``}
-      ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Produit proposé : `}${esc(p.name)}</button>`:Y.products[st.id]&&!DEMO_MODE&&(slot===`morning`||!R.slots.morning.some(x=>x.kind===st.kind&&x.activeId===st.activeId))?`<p class="c-routine-step__role muted">${Y.products[st.id].text}</p>`:``}</div>
+      ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Proposé par DERMAI : `}${esc(p.name)}</button>`:Y.products[st.id]&&!DEMO_MODE&&(slot===`morning`||!R.slots.morning.some(x=>x.kind===st.kind&&x.activeId===st.activeId))?`<p class="c-routine-step__role muted">${Y.products[st.id].text}</p>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   const cautions=[...new Set(R.slots.morning.concat(R.slots.evening).filter(s=>s.kind===`treatment`).flatMap(s=>s.cautions))];
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>${R.summary}</p></div>
@@ -886,7 +887,7 @@ V.routine=()=>{
   <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}${!DEMO_MODE&&!Engine.products.usable(catalogNow()).length?`<p class="muted" style="margin-bottom:10px">Le catalogue de produits est en préparation : votre routine indique déjà les actifs à chercher.</p>`:``}<button class="c-btn c-btn--primary c-btn--block" data-go="products">${DEMO_MODE?`Voir des exemples de produits`:`Voir les produits de ma routine`}</button></div></div>`);
 };
 
-/* Produits : conséquence de la routine (jamais l'inverse). « Recommandés pour votre routine » = produits choisis par le moteur pour chaque étape ;
+/* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DERMAI pour votre routine » = produits choisis par le moteur pour chaque étape ;
    « Autres produits » = le reste du catalogue, avec la raison réelle du moteur. Aucun score, aucun pourcentage. Données commerciales (prix, vendeur,
    lien) affichées seulement si elles existent et sont sourcées ; sinon « Données à venir ». Catalogue réel vide : état clair, aucun produit fictif. */
 const SKIN_FR={all:`tous types de peau`,normal:`peau normale`,oily:`peau grasse`,dry:`peau sèche`,combination:`peau mixte`};
@@ -982,7 +983,7 @@ V.products=()=>{
   const rec=view.recommended.map(r=>({p:Engine.products.byId(r.productId,catalogNow()),r})).filter(x=>inF(x.p));
   const oth=view.others.map(o=>({p:Engine.products.byId(o.productId,catalogNow()),o})).filter(x=>inF(x.p));
   return shell(`${head}${note}${chips}
-   <section><div class="hd"><h2 class="h3">Recommandés pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit recommandé dans cette catégorie.`:Engine.copy.SYNTH.productsNone}</p>`}</section>
+   <section><div class="hd"><h2 class="h3">Proposés par DERMAI pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit proposé dans cette catégorie.`:Engine.copy.SYNTH.productsNone}</p>`}</section>
    ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${foot}`,{back:true,title:`Produits`});
 };
 /* Identité vérifiée d'un produit réel : INCI (avec ses divergences éventuelles) et source fabricant datée. Jamais d'INCI inventé : sans liste, aucune ligne. */

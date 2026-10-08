@@ -24,13 +24,13 @@
   /* ---- priorités ---- */
   function priorityReason({ band, objectiveMatch }) {
     const base = band === 'low'
-      ? 'Cet indicateur est actuellement nettement plus faible : il peut être soutenu en priorité.'
-      : 'Cet indicateur est actuellement plus faible : il mérite davantage d\'attention.';
+      ? 'D\'après les données de l\'analyse, ce résultat est nettement sous les repères DERMAI : DERMAI le retient comme besoin à soutenir en premier.'
+      : 'D\'après les données de l\'analyse, ce résultat est sous les repères DERMAI : DERMAI le retient comme besoin à soutenir.';
     return objectiveMatch ? base + ' Il correspond à votre objectif.' : base;
   }
   const MAINTENANCE = {
-    title: 'Aucune priorité forte ne ressort de cette analyse.',
-    text: 'Certains indicateurs peuvent toutefois être soutenus dans votre routine d\'entretien.'
+    title: 'DERMAI ne retient aucun besoin particulier.',
+    text: 'Votre routine reste une routine d\'entretien de base : nettoyage doux, hydratation et protection solaire.'
   };
   const eyeInfo = labels => 'Votre analyse montre un indicateur plus faible au niveau du contour des yeux (' + joinList(labels.map(lower)) +
     '). C\'est une information : aucun actif n\'est proposé automatiquement pour cet indicateur.';
@@ -98,7 +98,8 @@
   const productBecause = labels => 'Contient : ' + joinList(labels.map(lower)) + '.';
   /* Pourquoi CE produit : le rôle qu'il joue dans une étape déjà définie par la routine, jamais une promesse ni un langage médical. */
   const PRODUCT_CATEGORY_LABELS = { cleanser: 'Nettoyant', serum: 'Soin ciblé', moisturizer: 'Hydratant', spf: 'Protection solaire' };
-  const productWhy = (kind, labels) => {
+  const productWhy = (kind, labels) => 'Proposé par DERMAI. ' + productWhyBody(kind, labels);
+  const productWhyBody = (kind, labels) => {
     const l = joinList((labels || []).map(lower));
     if (kind === 'treatment') return 'Actif retenu dans votre routine pour cette étape : ' + l + '. Ce soin le contient.';
     if (kind === 'moisturize') return 'Hydratant pour l\'étape d\'hydratation de votre routine.' + (l ? ' Il contient des actifs de soutien retenus : ' + l + '.' : '');
@@ -154,7 +155,7 @@
     shipDeclared: 'Livraison internationale annoncée par le vendeur : livraison selon le pays sélectionné, à vérifier lors de la commande.',
     allKnown: 'Voir toutes les offres connues, par pays',
     priceLabel: 'Prix relevé',
-    recommended: 'Produit recommandé',
+    recommended: 'Proposé par DERMAI',
     summary: {
       ready: 'Offre locale : stock et prix indiqués au relevé',
       partial: 'Offre locale à vérifier : stock, prix ou lien non confirmé',
@@ -174,7 +175,7 @@
   const PERSONAL = {
     measured: labels => 'Votre analyse indique des repères plus faibles sur : ' + joinList(labels.map(lower)) + '.',
     measuredNone: 'Aucune priorité forte ne ressort de cette analyse. Nous privilégions une routine d\'entretien.',
-    goals: labels => 'Vous avez indiqué comme objectif : ' + joinList(labels.map(lower)) + '. Un objectif sert à départager des options, il ne crée pas de priorité.',
+    goals: labels => 'Vous avez indiqué comme objectif : ' + joinList(labels.map(lower)) + '. Un objectif sert à départager des options ; il ne transforme jamais un résultat favorable en besoin.',
     skin: label => 'Votre analyse indique le profil : ' + label + '. Il sert de contexte (texture de l\'hydratant, prudence), pas de constat médical.',
     comfortAnalysis: 'Votre analyse suggère de privilégier le confort : actifs doux, hydratation, barrière et protection solaire d\'abord.',
     comfortUser: 'Vous avez choisi une approche douce : actifs doux, hydratation, barrière et protection solaire d\'abord.',
@@ -211,6 +212,7 @@
       priority: 'Un repère lié à cet objectif est plus faible : il est pris en compte dans vos priorités.',
       beyond_cap: 'Un repère lié à cet objectif est plus faible, mais vos priorités sont limitées à trois : il reste pour une prochaine étape.',
       no_signal: 'Votre analyse ne fait pas ressortir de repère plus faible pour cet objectif : aucun actif n\'est ajouté à ce titre.',
+      descriptive: 'Les indicateurs de cet objectif sont décrits sans règle d\'action automatique : aucun actif n\'est ajouté à ce titre.',
       unavailable: 'Les données de votre analyse ne permettent pas de rattacher cet objectif à un repère.',
       maintenance: 'Une routine d\'entretien est privilégiée : aucun actif n\'est ajouté pour cet objectif.'
     },
@@ -231,60 +233,55 @@
   const li = (inds) => joinList(inds.map(i => lower(i.label) + ' (' + i.score + ')'));
   const plural = (n, one, many) => (n > 1 ? many : one);
   const your = inds => (inds.length > 1 ? 'Vos résultats ' : 'Votre ') + li(inds);
+  const cap = inds => { const t = li(inds); return t.charAt(0).toUpperCase() + t.slice(1); };
+  const BASE_STEP = 'Cette étape fait partie de l\'entretien de base.';
   const SYNTH = {
     li,
+    TITLES: { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DERMAI retient', strategy: 'Votre stratégie' },
+    /* Explication globale, discrète : score affiché ≠ donnée de décision. Aucun score brut n'est jamais affiché. */
+    scoreNote: 'Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DERMAI utilisent séparément les données brutes de l\'analyse.',
     productsNone: 'Aucun produit du catalogue DERMAI n\'est relié à vos besoins actuels. Votre routine repose sur des produits de base de votre choix : un nettoyant doux, un hydratant que votre peau apprécie et une protection solaire.',
-    TIER_LABELS: { priority: 'Priorité', attention: 'Axe d\'attention', maintain: 'À maintenir', strength: 'Point fort' },
-    bands: (n, counts, bands) => 'Sur vos ' + n + ' indicateurs principaux, ' + joinList([
-      counts.good ? counts.good + ' ' + plural(counts.good, 'est', 'sont') + ' dans la plage « ' + bands.good.label + ' » (' + bands.good.min + ' et plus)' : null,
-      counts.mid ? counts.mid + ' « ' + bands.mid.label + ' » (' + bands.mid.min + ' à ' + (bands.good.min - 1) + ')' : null,
-      counts.low ? counts.low + ' « ' + bands.low.label + ' » (' + (bands.mid.min - 1) + ' et moins)' : null
-    ].filter(Boolean)) + '.',
-    strengths: inds => 'Vos résultats les plus favorables : ' + li(inds) + '.',
-    lowest: inds => 'Vos résultats les moins élevés : ' + li(inds) + '.',
-    domains: labels => plural(labels.length, 'Ils concernent surtout ce domaine : ', 'Ils concernent surtout : ') + joinList(labels.map(lower)) + '.',
-    homogeneous: gap => 'Vos indicateurs principaux sont très proches les uns des autres (' + gap + ' point' + (gap > 1 ? 's' : '') + ' d\'écart au plus) : aucun ne se détache.',
-    priorities: inds => 'Ce qui mérite votre attention en premier : ' + li(inds) + '.',
-    prioritiesWhy: (bands) => 'Ces indicateurs sont sous la plage « ' + bands.good.label + ' » : DERMAI leur réserve un soin ciblé.',
-    noPriority: (inds, bands) => (inds.length
-      ? 'Aucun indicateur principal n\'est sous la plage « ' + bands.good.label + ' » : même vos résultats les moins élevés, ' + li(inds) + ', sont à ' + bands.good.min + ' ou plus. '
-      : 'Aucun indicateur principal n\'est sous la plage « ' + bands.good.label + ' ». ') +
-      'Selon les règles actuelles de DERMAI, cela ne justifie pas de soin ciblé : votre routine reste une routine d\'entretien.',
-    beyondCap: inds => your(inds) + plural(inds.length, ' est aussi', ' sont aussi') + ' à soutenir : DERMAI limite la routine à trois priorités, introduites une à une.',
-    noLever: inds => your(inds) + plural(inds.length, ' est', ' sont') + ' à soutenir, mais DERMAI n\'a pas encore de soin ciblé validé pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
-    noGoal: focus => 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule' + (focus.length ? ', en suivant surtout ' + li(focus) + '.' : '.'),
+    TIER_LABELS: { priority: 'Besoin retenu', lowest: 'Résultat moins élevé', strength: 'Résultat plus élevé', other: 'Autre résultat' },
+    /* 1. Ce que l'analyse montre (scores affichés) */
+    range: (n, min, max) => 'Votre analyse donne ' + n + ' indicateur' + plural(n, '', 's') + ' principa' + plural(n, 'l', 'ux') + (n > 1 ? ', de ' + min + ' à ' + max + ' sur 100.' : ' : ' + min + ' sur 100.'),
+    strengths: inds => 'Vos résultats les plus élevés : ' + li(inds) + '.',
+    skinType: label => 'Profil de peau indiqué par l\'analyse : ' + lower(label) + '.',
+    /* 2. Vos résultats les moins élevés (comparaison relative, jamais un problème) */
+    lowest: inds => cap(inds) + '.',
+    lowestNote: 'C\'est une comparaison entre vos propres résultats : un résultat moins élevé n\'est pas forcément un besoin.',
+    homogeneous: 'Vos indicateurs principaux sont très proches les uns des autres : aucun ne se détache.',
+    /* 3. Ce que DERMAI retient (seulement une règle DERMAI justifiée) */
+    retained: inds => 'DERMAI retient un besoin à soutenir pour : ' + li(inds) + '.',
+    retainedWhy: n => 'D\'après les données de l\'analyse, ' + plural(n, 'ce résultat est', 'ces résultats sont') + ' sous les repères DERMAI, et un soin cosmétique validé existe pour ' + plural(n, 'lui.', 'eux.'),
+    noNeed: 'DERMAI ne retient aucun besoin particulier : aucun indicateur sur lequel DERMAI peut agir n\'est sous ses repères. Votre routine reste une routine d\'entretien.',
+    beyondCap: inds => cap(inds) + ' : aussi sous les repères DERMAI, mais la routine se limite à trois besoins, introduits un à un.',
+    noLever: inds => cap(inds) + ' : sous les repères DERMAI, mais DERMAI n\'a pas encore de soin ciblé validé pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
+    descriptive: inds => cap(inds) + ' : ' + plural(inds.length, 'résultat décrit', 'résultats décrits') + ' sans soin ciblé automatique, car DERMAI n\'a pas de règle d\'action fiable pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
+    gated: (inds, goals) => cap(inds) + ' : information seulement. DERMAI n\'y associe un soin que si vous choisissez l\'objectif ' + joinList(goals.map(g => '« ' + lower(g) + ' »')) + '.',
+    compat: 'Cette analyse ne contient pas de données brutes : DERMAI applique ses repères au score affiché, sans rien reconstruire.',
+    /* Objectifs */
+    noGoal: 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule.',
     goal: {
-      priority: (g, inds) => g + ' : rejoint une priorité de votre analyse (' + li(inds) + '). Elle passe en tête de votre routine.',
-      attention: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' fait', ' font') + ' partie de vos résultats les moins élevés. DERMAI ' + plural(inds.length, 'le', 'les') + ' place en tête de votre suivi.',
-      maintain: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' se situe', ' se situent') + ' dans la moyenne de vos résultats. La routine de base ' + plural(inds.length, 'l\'entretient.', 'les entretient.'),
-      strength: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' fait', ' font') + ' partie de vos points forts. L\'objectif est de ' + plural(inds.length, 'le', 'les') + ' maintenir.',
+      priority: (g, inds) => g + ' : rejoint un besoin retenu par DERMAI (' + li(inds) + '). Il passe en tête de votre routine.',
+      beyond_cap: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' est', ' sont') + ' sous les repères DERMAI, mais la routine se limite à trois besoins : ' + plural(inds.length, 'il reste', 'ils restent') + ' pour une prochaine étape.',
+      no_signal: (g, inds) => g + ' : ' + li(inds) + ' ne ' + plural(inds.length, 'fait', 'font') + ' pas ressortir de besoin selon les repères DERMAI : aucun soin ciblé n\'est ajouté à ce titre.',
+      descriptive: (g, inds) => g + ' : ' + li(inds) + ', ' + plural(inds.length, 'résultat décrit', 'résultats décrits') + ' sans règle d\'action automatique : aucun soin ciblé n\'est ajouté à ce titre.',
       unavailable: g => g + ' : aucun indicateur correspondant n\'est disponible dans cette analyse.',
-      maintenance: (g, action) => g + (action ? ' : votre routine garde une base d\'entretien, en plus des priorités.' : ' : c\'est précisément ce que propose votre routine.')
+      maintenance: (g, action) => g + (action ? ' : votre routine garde une base d\'entretien, en plus des besoins retenus.' : ' : c\'est précisément ce que propose votre routine.')
     },
+    /* 4. Votre stratégie */
     strategy: {
-      action: (inds, n, level) => 'Stratégie : soutenir ' + li(inds) + ' avec ' + n + ' soin' + (n > 1 ? 's' : '') + ' ciblé' + (n > 1 ? 's' : '') + ', et entretenir le reste avec une routine ' + level + '.',
-      actionNoTreatment: inds => 'Stratégie : soutenir ' + li(inds) + ' par une routine d\'entretien attentive, sans soin ciblé pour l\'instant.',
-      goalFocus: inds => 'Stratégie : entretien, avec une attention particulière à ' + li(inds) + ', en lien avec votre objectif.',
-      focus: (inds, skin) => 'Stratégie : entretien' + (skin ? ' adapté à votre profil (' + lower(skin) + ')' : '') + ', en suivant surtout ' + li(inds) + '.',
-      even: skin => 'Stratégie : entretien de l\'ensemble' + (skin ? ', adapté à votre profil (' + lower(skin) + ')' : '') + ', sans axe particulier.'
+      action: (inds, n, level) => 'Stratégie : soutenir ' + li(inds) + ' avec ' + n + ' soin' + (n > 1 ? 's' : '') + ' ciblé' + (n > 1 ? 's' : '') + ', sur une base d\'entretien (nettoyage doux, hydratation, protection solaire), en routine ' + level + '.',
+      actionNoTreatment: inds => 'Stratégie : soutenir ' + li(inds) + ' avec la routine de base (nettoyage doux, hydratation, protection solaire), sans soin ciblé pour l\'instant.',
+      maintenance: skin => 'Stratégie : entretien de base (nettoyage doux, hydratation, protection solaire)' + (skin ? ', adapté à votre profil (' + lower(skin) + ')' : '') + '. Aucun soin ciblé n\'est ajouté.'
     },
-    skinContext: label => 'Votre type de peau (' + lower(label) + ') sert de contexte : il oriente la texture de l\'hydratant et la prudence, jamais à lui seul le choix d\'un produit.',
+    skinContext: label => 'Votre type de peau (' + lower(label) + ') sert de contexte : il oriente la texture de l\'hydratant et la prudence, jamais à lui seul le choix d\'un soin.',
     step: {
-      cleanse: { oily: 'Base de la routine. Avec un profil gras, un nettoyage doux matin et soir, sans frotter, garde la routine simple et régulière.',
-        dry: 'Base de la routine. Avec un profil sec, un nettoyant doux évite de tirailler la peau.',
-        combination: 'Base de la routine. Avec un profil mixte, un même nettoyant doux convient à l\'ensemble du visage.',
-        normal: 'Base de la routine : un nettoyage doux prépare la peau matin et soir.', unknown: 'Base de la routine : un nettoyage doux prépare la peau matin et soir.' },
-      cleanseAcne: ind => ' Votre ' + li([ind]) + ' fait partie de vos axes à suivre : un nettoyage régulier en est la base.',
-      moistSupports: (labels, inds) => 'Hydratant recherché avec ' + joinList(labels.map(lower)) + (inds.length ? ', retenu' + plural(labels.length, '', 's') + ' pour ' + li(inds) : '') + '.',
-      moistTier: {
-        priority: ind => 'Votre ' + li([ind]) + ' est une priorité : cette étape la soutient chaque jour.',
-        attention: ind => 'Votre ' + li([ind]) + ' fait partie de vos résultats les moins élevés : cette étape l\'entretient chaque jour.',
-        maintain: ind => 'Votre ' + li([ind]) + ' est dans la moyenne de vos résultats : cette étape l\'entretient.',
-        strength: ind => 'Votre ' + li([ind]) + ' est un point fort : cette étape aide à le maintenir.'
-      },
-      moistDry: 'Avec un profil sec, une texture plus riche est souvent plus confortable.',
-      spf: 'Chaque matin, la protection solaire fait partie de tout entretien.',
-      spfTone: inds => ' ' + your(inds) + plural(inds.length, ' fait', ' font') + ' partie de vos axes à suivre : la protection solaire quotidienne fait partie de l\'entretien du teint.',
+      base: BASE_STEP,
+      cleanse: { oily: ' Avec un profil gras, un nettoyage doux matin et soir, sans frotter, suffit.', dry: ' Avec un profil sec, un nettoyant doux évite de tirailler la peau.',
+        combination: ' Avec un profil mixte, un même nettoyant doux convient à l\'ensemble du visage.', normal: '', unknown: '' },
+      moistSupports: (labels, inds) => ' Hydratant recherché avec ' + joinList(labels.map(lower)) + (inds.length ? ', retenu' + plural(labels.length, '', 's') + ' pour ' + li(inds) : '') + '.',
+      moistDry: ' Avec un profil sec, une texture plus riche est souvent plus confortable.',
       spfExfoliant: ' Elle compte d\'autant plus avec un exfoliant dans la routine.',
       treatment: (active, inds) => active + ' : retenu pour ' + li(inds) + '.',
       owned: 'Vous utilisez déjà un produit pour cette étape : gardez-le s\'il vous convient.'

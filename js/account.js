@@ -5,7 +5,9 @@
    Aucun mot de passe n'est conservé. Seule la session d'authentification (jetons) est mémorisée dans le navigateur, pour survivre à un
    rechargement ; le profil, lui, n'est jamais copié dans le stockage local. Aucune photo, aucun masque, aucun task_id n'est concerné.
    Historique des analyses (table `skin_analyses`) : scores seulement (0 à 100, 100 = meilleur), priorités et objectifs à la date de l'analyse,
-   version du moteur. Jamais de photo, de masque, d'URL, de task_id, de JSON brut du fournisseur ni de rawScore : toute clé inconnue est écartée ici. */
+   version du moteur, et les rawScore (colonne `raw_metrics`, nombres de 0 à 100) qui servent aux décisions du moteur. Jamais de photo, de
+   masque, d'URL, de task_id ni de JSON brut du fournisseur : toute clé inconnue est écartée ici. Une base qui n'a pas encore la colonne
+   `raw_metrics` reste utilisable : l'analyse est alors enregistrée et relue sans rawScore (compatibilité, rien d'inventé). */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -74,6 +76,16 @@
   const BANDS = ['good', 'mid', 'low'];
   const shortText = (v, n) => (typeof v === 'string' && v.trim() && v.trim().length <= n ? v.trim() : null);
   const known = k => METRIC_KEYS.indexOf(k) !== -1;
+  /* rawScore : nombre fini de 0 à 100, gardé tel quel (jamais arrondi) ; seules les 15 clés connues sont gardées. */
+  const rawOf = v => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100 ? v : null);
+  function rawMetricsOf(m) {
+    const out = {};
+    if (!m || typeof m !== 'object' || Array.isArray(m)) return out;
+    for (const k of METRIC_KEYS) if (rawOf(m[k]) !== null) out[k] = m[k];
+    return out;
+  }
+  /* La base n'a pas encore la colonne raw_metrics (migration non appliquée) : PostgREST répond 400 en la nommant. */
+  const missingRawColumn = r => !!r && !r.ok && !r.network && (r.status === 400 || r.status === 404) && /raw_metrics/.test(JSON.stringify(r.body || ''));
 
   /* Enregistrement : liste blanche stricte, aucune clé inconnue, aucun identifiant d'utilisateur. Renvoie null si la forme est inutilisable. */
   function analysisToRow(a) {
@@ -89,6 +101,8 @@
       skin_type: typeof a.skinType === 'string' && a.skinType.trim() && a.skinType.length <= 40 ? a.skinType.trim() : null,
       skin_age: typeof a.skinAge === 'number' && Number.isInteger(a.skinAge) && a.skinAge >= 1 && a.skinAge <= 120 ? a.skinAge : null
     };
+    const raw = rawMetricsOf(a.rawMetrics);
+    if (Object.keys(raw).length) row.raw_metrics = raw;
     if (typeof a.id === 'string' && UUID_RE.test(a.id)) row.id = a.id;       // identifiant choisi par l'application : un nouvel essai ne crée jamais de doublon
     if (typeof a.analyzedAt === 'string' && !Number.isNaN(Date.parse(a.analyzedAt))) row.analyzed_at = new Date(a.analyzedAt).toISOString();
     return row;
@@ -106,6 +120,7 @@
       skinType: typeof r.skin_type === 'string' && r.skin_type ? r.skin_type : null,
       skinAge: typeof r.skin_age === 'number' ? r.skin_age : null,
       metrics,
+      rawMetrics: rawMetricsOf(r.raw_metrics),
       priorities: (Array.isArray(r.priorities) ? r.priorities : []).filter(p => p && known(p.id) && shortText(p.label, 60)).map(p => ({ id: p.id, label: p.label.trim(), score: score(p.score), band: BANDS.indexOf(p.band) !== -1 ? p.band : null })),
       goals: Array.isArray(r.goals_snapshot) ? r.goals_snapshot.filter(g => GOAL_IDS.indexOf(g) !== -1) : [],
       engineVersion: typeof r.engine_version === 'string' ? r.engine_version : ''
@@ -311,7 +326,9 @@
     async function saveAnalysis(analysis) {
       const row = analysisToRow(analysis);
       if (!row) return { ok: false, error: MSG.analysisSaveFailed };
-      const r = await authed('/rest/v1/skin_analyses?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(row) });
+      const post = body => authed('/rest/v1/skin_analyses?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(body) });
+      let r = await post(row);
+      if (row.raw_metrics && missingRawColumn(r)) { const legacy = Object.assign({}, row); delete legacy.raw_metrics; r = await post(legacy); }
       if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
       if (r.network || !r.ok) return { ok: false, error: MSG.analysisSaveFailed };
       return { ok: true };
@@ -320,7 +337,10 @@
        utiles à l'affichage sont lues. `hasMore` : il en reste de plus anciennes. Les lignes inutilisables sont ignorées, jamais inventées. */
     async function listAnalyses(o) {
       const limit = Math.min(Math.max(parseInt(o && o.limit, 10) || 20, 1), 50), offset = Math.max(parseInt(o && o.offset, 10) || 0, 0);
-      const r = await authed('/rest/v1/skin_analyses?select=id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version&order=analyzed_at.desc,id.desc&limit=' + (limit + 1) + '&offset=' + offset, { method: 'GET' });
+      const page = cols => authed('/rest/v1/skin_analyses?select=' + cols + '&order=analyzed_at.desc,id.desc&limit=' + (limit + 1) + '&offset=' + offset, { method: 'GET' });
+      const COLS = 'id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version';
+      let r = await page(COLS + ',raw_metrics');
+      if (missingRawColumn(r)) r = await page(COLS);
       if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
       if (r.network || !r.ok || !Array.isArray(r.body)) return { ok: false, error: MSG.historyLoadFailed };
       return { ok: true, hasMore: r.body.length > limit, analyses: r.body.slice(0, limit).map(analysisFromRow).filter(Boolean) };
@@ -345,5 +365,5 @@
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 
-  return { create, readAuthRedirect, toRow, fromRow, analysisToRow, analysisFromRow, METRIC_KEYS, MSG, SESSION_KEY, EMAIL_RE };
+  return { create, readAuthRedirect, toRow, fromRow, analysisToRow, analysisFromRow, rawMetricsOf, METRIC_KEYS, MSG, SESSION_KEY, EMAIL_RE };
 });

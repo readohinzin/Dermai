@@ -32,14 +32,17 @@ test('RUN2 chaque décision est traçable : donnée source → règle → résul
   const kinds = new Set(r.explanations.map(e => e.kind));
   for (const k of ['mode', 'priority', 'active', 'context', 'info']) assert.ok(kinds.has(k), k);
   const p = r.explanations.find(e => e.kind === 'priority' && e.indicator === 'acne');
-  assert.match(p.trace.source, /^acne=30 \(low\)/);
+  assert.match(p.trace.source, /^acne=30 \(ui, low\)/);   // valeur de décision, sa base (ui : compatibilité, aucun rawScore) et le repère
+  const withRaw = run({ acne: 70 }, { rawMap: { acne: 22.5 }, rawFill: 80 });
+  assert.match(withRaw.explanations.find(e => e.kind === 'priority').trace.source, /^acne=22\.5 \(raw, low\)/);
+  assert.doesNotMatch(JSON.stringify(withRaw.explanations.map(e => e.text)), /22\.5/, 'la valeur brute reste dans la trace interne, jamais dans un texte');
   assert.equal(p.trace.result, 'priorité 1');
 });
 
-test('RUN3 jamais de rawScore, de score global ni d\'âge cutané dans la décision', () => {
+test('RUN3 jamais de score global ni d\'âge cutané dans la décision (le rawScore, lui, décide : étape 25)', () => {
   const ui = { acne: 35, pores: 50, hydration: 20, firmness: 55 };
-  const base = run(ui, { raw: 1, global: 5, age: 70 }, { goals: ['aging'], level: 'full' });
-  for (const o of [{ raw: 99, global: 99, age: 18 }, { raw: null, global: null, age: null }]) {
+  const base = run(ui, { global: 5, age: 70 }, { goals: ['aging'], level: 'full' });
+  for (const o of [{ global: 99, age: 18 }, { global: null, age: null }]) {
     const x = run(ui, o, { goals: ['aging'], level: 'full' });
     for (const part of ['priorities', 'activePlan', 'routinePlan', 'productMatches']) assert.deepEqual(x[part], base[part], part + ' ' + JSON.stringify(o));
   }
@@ -84,11 +87,13 @@ test('RUN7 aucun objectif pré-coché : le profil vide est valide et n\'altère 
   assert.deepEqual(run(ui, {}, { goals: [] }).priorities, run(ui, {}, { goals: undefined }).priorities);
 });
 
-test('RUN8 le moteur est indépendant de l\'interface et de Perfect Corp (aucun DOM, aucun rawScore, aucun nom de fournisseur dans le code)', () => {
+test('RUN8 le moteur est indépendant de l\'interface et de Perfect Corp (aucun DOM, aucun nom de fournisseur ; rawScore lu à un seul endroit)', () => {
   for (const f of engineFiles()) {
     const code = stripJs(fs.readFileSync(f, 'utf8'));
     assert.doesNotMatch(code, /\bdocument\b|\bwindow\.|localStorage|fetch\(|XMLHttpRequest/, f);
-    assert.doesNotMatch(code, /rawScore|raw_score|perfect ?corp|youcam/i, f);
+    assert.doesNotMatch(code, /raw_score|perfect ?corp|youcam/i, f);
+    /* Étape 25 : rawScore (contrat normalized de skin-model.js) n'est lu que par l'interprétation ; les autres couches lisent `value`. */
+    if (!f.endsWith('interpret.js')) assert.doesNotMatch(code, /rawScore/, f);
   }
 });
 
@@ -112,7 +117,7 @@ test('RUN10 textes qui prétendaient à une personnalisation : retirés de l\'in
 test('RUN11 la page charge les modules du moteur dans le bon ordre, avant app.js', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const order = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
-  const need = ['js/skin-model.js', 'js/engine/data/indicators.js', 'js/engine/data/actives.js', 'js/engine/data/products.js', 'js/engine/copy.fr.js', 'js/engine/interpret.js',
+  const need = ['js/skin-model.js', 'js/engine/data/indicators.js', 'js/engine/data/decision.js', 'js/engine/data/actives.js', 'js/engine/data/products.js', 'js/engine/copy.fr.js', 'js/engine/interpret.js',
     'js/engine/actives.js', 'js/engine/priorities.js', 'js/engine/personalization.js', 'js/engine/routine.js', 'js/engine/products.js', 'js/engine/index.js', 'js/app.js'];
   const idx = need.map(n => order.indexOf(n));
   assert.ok(idx.every(i => i >= 0), JSON.stringify(idx));

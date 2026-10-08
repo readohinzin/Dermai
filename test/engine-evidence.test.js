@@ -55,7 +55,7 @@ test('EV2 les actifs « à_valider » n\'ont aucune source retenue et ne sont ja
 });
 
 test('EV3 les cibles « règle DERMAI » ne sont jamais présentées comme une relation établie ; rien n\'est attribué à Perfect Corp', () => {
-  const r = run({ texture: 30 });
+  const r = run({ redness: 40 });   // rougeurs → niacinamide : règle DERMAI (texture, autrefois utilisée ici, est descriptive depuis l'étape 25)
   const step = r.routinePlan.slots.evening.concat(r.routinePlan.slots.morning).find(s => s.kind === 'treatment' && s.activeId === 'niacinamide');
   assert.match(step.reason, /option cosmétique courante/);
   const solid = run({ acne: 30 }).routinePlan.slots.evening.find(s => s.kind === 'treatment');
@@ -77,12 +77,14 @@ test('EV4 aucun médicament : exclusions explicites, rien dans les actifs ni dan
 
 test('EV5 combinaisons : un seul exfoliant ou rétinoïde par soir, appliqué par le moteur (pas seulement affiché)', () => {
   const pairs = [
-    [{ acne: ['salicylic'], texture: ['aha_pha'] }, { acne: 30, texture: 30 }, 'aha_pha'],
-    [{ acne: ['salicylic'], wrinkles: ['retinoid'] }, { acne: 30, wrinkles: 30 }, 'retinoid'],
-    [{ texture: ['aha_pha'], wrinkles: ['retinoid'] }, { texture: 30, wrinkles: 30 }, 'retinoid']
+    [{ acne: ['salicylic'], pigmentation: ['aha_pha'] }, { acne: 30, pigmentation: 30 }, 'aha_pha'],
+    [{ acne: ['salicylic'], wrinkles: ['retinoid'] }, { acne: 30, wrinkles: 40 }, 'retinoid'],          // rides « mid » : passent après, même avec l'objectif
+    [{ pigmentation: ['aha_pha'], wrinkles: ['retinoid'] }, { pigmentation: 30, wrinkles: 40 }, 'retinoid']
   ];
+  /* Étape 25 : texture est descriptive et rides demandent l'objectif « rides et fermeté » ; la règle de combinaison est éprouvée avec
+     pigmentation (aha_pha) et l'objectif choisi. */
   for (const [pref, ui, dropped] of pairs) withStatus('retinoid', 'validated', () => withPref(pref, () => {
-    const r = run(ui, {}, { level: 'full' });
+    const r = run(ui, {}, { level: 'full', goals: ['aging'] });
     assert.ok(!tids(r).includes(dropped), dropped);
     assert.ok(r.activePlan.deferred.some(d => d.activeId === dropped && ['conflict', 'duplicate'].includes(d.kind)), dropped);   // même rôle (exfoliation) ou même groupe fort
     assert.equal(r.routinePlan.slots.evening.filter(s => s.kind === 'treatment' && actives.byId(s.activeId).groups.length).length, 1);
@@ -95,7 +97,7 @@ test('EV6 l\'azélaïque n\'est pas le « deuxième exfoliant » : il se combine
     assert.deepEqual(tids(r).sort(), ['azelaic', 'salicylic']);
   });
   withStatus('retinoid', 'validated', () => withPref({ wrinkles: ['retinoid'], redness: ['azelaic'] }, () => {
-    const r = run({ wrinkles: 30, redness: 40 }, {}, { level: 'full' });
+    const r = run({ wrinkles: 30, redness: 40 }, {}, { level: 'full', goals: ['aging'] });
     assert.deepEqual(tids(r).sort(), ['azelaic', 'retinoid']);
   }));
   assert.deepEqual(actives.byId('azelaic').groups, []);

@@ -56,7 +56,7 @@ test('RO4 protection solaire le matin seulement ; nettoyage et hydratation matin
 });
 
 test('RO5 soins ciblés placés dans leur créneau (vitamine C le matin, salicylique le soir), un seul exfoliant ou rétinoïde par soir', () => {
-  const r = run({ acne: 30, wrinkles: 40 }, {}, { level: 'full' });
+  const r = run({ acne: 30, wrinkles: 40 }, {}, { level: 'full', goals: ['aging'] });   // rides : avec l'objectif correspondant (étape 25)
   const by = id => treat(r).find(s => s.activeId === id);
   assert.equal(by('salicylic').slot, 'evening');
   assert.equal(by('vitamin_c').slot, 'morning');
@@ -99,20 +99,20 @@ test('RO8 type de peau : texture de l\'hydratant adaptée, jamais une règle de 
 });
 
 test('RO9 mode confort et peau sèche : notes de prudence, introduction ralentie pour les actifs exigeants', () => {
-  const c = run({ wrinkles: 40 }, { skin: 'Dry & Redness' });
+  const c = run({ wrinkles: 40 }, { skin: 'Dry & Redness' }, { goals: ['aging'] });
   assert.ok(c.routinePlan.notes.some(n => /privilégier le confort/.test(n)));
   assert.ok(c.routinePlan.notes.some(n => /espacer davantage/.test(n)));
   assert.equal(c.routinePlan.comfortMode, true);
   const t = treat(c)[0];
   assert.equal(t.slowDown, true);
   assert.match(t.reason, /très doucement/);
-  const std = run({ wrinkles: 40 }, { skin: 'Normal' });
+  const std = run({ wrinkles: 40 }, { skin: 'Normal' }, { goals: ['aging'] });
   assert.equal(treat(std)[0].slowDown, false);
   assert.ok(!std.routinePlan.notes.some(n => /confort|espacer/.test(n)));
 });
 
 test('RO10 un nouvel actif à la fois : la note est présente dès qu\'un actif exigeant ou plusieurs soins sont prévus', () => {
-  assert.ok(run({ acne: 30, wrinkles: 40 }, {}, { level: 'full' }).routinePlan.notes.includes(require('../js/engine/copy.fr.js').NOTES.oneAtATime));
+  assert.ok(run({ acne: 30, wrinkles: 40 }, {}, { level: 'full', goals: ['aging'] }).routinePlan.notes.includes(require('../js/engine/copy.fr.js').NOTES.oneAtATime));
   assert.ok(!run({}).routinePlan.notes.includes(require('../js/engine/copy.fr.js').NOTES.oneAtATime));
 });
 

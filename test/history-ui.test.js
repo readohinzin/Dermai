@@ -40,9 +40,12 @@ test('HU4 idempotence : identifiant propre à l\'analyse, envois simultanés éc
   assert.doesNotMatch(acct.slice(acct.indexOf('function analysisToRow'), acct.indexOf('function analysisFromRow')), /task_?id|taskId/i);
 });
 
-test('HU5 la ligne enregistrée ne contient ni photo, ni masque, ni rawScore, ni JSON du fournisseur', () => {
+test('HU5 la ligne enregistrée ne contient ni photo, ni masque, ni JSON du fournisseur ; rawScore seulement en nombres 0-100 (décision du moteur)', () => {
   const rec = between('function recordOfScan', 'function isRecordable');
-  assert.doesNotMatch(rec, /photo|realPreview|realBlob|mask|raw|blob/i);
+  assert.doesNotMatch(rec, /photo|realPreview|realBlob|mask|blob|mask_urls|localization/i);
+  assert.match(rec, /const v=n\[k\]&&n\[k\]\.rawScore;if\(typeof v===`number`&&v>=0&&v<=100\)raw\[k\]=v/);   // tel quel, jamais arrondi
+  assert.match(rec, /rawMetrics:raw/);
+  assert.match(rec, /band:m\.uiBand/, 'bande enregistrée = bande d\'affichage du score affiché');
   assert.match(rec, /displayScore/);               // scores affichés (0-100, 100 = meilleur) uniquement
   assert.match(acct, /liste blanche|Liste blanche/i);
 });
@@ -59,7 +62,8 @@ test('HU7 historique : tri explicite récent → ancien, page de 20, « Voir plu
   assert.match(app, /Votre historique apparaîtra après votre première analyse\./);
   assert.match(app, /data-act="retry-history">Réessayer/);
   assert.match(acct, /order=analyzed_at\.desc,id\.desc/);
-  assert.match(acct, /select=id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version/);
+  assert.match(acct, /const COLS = 'id,analyzed_at,global_score,skin_type,skin_age,metrics,priorities,goals_snapshot,engine_version';/);
+  assert.match(acct, /page\(COLS \+ ',raw_metrics'\)/);
   assert.doesNotMatch(acct, /select=\*/);
 });
 

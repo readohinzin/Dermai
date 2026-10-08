@@ -51,13 +51,13 @@ test('CP3 textes dynamiques : chaque phrase produite par le moteur (400 jeux) es
   }
 });
 
-test('CP4 formulations attendues : « Votre analyse… », « Cet indicateur est actuellement plus faible », « Une routine orientée vers »', () => {
-  assert.match(copy.priorityReason({ band: 'mid', objectiveMatch: false }), /^Cet indicateur est actuellement plus faible/);
-  assert.match(copy.priorityReason({ band: 'low', objectiveMatch: false }), /actuellement nettement plus faible/);
+test('CP4 formulations attendues : « Votre analyse… », « sous les repères DERMAI », « Une routine orientée vers »', () => {
+  assert.match(copy.priorityReason({ band: 'mid', objectiveMatch: false }), /^D'après les données de l'analyse, ce résultat est sous les repères DERMAI : DERMAI le retient/);
+  assert.match(copy.priorityReason({ band: 'low', objectiveMatch: false }), /nettement sous les repères DERMAI/);
   assert.match(copy.priorityReason({ band: 'mid', objectiveMatch: true }), /Il correspond à votre objectif\.$/);
   assert.match(copy.eyeInfo(['Cernes']), /^Votre analyse montre/);
   assert.match(copy.summary(['Pores', 'Hydratation'], 'action'), /^Une routine orientée vers : pores et hydratation\.$/);
-  assert.match(copy.MAINTENANCE.title, /^Aucune priorité forte ne ressort de cette analyse\./);
+  assert.match(copy.MAINTENANCE.title, /^DERMAI ne retient aucun besoin particulier\./);
   assert.match(copy.MAINTENANCE.text, /routine d'entretien/);
 });
 

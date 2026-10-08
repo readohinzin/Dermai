@@ -198,7 +198,8 @@
      Un score absent, non numérique ou hors de 0 à 100 est « indisponible » (score null) : jamais remplacé, jamais borné.
      Seul l'arrondi à l'entier est appliqué, pour l'affichage. */
   /* Editorial DERMAI thresholds (61 / 31) : NOT supplied by Perfect Corp. Perfect Corp documente un ui_score entier, plus haut = mieux,
-     sans bande ni seuil. Ces bandes servent uniquement à l'affichage et à l'éligibilité des priorités. */
+     sans bande ni seuil. Ces bandes servent à l'affichage (badges, barres) du score affiché. Les décisions du moteur utilisent leurs propres
+     repères sur rawScore (js/engine/data/decision.js) ; 61 / 31 n'y servent qu'en compatibilité, pour une analyse sans rawScore. */
   const BANDS = [
     { key: 'good', label: 'Bien', min: 61 },
     { key: 'mid', label: 'À soutenir', min: 31 },

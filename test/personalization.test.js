@@ -43,11 +43,12 @@ test('P3 objectif tone : le repère teint/taches passe devant un repère compara
   assert.equal(r.priorities.items[0].objectiveMatch, true);
 });
 
-test('P4 objectif texture : le repère de texture passe devant ; actif prudent, signalé « option cosmétique courante »', () => {
+test('P4 objectif texture : texture est descriptive (étape 25) : l\'objectif n\'oriente rien, n\'ajoute aucun actif, et le dit', () => {
   const r = run({ texture: 50, acne: 48 }, {}, { goals: ['texture'] });
-  assert.equal(r.priorities.items[0].indicator, 'texture');
-  const step = r.routinePlan.slots.morning.concat(r.routinePlan.slots.evening).find(s => s.kind === 'treatment' && s.indicators.includes('texture'));
-  assert.match(step.reason, /option cosmétique courante/);
+  assert.deepEqual(r.priorities.items.map(i => i.indicator), ['acne']);
+  assert.ok(!r.activePlan.treatments.some(t => t.indicators.includes('texture')));
+  assert.equal(r.personalization.goals[0].status, 'descriptive');
+  assert.match(r.synthesis.goals.items[0].text, /^Texture : texture \(50\), résultat décrit sans règle d'action automatique : aucun soin ciblé n'est ajouté à ce titre\.$/);
 });
 
 test('P5 objectif aging : aucun rétinoïde automatique (« à_valider »), la vitamine C reste possible', () => {
@@ -76,11 +77,11 @@ test('P8 un objectif n\'est pas un diagnostic : il ne crée ni priorité, ni act
     assert.deepEqual(r.priorities.items, []);
     assert.deepEqual(tids(r), []);
     assert.doesNotMatch(allTexts(r), DIAG, id);
-    assert.ok(['no_signal', 'maintenance'].includes(r.personalization.goals[0].status), id);
+    assert.ok(['no_signal', 'maintenance', 'descriptive'].includes(r.personalization.goals[0].status), id);
   }
   const r = run({}, {}, { goals: ['tone'] });
   assert.match(r.personalization.goals[0].text, /aucun actif n'est ajouté/);
-  assert.match(r.explanations.find(e => e.kind === 'mode').text, /Aucune priorité forte ne ressort/);
+  assert.match(r.explanations.find(e => e.kind === 'mode').text, /DERMAI ne retient aucun besoin particulier/);
 });
 
 test('P9 confort choisi par l\'utilisateur : aucun rétinoïde, aucun actif à forte irritation, base d\'hydratation, SPF', () => {
@@ -202,8 +203,10 @@ test('S2 explications « pourquoi / pourquoi maintenant / pourquoi pas autre cho
 });
 
 test('S3 couverture : un actif compatible qui couvre plusieurs repères évite de multiplier les actifs, sans jamais être plus irritant', () => {
-  const r = run({ acne: 30, pores: 35, oiliness: 40 }, {}, { level: 'full' });
-  assert.deepEqual(tids(r), ['niacinamide']);
+  /* Étape 25 : le niveau d'huile, descriptif, ne compte plus ; scénario de couverture : imperfections + rougeurs (acide azélaïque). */
+  const r = run({ acne: 30, redness: 35 }, {}, { level: 'full' });
+  assert.equal(r.activePlan.treatments[0].activeId, 'azelaic');
+  assert.equal(r.activePlan.treatments[0].choice, 'coverage');
   assert.ok(r.activePlan.deferred.some(d => d.activeId === 'salicylic' && d.kind === 'covered'));
   for (let seed = 1; seed <= 400; seed++) {
     const c = randomCase(seed), x = run(c.ui, c.o, c.profile);

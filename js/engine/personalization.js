@@ -12,23 +12,25 @@
   const isNode = typeof module === 'object' && module.exports;
   const E = root.DermaiEngine || {};
   const dep = isNode
-    ? { indicators: require('./data/indicators.js'), activesData: require('./data/actives.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), skin: require('../skin-model.js') }
-    : { indicators: E.indicatorsData, activesData: E.activesData, actives: E.actives, copy: E.copy, skin: root.SkinModel };
+    ? { indicators: require('./data/indicators.js'), activesData: require('./data/actives.js'), decision: require('./data/decision.js'), actives: require('./actives.js'), priorities: require('./priorities.js'), copy: require('./copy.fr.js'), skin: require('../skin-model.js') }
+    : { indicators: E.indicatorsData, activesData: E.activesData, decision: E.decisionData, actives: E.actives, priorities: E.priorities, copy: E.copy, skin: root.SkinModel };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); NS.personalization = api; }
 })(typeof self !== 'undefined' ? self : this, function (dep) {
   'use strict';
-  const D = dep.indicators, A = dep.activesData, actives = dep.actives, copy = dep.copy, skin = dep.skin;
+  const D = dep.indicators, A = dep.activesData, DEC = dep.decision, actives = dep.actives, copy = dep.copy, skin = dep.skin;
+  /* Indicateurs d'un objectif pour lesquels une action est possible : rôle « actionable », ou « goal_gated » ouvert par CET objectif. */
+  const actsFor = (ind, goalId) => { const r = DEC.ROLES[ind] || {}; return r.role === 'actionable' || (r.role === 'goal_gated' && r.goal === goalId); };
   const P = copy.PERSONAL, lower = copy.lower, join = copy.joinList;
   const labelOf = id => skin.METRIC_LABELS[id] || id;
   const activeLabel = id => (actives.byId(id) || { label: id }).label;
 
-  /* Matrice objectif → indicateurs → actifs compatibles. Dérivée des données existantes (domaines, préférences validées) : aucune relation
-     nouvelle n'est créée ici. Un actif « à_valider » n'y figure jamais. */
+  /* Matrice objectif → indicateurs → actifs compatibles. Dérivée des données existantes (domaines, rôles de décision, préférences validées) :
+     aucune relation nouvelle n'est créée ici. Un actif « à_valider » n'y figure jamais ; un indicateur descriptif non plus. */
   function goalMatrix() {
     return D.GOALS.map(g => {
-      const indicators = g.domain ? Object.keys(D.INDICATORS).filter(k => D.INDICATORS[k].domain === g.domain && D.INDICATORS[k].actionability === 'actionable') : [];
+      const indicators = g.domain ? Object.keys(D.INDICATORS).filter(k => D.INDICATORS[k].domain === g.domain && actsFor(k, g.id)) : [];
       return {
         goal: g.id, domain: g.domain,
         indicators: indicators.map(ind => ({ indicator: ind, actives: (A.PREFERENCE[ind] || []).map(actives.byId).filter(a => actives.isValidated(a) && a.targets.includes(ind)).map(a => a.id) }))
@@ -53,11 +55,13 @@
       const def = D.GOALS.find(g => g.id === id), row = matrix.find(m => m.goal === id);
       const label = copy.GOAL_LABELS[id];
       if (!def.domain) return { id, label, status: 'maintenance', indicators: [], text: P.goalStatus.maintenance };
-      const inds = interp.indicators.filter(i => i.domain === def.domain && i.actionability === 'actionable')
-        .map(i => ({ indicator: i.id, label: i.label, score: i.score, band: i.band }));
+      const all = interp.indicators.filter(i => i.domain === def.domain && i.actionability === 'actionable');
+      const inds = all.map(i => ({ indicator: i.id, label: i.label, score: i.score, band: i.band, role: i.role }));
       const inPriority = prios.items.some(it => it.domain === def.domain);
-      const eligible = inds.some(i => (i.band === 'low' || i.band === 'mid') && actives.hasLever(i.indicator));
-      const status = inPriority ? 'priority' : eligible ? 'beyond_cap' : inds.some(i => i.score !== null) ? 'no_signal' : 'unavailable';
+      const eligible = all.some(i => dep.priorities.isCandidate(i, profile.goals || []));
+      const acting = all.filter(i => i.available && actsFor(i.id, id));
+      /* descriptive : l'objectif ne repose que sur des indicateurs décrits sans règle d'action (ex. texture) : il n'oriente rien. */
+      const status = inPriority ? 'priority' : eligible ? 'beyond_cap' : !all.some(i => i.available) ? 'unavailable' : !acting.length ? 'descriptive' : 'no_signal';
       return { id, label, status, indicators: inds, candidateActives: row.indicators.flatMap(r => r.actives).filter((x, k, a) => a.indexOf(x) === k), text: P.goalStatus[status] };
     });
     return { context, exclusions, goals, routineLevel: level };

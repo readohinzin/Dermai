@@ -27,9 +27,13 @@ test('I2 domaines : regroupements prévus, le contour des yeux est informatif, a
   for (const bad of ['domains', 'domainScore', 'average', 'min', 'max']) assert.equal(bad in r, false, bad);
 });
 
-test('I3 uiScore uniquement : rawScore n\'a aucun effet, un uiScore invalide ou hors plage donne « indisponible » (jamais 0)', () => {
+test('I3 affichage = uiScore ; décision = rawScore quand il est complet ; un uiScore invalide ou hors plage donne « indisponible » (jamais 0)', () => {
   const a = interpret(norm({ acne: 40 }, { raw: 3 })), b = interpret(norm({ acne: 40 }, { raw: 97 }));
-  assert.deepEqual(a, b);
+  const ac = r => r.indicators.find(i => i.id === 'acne');
+  assert.deepEqual([a.basis, b.basis], ['raw', 'raw']);
+  assert.deepEqual([ac(a).score, ac(b).score], [40, 40], 'le score affiché ne dépend jamais du rawScore');
+  assert.deepEqual([ac(a).uiBand, ac(b).uiBand], ['mid', 'mid'], 'bande d\'affichage : score affiché');
+  assert.deepEqual([ac(a).value, ac(a).band, ac(b).value, ac(b).band], [3, 'low', 97, 'good'], 'décision : rawScore, repères provisoires');
   for (const bad of [null, undefined, 'x', NaN, -5, 140]) {
     const i = interpret(norm({ acne: bad })).indicators.find(x => x.id === 'acne');
     assert.deepEqual([i.score, i.band, i.available], [null, null, false], String(bad));

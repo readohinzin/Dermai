@@ -34,8 +34,8 @@ test('X2 priorités : détail accessible, maintenance sans priorité inventée',
   assert.match(app, /data-go="concern:\$\{m\.indicator\}">Voir le détail/);
   const m = run({});
   assert.deepEqual(m.priorities.items, []);
-  assert.equal(copy.MAINTENANCE.title, 'Aucune priorité forte ne ressort de cette analyse.');
-  assert.match(copy.MAINTENANCE.text, /peuvent toutefois être soutenus dans votre routine d'entretien/);
+  assert.equal(copy.MAINTENANCE.title, 'DERMAI ne retient aucun besoin particulier.');
+  assert.match(copy.MAINTENANCE.text, /routine d'entretien de base : nettoyage doux, hydratation et protection solaire/);
   assert.ok(run({ acne: 20, pores: 25, hydration: 30, texture: 35, redness: 40 }).priorities.items.length <= 3);
 });
 

@@ -16,14 +16,17 @@
    <button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide?`Afficher les zones`:`Voir la photo sans les zones`}</button></section>`;
   }
 
-  /* « Ce que votre analyse a trouvé » : lecture calculée à partir des scores réels (js/engine/synthesis.js). */
+  /* Synthèse en quatre parties distinctes (js/engine/synthesis.js) : ce que l'analyse montre, vos résultats les moins élevés (comparaison
+     relative, jamais un problème), ce que DERMAI retient (seulement une règle DERMAI), votre stratégie. Seuls les scores affichés
+     apparaissent ; la note finale explique que les décisions utilisent séparément les données brutes. */
   function found(y) {
-    if (!y) return '';
-    const T = y.tiers;
-    const group = (title, list, cls) => list.length ? `<div class="c-insight__group"><p class="c-insight__label">${title}</p><div class="chips">${list.map(i => chip(i, cls)).join('')}</div></div>` : '';
+    if (!y || !y.sections) return '';
+    const T = y.tiers, X = y.sections, L = y.titles;
+    const chips = (list, cls) => list.length ? `<div class="chips">${list.map(i => chip(i, cls)).join('')}</div>` : '';
+    const part = (k, extra) => X[k] ? `<div class="c-insight__group"><h3 class="c-insight__label">${L[k]}</h3><p class="c-insight__text">${X[k]}</p>${extra || ''}</div>` : '';
     return `<section class="c-insight" aria-labelledby="ins-title"><p class="kicker">Synthèse</p><div class="hd"><h2 class="h3" id="ins-title">Ce que votre analyse a trouvé</h2></div>
-     <p class="c-insight__text">${y.found}</p>
-     ${group('Vos points forts', T.strength, 'c-badge--good')}${group('Vos axes d\'attention', [...T.priority, ...T.attention], 'c-badge--outline')}</section>`;
+     ${part('shows')}${part('lowest', chips(T.lowest, 'c-badge--outline'))}${part('retained', chips(T.priority, 'c-badge--mid'))}${part('strategy')}
+     <p class="c-disclaimer c-insight__note">${y.scoreNote}</p></section>`;
   }
 
   /* « Pourquoi cette routine ? » : stratégie, objectifs, niveau, contexte de peau. */

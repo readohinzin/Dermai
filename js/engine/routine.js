@@ -24,7 +24,7 @@
     const slots = { morning: [], evening: [] };
     const extraDeferred = [];
     const labelOf = id => skin.METRIC_LABELS[id];
-    /* Rougeurs apparentes « À soutenir » sans mode confort : prudence renforcée (introduction plus lente) pour les actifs plus demandants. */
+    /* Rougeurs : repère de décision « mid » sans mode confort : prudence renforcée (introduction plus lente) pour les actifs plus demandants. */
     const rednessSoft = ((interp.indicators || []).find(i => i.id === 'redness') || {}).band === 'mid';
 
     for (const slot of ['morning', 'evening']) {
