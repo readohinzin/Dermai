@@ -67,6 +67,21 @@
     droopyLowerEyelid: { role: 'informative' }
   };
 
+  /* ACCOMPAGNEMENT des indicateurs au niveau « good » (étape 27). Une deuxième voie, ajoutée APRÈS les priorités LOW/MID, qui ne les modifie pas.
+     Trois niveaux distincts : un AXE d'accompagnement (ce que DERMAI repère), une RECOMMANDATION (l'actif doux concerné et l'état du produit),
+     un SOIN d'accompagnement (une étape réellement ajoutée à la routine). Un axe identifié n'est jamais un soin automatiquement ajouté.
+     MAX_ACCOMPANIMENT_AXES        : axes nommés au plus. Ne règle QUE l'affichage et la sélection : n'augmente aucun plafond de soins.
+                                     0 désactive l'accompagnement (preuve que la nouvelle voie est additive : C0).
+     ACCOMPANIMENT_CONVERGENCE     : nombre minimal d'axes distincts qui partagent le même actif doux pour ajouter un soin SANS objectif.
+     MAX_ACCOMPANIMENT_STEPS       : étapes ajoutées au plus par l'accompagnement (toujours dans la place laissée par les plafonds de routine, data/actives.js LIMITS).
+     ACCOMPANIMENT_ACTIVE          : pool d'actifs de l'accompagnement = sous-ensemble strict du pool existant : validé, soin ciblé, irritation basse.
+     « Distinct » réutilise TIE_TOLERANCE (même sens : au-delà de cet écart, deux résultats ne sont plus équivalents) : valeur < médiane − TIE_TOLERANCE, strictement.
+     Aucune de ces valeurs ne dépend du masque de localisation, du pays, des offres ni du type de peau. */
+  const MAX_ACCOMPANIMENT_AXES = 2;
+  const ACCOMPANIMENT_CONVERGENCE = 2;
+  const MAX_ACCOMPANIMENT_STEPS = 1;
+  const ACCOMPANIMENT_ACTIVE = { kind: 'treatment', irritation: 'low' };
+
   /* SOURCE UNIQUE du rôle décisionnel : ROLES ci-dessus. Les trois questions ci-dessous en dérivent, aucune autre table ne les redéfinit
      (indicators.js ne porte plus que le domaine et la confiance éditoriale).
      isInformative : contour des yeux, information seulement ;
@@ -80,5 +95,5 @@
     return r.role === 'actionable' || (r.role === 'goal_gated' && Array.isArray(goals) && goals.includes(r.goal));
   };
 
-  return { PROVISIONAL, PREFERRED_BASIS, RAW_BANDS, LEGACY_UI_BANDS, TIE_TOLERANCE, ROLES, roleOf, isInformative, isComparable, allowsAccompaniment };
+  return { PROVISIONAL, PREFERRED_BASIS, RAW_BANDS, LEGACY_UI_BANDS, TIE_TOLERANCE, MAX_ACCOMPANIMENT_AXES, ACCOMPANIMENT_CONVERGENCE, MAX_ACCOMPANIMENT_STEPS, ACCOMPANIMENT_ACTIVE, ROLES, roleOf, isInformative, isComparable, allowsAccompaniment };
 });
