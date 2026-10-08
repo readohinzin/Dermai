@@ -186,6 +186,6 @@ test('S15 sémantique Perfect Corp et déterminisme : un résultat plus élevé 
   assert.doesNotMatch(src, /\b(25|3[01]|50|6[01]|40|80|90)\b/);
 });
 
-test('S16 version des règles : 1.2.0, puisque les décisions passent sur le rawScore', () => {
-  assert.equal(Engine.VERSION, '1.2.0');
+test('S16 version des règles : 1.3.0 (accompagnement des indicateurs good) ; 1.2.0 : les décisions passent sur le rawScore', () => {
+  assert.equal(Engine.VERSION, '1.3.0');
 });

@@ -5,9 +5,9 @@
   const isNode = typeof module === 'object' && module.exports;
   const E = root.DermaiEngine || {};
   const dep = isNode
-    ? { indicators: require('./data/indicators.js'), activesData: require('./data/actives.js'), interpret: require('./interpret.js'), priorities: require('./priorities.js'),
+    ? { indicators: require('./data/indicators.js'), activesData: require('./data/actives.js'), interpret: require('./interpret.js'), priorities: require('./priorities.js'), accompaniment: require('./accompaniment.js'),
         actives: require('./actives.js'), personalization: require('./personalization.js'), routine: require('./routine.js'), products: require('./products.js'), synthesis: require('./synthesis.js'), copy: require('./copy.fr.js'), skin: require('../skin-model.js') }
-    : { indicators: E.indicatorsData, activesData: E.activesData, interpret: E.interpret, priorities: E.priorities, actives: E.actives, personalization: E.personalization, routine: E.routine,
+    : { indicators: E.indicatorsData, activesData: E.activesData, interpret: E.interpret, priorities: E.priorities, accompaniment: E.accompaniment, actives: E.actives, personalization: E.personalization, routine: E.routine,
         products: E.products, synthesis: E.synthesis, copy: E.copy, skin: root.SkinModel };
   const api = factory(dep);
   if (isNode) module.exports = api;
@@ -19,8 +19,9 @@
 
   /* Version des règles cosmétiques (priorités, personnalisation, actifs, routine). Enregistrée avec chaque analyse de l'historique pour que
      l'on sache avec quelles règles elle a été produite. À changer dès qu'une règle modifie une priorité ou une recommandation. */
-  const VERSION = '1.2.0';   // 1.1.0 : un produit réel n'est plus proposé sans justification (étape 22)
+  const VERSION = '1.3.0';   // 1.1.0 : un produit réel n'est plus proposé sans justification (étape 22)
                              // 1.2.0 : décisions sur raw_score (repères DERMAI provisoires), rôles des indicateurs, ui_score pour l'affichage seulement
+                             // 1.3.0 : accompagnement des indicateurs « good » (deuxième voie après les priorités ; les priorités LOW/MID sont inchangées)
 
   /* Profil : objectifs connus (3 au maximum), niveau de routine connu (sinon « simple »), catégories de produits déjà utilisées,
      confort demandé par l'utilisateur (préférence cosmétique) et exclusions (actifs que l'utilisateur ne souhaite pas, jamais une donnée de santé).
@@ -51,19 +52,26 @@
   function core(normalized, prof) {
     const interpretation = dep.interpret.interpret(normalized);
     const priorities = dep.priorities.compute(interpretation, prof);
+    const axes = dep.accompaniment.compute(interpretation, priorities, prof);           // 1. axes d'accompagnement (après les priorités, sans les modifier)
     const pers = dep.personalization.build(interpretation, priorities, prof);
     const eff = Object.assign({}, interpretation, { context: Object.assign({}, interpretation.context, pers.context) });
-    const activePlan = dep.actives.select(priorities.items, eff, prof);
+    const priorityPlan = dep.actives.select(priorities.items, eff, prof);               // plan des priorités : inchangé
+    const added = dep.actives.addAccompaniment(priorityPlan, axes.items, prof);          // 2. recommandation, 3. soin ajouté si les règles le permettent
+    const activePlan = added.plan;
     const routinePlan = dep.routine.build(eff, priorities, activePlan, prof);
     activePlan.deferred = routinePlan.deferred;              // inclut les actifs écartés faute de place dans un créneau
-    return { interpretation, eff, priorities, pers, activePlan, routinePlan };
+    /* Le soin n'est « ajouté » que s'il est réellement dans la routine : un créneau plein le renvoie à « identifié ». */
+    const inRoutine = id => [...routinePlan.slots.morning, ...routinePlan.slots.evening].some(s => s.kind === 'treatment' && s.activeId === id);
+    for (const r of added.recommendations) if (r.status === 'added' && !inRoutine(r.activeId)) { r.status = 'identified'; r.blocked = 'slot'; }
+    const accompaniment = Object.assign({}, axes, { recommendations: added.recommendations });
+    return { interpretation, eff, priorities, accompaniment, pers, activePlan, routinePlan };
   }
 
   /* options.previous : normalized de l'analyse précédente (comparaison seulement, jamais traitée comme l'analyse courante). */
   function run(normalized, profile, options) {
     const prof = normalizeProfile(profile);
     const cur = core(normalized, prof);
-    const { interpretation, eff, priorities, pers, activePlan, routinePlan } = cur;
+    const { interpretation, eff, priorities, accompaniment, pers, activePlan, routinePlan } = cur;
     /* options.catalog : catalogue de produits à utiliser (réel ou démonstration, choisi par l'appelant). Le catalogue n'agit QUE sur cette dernière couche. */
     const productMatches = dep.products.match(routinePlan, options && options.catalog);
     const prev = options && options.previous ? core(options.previous, prof) : null;
@@ -80,6 +88,11 @@
     }
     for (const t of activePlan.treatments) {
       const a = dep.actives.byId(t.activeId);
+      if (t.origin === 'accompaniment') {
+        explanations.push({ kind: 'accompaniment', activeId: t.activeId, text: copy.accompanimentStep(a.label, t.indicators.map(i => dep.skin.METRIC_LABELS[i])),
+          trace: { source: t.indicators.map(idx).join(', '), rule: 'accompagnement : axe distinct, objectif ou débordement ; actif doux validé ; étape ajoutée (objectif ou convergence)', result: 'soin d\'accompagnement ' + a.id } });
+        continue;
+      }
       explanations.push({ kind: 'active', activeId: t.activeId, text: copy.activeReason(t.indicators.map(i => dep.skin.METRIC_LABELS[i]), t.gentleFallback, t.indicators.filter(i => a.evidence.editorial.includes(i)).map(i => dep.skin.METRIC_LABELS[i])),
         trace: { source: t.indicators.map(idx).join(', '), rule: 'préférence éditoriale validée (' + a.status + ')', result: 'soin ciblé ' + a.id } });
     }
@@ -101,7 +114,9 @@
 
     /* Synthèse personnalisée : lecture des décisions ci-dessus (rien de nouveau n'est décidé ici). */
     const synthesis = dep.synthesis.build({ interpretation, priorities, profile: prof, goalStatuses: personalization.goals, routinePlan, productMatches, catalog: options && options.catalog, productsApi: dep.products });
-    return { profile: prof, interpretation, priorities, personalization, activePlan, routinePlan, productMatches, explanations, synthesis };
+    /* priorityItems : les besoins retenus (priorités LOW/MID) ; accompanimentItems : les axes d'accompagnement ; accompaniment.recommendations : l'état de chacun. */
+    return { profile: prof, interpretation, priorities, priorityItems: priorities.items, accompaniment, accompanimentItems: accompaniment.items, personalization, activePlan, routinePlan,
+      productMatches, explanations, synthesis };
   }
 
   return { run, normalizeProfile, toggleGoal, goalList, MAX_GOALS: D.MAX_GOALS, VERSION };

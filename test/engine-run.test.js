@@ -17,7 +17,9 @@ const engineFiles = () => {
 
 test('RUN1 sortie centrale : interpretation, priorities, activePlan, routinePlan, productMatches, explanations', () => {
   const r = Engine.run(M.parseSkinResponse(FX).normalized, { goals: ['tone'], level: 'simple', cats: [] });
-  assert.deepEqual(Object.keys(r).sort(), ['activePlan', 'explanations', 'interpretation', 'personalization', 'priorities', 'productMatches', 'profile', 'routinePlan', 'synthesis']);
+  /* Étape 27 : trois clés ajoutées (priorityItems = priorities.items, accompaniment, accompanimentItems = accompaniment.items) ; aucune clé existante retirée. */
+  assert.deepEqual(Object.keys(r).sort(), ['accompaniment', 'accompanimentItems', 'activePlan', 'explanations', 'interpretation', 'personalization', 'priorities', 'priorityItems', 'productMatches', 'profile', 'routinePlan', 'synthesis']);
+  assert.equal(r.priorityItems, r.priorities.items);
   assert.equal(r.interpretation.indicators.length, 15);
   assert.ok(['action', 'maintenance'].includes(r.priorities.mode));
 });
@@ -118,7 +120,7 @@ test('RUN11 la page charge les modules du moteur dans le bon ordre, avant app.js
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const order = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
   const need = ['js/skin-model.js', 'js/engine/data/indicators.js', 'js/engine/data/decision.js', 'js/engine/data/actives.js', 'js/engine/data/products.js', 'js/engine/copy.fr.js', 'js/engine/interpret.js',
-    'js/engine/actives.js', 'js/engine/priorities.js', 'js/engine/personalization.js', 'js/engine/routine.js', 'js/engine/products.js', 'js/engine/index.js', 'js/app.js'];
+    'js/engine/actives.js', 'js/engine/priorities.js', 'js/engine/accompaniment.js', 'js/engine/personalization.js', 'js/engine/routine.js', 'js/engine/products.js', 'js/engine/index.js', 'js/app.js'];
   const idx = need.map(n => order.indexOf(n));
   assert.ok(idx.every(i => i >= 0), JSON.stringify(idx));
   assert.deepEqual([...idx].sort((a, b) => a - b), idx, 'ordre de chargement');

@@ -52,7 +52,9 @@ for (const [n, id, label] of [[4, 'oiliness', 'Niveau d\'huile'], [5, 'texture',
     for (const goals of [[], ['oil_pores'], ['texture'], ['aging']]) {
       const r = run({ [id]: 10 }, { rawMap: { [id]: 5 } }, { goals, level: 'full' });
       assert.deepEqual(prio(r), [], goals.join());
-      assert.deepEqual(tids(r), [], goals.join());
+      /* Étape 27 : un objectif peut ouvrir l'accompagnement d'un AUTRE indicateur du même domaine (huile et pores : les pores), jamais celui-ci. */
+      assert.ok(!r.accompanimentItems.some(a => a.indicator === id), goals.join());
+      for (const t of r.activePlan.treatments) { assert.equal(t.origin, 'accompaniment', goals.join()); assert.ok(!t.indicators.includes(id), goals.join()); }
       assert.equal(ind(r, id).role, 'descriptive');
     }
     const y = run({ [id]: 10 }, { rawMap: { [id]: 5 } }).synthesis;

@@ -27,7 +27,8 @@ const realCase = (o = {}, profile = {}) => Engine.run(norm({}, Object.assign({ f
 const prio = r => r.priorities.items.map(i => i.indicator);
 const tids = r => r.activePlan.treatments.map(t => t.activeId);
 
-test('C0 moteur inchangé : empreinte des DÉCISIONS (2000 profils, dont 500 avec raw) identique à celle d\'avant l\'étape 26', () => {
+/* Empreinte des DÉCISIONS (priorités, actifs, routine, produits, statut des objectifs) sur 2000 profils, dont 500 avec raw. */
+function decisionFingerprint() {
   const dec = r => JSON.stringify([r.interpretation.basis, r.interpretation.indicators.map(i => [i.id, i.score, i.value, i.band, i.role]), r.interpretation.context,
     r.priorities.mode, r.priorities.items.map(i => [i.indicator, i.band, i.rank, i.objectiveMatch]), r.priorities.informational.map(i => i.indicator),
     r.activePlan.treatments.map(t => [t.activeId, t.indicators, t.choice]), r.activePlan.supports.map(s => [s.activeId, s.indicators]), r.activePlan.deferred.map(d => [d.activeId, d.kind]),
@@ -42,9 +43,22 @@ test('C0 moteur inchangé : empreinte des DÉCISIONS (2000 profils, dont 500 ave
     out.push(dec(Engine.run(norm(ui, { rawMap: raw, skin: ['Normal', 'Oily', 'Dry', 'Combination', 'Oily & Redness'][s % 5] }),
       { goals: [[], ['tone'], ['aging'], ['hydration', 'texture']][s % 4], level: ['none', 'simple', 'full'][s % 3] }, { catalog: C.PRODUCTS })));
   }
-  /* Valeur calculée avec le code du commit c31d0c8 (avant l'étape 26) ET avec le code actuel : identiques. */
-  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), '4c56df43b75c630702ef98732e2a3c40d755458a21dbab83c71e49a2bcbc4c4b');
+  return crypto.createHash('sha256').update(out.join('\n')).digest('hex');
+}
+const withoutAccompaniment = fn => { const s = DEC.MAX_ACCOMPANIMENT_AXES; DEC.MAX_ACCOMPANIMENT_AXES = 0; try { return fn(); } finally { DEC.MAX_ACCOMPANIMENT_AXES = s; } };
+
+test('C0 ADDITIF moteur inchangé quand l\'accompagnement est désactivé : empreinte des DÉCISIONS identique à celle d\'avant l\'étape 26 (et d\'avant l\'étape 27)', () => {
+  /* Valeur calculée avec le code du commit c31d0c8 (avant l'étape 26), retrouvée avec le code de l'étape 26 puis, accompagnement désactivé
+     (MAX_ACCOMPANIMENT_AXES = 0), avec celui de l'étape 27 : la nouvelle voie est PUREMENT ADDITIVE. */
+  assert.equal(withoutAccompaniment(decisionFingerprint), '4c56df43b75c630702ef98732e2a3c40d755458a21dbab83c71e49a2bcbc4c4b');
   assert.deepEqual(DEC.RAW_BANDS.map(b => b.min), [50, 25, 0], 'repères raw provisoires inchangés');
+});
+
+test('C0 COMPLET empreinte des décisions AVEC l\'accompagnement (étape 27) : changée VOLONTAIREMENT, uniquement là où un accompagnement existe', () => {
+  /* Ancienne : 4c56df43… (sans accompagnement). Nouvelle : les priorités LOW/MID restent identiques (C0-PRIORITIES, test/c0-priorities.test.js) ;
+     ne changent que les profils où un indicateur « good » devient un axe d'accompagnement (soin doux ajouté : actifs, routine, produits, statut des
+     objectifs). Le test différentiel ACC-DIFF (test/accompaniment.test.js) le vérifie profil par profil. */
+  assert.equal(decisionFingerprint(), '533ec0711c95a0c692878e337a05a97a9fe6d93e083c325cfa21c59c3d6c6a86');
 });
 
 test('C1 (17, 19, 20, 21) cas réel de référence : acné favorable sans priorité, pores et hydratation retenus, niacinamide pour les pores', () => {

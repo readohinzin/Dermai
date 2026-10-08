@@ -28,7 +28,7 @@
     const rednessSoft = ((interp.indicators || []).find(i => i.id === 'redness') || {}).band === 'mid';
 
     for (const slot of ['morning', 'evening']) {
-      slots[slot].push({ id: slot + ':cleanse', slot, kind: 'cleanse', label: copy.STEP_LABELS.cleanse, owned: owned.has('cleanser'),
+      slots[slot].push({ id: slot + ':cleanse', slot, kind: 'cleanse', label: copy.STEP_LABELS.cleanse, owned: owned.has('cleanser'), origin: 'base',
         reason: owned.has('cleanser') ? copy.stepReason.owned : copy.stepReason.cleanse });
     }
     /* Allocation des créneaux : d'abord les actifs contraints (un seul créneau possible), puis les flexibles, qui prennent leur créneau
@@ -52,15 +52,17 @@
       const slot = chosenSlot.get(t.activeId);
       if (!slot) continue;
       slots[slot].push({ id: slot + ':treatment:' + a.id, slot, kind: 'treatment', label: copy.STEP_LABELS.treatment, activeId: a.id, activeLabel: a.label,
-        reason: copy.activeReason(t.indicators.map(labelOf), t.gentleFallback, t.indicators.filter(i => a.evidence.editorial.includes(i)).map(labelOf)), indicators: t.indicators,
+        origin: t.origin || 'priority',   // priority | accompaniment (les étapes de nettoyant, d'hydratant et de protection solaire sont « base »)
+        reason: t.origin === 'accompaniment' ? copy.accompanimentStep(a.label, t.indicators.map(labelOf))
+          : copy.activeReason(t.indicators.map(labelOf), t.gentleFallback, t.indicators.filter(i => a.evidence.editorial.includes(i)).map(labelOf)), indicators: t.indicators,
         introduction: { frequency: a.introduction.frequency, note: a.introduction.note, order: t.introductionOrder },
         cautions: a.cautions, slowDown: (ctx.comfortMode || ctx.skinBase === 'dry' || rednessSoft) && a.irritation !== 'low' });
     }
     for (const slot of ['morning', 'evening']) {
-      slots[slot].push({ id: slot + ':moisturize', slot, kind: 'moisturize', label: copy.STEP_LABELS.moisturize, owned: owned.has('moisturizer'), supportIds, texture,
+      slots[slot].push({ id: slot + ':moisturize', slot, kind: 'moisturize', label: copy.STEP_LABELS.moisturize, owned: owned.has('moisturizer'), origin: 'base', supportIds, texture,
         reason: owned.has('moisturizer') ? copy.stepReason.owned : copy.stepReason.moisturize(texture, supportLabels) });
     }
-    slots.morning.push({ id: 'morning:spf', slot: 'morning', kind: 'spf', label: copy.STEP_LABELS.spf, owned: owned.has('spf'),
+    slots.morning.push({ id: 'morning:spf', slot: 'morning', kind: 'spf', label: copy.STEP_LABELS.spf, owned: owned.has('spf'), origin: 'base',
       reason: owned.has('spf') ? copy.stepReason.owned : copy.stepReason.spf });
 
     const placed = [...slots.morning, ...slots.evening].filter(s => s.kind === 'treatment');

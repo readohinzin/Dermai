@@ -152,5 +152,39 @@
     return { treatments, supports: supports.slice(0, MAX_SUPPORTS), deferred: finalDeferred, context: { comfortMode: ctx.comfortMode, skinBase: ctx.skinBase } };
   }
 
-  return { byId, validated, hasLever, leversFor, gentleFor, select, MAX_SUPPORTS, isValidated };
+  /* SECONDE PASSE (étape 27) : de l'axe d'accompagnement au soin. Reçoit le plan des priorités (inchangé) et les axes de accompaniment.compute.
+     Rend { plan, recommendations }. Chaque axe reçoit UN état :
+       covered    : un soin du plan cible déjà cet indicateur : accompagnement gratuit, aucune étape ajoutée ;
+       added      : une étape d'accompagnement est ajoutée au plan (origin « accompaniment ») ;
+       identified : l'axe reste identifié et recommandé, sans soin ajouté (blocked : no_justification, cap, duplicate).
+     Une étape n'est ajoutée que si : aucun soin du plan ne couvre l'indicateur, il reste de la place sous le plafond de soins du niveau (LIMITS),
+     MAX_ACCOMPANIMENT_STEPS n'est pas atteint, ET (objectif correspondant OU convergence : ACCOMPANIMENT_CONVERGENCE axes distincts qui partagent le
+     même actif doux). Le pool est celui de gentleFor : aucun garde-fou existant n'est contourné. Le plan des priorités n'est jamais modifié. */
+  function addAccompaniment(plan, axes, profile) {
+    const limits = data.LIMITS[profile.level] || data.LIMITS[data.DEFAULT_LEVEL];
+    const base = plan.treatments, added = [];
+    const covering = ind => base.find(t => (byId(t.activeId) || { targets: [] }).targets.includes(ind));
+    const rec = axes.map(ax => ({ indicator: ax.indicator, label: ax.label, value: ax.value, band: ax.band, basis: ax.basis, origin: ax.origin, source: 'accompaniment',
+      activeId: ax.activeId, activeLabel: ax.activeLabel, reason: ax.reason, status: 'identified', coveredBy: null, justification: null, blocked: null, productStatus: null }));
+    for (const r of rec) { const c = covering(r.indicator); if (c) { r.status = 'covered'; r.coveredBy = c.activeId; } }
+    const open = rec.filter(r => r.status === 'identified');
+    for (const id of [...new Set(open.map(r => r.activeId))]) {
+      const group = open.filter(r => r.activeId === id), a = byId(id);
+      const goal = group.some(r => axes.find(x => x.indicator === r.indicator).objectiveMatch);
+      const converge = group.filter(r => axes.find(x => x.indicator === r.indicator).distinct).length >= DEC.ACCOMPANIMENT_CONVERGENCE;
+      const block = !(goal || converge) ? 'no_justification'
+        : added.length >= DEC.MAX_ACCOMPANIMENT_STEPS || base.length + added.length >= limits.treatments ? 'cap'
+        : [...base, ...added].some(t => t.role === a.role) ? 'duplicate' : null;
+      for (const r of group) { r.justification = goal ? 'objective' : converge ? 'convergence' : null; r.blocked = block; if (!block) r.status = 'added'; }
+      if (!block) added.push({ activeId: a.id, role: a.role, groups: a.groups, irritation: a.irritation, indicators: group.map(r => r.indicator), gentleFallback: false,
+        choice: 'accompaniment', origin: 'accompaniment' });
+    }
+    if (!added.length) return { plan, recommendations: rec };
+    /* Ordre d'introduction : les actifs les plus doux d'abord (à égalité : ordre du plan, priorités avant accompagnement), comme select(). */
+    const all = [...base, ...added].map((t, i) => ({ t: Object.assign({}, t, { origin: t.origin || 'priority' }), i }));
+    all.sort((x, y) => IRRITATION_RANK[x.t.irritation] - IRRITATION_RANK[y.t.irritation] || x.i - y.i).forEach((x, k) => { x.t.introductionOrder = k + 1; });
+    return { plan: Object.assign({}, plan, { treatments: all.sort((x, y) => x.i - y.i).map(x => x.t) }), recommendations: rec };
+  }
+
+  return { byId, validated, hasLever, leversFor, gentleFor, select, addAccompaniment, MAX_SUPPORTS, isValidated };
 });

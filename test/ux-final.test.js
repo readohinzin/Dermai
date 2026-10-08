@@ -92,21 +92,30 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
   assert.ok(info.length >= 1);
 });
 
-test('UX7 empreinte des décisions du moteur (règles 1.2.0) sur 1500 profils : toute variation doit être voulue', () => {
-  /* Étape 27 : `overflow` (candidats écartés par le plafond, lus par l'accompagnement) est une clé AJOUTÉE à priorities, pas une décision : exclue ici, le hash est donc inchangé. */
-  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || (k === 'reason' && this.slot && this.kind)) ? undefined : v; };
+/* Empreinte des sorties du moteur (décisions ET textes) sur 1500 profils. Étape 27 : `overflow` (priorities) et `origin` (étapes de routine) sont des clés
+   AJOUTÉES, pas des décisions : exclues ici, pour que l'empreinte d'avant l'accompagnement puisse être retrouvée à l'identique. */
+function ux7Fingerprint() {
+  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || k === 'origin' || (k === 'reason' && this.slot && this.kind)) ? undefined : v; };
   const out = [];
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
     out.push(JSON.stringify([r.interpretation, r.priorities, r.activePlan, r.routinePlan, r.personalization], replacer));
   }
+  return crypto.createHash('sha256').update(out.join('\n')).digest('hex');
+}
+const DECISION = require('../js/engine/data/decision.js');
+test('UX7 empreinte des sorties du moteur (règles 1.3.0) sur 1500 profils : toute variation doit être voulue', () => {
   /* Étape 25 (règles 1.2.0) : empreinte changée VOLONTAIREMENT (ancienne : 06052f30…, règles 1.1.0). Ces 1500 profils n'ont pas de
      rawScore : ils sont lus en compatibilité (score affiché, repères 61 / 31), et la comparaison exécutée sur les deux versions montre
      que chaque décision modifiée l'est par les rôles des indicateurs (niveau d'huile, texture, fermeté descriptifs ; radiance et rides
      soumises à un objectif), y compris la place libérée sous le plafond de trois. Aucun autre changement.
      Étape 26 : empreinte changée par des TEXTES seulement (libellés « Favorable », « axe à soutenir », « priorité de soin »). Les décisions
-     sont inchangées : test/analysis-coherence.test.js (C0) compare une empreinte de décisions seules au code d'avant l'étape. */
-  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), '78d3068469da8dd3a461317af6a4368191965f3409493c2937cd7f7164c4ca94');
+     sont inchangées : test/analysis-coherence.test.js (C0) compare une empreinte de décisions seules au code d'avant l'étape.
+     Étape 27 (règles 1.3.0) : accompagnement des indicateurs « good ». ACCOMPAGNEMENT DÉSACTIVÉ : l'empreinte de l'étape 26 (78d30684…) est
+     retrouvée à l'identique, la nouvelle voie est additive. ACTIVÉ : la nouvelle empreinte ci-dessous. */
+  const s = DECISION.MAX_ACCOMPANIMENT_AXES; DECISION.MAX_ACCOMPANIMENT_AXES = 0;
+  try { assert.equal(ux7Fingerprint(), '78d3068469da8dd3a461317af6a4368191965f3409493c2937cd7f7164c4ca94', 'accompagnement désactivé : empreinte d\'avant l\'étape 27'); } finally { DECISION.MAX_ACCOMPANIMENT_AXES = s; }
+  assert.equal(ux7Fingerprint(), '1980957c6679a0a2c0f4eddf182721c4cb1859e38bfdc4656a545c809f0cc312');
 });
 
 test('UX8 conseils par préoccupation : aucune promesse de texture légère ou non comédogène (même règle que la routine)', () => {

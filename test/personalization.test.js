@@ -75,11 +75,12 @@ test('P8 un objectif n\'est pas un diagnostic : il ne crée ni priorité, ni act
     const r = run({}, {}, { goals: [id] });
     assert.equal(r.priorities.mode, 'maintenance', id);
     assert.deepEqual(r.priorities.items, []);
-    assert.deepEqual(tids(r), []);
+    /* Étape 27 : un objectif peut ouvrir un accompagnement léger (jamais une priorité) : seul un soin doux d'accompagnement peut apparaître. */
+    assert.ok(r.activePlan.treatments.every(t => t.origin === 'accompaniment' && t.activeId === 'niacinamide'), id);
     assert.doesNotMatch(allTexts(r), DIAG, id);
-    assert.ok(['no_signal', 'maintenance', 'descriptive'].includes(r.personalization.goals[0].status), id);
+    assert.ok(['no_signal', 'maintenance', 'descriptive', 'accompanied'].includes(r.personalization.goals[0].status), id);
   }
-  const r = run({}, {}, { goals: ['tone'] });
+  const r = run({}, {}, { goals: ['hydration'] });
   assert.match(r.personalization.goals[0].text, /aucun actif n'est ajouté/);
   assert.match(r.explanations.find(e => e.kind === 'mode').text, /DERMAI ne retient aucun besoin particulier/);
 });
@@ -313,7 +314,9 @@ test('SIM simulation 6000 profils : objectifs, types de peau, niveaux, confort, 
     const planned = [...t.map(x => x.activeId)].filter(id => !r.routinePlan.deferred.some(d => d.activeId === id && d.kind === 'slot')).sort().join();
     if (placed !== planned) bad('routine ≠ plan');
     for (const g of p.goals) if (g.status === 'no_signal' && r.priorities.items.some(i => i.domain === (indicators.GOALS.find(x => x.id === g.id) || {}).domain)) bad('objectif sans signal mais priorité');
-    if (r.priorities.mode === 'maintenance' && t.length) bad('maintenance avec actif');
+    if (r.priorities.mode === 'maintenance' && t.some(x => x.origin !== 'accompaniment')) bad('maintenance avec actif de priorité');   // étape 27 : seul un soin doux d'accompagnement est permis sans priorité
+    if (t.some(x => x.origin === 'accompaniment' && (actives.byId(x.activeId).irritation !== 'low' || actives.byId(x.activeId).status !== 'validated'))) bad('accompagnement non doux');
+    if (t.filter(x => x.origin === 'accompaniment').length > 1) bad('plus d\'un soin d\'accompagnement');
     const flip = Engine.run(require('./helpers/engine.js').norm(c.ui, { ...c.o, global: 1, age: 90 }), profile);
     const flip2 = Engine.run(require('./helpers/engine.js').norm(c.ui, { ...c.o, global: 100, age: 18 }), profile);
     if (JSON.stringify(flip.activePlan) !== JSON.stringify(flip2.activePlan)) bad('all/skin_age');

@@ -152,3 +152,222 @@ test('ACC12 aucune lecture du masque, du pays, des offres, du type de peau comme
   const a = calc({ acne: 70, pores: 68 }, { goals: [] }, 85, { skin: 'Oily' }), b = calc({ acne: 70, pores: 68 }, { goals: [] }, 85, { skin: 'Dry' });
   assert.deepEqual(a.acc.items.map(i => [i.indicator, i.origin]), b.acc.items.map(i => [i.indicator, i.origin]), 'le type de peau ne change ni les axes ni leur ordre');
 });
+
+/* ---------- Seconde passe : recommandation et soin ajouté ---------- */
+const { randomCase } = require('./helpers/engine.js');
+const go = (over, profile = {}, fill, o = {}) => Engine.run(analysis(over, fill, o), Object.assign({ goals: [], level: 'simple', cats: [] }, profile), { catalog: C.PRODUCTS });
+const steps = r => [...r.routinePlan.slots.morning, ...r.routinePlan.slots.evening];
+const added = r => r.activePlan.treatments.filter(t => t.origin === 'accompaniment');
+const tids = r => r.activePlan.treatments.map(t => t.activeId);
+const recOf = (r, id) => r.accompaniment.recommendations.find(x => x.indicator === id);
+const withPref = (map, fn) => { const saved = {}; for (const k of Object.keys(map)) { saved[k] = ACT.PREFERENCE[k]; ACT.PREFERENCE[k] = map[k]; } try { return fn(); } finally { Object.assign(ACT.PREFERENCE, saved); } };
+
+test('ACC13 convergence : deux axes distincts qui partagent la niacinamide ajoutent UNE étape ; un seul axe sans objectif n\'en ajoute aucune', () => {
+  const two = go({ acne: 70, pores: 70 });
+  assert.deepEqual(two.accompanimentItems.map(i => i.indicator), ['acne', 'pores']);
+  assert.deepEqual(two.priorityItems, []);
+  assert.deepEqual(added(two).map(t => [t.activeId, t.indicators, t.irritation]), [['niacinamide', ['acne', 'pores'], 'low']]);
+  assert.deepEqual(two.accompaniment.recommendations.map(r => [r.indicator, r.status, r.justification]), [['acne', 'added', 'convergence'], ['pores', 'added', 'convergence']]);
+  assert.equal(steps(two).filter(s => s.kind === 'treatment').length, 1, 'une seule étape pour deux axes');
+  assert.equal(steps(two).find(s => s.kind === 'treatment').origin, 'accompaniment');
+  const one = go({ acne: 70 });
+  assert.deepEqual(one.accompanimentItems.map(i => i.indicator), ['acne'], 'l\'axe est identifié et recommandé');
+  assert.deepEqual([recOf(one, 'acne').status, recOf(one, 'acne').blocked, recOf(one, 'acne').activeId], ['identified', 'no_justification', 'niacinamide']);
+  assert.deepEqual(added(one), [], 'mais aucun soin n\'est ajouté');
+  assert.equal(steps(one).filter(s => s.kind === 'treatment').length, 0, 'la routine reste la routine de base');
+});
+
+test('ACC14 la convergence compte des axes qui partagent RÉELLEMENT le même actif', () => {
+  const split = () => go({ acne: 70, pores: 70 });
+  withStatus('zinc', 'validated', () => withPref({ acne: ['niacinamide'], pores: ['zinc'] }, () => {
+    const r = split();
+    assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.activeId]), [['acne', 'niacinamide'], ['pores', 'zinc']]);
+    assert.deepEqual(added(r), [], 'deux axes, deux actifs différents : pas de convergence');
+    assert.deepEqual(r.accompaniment.recommendations.map(x => x.blocked), ['no_justification', 'no_justification']);
+  }));
+  assert.equal(added(split()).length, 1, 'avec la même niacinamide : convergence');
+});
+
+test('ACC15 objectif : un seul axe suffit à ajouter l\'étape, sans jamais être une priorité', () => {
+  const r = go({ acne: 76 }, { goals: ['blemishes'] });
+  assert.deepEqual(r.priorityItems, []);
+  assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.origin, i.objectiveMatch]), [['acne', 'objective', true]]);
+  assert.deepEqual(added(r).map(t => t.activeId), ['niacinamide']);
+  assert.equal(recOf(r, 'acne').justification, 'objective');
+  assert.equal(r.priorities.mode, 'maintenance');
+});
+
+test('ACC16 accompagnement gratuit : un soin du plan qui cible déjà l\'indicateur évite toute étape ajoutée', () => {
+  const free = go({ pores: 40, acne: 70, pigmentation: 70 });                      // pores MID → niacinamide ; acné et pigmentation : niacinamide les cible aussi
+  const off = withMax(0, () => go({ pores: 40, acne: 70, pigmentation: 70 }));
+  assert.deepEqual(free.priorityItems.map(i => i.indicator), ['pores']);
+  assert.deepEqual(tids(free), tids(off), 'aucun soin de plus');
+  assert.deepEqual(free.accompaniment.recommendations.map(r => [r.status, r.coveredBy]), [['covered', 'niacinamide'], ['covered', 'niacinamide']]);
+  assert.deepEqual(added(free), []);
+  const salicylic = go({ acne: 40, pores: 70, redness: 70 });                       // acné MID : le soin du plan (peau normale) cible aussi les pores
+  assert.equal(steps(salicylic).filter(s => s.kind === 'treatment').length, steps(withMax(0, () => go({ acne: 40, pores: 70, redness: 70 }))).filter(s => s.kind === 'treatment').length);
+});
+
+test('ACC17 plafonds : l\'accompagnement n\'utilise que la place restante, jamais plus d\'une étape, jamais au-dessus des plafonds de soins', () => {
+  const LIM = ACT.LIMITS;
+  // niveau simple (2 soins) : deux soins prioritaires remplissent la place
+  const full = go({ acne: 40, pigmentation: 41, pores: 70, redness: 70 });
+  assert.equal(full.activePlan.treatments.length, 2);
+  assert.deepEqual(added(full), [], 'deux soins prioritaires : aucun soin d\'accompagnement');
+  assert.ok(['cap', 'no_justification'].includes(recOf(full, 'pores').blocked) || recOf(full, 'pores').status === 'covered');
+  // un soin prioritaire : une étape d'accompagnement au plus
+  const one = go({ acne: 40, redness: 70, pigmentation: 72 }, { goals: ['tone'] });
+  assert.ok(added(one).length <= 1);
+  for (const level of ['none', 'simple', 'full']) for (let s = 0; s < 120; s++) {
+    const c = randomCase(s * 13 + 3), r = go(c.ui ? Object.fromEntries(Object.entries(c.ui).filter(([, v]) => v !== null)) : {}, { goals: c.profile.goals, level, exclusions: [] });
+    assert.ok(r.activePlan.treatments.length <= LIM[level].treatments, level);
+    assert.ok(added(r).length <= DEC.MAX_ACCOMPANIMENT_STEPS, level);
+    assert.ok(r.accompanimentItems.length <= DEC.MAX_ACCOMPANIMENT_AXES);
+    assert.ok(r.priorityItems.length <= priorities.MAX_PRIORITIES);
+  }
+});
+
+test('ACC18 sécurité sur 2000 profils : actif doux validé seulement, aucun rétinoïde ni exfoliant, exclusions et confort respectés, un fort par soir, routine = plan', () => {
+  const bad = [];
+  for (let s = 1; s <= 2000; s++) {
+    const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
+    for (const t of added(r)) {
+      const a = actives.byId(t.activeId);
+      if (a.status !== 'validated' || a.irritation !== 'low' || a.kind !== 'treatment') bad.push(s + ' pool');
+      if (['retinoid', 'salicylic', 'aha_pha', 'azelaic', 'vitamin_c'].includes(t.activeId)) bad.push(s + ' actif fort');
+      if (r.profile.exclusions.includes(t.activeId)) bad.push(s + ' exclu');
+      if (a.groups.length) bad.push(s + ' groupe fort');
+    }
+    const placed = steps(r).filter(x => x.kind === 'treatment').map(x => x.activeId).sort().join();
+    const planned = tids(r).filter(id => !r.routinePlan.deferred.some(d => d.activeId === id && d.kind === 'slot')).sort().join();
+    if (placed !== planned) bad.push(s + ' routine ≠ plan');
+    if (r.activePlan.treatments.filter(t => actives.byId(t.activeId).groups.includes('evening_strong')).length > 1) bad.push(s + ' double fort');
+    for (const x of r.accompaniment.recommendations) if (x.status === 'added' && !steps(r).some(y => y.kind === 'treatment' && y.activeId === x.activeId)) bad.push(s + ' soin annoncé absent');
+    if (r.accompanimentItems.some(i => r.priorityItems.some(p => p.indicator === i.indicator))) bad.push(s + ' priorité et accompagnement');
+  }
+  assert.deepEqual(bad.slice(0, 8), []);
+});
+
+test('ACC19 exclusions et confort au niveau moteur : niacinamide exclue = aucun soin ni axe ; mode confort : seul l\'actif doux', () => {
+  const ex = go({ acne: 70, pores: 70 }, { goals: ['blemishes'], exclusions: ['niacinamide'] });
+  assert.deepEqual([ex.accompanimentItems, added(ex), tids(ex)], [[], [], []]);
+  const comfort = go({ acne: 70, pores: 70 }, { goals: [] }, 85, { skin: 'Dry & Redness' });
+  assert.equal(comfort.routinePlan.comfortMode, true);
+  assert.deepEqual(added(comfort).map(t => t.activeId), ['niacinamide']);
+  for (const t of comfort.activePlan.treatments) assert.notEqual(actives.byId(t.activeId).irritation, 'high');
+  const gentle = go({ acne: 70, pores: 70 }, { comfort: { preferGentle: true } });
+  assert.deepEqual(added(gentle).map(t => t.activeId), ['niacinamide']);
+});
+
+/* ---------- Cas de référence A à H ---------- */
+test('ACC20 cas A : acné LOW, sans objectif : priorité de soin, aucun accompagnement de l\'acné', () => {
+  const r = go({ acne: 12 });
+  assert.deepEqual(r.priorityItems.map(i => [i.indicator, i.band]), [['acne', 'low']]);
+  assert.ok(!r.accompanimentItems.some(i => i.indicator === 'acne'));
+  assert.ok(r.activePlan.treatments.every(t => t.origin === undefined || t.origin === 'priority'), 'soins issus de la priorité');
+});
+test('ACC21 cas B : acné MID, sans objectif : axe à soutenir, comportement actuel inchangé', () => {
+  const r = go({ acne: 40 }), off = withMax(0, () => go({ acne: 40 }));
+  assert.deepEqual(r.priorityItems.map(i => [i.indicator, i.band]), [['acne', 'mid']]);
+  assert.deepEqual(r.activePlan.treatments.map(t => [t.activeId, t.indicators, t.choice]), off.activePlan.treatments.map(t => [t.activeId, t.indicators, t.choice]));
+  assert.deepEqual(r.routinePlan.slots, JSON.parse(JSON.stringify(off.routinePlan.slots)), 'même routine');
+});
+test('ACC22 cas C : acné GOOD 76 (autres à 85), sans objectif : accompagnement possible, aucun nouveau soin', () => {
+  const r = go({ acne: 76 });
+  assert.deepEqual(r.priorityItems, []);
+  assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.origin, i.activeId]), [['acne', 'distinct', 'niacinamide']]);
+  assert.deepEqual(r.activePlan.treatments, []);
+  assert.deepEqual(steps(r).map(s => s.kind), ['cleanse', 'moisturize', 'spf', 'cleanse', 'moisturize'], 'routine de base');
+});
+test('ACC23 cas D : acné GOOD 76 + objectif imperfections : axe par l\'objectif, une étape niacinamide', () => {
+  const r = go({ acne: 76 }, { goals: ['blemishes'] });
+  assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.origin]), [['acne', 'objective']]);
+  assert.deepEqual(added(r).map(t => t.activeId), ['niacinamide']);
+  assert.equal(steps(r).filter(s => s.origin === 'accompaniment').length, 1);
+});
+test('ACC24 cas E : hydratation LOW + acné GOOD, sans objectif : priorité hydratation, acné accompagnée sans soin ajouté (axe seul)', () => {
+  const r = go({ hydration: 30, acne: 76 });
+  assert.deepEqual(r.priorityItems.map(i => i.indicator), ['hydration']);
+  assert.deepEqual(r.accompanimentItems.map(i => i.indicator), ['acne']);
+  assert.deepEqual(added(r), []);
+  assert.ok(r.activePlan.supports.length > 0, 'les ingrédients d\'hydratant restent ceux de la priorité');
+  const two = go({ hydration: 30, acne: 76, pores: 72 });
+  assert.deepEqual(two.priorityItems.map(i => i.indicator), ['hydration']);
+  assert.deepEqual(two.accompanimentItems.map(i => i.indicator), ['pores', 'acne']);
+  assert.deepEqual(added(two).map(t => [t.activeId, t.indicators.sort()]), [['niacinamide', ['acne', 'pores']]], 'cas D du brief : une seule étape niacinamide pour acné et pores');
+});
+test('ACC25 cas F : hydratation LOW + acné GOOD + objectif imperfections : l\'objectif ajoute l\'étape', () => {
+  const r = go({ hydration: 30, acne: 76 }, { goals: ['blemishes'] });
+  assert.deepEqual(r.priorityItems.map(i => i.indicator), ['hydration']);
+  assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.origin]), [['acne', 'objective']]);
+  assert.deepEqual(added(r).map(t => t.activeId), ['niacinamide']);
+});
+test('ACC26 cas G : plus de trois candidats : trois priorités, le débordement est accompagné en premier, aucun plafond dépassé', () => {
+  const r = go({ acne: 40, pores: 41, redness: 42, pigmentation: 43 }, { level: 'full' });
+  assert.equal(r.priorityItems.length, 3);
+  assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.origin])[0], ['pigmentation', 'overflow']);
+  assert.ok(r.activePlan.treatments.length <= ACT.LIMITS.full.treatments);
+  const simple = go({ acne: 40, pores: 41, redness: 42, pigmentation: 43 });
+  assert.ok(simple.activePlan.treatments.length <= ACT.LIMITS.simple.treatments);
+  assert.deepEqual(simple.priorityItems.map(i => i.indicator), withMax(0, () => go({ acne: 40, pores: 41, redness: 42, pigmentation: 43 })).priorityItems.map(i => i.indicator));
+});
+test('ACC27 cas H : aucun actif doux disponible : aucun axe, aucun soin, routine de base', () => {
+  const noGentle = go({ acne: 70, pores: 70, redness: 70, pigmentation: 70 }, { exclusions: ['niacinamide'] });
+  assert.deepEqual([noGentle.accompanimentItems, noGentle.activePlan.treatments], [[], []]);
+  const lowOnly = go({ wrinkles: 60, firmness: 60, radiance: 60, oiliness: 60, texture: 60, eyeBag: 40, darkCircle: 40 }, { goals: ['aging', 'tone', 'texture'] });
+  assert.ok(!lowOnly.accompanimentItems.some(i => ['wrinkles', 'firmness', 'radiance', 'oiliness', 'texture', 'eyeBag', 'darkCircle'].includes(i.indicator)));
+  assert.deepEqual(steps(noGentle).map(s => s.kind), ['cleanse', 'moisturize', 'spf', 'cleanse', 'moisturize']);
+});
+
+/* ---------- Le masque, le pays et le catalogue n'influencent aucune décision ---------- */
+test('ACC28 masque et pays : sorties de décision identiques, quelles que soient les données de localisation ou le pays', () => {
+  const base = analysis({ acne: 70, pores: 70, hydration: 30 }), strip = r => JSON.stringify([r.priorities, r.accompaniment, r.activePlan, r.routinePlan, r.productMatches, r.synthesis.sections]);
+  const ref = strip(Engine.run(base, { goals: [] }, { catalog: C.PRODUCTS }));
+  const masks = [{}, { acne: ['data:image/png;base64,AAAA'] }, { acne: ['data:image/png;base64,' + 'A'.repeat(50000)], pores: ['x'], hydration: [] }];
+  for (const localization of masks) {
+    const withMask = Object.assign({}, base, { localization });
+    assert.equal(strip(Engine.run(withMask, { goals: [] }, { catalog: C.PRODUCTS, localization })), ref, 'masque différent');
+  }
+  for (const market of ['NG', 'KE', 'ZA', 'GH', null]) assert.equal(strip(Engine.run(base, { goals: [], market, country: market }, { catalog: C.PRODUCTS, market, country: market })), ref, 'pays ' + market);
+  for (const f of ['accompaniment.js', 'actives.js', 'routine.js', 'index.js']) assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '..', 'js/engine', f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, ''), /localization|\bmask|DermaiMarket|marketView|country/i, f);
+});
+
+/* ---------- Test différentiel : ancien moteur contre nouveau moteur ---------- */
+test('ACC-DIFF 2000 profils : priorityItems identiques ; différences seulement là où un accompagnement existe, et seulement par l\'ajout du soin d\'accompagnement', () => {
+  const J = x => JSON.stringify(x), pick = r => ({ prio: J([r.interpretation.indicators, r.priorities.items, r.priorities.mode, r.priorities.informational]), sup: J(r.activePlan.supports),
+    def: J(r.activePlan.deferred.filter(d => d.kind !== 'slot')), tr: r.activePlan.treatments.map(t => t.activeId + ':' + t.indicators.join('+')) });
+  let withAcc = 0, addedSteps = 0, free = 0;
+  const profiles = [];
+  for (let s = 1; s <= 1500; s++) { const c = randomCase(s * 37 + 5); profiles.push([norm(c.ui, c.o), c.profile]); }
+  const rng = seed => { let s = seed; return () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296; };
+  for (let s = 1; s <= 500; s++) {
+    const r = rng(9000 + s), ui = {}, raw = {};
+    for (const k of M.METRIC_KEYS) { raw[k] = 5 + r() * 95; ui[k] = Math.min(99, Math.round(raw[k] + 10)); }
+    profiles.push([norm(ui, { rawMap: raw, skin: ['Normal', 'Oily', 'Dry', 'Combination', 'Oily & Redness'][s % 5] }), { goals: [[], ['tone'], ['aging'], ['hydration', 'texture']][s % 4], level: ['none', 'simple', 'full'][s % 3] }]);
+  }
+  for (const [n, p] of profiles) {
+    const nw = Engine.run(n, p, { catalog: C.PRODUCTS }), old = withMax(0, () => Engine.run(n, p, { catalog: C.PRODUCTS }));
+    const a = pick(nw), b = pick(old);
+    assert.equal(a.prio, b.prio, 'priorités et interprétation identiques');
+    assert.equal(a.sup, b.sup, 'ingrédients d\'hydratant identiques');
+    assert.equal(a.def, b.def, 'actifs écartés identiques');
+    assert.deepEqual(old.accompanimentItems, [], 'désactivé : aucun axe');
+    const extra = added(nw);
+    if (nw.accompanimentItems.length) withAcc++;
+    if (!extra.length) {
+      assert.deepEqual(a.tr, b.tr, 'sans soin ajouté : mêmes soins');
+      assert.equal(J(nw.routinePlan.slots.morning.map(s => [s.id, s.kind, s.activeId])), J(old.routinePlan.slots.morning.map(s => [s.id, s.kind, s.activeId])));
+      assert.equal(J(nw.productMatches), J(old.productMatches), 'sans soin ajouté : mêmes produits');
+      if (nw.accompaniment.recommendations.some(r => r.status === 'covered')) free++;
+      continue;
+    }
+    addedSteps++;
+    assert.equal(extra.length, 1);
+    assert.deepEqual(a.tr.filter(x => !x.startsWith(extra[0].activeId + ':')).sort(), b.tr.sort(), 'les soins prioritaires sont conservés, un soin d\'accompagnement s\'y ajoute');
+    const oldIds = new Set(old.productMatches.map(m => m.stepId));
+    for (const m of old.productMatches) assert.ok(nw.productMatches.some(x => x.stepId === m.stepId && x.productId === m.productId), 'produits existants conservés');
+    for (const m of nw.productMatches) if (!oldIds.has(m.stepId)) assert.ok(/:treatment:niacinamide$/.test(m.stepId), 'seul nouveau produit : celui du soin d\'accompagnement');
+  }
+  if (process.env.ACC_VERBOSE) console.log('ACC-DIFF', { withAcc, addedSteps, free });
+  assert.ok(withAcc > 100 && addedSteps > 0, `l'accompagnement est exercé (${withAcc} profils avec axes, ${addedSteps} avec soin ajouté, ${free} accompagnements gratuits)`);
+});

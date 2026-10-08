@@ -101,6 +101,7 @@
     objective: 'Cet axe correspond à votre objectif et peut être accompagné par un soin doux.',
     overflow: 'Cet indicateur est sous les repères DERMAI, mais la routine se limite à trois axes prioritaires : un soin doux peut l\'accompagner.'
   })[origin] || '';
+  const accompanimentStep = (active, labels) => 'Soin d\'accompagnement léger : ' + lower(active) + ' peut accompagner ' + joinList(labels.map(lower)) + ', sans que ce soit une priorité de cette analyse.';
   const productBecause = labels => 'Contient : ' + joinList(labels.map(lower)) + '.';
   /* Pourquoi CE produit : le rôle qu'il joue dans une étape déjà définie par la routine, jamais une promesse ni un langage médical. */
   const PRODUCT_CATEGORY_LABELS = { cleanser: 'Nettoyant', serum: 'Soin ciblé', moisturizer: 'Hydratant', spf: 'Protection solaire' };
@@ -340,6 +341,6 @@
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, accompanimentReason, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, accompanimentReason, accompanimentStep, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });
