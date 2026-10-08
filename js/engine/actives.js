@@ -2,13 +2,13 @@
    et des produits déjà utilisés. Un actif « à_valider » n'est jamais sélectionné. Chaque rejet est enregistré avec sa raison (deferred). */
 (function (root, factory) {
   const isNode = typeof module === 'object' && module.exports;
-  const dep = isNode ? { data: require('./data/actives.js') } : { data: (root.DermaiEngine || {}).activesData };
+  const dep = isNode ? { data: require('./data/actives.js'), decision: require('./data/decision.js') } : { data: (root.DermaiEngine || {}).activesData, decision: (root.DermaiEngine || {}).decisionData };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const E = (root.DermaiEngine = root.DermaiEngine || {}); E.actives = api; }
 })(typeof self !== 'undefined' ? self : this, function (dep) {
   'use strict';
-  const data = dep.data;
+  const data = dep.data, DEC = dep.decision;
   const IRRITATION_RANK = { low: 0, moderate: 1, high: 2 };
   const MAX_SUPPORTS = 3;   // paramètre de conception provisoire : l'hydratant ne cherche pas une longue liste d'ingrédients
 
@@ -19,6 +19,14 @@
   const hasLever = indicatorId => validated().some(a => a.targets.includes(indicatorId));
   /* Actifs validés couramment utilisés pour un indicateur, dans l'ordre éditorial. Information générale, pas un plan personnel. */
   const leversFor = indicatorId => (data.PREFERENCE[indicatorId] || []).map(byId).filter(a => isValidated(a) && a.targets.includes(indicatorId));
+
+  /* Pool DOUX de l'accompagnement (indicateurs « good ») : sous-ensemble strict du pool existant. Actif validé, du type et de l'irritation
+     fixés dans data/decision.js (ACCOMPANIMENT_ACTIVE), qui cible l'indicateur et que l'utilisatrice n'a pas exclu, dans l'ordre éditorial.
+     Aujourd'hui : la niacinamide. Un actif « moderate » ou « à_valider » n'y entre jamais, quel que soit l'objectif. */
+  const gentleFor = (indicatorId, excluded) => {
+    const out = new Set(excluded || []), want = DEC.ACCOMPANIMENT_ACTIVE;
+    return (data.PREFERENCE[indicatorId] || []).map(byId).filter(a => isValidated(a) && a.kind === want.kind && a.irritation === want.irritation && a.targets.includes(indicatorId) && !out.has(a.id));
+  };
 
   const activeRule = id => data.CONFLICT_RULES.find(r => r.id === id && r.status === 'validated');
 
@@ -144,5 +152,5 @@
     return { treatments, supports: supports.slice(0, MAX_SUPPORTS), deferred: finalDeferred, context: { comfortMode: ctx.comfortMode, skinBase: ctx.skinBase } };
   }
 
-  return { byId, validated, hasLever, leversFor, select, MAX_SUPPORTS, isValidated };
+  return { byId, validated, hasLever, leversFor, gentleFor, select, MAX_SUPPORTS, isValidated };
 });

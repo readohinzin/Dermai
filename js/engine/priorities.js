@@ -57,7 +57,9 @@
     /* Contour des yeux : information seulement (jamais une priorité d'action). */
     const informational = interp.indicators.filter(i => i.available && under(i) && i.role === 'informative')
       .map(i => ({ indicator: i.id, label: i.label, score: i.score, band: i.band, domain: i.domain, actionability: i.actionability, confidence: i.confidence }));
-    return { mode: items.length ? 'action' : 'maintenance', basis: interp.basis, items, informational, eyeInfo: informational.length ? copy.eyeInfo(informational.map(i => i.label)) : null };
+    /* Candidats éligibles écartés par le plafond de 3, dans l'ordre de classement : lus seulement par l'accompagnement (accompaniment.js). */
+    const overflow = ordered.slice(MAX_PRIORITIES).map(i => i.id);
+    return { mode: items.length ? 'action' : 'maintenance', basis: interp.basis, items, overflow, informational, eyeInfo: informational.length ? copy.eyeInfo(informational.map(i => i.label)) : null };
   }
 
   return { compute, MAX_PRIORITIES, stableByValue, isCandidate, roleAllows };

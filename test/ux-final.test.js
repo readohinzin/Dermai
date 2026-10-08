@@ -93,7 +93,8 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
 });
 
 test('UX7 empreinte des décisions du moteur (règles 1.2.0) sur 1500 profils : toute variation doit être voulue', () => {
-  const replacer = function (k, v) { return (k === 'texture' || (k === 'reason' && this.slot && this.kind)) ? undefined : v; };
+  /* Étape 27 : `overflow` (candidats écartés par le plafond, lus par l'accompagnement) est une clé AJOUTÉE à priorities, pas une décision : exclue ici, le hash est donc inchangé. */
+  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || (k === 'reason' && this.slot && this.kind)) ? undefined : v; };
   const out = [];
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
