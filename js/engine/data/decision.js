@@ -67,5 +67,18 @@
     droopyLowerEyelid: { role: 'informative' }
   };
 
-  return { PROVISIONAL, PREFERRED_BASIS, RAW_BANDS, LEGACY_UI_BANDS, TIE_TOLERANCE, ROLES };
+  /* SOURCE UNIQUE du rôle décisionnel : ROLES ci-dessus. Les trois questions ci-dessous en dérivent, aucune autre table ne les redéfinit
+     (indicators.js ne porte plus que le domaine et la confiance éditoriale).
+     isInformative : contour des yeux, information seulement ;
+     isComparable  : les indicateurs que la synthèse compare entre eux (tout sauf l'informatif) ;
+     allowsAccompaniment : un accompagnement automatique est possible (rôle actionnable, ou conditionné par un objectif quand il est choisi). */
+  const roleOf = id => (ROLES[id] || { role: 'descriptive' }).role;
+  const isInformative = id => roleOf(id) === 'informative';
+  const isComparable = id => !isInformative(id);
+  const allowsAccompaniment = (id, goals) => {
+    const r = ROLES[id] || {};
+    return r.role === 'actionable' || (r.role === 'goal_gated' && Array.isArray(goals) && goals.includes(r.goal));
+  };
+
+  return { PROVISIONAL, PREFERRED_BASIS, RAW_BANDS, LEGACY_UI_BANDS, TIE_TOLERANCE, ROLES, roleOf, isInformative, isComparable, allowsAccompaniment };
 });

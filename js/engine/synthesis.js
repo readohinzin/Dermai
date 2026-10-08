@@ -33,7 +33,7 @@
 
   /* 1. Hiérarchie : besoins retenus, résultats les moins élevés, résultats les plus élevés, autres. */
   function tiers(interp, prios) {
-    const main = interp.indicators.filter(i => i.available && i.actionability === 'actionable');
+    const main = interp.indicators.filter(i => i.available && DEC.isComparable(i.id));
     const values = main.map(i => i.value);
     const gap = main.length ? Math.max(...values) - Math.min(...values) : 0;
     const homogeneous = main.length > 1 && gap <= DEC.TIE_TOLERANCE;
@@ -207,7 +207,7 @@
       basis: interpretation.basis,
       titles: S.TITLES, sections, scoreNote: S.scoreNote,
       tiers: h.tiers, tierOf: h.tierOf, homogeneous: h.homogeneous,
-      informative: interpretation.indicators.filter(i => i.available && i.actionability === 'informative').map(pick),
+      informative: interpretation.indicators.filter(i => i.available && DEC.isInformative(i.id)).map(pick),
       goals: g,
       strategy: strat,
       steps: steps(h, interpretation, routinePlan, dep.actives, profile),

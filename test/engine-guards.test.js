@@ -72,7 +72,7 @@ test('G7 seuils : 61 Bien, 60 À soutenir, 31 À soutenir, 30 À surveiller (éd
 
 test('G8 contour des yeux : informatif, jamais une priorité ni un actif', () => {
   for (const k of ['eyeBag', 'tearTrough', 'darkCircle', 'droopyUpperEyelid', 'droopyLowerEyelid']) {
-    assert.equal(indicators.INDICATORS[k].actionability, 'informative', k);
+    assert.equal(require('../js/engine/data/decision.js').roleOf(k), 'informative', k);
     const r = only(k, 5);
     assert.deepEqual(r.priorities.items, []);
     assert.deepEqual(allIds(r).filter(id => !['hyaluronic', 'ceramides', 'glycerin', 'panthenol', 'squalane'].includes(id)), [], k);
@@ -124,4 +124,26 @@ test('G12 simulation : 6000 profils synthétiques, aucune règle interdite n\'ap
     assert.equal(t.filter(x => actives.byId(x.activeId).groups.includes('evening_strong')).length <= 1, true);
   }
   assert.equal(n, 6000);
+});
+
+/* Étape 27 : UNE source de vérité pour le rôle décisionnel (data/decision.js). */
+test('R-SRC rôles : une seule table (decision.js), aucune actionnabilité redéfinie dans indicators.js, helpers dérivés du rôle', () => {
+  const DEC = require('../js/engine/data/decision.js'), ID = require('../js/engine/data/indicators.js'), SM = require('../js/skin-model.js');
+  assert.deepEqual(Object.keys(DEC.ROLES).sort(), [...SM.METRIC_KEYS].sort(), 'chaque indicateur a exactement un rôle');
+  assert.deepEqual(Object.keys(ID.INDICATORS).sort(), [...SM.METRIC_KEYS].sort());
+  for (const k of SM.METRIC_KEYS) {
+    assert.ok(!('actionability' in ID.INDICATORS[k]), k + ' : indicators.js ne définit plus de rôle');
+    assert.equal(DEC.isInformative(k), DEC.ROLES[k].role === 'informative', k);
+    assert.equal(DEC.isComparable(k), !DEC.isInformative(k), k);
+  }
+  assert.deepEqual(SM.METRIC_KEYS.filter(DEC.isComparable), ['acne', 'pores', 'oiliness', 'texture', 'hydration', 'redness', 'pigmentation', 'wrinkles', 'firmness', 'radiance'], 'les dix indicateurs de comparaison');
+  assert.deepEqual(SM.METRIC_KEYS.filter(DEC.isInformative), ['eyeBag', 'tearTrough', 'darkCircle', 'droopyUpperEyelid', 'droopyLowerEyelid']);
+  assert.deepEqual(SM.METRIC_KEYS.filter(k => DEC.allowsAccompaniment(k, [])), ['acne', 'pores', 'hydration', 'redness', 'pigmentation'], 'sans objectif : les actionnables seulement');
+  assert.deepEqual(SM.METRIC_KEYS.filter(k => DEC.allowsAccompaniment(k, ['aging', 'tone'])), ['acne', 'pores', 'hydration', 'redness', 'pigmentation', 'wrinkles', 'radiance'], 'un indicateur conditionné s\'ouvre avec SON objectif');
+  assert.equal(DEC.allowsAccompaniment('texture', ['texture']), false, 'descriptif : jamais, même avec son objectif');
+  assert.equal(DEC.allowsAccompaniment('eyeBag', ['aging']), false, 'informatif : jamais');
+  for (const f of ['js/engine/synthesis.js', 'js/engine/personalization.js', 'js/engine/priorities.js', 'js/insight-view.js']) {
+    assert.doesNotMatch(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '').replace(/actionability: i\.actionability/g, ''),
+      /INDICATORS\[[^\]]*\]\.actionability|\.actionability\s*===/, f + ' ne lit plus un rôle dans indicators.js');
+  }
 });

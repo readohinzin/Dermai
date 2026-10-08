@@ -58,7 +58,7 @@
         score: b.ui.score, uiBand: b.ui.band, uiBandLabel: b.ui.band ? skin.INDICATOR_BAND_LABELS[b.ui.band] : null,   // affichage
         rawScore: available ? b.raw : null, value, band: band ? band.key : null, bandLabel: band ? band.label : null, basis,   // décision
         available, role: role.role, roleGoal: role.goal || null,
-        domain: meta.domain, actionability: meta.actionability, confidence: meta.confidence };
+        domain: meta.domain, actionability: DEC.isInformative(b.id) ? 'informative' : 'actionable', confidence: meta.confidence };   // actionability : alias DÉRIVÉ du rôle (decision.js), jamais une donnée à part
     });
     const skinType = isObj(n.skinType) ? parseSkinType(n.skinType.whole) : null;
     const redness = indicators.find(i => i.id === 'redness');

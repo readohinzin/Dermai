@@ -55,7 +55,7 @@
       const def = D.GOALS.find(g => g.id === id), row = matrix.find(m => m.goal === id);
       const label = copy.GOAL_LABELS[id];
       if (!def.domain) return { id, label, status: 'maintenance', indicators: [], text: P.goalStatus.maintenance };
-      const all = interp.indicators.filter(i => i.domain === def.domain && i.actionability === 'actionable');
+      const all = interp.indicators.filter(i => i.domain === def.domain && DEC.isComparable(i.id));
       const inds = all.map(i => ({ indicator: i.id, label: i.label, score: i.score, band: i.band, role: i.role }));
       const inPriority = prios.items.some(it => it.domain === def.domain);
       const eligible = all.some(i => dep.priorities.isCandidate(i, profile.goals || []));

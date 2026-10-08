@@ -1,7 +1,7 @@
 /* Données éditoriales : les 15 indicateurs (clés de skin-model.js), leurs domaines, et les objectifs proposés à l'utilisateur.
    Aucune logique ici. Les domaines ne servent qu'à regrouper et expliquer : ils n'ont pas de score propre.
-   actionability : « actionable » = un soin cosmétique peut être envisagé ; « informative » = information seulement (indicateurs
-   structurels du contour des yeux : jamais d'actif automatique, jamais de promesse).
+   Le RÔLE décisionnel (actionnable, descriptif, conditionné par un objectif, informatif) n'est PAS défini ici : il l'est une seule fois, dans
+   data/decision.js (ROLES), pour qu'aucun second fichier ne puisse le contredire.
    confidence : confiance éditoriale dans le levier cosmétique de l'indicateur (high, medium, low). Jugement éditorial, pas une mesure. */
 (function (root, factory) {
   const api = factory();
@@ -17,21 +17,21 @@
      (huile en excès, rugosité, teint terne…) ni d'actif exfoliant à partir d'un de ces indicateurs seul. */
   /* Ordre = ordre fixe de départage (identique à METRICS de skin-model.js). */
   const INDICATORS = {
-    acne:              { domain: 'blemishes',       actionability: 'actionable',  confidence: 'medium' },
-    pores:             { domain: 'oil_pores',       actionability: 'actionable',  confidence: 'medium' },
-    oiliness:          { domain: 'oil_pores',       actionability: 'actionable',  confidence: 'medium' },
-    texture:           { domain: 'texture',         actionability: 'actionable',  confidence: 'medium' },
-    hydration:         { domain: 'hydration',       actionability: 'actionable',  confidence: 'high' },
-    redness:           { domain: 'redness_comfort', actionability: 'actionable',  confidence: 'medium' },
-    pigmentation:      { domain: 'tone',            actionability: 'actionable',  confidence: 'medium' },
-    wrinkles:          { domain: 'aging',           actionability: 'actionable',  confidence: 'medium' },
-    firmness:          { domain: 'aging',           actionability: 'actionable',  confidence: 'medium' },
-    radiance:          { domain: 'tone',            actionability: 'actionable',  confidence: 'medium' },
-    eyeBag:            { domain: 'eye_contour',     actionability: 'informative', confidence: 'low' },
-    tearTrough:        { domain: 'eye_contour',     actionability: 'informative', confidence: 'low' },
-    darkCircle:        { domain: 'eye_contour',     actionability: 'informative', confidence: 'low' },
-    droopyUpperEyelid: { domain: 'eye_contour',     actionability: 'informative', confidence: 'low' },
-    droopyLowerEyelid: { domain: 'eye_contour',     actionability: 'informative', confidence: 'low' }
+    acne:              { domain: 'blemishes',       confidence: 'medium' },
+    pores:             { domain: 'oil_pores',       confidence: 'medium' },
+    oiliness:          { domain: 'oil_pores',       confidence: 'medium' },
+    texture:           { domain: 'texture',         confidence: 'medium' },
+    hydration:         { domain: 'hydration',       confidence: 'high' },
+    redness:           { domain: 'redness_comfort', confidence: 'medium' },
+    pigmentation:      { domain: 'tone',            confidence: 'medium' },
+    wrinkles:          { domain: 'aging',           confidence: 'medium' },
+    firmness:          { domain: 'aging',           confidence: 'medium' },
+    radiance:          { domain: 'tone',            confidence: 'medium' },
+    eyeBag:            { domain: 'eye_contour',     confidence: 'low' },
+    tearTrough:        { domain: 'eye_contour',     confidence: 'low' },
+    darkCircle:        { domain: 'eye_contour',     confidence: 'low' },
+    droopyUpperEyelid: { domain: 'eye_contour',     confidence: 'low' },
+    droopyLowerEyelid: { domain: 'eye_contour',     confidence: 'low' }
   };
 
   /* Objectifs proposés (facultatifs). `domain` : domaine favorisé dans sa propre bande ; null = aucun domaine (entretien global). */

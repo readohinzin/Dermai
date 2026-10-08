@@ -11,7 +11,7 @@
      s : analyse ; withMasks : indicateurs ayant au moins un masque reçu ; y : synthèse du moteur (statut de chaque indicateur). */
   function faceMap(s, withMasks, state, esc, y) {
     const M = SM(), st = (y && y.indicators) || {}, S = EN().copy.SYNTH;
-    const main = M.METRIC_KEYS.filter(k => st[k] && (EN().indicatorsData.INDICATORS[k].actionability === 'actionable' || withMasks.includes(k)));
+    const main = M.METRIC_KEYS.filter(k => st[k] && (EN().decisionData.isComparable(k) || withMasks.includes(k)));
     const chips = main.length ? main : withMasks;
     const sel = chips.includes(state.faceKey) ? state.faceKey : (withMasks[0] || chips[0]);
     const has = withMasks.includes(sel), info = st[sel];

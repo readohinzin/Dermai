@@ -18,7 +18,7 @@ const code = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/
 const app = read('js/app.js');
 
 /* Navigateur simulé minimal pour la vue (js/insight-view.js lit window.SkinModel et window.DermaiEngine). */
-global.SkinModel = M; global.DermaiEngine = Object.assign({}, Engine, { copy, indicatorsData: require('../js/engine/data/indicators.js') });
+global.SkinModel = M; global.DermaiEngine = Object.assign({}, Engine, { copy, indicatorsData: require('../js/engine/data/indicators.js'), decisionData: require('../js/engine/data/decision.js') });
 const { DermaiInsight } = require('../js/insight-view.js');
 const esc = s => String(s).replace(/"/g, '&quot;');
 
