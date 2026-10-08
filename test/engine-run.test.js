@@ -93,7 +93,9 @@ test('RUN8 le moteur est indépendant de l\'interface et de Perfect Corp (aucun 
   for (const f of engineFiles()) {
     const code = stripJs(fs.readFileSync(f, 'utf8'));
     assert.doesNotMatch(code, /\bdocument\b|\bwindow\.|localStorage|fetch\(|XMLHttpRequest/, f);
-    assert.doesNotMatch(code, /raw_score|perfect ?corp|youcam/i, f);
+    /* Seule exception au nom de fournisseur : la carte des preuves, purement documentaire (elle DIT d'où vient chaque lien) ; aucune couche du moteur ne la lit (voir REF-H). */
+    if (!f.endsWith(path.join('data', 'evidence-map.js'))) assert.doesNotMatch(code, /raw_score|perfect ?corp|youcam/i, f);
+    else assert.doesNotMatch(code, /raw_score|youcam/i, f);
     /* Étape 25 : rawScore (contrat normalized de skin-model.js) n'est lu que par l'interprétation ; les autres couches lisent `value`. */
     if (!f.endsWith('interpret.js')) assert.doesNotMatch(code, /rawScore/, f);
   }

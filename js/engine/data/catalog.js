@@ -16,6 +16,9 @@
                    servesMarkets: ['BJ', …] | absent,   // pays que le VENDEUR déclare desservir (offre « régionale » pour ces pays) ; jamais déduit d'une devise ; absent = inconnu
                    source: '…', checkedAt: 'AAAA-MM-JJ' } ],
        image: { src: 'img/products/….jpg', alt: '…' } | null }
+   marketChecks (facultatif) : [ { market: 'BJ', status: 'searched_found' | 'searched_none', checkedAt: 'AAAA-MM-JJ', method: '…', note: '…' } ] — trace d'une recherche de disponibilité EXPLICITE dans un pays.
+   searched_none = une recherche a été faite et n'a trouvé aucune offre fiable (le statut UNAVAILABLE ne s'obtient que comme cela, jamais par simple absence d'offre ici) ; searched_found exige une offre
+   valide du même pays. Sans recherche : statut UNKNOWN. Aucune recherche n'est enregistrée à ce jour : les pistes web (Côte d'Ivoire, Nigeria, Ghana...) ne sont pas des vérifications. Aucun effet sur le choix des produits.
    Une annonce de place de marché est une offre de type « marketplace » : ce n'est pas une preuve d'authenticité ni de distribution officielle.
    editorialPriority (facultatif) : { activeId: rang } — décision éditoriale DERMAI entre produits compatibles avec le MÊME actif (1 = d'abord). Renseigné seulement là où plusieurs produits concourent
    réellement pour un même pas de routine : vitamin_c (Ascorbyl Glucoside 1, CeraVe Skin Renewing 2) et salicylic (Salicylic Acid 2 % 1, La Roche-Posay Pure Vitamin C10 2). C'est l'ordre éditorial

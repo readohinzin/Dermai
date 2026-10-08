@@ -49,6 +49,10 @@
   const OFFER_SHIPPING = ['local', 'international'];
   const PRODUCT_STATUS = ['validated', 'to_verify'];
   const SOURCE_KINDS = ['manufacturer', 'retailer', 'regulator', 'other'];
+  /* Recherches de disponibilité (marketChecks) : searched_found = une recherche a trouvé au moins une offre dans ce pays ; searched_none = une recherche explicite n'a trouvé AUCUNE offre fiable dans ce pays.
+     Statut d'un produit pour un pays (availabilityStatus) : LOCAL, REGIONAL, IMPORT, UNAVAILABLE (recherche explicite sans offre fiable) ou UNKNOWN (aucune recherche fiable : le défaut). */
+  const MARKET_CHECK_STATUS = ['searched_found', 'searched_none'];
+  const AVAILABILITY_STATUS = ['LOCAL', 'REGIONAL', 'IMPORT', 'UNAVAILABLE', 'UNKNOWN'];
 
   const byId = (id, catalog) => (catalog || PRODUCTS).find(p => p.id === id) || null;
   const ids = p => p.ingredients.map(i => i.activeId).filter(Boolean);
@@ -94,6 +98,18 @@
     for (const k of Object.keys(o)) if (/^(match|score|compat|percent|pourcent|converted|conversion)/i.test(k)) e.push('offre : champ interdit : ' + k);
     return e;
   }
+  /* Une recherche de disponibilité : pays (code ISO), statut, date, méthode (comment la recherche a été faite) et note facultative. Jamais déduite d'une absence d'offre dans le catalogue. */
+  function validateMarketCheck(c) {
+    const e = [];
+    if (!c || typeof c !== 'object') return ['recherche de marché invalide'];
+    if (!Object.prototype.hasOwnProperty.call(MARKETS, c.market)) e.push('recherche de marché : pays inconnu (code ISO attendu)');
+    if (!MARKET_CHECK_STATUS.includes(c.status)) e.push('recherche de marché : statut inconnu (searched_found ou searched_none)');
+    if (!isDate(c.checkedAt)) e.push('recherche de marché : date manquante');
+    if (!text(c.method, 200)) e.push('recherche de marché : méthode manquante');
+    if (c.note != null && !text(c.note, 300)) e.push('recherche de marché : note invalide');
+    for (const k of Object.keys(c)) if (!['market', 'status', 'checkedAt', 'method', 'note'].includes(k)) e.push('recherche de marché : champ inattendu : ' + k);
+    return e;
+  }
   function validateProduct(p) {
     const e = [];
     if (!p || typeof p !== 'object') return ['produit absent'];
@@ -130,6 +146,21 @@
         for (const o of p.offers) {
           for (const m of validateOffer(o, p.demo === true)) e.push(m);
           if (o && typeof o === 'object') { const k = [o.market, o.retailer, o.url || ''].join('|'); if (seenOffers.has(k)) e.push('offre en double'); seenOffers.add(k); }
+        }
+      }
+    }
+    // recherches de disponibilité par pays : cohérentes avec les offres, jamais sur un produit de démonstration
+    if (p.marketChecks != null) {
+      if (!Array.isArray(p.marketChecks)) e.push('marketChecks doit être une liste');
+      else if (p.demo === true) { if (p.marketChecks.length) e.push('un produit de démonstration n\'a pas de recherche de marché'); }
+      else {
+        const seenChecks = new Set(), offerMarkets = new Set((Array.isArray(p.offers) ? p.offers : []).filter(o => validateOffer(o, false).length === 0).map(o => o.market));
+        for (const c of p.marketChecks) {
+          for (const m of validateMarketCheck(c)) e.push(m);
+          if (!c || typeof c !== 'object') continue;
+          if (seenChecks.has(c.market)) e.push('recherche de marché en double : ' + c.market); seenChecks.add(c.market);
+          if (c.status === 'searched_none' && offerMarkets.has(c.market)) e.push('recherche de marché : searched_none contredit une offre du même pays (' + c.market + ')');
+          if (c.status === 'searched_found' && !offerMarkets.has(c.market)) e.push('recherche de marché : searched_found exige une offre valide dans ce pays (' + c.market + ')');
         }
       }
     }
@@ -220,6 +251,23 @@
     /* Résumé pour le pays : la meilleure qualité parmi les offres du pays (locales ou régionales), sinon « autres pays seulement », sinon « aucune ». */
     const mine = local.concat(regional), summary = mine.length ? byQuality(mine)[0].quality : international.length ? 'elsewhere' : 'none';
     return Object.assign(base, { local, regional, international, tier, summary });
+  }
+  /* Statut de disponibilité d'un produit POUR UN PAYS, pour l'AFFICHAGE seulement : il ne retire ni n'ajoute aucun produit et ne change aucune recommandation. Une offre en rupture ou « bientôt »
+     ne compte pas comme disponibilité fiable.
+       LOCAL        offre fiable dans ce pays ;      REGIONAL  offre fiable d'un autre pays dont le vendeur déclare desservir ce pays (servesMarkets) ;
+       IMPORT       offre fiable d'un autre pays dont la livraison INTERNATIONALE est explicitement indiquée (livraison inconnue = pas d'IMPORT) ;
+       UNAVAILABLE  recherche explicite (marketChecks, searched_none) sans offre fiable ; JAMAIS déduit de l'absence d'offre dans le catalogue ;
+       UNKNOWN      sinon (aucune recherche fiable) : le défaut, y compris sans pays choisi ou avec des offres en rupture seulement. */
+  function availabilityStatus(p, country) {
+    const v = marketView(p, country), code = v.country;
+    if (!code) return { country: null, status: 'UNKNOWN', reason: 'no-country' };
+    const ok = list => list.filter(o => o.quality !== 'unavailable');
+    if (ok(v.local).length) return { country: code, status: 'LOCAL', reason: 'local_offer' };
+    if (ok(v.regional).length) return { country: code, status: 'REGIONAL', reason: 'regional_offer' };
+    if (ok(v.international).filter(o => o.shipping === 'international').length) return { country: code, status: 'IMPORT', reason: 'import_offer' };
+    const check = Array.isArray(p && p.marketChecks) && p.demo !== true ? p.marketChecks.find(c => c && c.market === code && validateMarketCheck(c).length === 0) : null;
+    if (check && check.status === 'searched_none') return { country: code, status: 'UNAVAILABLE', reason: 'searched_none', checkedAt: check.checkedAt };
+    return { country: code, status: 'UNKNOWN', reason: v.hasOffers ? 'no_reliable_offer' : 'no_search' };
   }
   /* Données commerciales d'un produit. Réel : uniquement `offers` (les champs plats sont nuls). Démonstration : anciens champs plats, jamais de prix réel. */
   function commerceOf(p) {
@@ -356,6 +404,6 @@
       price: null, currency: null, vendor: p.vendor || null, availability: p.availability || null, url: p.url || null };
   }
 
-  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, productStatusOf, catalogView, commerceOf, offersOf, marketView, QUALITY, validateOffer, primaryActive, validateProduct, validateCatalog,
+  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, productStatusOf, catalogView, commerceOf, offersOf, marketView, availabilityStatus, MARKET_CHECK_STATUS, AVAILABILITY_STATUS, validateMarketCheck, QUALITY, validateOffer, primaryActive, validateProduct, validateCatalog,
     stepCategory, CATALOG_FIELDS, toCatalogEntry };
 });
