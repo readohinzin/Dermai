@@ -1,10 +1,14 @@
-/* DERMAI : carte « Garder ou partager votre résultat » (js/export-view.js). Tokens du design system uniquement. */
-.c-export{display:grid;gap:var(--s-3,12px)}
-.c-export .hd{margin:0}
-.c-export__opt{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--line-strong);border-radius:var(--r-md,14px);background:var(--surface);cursor:pointer}
-.c-export__opt input{flex:none;width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent)}
-.c-export__opt span{display:grid;gap:2px;color:var(--ink)}
-.c-export__opt small{color:var(--ink-3);font-size:.8125rem}
-.c-export__status{min-height:1.4em;margin:0}
-.c-export [aria-busy="true"]{opacity:.6;pointer-events:none}
-.c-export--page{margin:var(--s-8,40px) 0 var(--s-6,24px)}   /* seule sur sa ligne (routine, soins recommandés) : à distance des blocs voisins */
+/* DERMAI : barre d'export du résultat (js/export-view.js) : trois icônes (copier, partager, télécharger) et une petite case « Inclure ma photo ».
+   Sous l'en-tête des écrans Résultat, Routine et Produits. Tokens du design system uniquement ; cibles tactiles de 44 px. */
+.c-export{margin:0 0 var(--s-4)}
+.c-export__row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-1) var(--s-2)}
+.c-export__btn{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;padding:0;border:0;border-radius:var(--r-pill);background:transparent;color:var(--accent);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.c-export__btn svg{display:block;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.c-export__btn:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.c-export__btn:active{color:var(--accent-pressed)}
+.c-export__btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.c-export__btn[aria-busy="true"]{opacity:.5;pointer-events:none}
+.c-export__photo{display:inline-flex;align-items:center;gap:var(--s-2);min-height:44px;margin-left:var(--s-2);font-size:.875rem;color:var(--ink-2);cursor:pointer}
+.c-export__photo input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--accent);cursor:pointer}
+.c-export__status{margin:0;min-height:0;font-size:.8125rem;color:var(--ink-3)}
+.c-export__status:empty{display:none}

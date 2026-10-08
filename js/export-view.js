@@ -7,6 +7,7 @@
        alors ni métadonnées EXIF ni position GPS ;
      - « Copier le résumé » met un texte court dans le presse-papiers (aucun PDF) ;
      - « Partager » ouvre le partage du système (fichier PDF si l'appareil le permet, sinon texte, sinon copie dans le presse-papiers) : aucun lien public.
+   Interface : trois icônes (copier, partager, télécharger) et une petite case « Inclure ma photo », sous l'en-tête des écrans Résultat, Routine et Produits.
    Chargé avant app.js ; js/export-pdf.js fournit la mise en forme PDF. */
 (function (root) {
   'use strict';
@@ -14,17 +15,23 @@
   const SM = () => root.SkinModel || G.SkinModel, EN = () => root.DermaiEngine || G.DermaiEngine, PDF = () => root.DermaiPdf || G.DermaiPdf;
 
   const TEXT = {
-    titles: { result: 'Garder ou partager votre résultat', routine: 'Garder ou partager votre routine', products: 'Garder ou partager vos soins recommandés' },
-    intro: 'Un PDF créé sur votre appareil : rien n\'est envoyé à DERMAI ni enregistré.', introDoc: 'Un seul PDF avec votre analyse, votre routine et les produits proposés, créé sur votre appareil : rien n\'est envoyé à DERMAI ni enregistré.',
-    photo: 'Inclure ma photo', photoNote: 'Le fichier pourra circuler hors de DERMAI : ne l\'incluez que si vous le souhaitez.',
-    download: 'Télécharger en PDF', share: 'Partager', copy: 'Copier le résumé',
-    downloaded: 'PDF téléchargé.', downloadedNoPhoto: 'PDF téléchargé sans la photo : elle n\'a pas pu être ajoutée.', sharedNoPhoto: 'PDF partagé sans la photo : elle n\'a pas pu être ajoutée.', copied: 'Résumé copié : vous pouvez le coller où vous voulez.',
+    group: 'Exporter le résultat', copy: 'Copier le résumé', share: 'Partager', download: 'Télécharger en PDF',
+    photo: 'Inclure ma photo', photoNote: 'Le fichier pourra circuler hors de DERMAI.',
+    downloaded: 'PDF téléchargé.', downloadedNoPhoto: 'PDF téléchargé sans la photo : elle n\'a pas pu être ajoutée.', sharedNoPhoto: 'PDF partagé sans la photo : elle n\'a pas pu être ajoutée.',
+    copied: 'Résumé copié : vous pouvez le coller où vous voulez.',
     sharedFallback: 'Le partage n\'est pas disponible ici : le PDF a été téléchargé.',
     failed: 'Le PDF n\'a pas pu être créé. Réessayez.', copyFailed: 'La copie n\'a pas fonctionné. Vous pouvez télécharger le PDF à la place.', shareFailed: 'Le partage n\'a pas pu se faire. Vous pouvez télécharger le PDF.',
     footer: 'Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.',
     disclaimer: 'Analyse cosmétique de l\'état apparent de la peau, ce n\'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.',
     subtitle: 'Analyse cosmétique de la peau', earlier: 'Cette analyse n\'est pas la plus récente : la routine de l\'application correspond à votre analyse la plus récente.',
     unavailable: 'Donnée indisponible', info: 'Information', kept: 'Retenu par DERMAI'
+  };
+  /* Icônes (traits arrondis, couleur du texte) : copier, partager, télécharger. Décoratives : le nom accessible est celui du bouton. */
+  const SVG = d => `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">${d}</svg>`;
+  const ICONS = {
+    copy: SVG('<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5.5 15H5a2.5 2.5 0 0 1-2.5-2.5V5A2.5 2.5 0 0 1 5 2.5h7.5A2.5 2.5 0 0 1 15 5v.5"/>'),
+    share: SVG('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'),
+    download: SVG('<path d="M21 15v3.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5V15"/><path d="M7.5 10.5L12 15l4.5-4.5M12 15V3"/>')
   };
   const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
   const dateLabel = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
@@ -183,12 +190,10 @@
     const o = opts || {};
     if (o.demo || !eng || !s) { current = null; return ''; }
     current = { eng, s, H: !!o.H, catalog: o.catalog, blob: s.blob || null, photoUrl: typeof s.photo === 'string' && PHOTO_URL.test(s.photo) ? s.photo : null };
-    const kind = TEXT.titles[o.kind] ? o.kind : 'result';
-    return `<section class="c-card c-export${kind === 'result' ? '' : ' c-export--page'}" aria-labelledby="ex-title"><p class="kicker">Exporter</p><div class="hd"><h2 class="h3" id="ex-title">${TEXT.titles[kind]}</h2></div>
-     <p class="muted">${kind === 'result' ? TEXT.intro : TEXT.introDoc}</p>
-     ${current.blob || current.photoUrl ? `<label class="c-export__opt"><input type="checkbox" data-export-photo><span>${TEXT.photo}<small>${TEXT.photoNote}</small></span></label>` : ''}
-     <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-export="download">${TEXT.download}</button><button class="c-btn c-btn--secondary c-btn--block" data-export="share">${TEXT.share}</button><button class="c-btn c-btn--ghost c-btn--block" data-export="copy">${TEXT.copy}</button></div>
-     <p class="muted c-export__status" data-export-status role="status" aria-live="polite"></p></section>`;
+    const btn = k => `<button type="button" class="c-export__btn" data-export="${k}" aria-label="${TEXT[k]}" title="${TEXT[k]}">${ICONS[k]}</button>`;
+    return `<div class="c-export" role="group" aria-label="${TEXT.group}"><div class="c-export__row">${btn('copy')}${btn('share')}${btn('download')}`
+      + `${current.blob || current.photoUrl ? `<label class="c-export__photo"><input type="checkbox" data-export-photo>${TEXT.photo}</label>` : ''}</div>`
+      + `<p class="c-export__status" data-export-status role="status" aria-live="polite"></p></div>`;
   }
 
   async function onClick(e) {
@@ -201,7 +206,14 @@
       if (status) status.textContent = r.message;
     } finally { busy = false; b.removeAttribute('aria-busy'); }
   }
-  if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('click', onClick);
+  /* Case « Inclure ma photo » : au moment de la cocher, on rappelle que le fichier pourra circuler (le consentement est donné en connaissance de cause). */
+  function onChange(e) {
+    const box = e.target && e.target.matches && e.target.matches('[data-export-photo]') ? e.target : null;
+    if (!box) return;
+    const status = document.querySelector('[data-export-status]');
+    if (status) status.textContent = box.checked ? TEXT.photoNote : '';
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) { document.addEventListener('click', onClick); document.addEventListener('change', onChange); }
 
-  root.DermaiExport = { card, modelOf, blocksOf, summaryOf, perform, makePdf, photoOf, copyText, filename, TEXT };
+  root.DermaiExport = { card, modelOf, blocksOf, summaryOf, perform, makePdf, photoOf, copyText, filename, TEXT, ICONS, onChange };
 })(typeof self !== 'undefined' ? self : this);

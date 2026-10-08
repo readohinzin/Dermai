@@ -215,24 +215,40 @@ test('EXP11 partager : fichier PDF si l\'appareil le permet, sinon texte, sinon 
   assert.deepEqual([r6.ok, r6.message], [false, 'Le partage n\'a pas pu se faire. Vous pouvez télécharger le PDF.']);
 });
 
-test('EXP12 interface : la carte (photo décochée par défaut, seulement si une photo existe), rien en démonstration', () => {
+test('EXP12 interface : trois icônes (copier, partager, télécharger) sans texte, et une petite case « Inclure ma photo » décochée, seulement si une photo existe ; rien en démonstration', () => {
   const eng = ctxOf({ acne: 70 }).eng, s = scanOf({ acne: 70 });
   const withPhoto = X.card(eng, Object.assign({}, s, { blob: { b: 1 } }), { catalog: C.PRODUCTS }), noPhoto = X.card(eng, s, { catalog: C.PRODUCTS });
-  assert.match(withPhoto, /<input type="checkbox" data-export-photo>/); assert.doesNotMatch(withPhoto, /checked/);
-  assert.match(withPhoto, /Inclure ma photo<small>Le fichier pourra circuler hors de DERMAI/);
-  assert.doesNotMatch(noPhoto, /data-export-photo/);
+  const visible = h => h.replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '');
   for (const h of [withPhoto, noPhoto]) {
-    assert.match(h, /data-export="download">Télécharger en PDF<\/button>/); assert.match(h, /data-export="share">Partager<\/button>/);
-    assert.match(h, /rien n'est envoyé à DERMAI ni enregistré/); assert.match(h, /data-export-status role="status" aria-live="polite"/);
+    assert.deepEqual([...h.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['copy', 'share', 'download'], 'ordre : copier, partager, télécharger');
+    const btns = [...h.matchAll(/<button type="button" class="c-export__btn" data-export="(\w+)" aria-label="([^"]+)" title="\2"><svg viewBox="0 0 24 24"[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/g)];
+    assert.deepEqual(btns.map(m => m[2]), ['Copier le résumé', 'Partager', 'Télécharger en PDF'], 'trois icônes avec un nom accessible et une info-bulle');
+    assert.match(h, /^<div class="c-export" role="group" aria-label="Exporter le résultat">/);
+    assert.match(h, /data-export-status role="status" aria-live="polite"><\/p><\/div>$/);
+    assert.doesNotMatch(h, /c-btn|c-card|Garder ou partager|rien n'est envoyé|<h2|kicker/, 'plus de grande carte ni de boutons à texte');
   }
-  assert.equal(X.card(eng, Object.assign({}, s, { blob: { b: 1 } }), { demo: true }), '', 'mode démonstration : aucune carte');
-  const app = read('js/app.js'), html = read('index.html');
-  assert.match(app, /\$\{DermaiExport\.card\(eng,s,\{H,demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}\s*\n\s*<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">/);
-  assert.ok(Buffer.byteLength(app) < 150000, 'budget de app.js : ' + Buffer.byteLength(app));
-  const order = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
+  assert.equal(visible(noPhoto), '', 'aucun texte visible : seulement des icônes');
+  assert.equal(visible(withPhoto), 'Inclure ma photo', 'seule la petite case a un texte');
+  assert.match(withPhoto, /<label class="c-export__photo"><input type="checkbox" data-export-photo>Inclure ma photo<\/label>/); assert.doesNotMatch(withPhoto, /checked/);
+  assert.doesNotMatch(noPhoto, /data-export-photo/);
+  assert.equal(X.card(eng, Object.assign({}, s, { blob: { b: 1 } }), { demo: true }), '', 'mode démonstration : aucune barre');
+  for (const k of ['copy', 'share', 'download']) assert.match(X.ICONS[k], /^<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">/);
+  const css = read('css/components/export.css');
+  assert.match(css, /\.c-export__btn\{[^}]*width:44px;height:44px/); assert.match(css, /stroke:currentColor;stroke-width:2;stroke-linecap:round/);
+  const html = read('index.html'), order = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
   assert.ok(order.indexOf('js/export-pdf.js') < order.indexOf('js/export-view.js') && order.indexOf('js/export-view.js') < order.indexOf('js/app.js') && order.indexOf('js/export-pdf.js') > order.indexOf('js/skin-model.js'));
   assert.match(read('css/styles.css'), /components\/export\.css/);
-  assert.ok(fs.existsSync(path.join(__dirname, '../css/components/export.css')));
+});
+
+test('EXP12b case « Inclure ma photo » : au moment de la cocher, rappel que le fichier pourra circuler ; décochée, le rappel disparaît', () => {
+  const status = { textContent: '' }, saved = global.document;
+  global.document = { querySelector: sel => (sel === '[data-export-status]' ? status : null) };
+  try {
+    const box = checked => ({ target: { matches: sel => sel === '[data-export-photo]', checked } });
+    X.onChange(box(true)); assert.equal(status.textContent, 'Le fichier pourra circuler hors de DERMAI.');
+    X.onChange(box(false)); assert.equal(status.textContent, '');
+    status.textContent = 'PDF téléchargé.'; X.onChange({ target: { matches: () => false } }); assert.equal(status.textContent, 'PDF téléchargé.', 'une autre case ne touche pas au message');
+  } finally { global.document = saved; }
 });
 
 test('EXP13 confidentialité : aucun réseau, aucun stockage, aucun raw, aucun masque dans le code d\'export ; rien d\'enregistré', () => {
@@ -280,8 +296,8 @@ test('EXP15 copier le résumé : texte court et adresse du site, sans fabriquer 
   assert.match(w2[0], /Axes retenus : hydratation \(38\)\./);
   // le bouton est sur la carte, avec le même texte que le résumé partagé
   const html = X.card(ctx.eng, ctx.s, { catalog: C.PRODUCTS });
-  assert.match(html, /data-export="copy">Copier le résumé<\/button>/);
-  assert.deepEqual([...html.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['download', 'share', 'copy']);
+  assert.match(html, /data-export="copy" aria-label="Copier le résumé" title="Copier le résumé"/);
+  assert.deepEqual([...html.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['copy', 'share', 'download']);
   assert.match(code('js/export-view.js'), /execCommand\('copy'\)/);
   assert.doesNotMatch(code('js/export-view.js'), /localStorage|sessionStorage/, 'toujours aucun stockage');
 });
@@ -326,16 +342,16 @@ test('EXP17 la case « Inclure ma photo » apparaît aussi pour une analyse enre
   for (const photo of ['', undefined, 'javascript:alert(1)', 'http://insecure.example/a.jpg', 'http://localhost.evil.example/a.jpg', '/img/x.jpg']) assert.doesNotMatch(X.card(ctx.eng, Object.assign({}, ctx.s, { photo }), {}), /data-export-photo/, String(photo));
 });
 
-test('EXP18 les trois boutons sont aussi sur la routine et sur les soins recommandés (même carte, titre adapté, même PDF)', () => {
+test('EXP18 la même barre d\'icônes est sous l\'en-tête de Résultat, de Routine et de Produits (même PDF)', () => {
   const ctx = ctxOf({ hydration: 30, acne: 70, pores: 70 });
-  const r = X.card(ctx.eng, ctx.s, { kind: 'routine', catalog: C.PRODUCTS }), p = X.card(ctx.eng, ctx.s, { kind: 'products', catalog: C.PRODUCTS }), res = X.card(ctx.eng, ctx.s, { catalog: C.PRODUCTS });
-  assert.match(r, /Garder ou partager votre routine/); assert.match(p, /Garder ou partager vos soins recommandés/); assert.match(res, /Garder ou partager votre résultat/);
-  for (const h of [r, p, res]) assert.deepEqual([...h.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['download', 'share', 'copy']);
-  for (const h of [r, p]) assert.match(h, /Un seul PDF avec votre analyse, votre routine et les produits proposés/);
-  assert.match(res, /Un PDF créé sur votre appareil/);
-  assert.equal(X.card(ctx.eng, ctx.s, { kind: 'routine', demo: true }), '');
+  const bar = X.card(ctx.eng, ctx.s, { catalog: C.PRODUCTS });
+  assert.deepEqual([...bar.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['copy', 'share', 'download']);
+  assert.equal(X.card(ctx.eng, ctx.s, { demo: true }), '');
   const app = read('js/app.js');
-  assert.match(app, /<div class="grid2">\$\{list\(`morning`,`am`,`sun`,`Matin`\)\}\$\{list\(`evening`,`pm`,`moon`,`Soir`\)\}<\/div>\s*\n\s*\$\{DermaiExport\.card\(eng,SCANS\[state\.latest\],\{kind:`routine`,demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}/);
-  assert.match(app, /\$\{DermaiExport\.card\(eng,SCANS\[state\.latest\],\{kind:`products`,demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}\$\{foot\}/);
+  assert.equal((app.match(/DermaiExport\.card\(/g) || []).length, 3, 'une barre par écran, pas d\'autre');
+  assert.match(app, /\$\{DermaiExport\.card\(eng,s,\{H,demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}\s*\n\s*\$\{svBox\?/, 'Résultat : sous l\'en-tête');
+  assert.match(app, /<div class="pagehead"><h1>Ma routine<\/h1><p>\$\{R\.summary\}<\/p><\/div>\s*\n\s*\$\{DermaiExport\.card\(eng,SCANS\[state\.latest\],\{demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}/, 'Routine : sous l\'en-tête');
+  assert.match(app, /return shell\(`\$\{head\}\$\{DermaiExport\.card\(eng,SCANS\[state\.latest\],\{demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}\$\{note\}\$\{chips\}/, 'Produits : sous l\'en-tête');
+  assert.doesNotMatch(app, /kind:`routine`|kind:`products`/);
   assert.ok(Buffer.byteLength(app) < 150000, 'budget de app.js : ' + Buffer.byteLength(app));
 });
