@@ -7,3 +7,4 @@
 .c-export__opt small{color:var(--ink-3);font-size:.8125rem}
 .c-export__status{min-height:1.4em;margin:0}
 .c-export [aria-busy="true"]{opacity:.6;pointer-events:none}
+.c-export--page{margin:var(--s-8,40px) 0 var(--s-6,24px)}   /* seule sur sa ligne (routine, soins recommandés) : à distance des blocs voisins */

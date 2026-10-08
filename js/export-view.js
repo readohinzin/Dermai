@@ -14,10 +14,11 @@
   const SM = () => root.SkinModel || G.SkinModel, EN = () => root.DermaiEngine || G.DermaiEngine, PDF = () => root.DermaiPdf || G.DermaiPdf;
 
   const TEXT = {
-    title: 'Garder ou partager votre résultat', intro: 'Un PDF créé sur votre appareil : rien n\'est envoyé à DERMAI ni enregistré.',
+    titles: { result: 'Garder ou partager votre résultat', routine: 'Garder ou partager votre routine', products: 'Garder ou partager vos soins recommandés' },
+    intro: 'Un PDF créé sur votre appareil : rien n\'est envoyé à DERMAI ni enregistré.', introDoc: 'Un seul PDF avec votre analyse, votre routine et les produits proposés, créé sur votre appareil : rien n\'est envoyé à DERMAI ni enregistré.',
     photo: 'Inclure ma photo', photoNote: 'Le fichier pourra circuler hors de DERMAI : ne l\'incluez que si vous le souhaitez.',
     download: 'Télécharger en PDF', share: 'Partager', copy: 'Copier le résumé',
-    downloaded: 'PDF téléchargé.', copied: 'Résumé copié : vous pouvez le coller où vous voulez.',
+    downloaded: 'PDF téléchargé.', downloadedNoPhoto: 'PDF téléchargé sans la photo : elle n\'a pas pu être ajoutée.', sharedNoPhoto: 'PDF partagé sans la photo : elle n\'a pas pu être ajoutée.', copied: 'Résumé copié : vous pouvez le coller où vous voulez.',
     sharedFallback: 'Le partage n\'est pas disponible ici : le PDF a été téléchargé.',
     failed: 'Le PDF n\'a pas pu être créé. Réessayez.', copyFailed: 'La copie n\'a pas fonctionné. Vous pouvez télécharger le PDF à la place.', shareFailed: 'Le partage n\'a pas pu se faire. Vous pouvez télécharger le PDF.',
     footer: 'Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.',
@@ -30,6 +31,8 @@
   const dateSlug = iso => { const d = new Date(iso), p = n => String(n).padStart(2, '0'); return Number.isNaN(d.getTime()) ? 'resultat' : d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
   const filename = iso => 'dermai-analyse-' + dateSlug(iso) + '.pdf';
   const lowerFirst = s => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+  /* Adresses de photo acceptées : https (stockage du compte), blob et data (photo de la session), et le bouclage local pour le développement. Jamais un autre http. */
+  const PHOTO_URL = /^(https:|blob:|data:|http:\/\/(localhost|127\.0\.0\.1)[:/])/;
   const stepName = st => (st.kind === 'treatment' ? st.activeLabel : { cleanse: 'Nettoyant doux', moisturize: 'Hydratant', spf: 'Protection solaire' }[st.kind]);
 
   /* Modèle du document : uniquement des textes et des scores AFFICHÉS, déjà produits par le moteur. ctx : { eng, s, H, catalog }.
@@ -96,10 +99,18 @@
     return B;
   }
 
-  /* Photo : repassée par un canvas (orientation appliquée, EXIF et GPS supprimés), réduite, en JPEG. null si impossible. */
-  async function photoOf(blob, env) {
-    if (!blob) return null;
+  /* Photo : un Blob (photo de la session) ou l'adresse signée de la photo gardée dans le compte (celle qui s'affiche déjà à l'écran : une simple lecture,
+     rien n'est envoyé). Repassée par un canvas (orientation appliquée, EXIF et GPS supprimés), réduite, en JPEG. null si impossible. */
+  async function photoOf(src, env) {
+    if (!src) return null;
     try {
+      let blob = src;
+      if (typeof src === 'string') {
+        if (!env.fetch || !PHOTO_URL.test(src)) return null;
+        const res = await env.fetch(src, { credentials: 'omit' });
+        if (!res.ok) return null;
+        blob = await res.blob();
+      }
       const bmp = await env.createImageBitmap(blob), k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
       const w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
       const c = env.doc.createElement('canvas'); c.width = w; c.height = h;
@@ -113,10 +124,10 @@
   }
 
   const defaults = () => ({ doc: typeof document !== 'undefined' ? document : null, nav: typeof navigator !== 'undefined' ? navigator : null,
-    URL: G.URL, Blob: G.Blob, File: G.File, createImageBitmap: G.createImageBitmap ? G.createImageBitmap.bind(G) : null, setTimeout: G.setTimeout.bind(G), now: () => new Date() });
+    URL: G.URL, Blob: G.Blob, File: G.File, createImageBitmap: G.createImageBitmap ? G.createImageBitmap.bind(G) : null, fetch: G.fetch ? G.fetch.bind(G) : null, setTimeout: G.setTimeout.bind(G), now: () => new Date() });
 
   async function makePdf(ctx, opts, env) {
-    const m = modelOf(ctx), photo = opts && opts.photo && ctx.blob ? await photoOf(ctx.blob, env) : null;
+    const m = modelOf(ctx), photo = opts && opts.photo && (ctx.blob || ctx.photoUrl) ? await photoOf(ctx.blob || ctx.photoUrl, env) : null;
     const bytes = PDF().build({ title: 'Résultat de votre analyse DERMAI', footer: TEXT.footer, date: env.now(), blocks: blocksOf(m, photo) });
     return { blob: new env.Blob([bytes], { type: 'application/pdf' }), name: m.slug, model: m, withPhoto: !!photo };
   }
@@ -150,12 +161,12 @@
     }
     let pdf;
     try { pdf = await makePdf(ctx, opts, env); } catch (e) { return { ok: false, message: TEXT.failed }; }
-    if (kind === 'download') { try { save(pdf.blob, pdf.name, env); } catch (e) { return { ok: false, message: TEXT.failed }; } return { ok: true, message: TEXT.downloaded, withPhoto: pdf.withPhoto }; }
+    if (kind === 'download') { try { save(pdf.blob, pdf.name, env); } catch (e) { return { ok: false, message: TEXT.failed }; } return { ok: true, message: opts && opts.photo && !pdf.withPhoto ? TEXT.downloadedNoPhoto : TEXT.downloaded, withPhoto: pdf.withPhoto }; }
     const nav = env.nav || {}, text = summaryOf(pdf.model), url = env.doc && env.doc.location ? env.doc.location.origin : undefined;
     try {
       if (nav.share && nav.canShare && env.File) {
         const file = new env.File([pdf.blob], pdf.name, { type: 'application/pdf' });
-        if (nav.canShare({ files: [file] })) { await nav.share({ files: [file], title: 'Mon analyse DERMAI', text }); return { ok: true, message: '', via: 'file', withPhoto: pdf.withPhoto }; }
+        if (nav.canShare({ files: [file] })) { await nav.share({ files: [file], title: 'Mon analyse DERMAI', text }); return { ok: true, message: opts && opts.photo && !pdf.withPhoto ? TEXT.sharedNoPhoto : '', via: 'file', withPhoto: pdf.withPhoto }; }
       }
       if (nav.share) { await nav.share({ title: 'Mon analyse DERMAI', text, url }); return { ok: true, message: '', via: 'text', withPhoto: false }; }
     } catch (e) {
@@ -171,10 +182,11 @@
   function card(eng, s, opts) {
     const o = opts || {};
     if (o.demo || !eng || !s) { current = null; return ''; }
-    current = { eng, s, H: !!o.H, catalog: o.catalog, blob: o.blob || null };
-    return `<section class="c-card c-export" aria-labelledby="ex-title"><p class="kicker">Exporter</p><div class="hd"><h2 class="h3" id="ex-title">${TEXT.title}</h2></div>
-     <p class="muted">${TEXT.intro}</p>
-     ${current.blob ? `<label class="c-export__opt"><input type="checkbox" data-export-photo><span>${TEXT.photo}<small>${TEXT.photoNote}</small></span></label>` : ''}
+    current = { eng, s, H: !!o.H, catalog: o.catalog, blob: s.blob || null, photoUrl: typeof s.photo === 'string' && PHOTO_URL.test(s.photo) ? s.photo : null };
+    const kind = TEXT.titles[o.kind] ? o.kind : 'result';
+    return `<section class="c-card c-export${kind === 'result' ? '' : ' c-export--page'}" aria-labelledby="ex-title"><p class="kicker">Exporter</p><div class="hd"><h2 class="h3" id="ex-title">${TEXT.titles[kind]}</h2></div>
+     <p class="muted">${kind === 'result' ? TEXT.intro : TEXT.introDoc}</p>
+     ${current.blob || current.photoUrl ? `<label class="c-export__opt"><input type="checkbox" data-export-photo><span>${TEXT.photo}<small>${TEXT.photoNote}</small></span></label>` : ''}
      <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-export="download">${TEXT.download}</button><button class="c-btn c-btn--secondary c-btn--block" data-export="share">${TEXT.share}</button><button class="c-btn c-btn--ghost c-btn--block" data-export="copy">${TEXT.copy}</button></div>
      <p class="muted c-export__status" data-export-status role="status" aria-live="polite"></p></section>`;
   }

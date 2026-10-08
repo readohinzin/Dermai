@@ -849,7 +849,7 @@ V.result=()=>{
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
       <p style="color:var(--ink);margin-bottom:14px">${eng.synthesis.strategy.text}</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>`}
-    ${DermaiExport.card(eng,s,{H,demo:DEMO_MODE,catalog:catalogNow(),blob:s.blob})}
+    ${DermaiExport.card(eng,s,{H,demo:DEMO_MODE,catalog:catalogNow()})}
     <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
@@ -922,6 +922,7 @@ V.routine=()=>{
     <ul class="l-list" style="margin-top:0">${DermaiInsight.why(eng).map(t=>`<li>${ic(`check`)}<span>${t}</span></li>`).join(``)}</ul>
     ${PZ.approachNote?`<p class="muted" style="margin-top:10px">${PZ.approachNote}</p>`:``}${PZ.evolution.note?`<p class="muted" style="margin-top:10px">${PZ.evolution.note}</p>`:``}</section>
   <div class="grid2">${list(`morning`,`am`,`sun`,`Matin`)}${list(`evening`,`pm`,`moon`,`Soir`)}</div>
+  ${DermaiExport.card(eng,SCANS[state.latest],{kind:`routine`,demo:DEMO_MODE,catalog:catalogNow()})}
   <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">À retenir</h2>
     <ul class="l-list" style="margin-top:0">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${cautions.map(c=>`<li>${ic(`info`)}<span>${c}</span></li>`).join(``)}${DEMO_MODE&&eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
   <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}${!DEMO_MODE&&!Engine.products.usable(catalogNow()).length?`<p class="muted" style="margin-bottom:10px">Le catalogue de produits est en préparation : votre routine indique déjà les actifs à chercher.</p>`:``}<button class="c-btn c-btn--primary c-btn--block" data-go="products">${DEMO_MODE?`Voir des exemples de produits`:`Voir les produits de ma routine`}</button></div></div>`);
@@ -1024,7 +1025,7 @@ V.products=()=>{
   const oth=view.others.map(o=>({p:Engine.products.byId(o.productId,catalogNow()),o})).filter(x=>inF(x.p));
   return shell(`${head}${note}${chips}
    <section><div class="hd"><h2 class="h3">Proposés par DERMAI pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit proposé dans cette catégorie.`:Engine.copy.SYNTH.productsNone}</p>`}</section>
-   ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${foot}`,{back:true,title:`Produits`});
+   ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${DermaiExport.card(eng,SCANS[state.latest],{kind:`products`,demo:DEMO_MODE,catalog:catalogNow()})}${foot}`,{back:true,title:`Produits`});
 };
 /* Identité vérifiée d'un produit réel : INCI (avec ses divergences éventuelles) et source fabricant datée. Jamais d'INCI inventé : sans liste, aucune ligne. */
 const productIdentity=p=>{

@@ -217,7 +217,7 @@ test('EXP11 partager : fichier PDF si l\'appareil le permet, sinon texte, sinon 
 
 test('EXP12 interface : la carte (photo décochée par défaut, seulement si une photo existe), rien en démonstration', () => {
   const eng = ctxOf({ acne: 70 }).eng, s = scanOf({ acne: 70 });
-  const withPhoto = X.card(eng, s, { catalog: C.PRODUCTS, blob: { b: 1 } }), noPhoto = X.card(eng, s, { catalog: C.PRODUCTS });
+  const withPhoto = X.card(eng, Object.assign({}, s, { blob: { b: 1 } }), { catalog: C.PRODUCTS }), noPhoto = X.card(eng, s, { catalog: C.PRODUCTS });
   assert.match(withPhoto, /<input type="checkbox" data-export-photo>/); assert.doesNotMatch(withPhoto, /checked/);
   assert.match(withPhoto, /Inclure ma photo<small>Le fichier pourra circuler hors de DERMAI/);
   assert.doesNotMatch(noPhoto, /data-export-photo/);
@@ -225,9 +225,9 @@ test('EXP12 interface : la carte (photo décochée par défaut, seulement si une
     assert.match(h, /data-export="download">Télécharger en PDF<\/button>/); assert.match(h, /data-export="share">Partager<\/button>/);
     assert.match(h, /rien n'est envoyé à DERMAI ni enregistré/); assert.match(h, /data-export-status role="status" aria-live="polite"/);
   }
-  assert.equal(X.card(eng, s, { demo: true, blob: { b: 1 } }), '', 'mode démonstration : aucune carte');
+  assert.equal(X.card(eng, Object.assign({}, s, { blob: { b: 1 } }), { demo: true }), '', 'mode démonstration : aucune carte');
   const app = read('js/app.js'), html = read('index.html');
-  assert.match(app, /\$\{DermaiExport\.card\(eng,s,\{H,demo:DEMO_MODE,catalog:catalogNow\(\),blob:s\.blob\}\)\}\s*\n\s*<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">/);
+  assert.match(app, /\$\{DermaiExport\.card\(eng,s,\{H,demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}\s*\n\s*<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">/);
   assert.ok(Buffer.byteLength(app) < 150000, 'budget de app.js : ' + Buffer.byteLength(app));
   const order = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
   assert.ok(order.indexOf('js/export-pdf.js') < order.indexOf('js/export-view.js') && order.indexOf('js/export-view.js') < order.indexOf('js/app.js') && order.indexOf('js/export-pdf.js') > order.indexOf('js/skin-model.js'));
@@ -237,9 +237,12 @@ test('EXP12 interface : la carte (photo décochée par défaut, seulement si une
 
 test('EXP13 confidentialité : aucun réseau, aucun stockage, aucun raw, aucun masque dans le code d\'export ; rien d\'enregistré', () => {
   for (const f of ['js/export-pdf.js', 'js/export-view.js']) {
-    assert.doesNotMatch(code(f), /\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|localStorage|sessionStorage|indexedDB|document\.cookie|supabase|Account\b/i, f + ' : aucun réseau ni stockage');
+    const noRead = code(f).replace(/env\.fetch\(src, \{ credentials: 'omit' \}\)/g, '');   // seule lecture permise : la photo DÉJÀ affichée du compte, en GET, sans cookie, sans corps
+    assert.doesNotMatch(noRead, /\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|localStorage|sessionStorage|indexedDB|document\.cookie|supabase|Account\b|method:|body:/i, f + ' : aucun envoi, aucun stockage');
     assert.doesNotMatch(code(f), /rawScore|rawMetrics|raw_score|localization|\bmask|\.rawScore|interpretation\.indicators\[[^\]]*\]\.value/i, f + ' : aucune donnée de décision, aucun masque');
   }
+  assert.equal((code('js/export-view.js').match(/env\.fetch\(/g) || []).length, 1, 'une seule lecture réseau : la photo du compte');
+  assert.equal((code('js/export-pdf.js').match(/fetch/g) || []).length, 0);
   assert.doesNotMatch(code('js/export-view.js'), /location\.(href|search|hash)|history\.(push|replace)State/, 'aucune adresse contenant le résultat');
   assert.doesNotMatch(read('supabase/migrations/' + fs.readdirSync(path.join(__dirname, '../supabase/migrations')).sort().pop()), /export|share|pdf/i, 'aucune migration pour l\'export');
 });
@@ -280,5 +283,59 @@ test('EXP15 copier le résumé : texte court et adresse du site, sans fabriquer 
   assert.match(html, /data-export="copy">Copier le résumé<\/button>/);
   assert.deepEqual([...html.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['download', 'share', 'copy']);
   assert.match(code('js/export-view.js'), /execCommand\('copy'\)/);
-  assert.doesNotMatch(code('js/export-view.js'), /\bfetch\(|localStorage|sessionStorage/, 'toujours aucun réseau ni stockage');
+  assert.doesNotMatch(code('js/export-view.js'), /localStorage|sessionStorage/, 'toujours aucun stockage');
+});
+
+/* ---------- Photo d'une analyse enregistrée, et boutons sur la routine et les soins recommandés ---------- */
+const photoEnv = (extra = {}) => { let drawn = 0; const jpeg = fakeJpeg(300, 400);
+  return Object.assign({ createImageBitmap: async () => ({ width: 3000, height: 4000, close() {} }),
+    doc: { createElement: () => ({ width: 0, height: 0, getContext: () => ({ fillRect() {}, drawImage() { drawn++; } }), toBlob: cb => cb({ arrayBuffer: async () => jpeg.buffer.slice(jpeg.byteOffset, jpeg.byteOffset + jpeg.length) }) }) } }, extra); };
+
+test('EXP16 photo d\'une analyse enregistrée : lue depuis l\'adresse du compte (celle de l\'écran), seulement si la case est cochée ; sinon un message clair', async () => {
+  const URL = 'https://projet.supabase.co/storage/v1/object/sign/scan-photos/u/a.jpg?token=t', calls = [];
+  const ok = { fetch: async (u, o) => { calls.push([u, o]); return { ok: true, blob: async () => ({ fake: 'jpeg' }) }; } };
+  const ctx = ctxOf({ acne: 70 }, {}, { photoUrl: URL });
+  const without = await pdfOf(ctx, { photo: false }, photoEnv(ok));
+  assert.deepEqual([without.withPhoto, calls.length], [false, 0], 'case décochée : la photo n\'est même pas lue');
+  const withIt = await pdfOf(ctx, { photo: true }, photoEnv(ok));
+  assert.equal(withIt.withPhoto, true);
+  assert.deepEqual(calls, [[URL, { credentials: 'omit' }]], 'une lecture, sans cookie');
+  assert.match(Buffer.from(await bytesOfBlob(withIt.blob)).toString('latin1'), /\/Subtype \/Image \/Width 300 \/Height 400/);
+  // la photo de la session passe avant l'adresse du compte
+  calls.length = 0; await pdfOf(Object.assign({}, ctx, { blob: { b: 1 } }), { photo: true }, photoEnv(ok));
+  assert.equal(calls.length, 0, 'un Blob en mémoire : aucune lecture réseau');
+  // échecs : réponse refusée, réseau coupé, adresse non autorisée : PDF sans photo, et on le dit
+  for (const env of [{ fetch: async () => ({ ok: false }) }, { fetch: async () => { throw new Error('réseau'); } }]) {
+    const r = await pdfOf(ctx, { photo: true }, photoEnv(env)); assert.equal(r.withPhoto, false);
+  }
+  const bad = await pdfOf(Object.assign({}, ctx, { photoUrl: 'javascript:alert(1)' }), { photo: true }, photoEnv(ok));
+  assert.equal(bad.withPhoto, false); assert.equal(calls.length, 0, 'jamais de lecture d\'une adresse hors https, blob et data');
+  const dl = await X.perform('download', ctx, { photo: true }, fakeEnv({}, { fetch: async () => ({ ok: false }) }));
+  assert.deepEqual([dl.ok, dl.message], [true, 'PDF téléchargé sans la photo : elle n\'a pas pu être ajoutée.']);
+  const sh = await X.perform('share', ctx, { photo: true }, fakeEnv({ canShare: () => true, share: async () => {} }, { fetch: async () => ({ ok: false }), createImageBitmap: photoEnv().createImageBitmap }));
+  assert.deepEqual([sh.ok, sh.via, sh.message], [true, 'file', 'PDF partagé sans la photo : elle n\'a pas pu être ajoutée.']);
+  const fine = await X.perform('download', ctx, { photo: false }, fakeEnv({})); assert.equal(fine.message, 'PDF téléchargé.');
+});
+
+test('EXP17 la case « Inclure ma photo » apparaît aussi pour une analyse enregistrée (photo du compte), jamais pour une adresse non autorisée', () => {
+  const ctx = ctxOf({ acne: 70 });
+  const saved = X.card(ctx.eng, Object.assign({}, ctx.s, { photo: 'https://projet.supabase.co/storage/v1/object/sign/x.jpg?token=t' }), { catalog: C.PRODUCTS });
+  assert.match(saved, /data-export-photo/); assert.doesNotMatch(saved, /checked/);
+  assert.match(X.card(ctx.eng, Object.assign({}, ctx.s, { photo: 'blob:http://x/1' }), {}), /data-export-photo/);
+  assert.match(X.card(ctx.eng, Object.assign({}, ctx.s, { photo: 'http://127.0.0.1:3000/a.png' }), {}), /data-export-photo/, 'bouclage local (développement)');
+  for (const photo of ['', undefined, 'javascript:alert(1)', 'http://insecure.example/a.jpg', 'http://localhost.evil.example/a.jpg', '/img/x.jpg']) assert.doesNotMatch(X.card(ctx.eng, Object.assign({}, ctx.s, { photo }), {}), /data-export-photo/, String(photo));
+});
+
+test('EXP18 les trois boutons sont aussi sur la routine et sur les soins recommandés (même carte, titre adapté, même PDF)', () => {
+  const ctx = ctxOf({ hydration: 30, acne: 70, pores: 70 });
+  const r = X.card(ctx.eng, ctx.s, { kind: 'routine', catalog: C.PRODUCTS }), p = X.card(ctx.eng, ctx.s, { kind: 'products', catalog: C.PRODUCTS }), res = X.card(ctx.eng, ctx.s, { catalog: C.PRODUCTS });
+  assert.match(r, /Garder ou partager votre routine/); assert.match(p, /Garder ou partager vos soins recommandés/); assert.match(res, /Garder ou partager votre résultat/);
+  for (const h of [r, p, res]) assert.deepEqual([...h.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['download', 'share', 'copy']);
+  for (const h of [r, p]) assert.match(h, /Un seul PDF avec votre analyse, votre routine et les produits proposés/);
+  assert.match(res, /Un PDF créé sur votre appareil/);
+  assert.equal(X.card(ctx.eng, ctx.s, { kind: 'routine', demo: true }), '');
+  const app = read('js/app.js');
+  assert.match(app, /<div class="grid2">\$\{list\(`morning`,`am`,`sun`,`Matin`\)\}\$\{list\(`evening`,`pm`,`moon`,`Soir`\)\}<\/div>\s*\n\s*\$\{DermaiExport\.card\(eng,SCANS\[state\.latest\],\{kind:`routine`,demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}/);
+  assert.match(app, /\$\{DermaiExport\.card\(eng,SCANS\[state\.latest\],\{kind:`products`,demo:DEMO_MODE,catalog:catalogNow\(\)\}\)\}\$\{foot\}/);
+  assert.ok(Buffer.byteLength(app) < 150000, 'budget de app.js : ' + Buffer.byteLength(app));
 });
