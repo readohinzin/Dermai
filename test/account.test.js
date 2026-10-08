@@ -22,7 +22,7 @@ test('A1 inscription : compte créé, session ouverte, profil créé avec des va
   assert.equal(r.ok, true);
   assert.equal(acc.user.email, 'a@exemple.com');
   const p = await acc.loadProfile();
-  assert.deepEqual(p, { ok: true, profile: { goals: [], level: '', comfort: { preferGentle: false }, exclusions: [] } });
+  assert.deepEqual(p, { ok: true, profile: { goals: [], level: '', comfort: { preferGentle: false }, exclusions: [] }, photos: null }, 'photos : null = pas encore demandé');
   assert.equal(fake.profiles.size, 1);
 });
 
@@ -171,8 +171,11 @@ test('A12 simulation 6000 profils : ≤ 3 objectifs, objectifs et niveaux valide
 });
 
 test('A13 aucune photo, masque, task_id ni donnée brute dans le profil ou la session ; aucun secret côté client', () => {
-  const src = fs.readFileSync(path.join(__dirname, '../js/account.js'), 'utf8');
-  const row = Account.toRow({ goals: ['tone'], level: 'simple', comfort: { preferGentle: true }, exclusions: [], photo: 'data:image/jpeg;base64,xx', task_id: 't1', mask_urls: ['u'], normalized: {}, user_id: 'x' });
+  const src = fs.readFileSync(path.join(__dirname, '../js/account.js'), 'utf8'), code = src.replace(/\/\*[\s\S]*?\*\//g, '');
+  const row = Account.toRow({ goals: ['tone'], level: 'simple', comfort: { preferGentle: true }, exclusions: [], photo: 'data:image/jpeg;base64,xx', task_id: 't1', mask_urls: ['u'], normalized: {}, user_id: 'x', keep_photos: true });
   assert.deepEqual(Object.keys(row).sort(), ['exclusions', 'goals', 'prefer_gentle', 'routine_level']);
-  assert.doesNotMatch(src.replace(/\/\*[\s\S]*?\*\//g, ''), /service_role|task_id|mask|photo|password\s*:\s*['"`]/i);
+  assert.doesNotMatch(code, /service_role|task_id|mask|password\s*:\s*['"`]/i);
+  /* Photos de scan (choix de l'utilisatrice) : uniquement dans le Storage privé scan-photos, jamais dans une ligne, ni dans le navigateur. */
+  assert.doesNotMatch(code, /localStorage\.setItem\([^)]*photo|sessionStorage|data:image/i);
+  assert.match(code, /const PHOTO_BUCKET = 'scan-photos';/);
 });

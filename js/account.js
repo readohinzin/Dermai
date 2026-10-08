@@ -42,7 +42,11 @@
     passwordSame: 'Choisissez un mot de passe différent de l\'ancien.',
     linkInvalid: 'Ce lien n\'est plus valide. Demandez-en un nouveau.',
     emailConfirmed: 'Votre adresse e-mail est confirmée. Bienvenue !',
-    deleteFailed: 'Votre compte n\'a pas pu être supprimé. Réessayez.'
+    deleteFailed: 'Votre compte n\'a pas pu être supprimé. Réessayez.',
+    photoChoiceFailed: 'Votre choix pour les photos n\'a pas pu être enregistré. Réessayez.',
+    photoSaveFailed: 'Votre analyse est enregistrée, mais sa photo n\'a pas pu être gardée dans votre compte.',
+    photosDeleteFailed: 'Vos photos n\'ont pas pu être supprimées. Réessayez.',
+    photosUnavailable: 'La conservation des photos n\'est pas encore disponible.'
   };
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -84,6 +88,13 @@
     for (const k of METRIC_KEYS) if (rawOf(m[k]) !== null) out[k] = m[k];
     return out;
   }
+  /* Photos de scan (Supabase Storage, bucket privé `scan-photos`, migration 20261010120000) : un fichier par analyse, rangé dans le dossier
+     de l'utilisatrice (`<user_id>/<id de l'analyse>.jpg`). Seulement si elle l'a choisi (`profiles.keep_photos`). Jamais de masque. */
+  const PHOTO_BUCKET = 'scan-photos';
+  const PHOTO_MAX_BYTES = 4 * 1024 * 1024;     // même limite que la photo envoyée à l'analyse (et que le bucket)
+  const PHOTO_URL_TTL_S = 3600;                // lien temporaire d'affichage : jamais enregistré, redemandé au chargement suivant
+  const bucketMissing = r => !!r && !r.ok && !r.network && /bucket not found/i.test(JSON.stringify(r.body || ''));
+  const missingColumn = (r, col) => !!r && !r.ok && !r.network && (r.status === 400 || r.status === 404) && new RegExp(col).test(JSON.stringify(r.body || ''));
   /* La base n'a pas encore la colonne raw_metrics (migration non appliquée) : PostgREST répond 400 en la nommant. */
   const missingRawColumn = r => !!r && !r.ok && !r.network && (r.status === 400 || r.status === 404) && /raw_metrics/.test(JSON.stringify(r.body || ''));
 
@@ -245,13 +256,87 @@
       return r;
     }
 
+    /* `photos` : choix de conservation des photos (true, false, null = pas encore demandé), ou `undefined` si la base n'a pas encore la
+       colonne keep_photos (migration non appliquée) : la fonction est alors simplement absente de l'application. */
     async function loadProfile() {
-      const r = await authed('/rest/v1/profiles?select=goals,routine_level,prefer_gentle,exclusions&limit=1', { method: 'GET' });
+      const COLS = 'goals,routine_level,prefer_gentle,exclusions';
+      let r = await authed('/rest/v1/profiles?select=' + COLS + ',keep_photos&limit=1', { method: 'GET' }), photosColumn = true;
+      if (missingColumn(r, 'keep_photos')) { photosColumn = false; r = await authed('/rest/v1/profiles?select=' + COLS + '&limit=1', { method: 'GET' }); }
       if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
       if (r.network || !r.ok) return { ok: false, error: MSG.loadFailed };
       const row = Array.isArray(r.body) ? r.body[0] : null;
-      return { ok: true, profile: row ? fromRow(row) : null };
+      const photos = !photosColumn ? undefined : row && typeof row.keep_photos === 'boolean' ? row.keep_photos : null;
+      return { ok: true, profile: row ? fromRow(row) : null, photos };
     }
+
+    /* Choix de conservation des photos : seule la colonne keep_photos est écrite (les préférences ne sont jamais réécrites ici). */
+    async function savePhotoChoice(keep) {
+      if (typeof keep !== 'boolean') return { ok: false, error: MSG.photoChoiceFailed };
+      const body = JSON.stringify({ keep_photos: keep });
+      let r = await authed('/rest/v1/profiles?id=not.is.null', { method: 'PATCH', headers: { Prefer: 'return=representation' }, body });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (missingColumn(r, 'keep_photos')) return { ok: false, error: MSG.photosUnavailable };
+      if (r.network || !r.ok) return { ok: false, error: MSG.photoChoiceFailed };
+      if (Array.isArray(r.body) && r.body.length === 0) {
+        r = await authed('/rest/v1/profiles', { method: 'POST', headers: { Prefer: 'return=minimal' }, body });
+        if (r.network || !r.ok) return { ok: false, error: MSG.photoChoiceFailed };
+      }
+      return { ok: true };
+    }
+
+    /* ---------- Photos de scan (Storage) ---------- */
+    const photoPath = id => session.user.id + '/' + id + '.jpg';
+    /* Le service Storage signale un jeton expiré par un corps d'erreur (parfois avec un statut 400) : un rafraîchissement est tenté, puis
+       la réponse est ramenée à 401 pour que l'application traite la session comme expirée. */
+    const jwtError = r => !!r && !r.ok && !r.network && (r.status === 401 || /jwt|exp claim|invalid token/i.test(JSON.stringify(r.body || '')));
+    async function storage(path, init) {
+      let r = await authed(path, init);
+      if (jwtError(r) && r.status !== 401 && await refresh()) r = await authed(path, init);
+      return jwtError(r) ? Object.assign({}, r, { status: 401 }) : r;
+    }
+    /* Garde la photo d'une analyse enregistrée. Idempotent : une photo déjà présente pour cette analyse n'est pas remplacée. */
+    async function uploadPhoto(analysisId, blob) {
+      if (!available || !session) return { ok: false, error: MSG.sessionExpired };
+      if (typeof analysisId !== 'string' || !UUID_RE.test(analysisId) || !blob || blob.type !== 'image/jpeg' || !(blob.size > 0) || blob.size > PHOTO_MAX_BYTES) return { ok: false, error: MSG.photoSaveFailed };
+      const r = await storage('/storage/v1/object/' + PHOTO_BUCKET + '/' + photoPath(analysisId), { method: 'POST', headers: { 'Content-Type': 'image/jpeg', 'x-upsert': 'false', 'cache-control': 'max-age=3600' }, body: blob });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (!r.network && (r.status === 409 || /duplicate|already exists/i.test(JSON.stringify(r.body || '')))) return { ok: true };
+      if (r.network || !r.ok) return { ok: false, error: bucketMissing(r) ? MSG.photosUnavailable : MSG.photoSaveFailed };
+      return { ok: true };
+    }
+    /* Identifiants des analyses dont la photo est gardée (dossier de l'utilisatrice seulement : la RLS refuse tout autre dossier). */
+    async function listPhotos() {
+      if (!available || !session) return { ok: false, error: MSG.sessionExpired };
+      const r = await storage('/storage/v1/object/list/' + PHOTO_BUCKET, { method: 'POST', body: JSON.stringify({ prefix: session.user.id, limit: 1000, offset: 0 }) });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (bucketMissing(r)) return { ok: true, ids: [], missing: true };       // bucket pas encore créé (migration) : aucune photo n'a pu être gardée
+      if (r.network || !r.ok || !Array.isArray(r.body)) return { ok: false, error: MSG.historyLoadFailed };
+      const ids = r.body.map(o => o && typeof o.name === 'string' ? o.name.replace(/\.jpg$/, '') : '').filter(id => UUID_RE.test(id));
+      return { ok: true, ids };
+    }
+    /* Liens d'affichage temporaires (1 h) pour ces analyses : { id: url }. Jamais enregistrés, ni dans le navigateur ni ailleurs. */
+    async function photoUrls(ids) {
+      const list = (Array.isArray(ids) ? ids : []).filter(id => typeof id === 'string' && UUID_RE.test(id)).slice(0, 100);
+      if (!list.length) return { ok: true, urls: {} };
+      if (!available || !session) return { ok: false, error: MSG.sessionExpired };
+      const r = await storage('/storage/v1/object/sign/' + PHOTO_BUCKET, { method: 'POST', body: JSON.stringify({ expiresIn: PHOTO_URL_TTL_S, paths: list.map(photoPath) }) });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (r.network || !r.ok || !Array.isArray(r.body)) return { ok: false, error: MSG.historyLoadFailed };
+      const urls = {};
+      r.body.forEach((o, i) => { const id = list[i]; if (o && !o.error && typeof o.signedURL === 'string' && o.signedURL.startsWith('/')) urls[id] = base + '/storage/v1' + o.signedURL; });
+      return { ok: true, urls };
+    }
+    /* Supprime toutes les photos gardées de l'utilisatrice. Les analyses (scores, historique) restent. */
+    async function deletePhotos() {
+      const l = await listPhotos();
+      if (!l.ok) return { ok: false, error: l.error === MSG.sessionExpired ? l.error : MSG.photosDeleteFailed };
+      if (!l.ids.length) return { ok: true, deleted: 0 };
+      const r = await storage('/storage/v1/object/' + PHOTO_BUCKET, { method: 'DELETE', body: JSON.stringify({ prefixes: l.ids.map(photoPath) }) });
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
+      if (r.network || !r.ok) return { ok: false, error: MSG.photosDeleteFailed };
+      return { ok: true, deleted: l.ids.length };
+    }
+
 
     /* Mise à jour de la ligne de l'utilisateur ; création si elle n'existe pas encore. Supabase refuse un UPDATE sans condition (« WHERE ») :
        `id=not.is.null` n'en est qu'une formalité, c'est la RLS qui limite la requête à la seule ligne de l'utilisateur connecté.
@@ -313,7 +398,11 @@
     }
     /* Supprime le compte de l'appelant (profil, analyses et quota partent en cascade). La fonction SQL n'a aucun paramètre : elle ne peut viser que
        le compte du jeton. La session locale est supprimée au succès. */
+    /* Les photos (Storage) ne suivent pas la suppression du compte en base : elles sont effacées d'abord. Si cela échoue, le compte n'est
+       pas supprimé (aucune photo ne doit rester sans compte). Sans bucket (migration non appliquée), il n'y a aucune photo à effacer. */
     async function deleteAccount() {
+      const p = await deletePhotos();
+      if (!p.ok) return { ok: false, error: p.error === MSG.sessionExpired ? p.error : MSG.deleteFailed };
       const r = await authed('/rest/v1/rpc/delete_my_account', { method: 'POST', body: '{}' });
       if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
       if (r.network || !r.ok) return { ok: false, error: MSG.deleteFailed };
@@ -361,7 +450,7 @@
       return session ? session.access_token : null;
     }
 
-    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
+    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 

@@ -42,7 +42,7 @@ test('UX5 analyse réelle : une seule action principale par état, libellés cla
   assert.match(scan, /Ajouter une photo/);
   assert.match(scan, /Choisir une autre photo/);
   assert.match(scan, /\$\{DEMO_MODE\?`<div class="qual">/);                         // plus de pseudo-contrôle de lumière en mode réel
-  assert.match(scan, /DERMAI ne la conserve pas\./);
+  assert.match(scan, /DERMAI ne la conserve que si vous l'avez choisi\./);
   assert.match(scan, /Réessayer/);
   const an = between('V.analyzing=()=>', '/* Résultat */');
   assert.match(an, /Cela peut prendre un moment\. Gardez cette page ouverte\./);
@@ -54,13 +54,19 @@ test('UX6 profil et confidentialité réels : aucun réglage ni action factice',
   assert.match(profile, /\$\{DEMO_MODE\?`<section><div class="hd"><h2 class="h3">Préférences<\/h2>/);          // « Rappel de scan » : démo seulement (aucun rappel n'existe)
   assert.match(profile, /state\.user\.email&&!signedIn\(\)/);                                                  // e-mail non répété
   assert.doesNotMatch(profile, /maquette v2\.\s*\$\{DEMO_MODE\?`Données fictives\.`:``\}/);
-  const priv = between('V.privacy=', 'const CONFIRMS');
-  assert.match(priv, /\$\{DEMO_MODE\?`<section>\$\{sw\(`keep`/);                                                // « Conserver mes photos » : démo seulement
-  assert.match(priv, /\$\{DEMO_MODE\?`<button class="rowlink" data-act="confirm" data-v="photos"/);
-  assert.match(priv, /signedIn\(\)\?`<button class="rowlink" data-act="confirm" data-v="delete-account">/);       // suppression réelle, proposée seulement à une personne connectée
-  assert.doesNotMatch(priv, /Compte supprimé \(simulation\)/);
-  assert.match(priv, /DERMAI n'en garde aucune copie/);
-  assert.match(priv, /photos originales ne sont pas non plus enregistrées avec vos analyses/);
+  /* Écran Confidentialité : js/photos-view.js. Réel : interrupteur et « Supprimer mes photos » seulement quand la fonction existe
+     (connectée, migration appliquée) ; démo : interrupteur simulé ; suppression du compte proposée seulement à une personne connectée. */
+  const P = require('../js/photos-view.js').DermaiPhotos, ic = n => `<i>${n}</i>`, sw = k => `<sw ${k}>`;
+  const html = o => P.privacy(Object.assign({ demo: false, signedIn: true, photos: null, busy: false, ic, sw }, o));
+  assert.match(html({ demo: true }), /<sw keep>/);
+  assert.doesNotMatch(html({ photos: true }), /<sw keep>/, 'réel : jamais l\'interrupteur simulé');
+  assert.match(html({ photos: true }), /role="switch" aria-checked="true" data-act="photo-keep"/);
+  assert.match(html({ photos: null }), /la question vous sera posée[^]*aria-checked="false" data-act="photo-keep"/, 'pas encore choisi : interrupteur sur « non », jamais pré-coché');
+  for (const o of [{ photos: undefined }, { signedIn: false }]) { assert.doesNotMatch(html(o), /photo-keep|data-v="photos"/, JSON.stringify(o)); }
+  assert.match(html({ photos: false }), /data-act="confirm" data-v="photos"/);
+  assert.match(html({}), /data-act="confirm" data-v="delete-account"/); assert.doesNotMatch(html({ signedIn: false }), /delete-account/);
+  assert.doesNotMatch(html({}), /Compte supprimé \(simulation\)|vous seule/);
+  assert.match(html({}), /ne la garde dans votre compte que si vous l'avez choisi/);
 });
 
 test('UX7 un message d\'erreur du serveur non textuel n\'est jamais affiché', () => {

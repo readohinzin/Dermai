@@ -85,11 +85,13 @@ test('HU9 progression : 1 analyse, 2 ou plus, données manquantes, type de peau,
   assert.match(require('fs').readFileSync(path.join(__dirname, '../js/skin-model.js'), 'utf8'), /TREND_STEP = 2/);
 });
 
-test('HU10 confidentialité : analyses dans le compte, photos non enregistrées, accès propre, aucune durée inventée', () => {
-  const priv = between('V.privacy=', 'const CONFIRMS');
+test('HU10 confidentialité : analyses dans le compte, photos gardées seulement au choix, accès propre, aucune durée inventée', () => {
+  const priv = require('fs').readFileSync(path.join(__dirname, '../js/photos-view.js'), 'utf8');   // écran Confidentialité (sorti d'app.js)
+  assert.match(between('V.privacy=', 'const CONFIRMS'), /DermaiPhotos\.privacy\(\{demo:DEMO_MODE,signedIn:signedIn\(\),photos:state\.photos/);
   assert.match(priv, /analyses peuvent être enregistrées dans votre compte/);
   assert.match(priv, /historique et votre progression/);
-  assert.match(priv, /photos originales ne sont pas non plus enregistrées avec vos analyses/);
+  assert.match(priv, /Vos photos d\\'analyse ne sont gardées dans votre compte que si vous l\\'avez choisi/);
+  assert.match(priv, /Les zones détectées sur la photo ne sont jamais conservées/);
   assert.match(priv, /vous seul pouvez accéder à vos analyses/);
   assert.doesNotMatch(priv, /\b\d+\s*(jours|mois|ans)\b|pendant/i);
 });

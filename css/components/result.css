@@ -35,3 +35,4 @@
 .c-insight__group+.c-insight__group{margin-top:18px}
 .c-insight__group .c-insight__text{margin-bottom:10px}
 .c-insight__note{margin-top:18px}
+.c-photo-ask__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}

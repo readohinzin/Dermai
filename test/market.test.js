@@ -262,7 +262,7 @@ test('MK20 profil et produits : section « Pays pour mes achats » avec Modifier
   const go = app.slice(app.indexOf('function go('), app.indexOf('function back()'));
   assert.doesNotMatch(go, /market/i, 'la navigation ne passe jamais par le choix du pays');
   const scan = app.slice(app.indexOf('V.scan='), app.indexOf('V.analyzing')); assert.doesNotMatch(scan, /state\.market|marketSelect|MT\./, 'aucun choix de pays avant ni pendant l\'analyse');
-  assert.match(app, /Si vous choisissez un pays pour vos achats, ce choix reste dans ce navigateur/);
+  assert.match(read('js/photos-view.js'), /Si vous choisissez un pays pour vos achats, ce choix reste dans ce navigateur/);   // écran Confidentialité
   assert.match(copy.MARKET_TEXTS.help, /ni votre position ni votre adresse IP/);
 });
 

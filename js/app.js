@@ -143,7 +143,7 @@ function toScan(normalized){
 /* Premier scan réel réussi : les analyses fictives sont retirées, démo et réel ne sont jamais mélangés dans l'historique. */
 function commitRealScan(r){
   if(SCANS.some(s=>!s.real))SCANS.length=0;
-  r.photo=state.realPreview;state.realPreview=``;   // l'aperçu passe de la photo en attente à l'analyse qu'il a produite
+  r.photo=state.realPreview;state.realPreview=``;r.blob=state.realBlob;   // l'aperçu passe de la photo en attente à l'analyse qu'il a produite
   r.id=SCANS.length;SCANS.push(r);
   const last=SCANS.length-1;
   state.latest=r.id;state.view=r.id;state.cmpA=Math.max(last-1,0);state.cmpB=last;   // la progression compare la dernière analyse à la précédente
@@ -192,7 +192,7 @@ const profileForSave=()=>{const n=Engine.normalizeProfile({goals:state.goals,lev
 function applyProfile(p){const n=Engine.normalizeProfile(p||{});state.goals=n.goals;state.noGoal=false;state.level=[`none`,`simple`,`full`].includes(p&&p.level)?p.level:``;state.gentle=!!n.comfort.preferGentle;state.exclusions=n.exclusions}
 /* Retour à l'état visiteur : plus aucune donnée du compte précédent (objectifs, niveau, approche, exclusions, analyses de la session). */
 function resetPrivateState(){
-  state.goals=[];state.noGoal=false;state.level=``;state.gentle=false;state.exclusions=[];state.cats=[];state.done={};
+  state.goals=[];state.noGoal=false;state.level=``;state.gentle=false;state.exclusions=[];state.cats=[];state.done={};state.photos=undefined;state.photoBusy=false;
   state.user.name=``;state.user.email=``;state.save={status:`idle`,message:``};
   state.history={status:`idle`,hasMore:false,loadingMore:false,error:``,moreError:``};state.analysisSave={scan:null,status:`idle`,message:``};
   if(!DEMO_MODE){SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;clearReal()}
@@ -227,7 +227,7 @@ async function enterSession(user,fresh){
   const epoch=authEpoch,r=await ACCOUNT.loadProfile();
   if(epoch!==authEpoch)return;
   state.account.loading=false;
-  if(r.ok){if(r.profile)applyProfile(r.profile);else applyProfile({});state.save={status:`idle`,message:``}}
+  if(r.ok){if(r.profile)applyProfile(r.profile);else applyProfile({});state.photos=r.photos;state.save={status:`idle`,message:``}}
   else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
   else{state.save={status:`error`,message:r.error}}
   if(fresh)state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};   // compte tout juste créé : aucun historique à charger
@@ -261,6 +261,7 @@ async function loadHistory(){
   const last=SCANS.length-1;
   state.latest=Math.max(last,0);state.view=state.latest;state.cmpA=Math.max(last-1,0);state.cmpB=Math.max(last,0);
   state.history={status:`ready`,hasMore:r.hasMore,loadingMore:false,error:``,moreError:``};
+  attachPhotos();
 }
 async function retryHistory(){
   if(!signedIn())return;
@@ -281,7 +282,7 @@ async function loadMoreHistory(){
   const older=r.analyses.filter(a=>!have.has(a.id)).sort((a,b)=>Date.parse(a.analyzedAt)-Date.parse(b.analyzedAt)).map(scanOfRecord).filter(Boolean);
   SCANS.unshift(...older);reindex();
   const k=older.length;state.latest+=k;state.view+=k;state.cmpA+=k;state.cmpB+=k;
-  H.hasMore=r.hasMore;render(true);
+  H.hasMore=r.hasMore;render(true);attachPhotos();
 }
 /* Enregistrement d'une analyse réelle réussie. Ne bloque jamais l'affichage du résultat ; une panne ne fait jamais perdre le résultat.
    Un identifiant propre à l'analyse (créé ici, pas le task_id du fournisseur) rend le nouvel essai et le double clic sans effet de doublon. */
@@ -310,20 +311,56 @@ async function saveScan(sc){
   const r=await ACCOUNT.saveAnalysis(sc.rec);
   inflight.delete(sc.rec.id);
   if(epoch!==authEpoch||!signedIn())return;                           // déconnexion ou changement de compte pendant l'enregistrement
-  if(r.ok){sc.saved=true;state.analysisSave={scan:sc,status:`saved`,message:`Analyse enregistrée dans votre historique.`}}
+  if(r.ok){sc.saved=true;state.analysisSave={scan:sc,status:`saved`,message:`Analyse enregistrée dans votre historique.`};keepPhoto(sc)}
   else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
   else state.analysisSave={scan:sc,status:`error`,message:SAVE_FAIL};
   softAnalysisStatus();
 }
 async function deleteHistory(){
   if(!DEMO_MODE&&signedIn()){
-    const epoch=authEpoch,r=await ACCOUNT.deleteAnalyses();
+    const epoch=authEpoch,p=await ACCOUNT.deletePhotos();   // les photos d'abord : aucune photo sans son analyse
+    if(epoch!==authEpoch)return;
+    if(!p.ok){if(p.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(DermaiAccount.MSG.historyDeleteFailed);return}
+    const r=await ACCOUNT.deleteAnalyses();
     if(epoch!==authEpoch)return;
     if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
   }
   SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;state.analysisSave={scan:null,status:`idle`,message:``};
   state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};
   toast(`Historique supprimé.`);if(state.route===`privacy`||state.route===`analyses`)render(true);
+}
+/* Photos de scan (js/photos-view.js, js/account.js) : gardées seulement si l'utilisatrice l'a choisi. La photo d'une analyse ne quitte la mémoire
+   que vers le Storage privé de son compte ; jamais dans le navigateur (localStorage, URL). Liens d'affichage temporaires, redemandés au chargement. */
+async function keepPhoto(sc){
+  if(state.photos===false)sc.blob=null;
+  if(state.photos!==true||!sc.blob||!sc.saved||!signedIn())return;
+  const b=sc.blob,epoch=authEpoch,r=await ACCOUNT.uploadPhoto(sc.rec.id,b);
+  if(epoch!==authEpoch)return;
+  if(r.ok)sc.blob=null;else if(r.error===DermaiAccount.MSG.sessionExpired)expireSession();else toast(r.error);
+}
+async function photoChoice(keep){
+  if(state.photoBusy||!signedIn())return;
+  state.photoBusy=true;render(true);const epoch=authEpoch,r=await ACCOUNT.savePhotoChoice(keep);
+  if(epoch!==authEpoch)return;
+  state.photoBusy=false;
+  if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);render(true);return}
+  state.photos=keep;toast(keep?`Vos photos d'analyse seront gardées dans votre compte.`:`Les photos de vos prochaines analyses ne seront pas gardées.`);
+  SCANS.forEach(keepPhoto);render(true);
+}
+async function attachPhotos(){
+  if(DEMO_MODE||!signedIn())return;
+  const epoch=authEpoch,l=await ACCOUNT.listPhotos();
+  if(epoch!==authEpoch||!l.ok||!l.ids.length)return;
+  const want=SCANS.filter(s=>s.rec&&!s.photo&&l.ids.includes(s.rec.id)),u=await ACCOUNT.photoUrls(want.map(s=>s.rec.id));
+  if(epoch!==authEpoch||!u.ok)return;
+  want.forEach(s=>{if(u.urls[s.rec.id])s.photo=u.urls[s.rec.id]});
+  if(want.length)render(true);
+}
+async function deletePhotos(){
+  const epoch=authEpoch,r=await ACCOUNT.deletePhotos();
+  if(epoch!==authEpoch)return;
+  if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
+  SCANS.forEach(s=>{if(s.photo&&/^https?:/.test(s.photo))s.photo=``});toast(`Photos supprimées.`);render(true);
 }
 /* Retour d'un lien reçu par e-mail (confirmation d'adresse, mot de passe oublié). Les jetons du fragment d'adresse sont effacés de l'URL dès la lecture ;
    la session est ouverte après vérification auprès de Supabase (l'identité n'est jamais déduite du lien lui-même). */
@@ -728,7 +765,7 @@ const photoNotice=()=>{
 V.scan=()=>{
   const st=state.scanStep;
   const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn c-icon-btn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
-  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve pas.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
+  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve que si vous l'avez choisi.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
   if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}${touchUi()?`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Prendre une autre photo</button><button class="c-btn c-btn--ghost c-btn--block" data-act="gallery">Choisir dans ma galerie</button>`:`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Choisir une autre photo</button>`}</div>`}
    ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:photoNotice()}
    ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:state.photoCheck&&state.photoCheck.level===`block`&&!state.scanError?``:`<button class="c-btn ${state.photoCheck&&state.photoCheck.level===`warn`&&!state.scanError?`c-btn--secondary`:`c-btn--primary`} c-btn--block" data-go="analyzing">${state.scanError?`Réessayer`:state.photoCheck&&state.photoCheck.level===`warn`?`Analyser quand même`:`Analyser ma peau`}</button>`}</div></div>`;
@@ -786,10 +823,11 @@ V.result=()=>{
     :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`;
   /* Les indicateurs du contour des yeux sont donnés à titre d'information : ils sont regroupés à part, valeurs et contenus inchangés. */
   const others=H?othersH:rest.filter(m=>!eyeOf(m)).map(rowOf).join(``),eyeRows=rest.filter(eyeOf).map(rowOf).join(``);
+  const ask=!H&&signedIn()&&state.photos===null&&s.blob?`<div style="margin-bottom:18px">${DermaiPhotos.ask(ic,state.photoBusy)}</div>`:``;
   const sv=state.analysisSave,svBox=!DEMO_MODE&&sv.scan===s&&sv.status!==`idle`?`<div class="c-notice${sv.status===`saved`?` c-notice--success`:``}" role="status" aria-live="polite">${ic(sv.status===`saved`?`check`:`info`)}<div>${sv.message}${sv.status===`error`?` <button class="link" data-act="retry-analysis">Réessayer</button>`:``}</div></div>`:``;
   return shell(`
   <div class="pagehead"><p class="kicker">Analyse du ${dateLabel(s)}${H?` · analyse précédente`:``}</p><h1>${H?`Votre analyse du ${dateLabel(s)}`:`Votre analyse`}</h1><p>Une analyse cosmétique de l'état apparent de votre peau.</p></div>
-  ${svBox?`<div style="margin-bottom:18px">${svBox}</div>`:``}
+  ${svBox?`<div style="margin-bottom:18px">${svBox}</div>`:``}${ask}
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
@@ -1092,21 +1130,11 @@ V.profile=()=>{
    <p class="muted">${DEMO_MODE?`DERMAI, mode démonstration. Données fictives.`:`DERMAI : analyse cosmétique visuelle, pas un diagnostic médical.`}</p>
   </div></div>`);
 };
-V.privacy=()=>shell(`<div class="pagehead"><h1>Confidentialité</h1><p style="color:var(--ink);font-size:18px">${DEMO_MODE?`Vos photos sont utilisées pour analyser votre peau.`:`Votre photo sert uniquement à analyser votre peau. DERMAI ne la conserve pas.`}</p></div>
-  <div class="grid2"><div class="col">
-   <section><ul class="l-list" style="margin-top:0">${DEMO_MODE?`<li>${ic(`lock`)}<span>Vous pourrez gérer vos photos et vos données depuis cet écran.</span></li><li>${ic(`eye`)}<span>Les conditions précises seront détaillées ici avant le lancement.</span></li>`
-     :`<li>${ic(`lock`)}<span>Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.</span></li><li>${ic(`eye`)}<span>Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.</span></li><li>${ic(`layers`)}<span>Si vous êtes connecté, vos analyses peuvent être enregistrées dans votre compte pour afficher votre historique et votre progression. Seuls vos scores, vos priorités du moment et vos objectifs de ce jour sont conservés.</span></li><li>${ic(`lock`)}<span>Si vous choisissez un pays pour vos achats, ce choix reste dans ce navigateur : il n'est pas envoyé à DERMAI, et DERMAI n'utilise ni votre position ni votre adresse IP.</span></li><li>${ic(`camera`)}<span>Pour obtenir l'analyse, votre photo est transmise à notre service d'analyse. DERMAI n'en garde aucune copie.</span></li><li>${ic(`image`)}<span>Vos photos d'analyse ne sont pas enregistrées dans votre profil, et vos photos originales ne sont pas non plus enregistrées avec vos analyses.</span></li><li>${ic(`shield`)}<span>Ces données sont associées à votre compte : vous seul pouvez accéder à vos analyses.</span></li><li>${ic(`lock`)}<span>Votre adresse e-mail et votre mot de passe sont gérés par notre service d'authentification. DERMAI ne voit ni ne conserve votre mot de passe.</span></li><li>${ic(`trash`)}<span>Vous pouvez supprimer votre historique d'analyses, ou votre compte entier (profil et analyses compris), depuis « Gérer mes données ».</span></li><li>${ic(`eye`)}<span>Une analyse nécessite un compte. Sans compte, rien n'est conservé d'une session à l'autre.</span></li>`}</ul></section>
-   ${DEMO_MODE?`<section>${sw(`keep`,`Conserver mes photos`,`Pour comparer avant et maintenant`)}</section>`:``}
-  </div><div class="col"><section><div class="hd"><h2 class="h3">Gérer mes données</h2></div>
-   ${DEMO_MODE?`<button class="rowlink" data-act="confirm" data-v="photos" style="border-top:1px solid var(--line)">${ic(`camera`)}<div class="grow"><b>Supprimer mes photos</b><span class="s">Les analyses restent disponibles</span></div>${ic(`chev`)}</button>`:``}
-   <button class="rowlink" data-act="confirm" data-v="history" ${DEMO_MODE?``:`style="border-top:1px solid var(--line)"`}>${ic(`layers`)}<div class="grow"><b>Supprimer mon historique</b><span class="s">Analyses et progression</span></div>${ic(`chev`)}</button>
-   <button class="rowlink" data-act="toast" data-v="L'export de vos données n'est pas encore disponible.">${ic(`download`)}<div class="grow"><b>Exporter mes données</b><span class="s">${DEMO_MODE?`Un fichier avec toutes vos informations`:`Pas encore disponible`}</span></div>${ic(`chev`)}</button>
-   ${DEMO_MODE?`<button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div>${ic(`chev`)}</button>`:signedIn()?`<button class="rowlink" data-act="confirm" data-v="delete-account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Profil et analyses compris, action définitive</span></div>${ic(`chev`)}</button>`:``}</section></div></div>`,{back:true,title:`Confidentialité`});
-
+V.privacy=()=>shell(DermaiPhotos.privacy({demo:DEMO_MODE,signedIn:signedIn(),photos:state.photos,busy:state.photoBusy,ic,sw}),{back:true,title:`Confidentialité`});
 const CONFIRMS={
-  photos:[`Supprimer vos photos ?`,`Vos photos seront effacées. Vos résultats d'analyse resteront disponibles.`,`Supprimer les photos`,`Photos supprimées (simulation)`],
-  history:[`Supprimer votre historique ?`,`Vos analyses et votre progression seront effacées.`,`Supprimer l'historique`,`Historique supprimé (simulation)`],
-  'delete-account':[`Supprimer votre compte ?`,`Votre compte, votre profil et toutes vos analyses seront supprimés définitivement. Cette action est irréversible.`,`Supprimer mon compte`,`Compte supprimé`],
+  photos:[`Supprimer vos photos ?`,`Vos photos d'analyse seront effacées de votre compte. Vos résultats d'analyse resteront disponibles.`,`Supprimer les photos`,`Photos supprimées (simulation)`],
+  history:[`Supprimer votre historique ?`,`Vos analyses, leurs photos et votre progression seront effacées.`,`Supprimer l'historique`,`Historique supprimé (simulation)`],
+  'delete-account':[`Supprimer votre compte ?`,`Votre compte, votre profil, toutes vos analyses et vos photos seront supprimés définitivement. Cette action est irréversible.`,`Supprimer mon compte`,`Compte supprimé`],
   account:[`Supprimer votre compte ?`,`Votre compte et toutes vos données seront supprimés. Cette action est définitive.`,`Supprimer mon compte`,`Compte supprimé (simulation)`]
 };
 
@@ -1289,8 +1317,8 @@ async function runRealAnalysis(){
     const r=await provider.analyzeSkin(state.realBlob,{onStatus:s=>{if(tok===anTok)setScanStatus(s)}});
     if(tok!==anTok)return;
     setScanStatus(`success`);
-    state.realBlob=null;   // la photo envoyée n'est plus conservée : seul l'aperçu reste en mémoire
     commitRealScan(r);
+    state.realBlob=null;   // la photo reste seulement sur l'analyse en mémoire, le temps d'être gardée si l'utilisatrice l'a choisi
     state.run++;
     timers.push(setTimeout(()=>go(`result`,null,{replace:true}),500));
   }catch(err){
@@ -1347,11 +1375,13 @@ function act(a,v,el){
     case `setview`:state.view=Number(v);break;
     case `viewscan`:state.view=Number(v);go(`result`);break;
     case `pref`:state.prefs[v]=!state.prefs[v];render(true);break;
+    case `photo-choice`:photoChoice(v===`yes`);break;
+    case `photo-keep`:photoChoice(state.photos!==true);break;
     case `pick-photo`:document.getElementById(`photoInput`).click();break;
     case `clear-photo`:state.photo=``;try{localStorage.removeItem(`dermai_demo_photo`)}catch(e){}render(true);toast(`Photo retirée`);break;
     case `toast`:closeSheet();toast(v);break;
     case `confirm`:{const c=CONFIRMS[v];sheet(`<h2 style="font-size:2rem;margin-bottom:10px">${c[0]}</h2><p style="margin-bottom:24px">${c[1]}</p><div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-act="do-confirm" data-v="${v}">${c[2]}</button><button class="c-btn c-btn--secondary c-btn--block" data-act="close">Annuler</button></div>`);break}
-    case `do-confirm`:closeSheet();if(v===`history`&&!DEMO_MODE){deleteHistory();break}if(v===`delete-account`){deleteMyAccount();break}toast(CONFIRMS[v][3]);if(v===`account`)timers.push(setTimeout(()=>go(`landing`,null,{reset:true}),1200));break;
+    case `do-confirm`:closeSheet();if(v===`history`&&!DEMO_MODE){deleteHistory();break}if(v===`photos`&&!DEMO_MODE){deletePhotos();break}if(v===`delete-account`){deleteMyAccount();break}toast(CONFIRMS[v][3]);if(v===`account`)timers.push(setTimeout(()=>go(`landing`,null,{reset:true}),1200));break;
   }
 }
 document.addEventListener(`click`,e=>{
