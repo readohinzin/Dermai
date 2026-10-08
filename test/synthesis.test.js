@@ -28,7 +28,7 @@ test('S0 scénario de référence (dernier résultat réel, sans rawScore) : qua
   assert.deepEqual(ids(y.tiers.lowest), ['radiance', 'oiliness', 'hydration']);
   assert.deepEqual(ids(y.tiers.strength), ['redness', 'pores', 'wrinkles']);
   assert.deepEqual(ids(y.tiers.other), ['texture', 'acne', 'pigmentation', 'firmness']);
-  assert.deepEqual(y.titles, { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DERMAI retient', strategy: 'Votre stratégie' });
+  assert.deepEqual(y.titles, { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DERMAI retient', accompaniment: 'Accompagnement léger', strategy: 'Votre stratégie' });
   assert.equal(y.sections.shows, 'Votre analyse donne 10 indicateurs principaux, de 65 à 99 sur 100. Vos résultats les plus élevés : rougeurs (99), pores (81) et rides (79). Profil de peau indiqué par l\'analyse : peau grasse.');
   assert.equal(y.sections.lowest, 'Radiance (65), niveau d\'huile (67) et hydratation (67). Vos résultats les moins élevés correspondent à une comparaison entre les indicateurs analysés. Un résultat plus bas ne constitue pas automatiquement une priorité de soin.');
   assert.match(y.sections.retained, /^DERMAI ne retient ni priorité de soin ni axe à soutenir : aucun indicateur sur lequel DERMAI peut agir n'est sous ses repères\. Votre routine reste une routine d'entretien\./);
@@ -91,12 +91,13 @@ test('S4 / S5 / S7 objectifs : même analyse, objectifs différents → stratég
   // objectif « éclat / teint » avec une radiance favorable : aucun problème créé
   const fav = run(MIX, { fill: 86 }, { goals: ['tone'] }), y = fav.synthesis;
   assert.deepEqual(fav.priorities.items, []);
-  assert.equal(y.goals.items[0].status, 'no_signal');
-  assert.match(y.goals.items[0].text, /^Teint et taches : radiance \(65\) et pigmentation \(72\) ne font pas ressortir de besoin selon les repères DERMAI : aucun soin ciblé n'est ajouté à ce titre\.$/);
+  /* Étape 27 : l'objectif ouvre l'accompagnement de la pigmentation (soin doux), pas un besoin ; la radiance reste une information. */
+  assert.equal(y.goals.items[0].status, 'accompanied');
+  assert.match(y.goals.items[0].text, /^Teint et taches : pigmentation \(72\) n'est pas une priorité, mais peut être accompagné par un soin doux\.$/);
   assert.doesNotMatch(texts(y), /radiance \(65\)[^.]*(besoin à soutenir|sous les repères DERMAI :)/);
   // objectif sur un résultat élevé : on le dit, sans inventer de besoin
   const strong = run(Object.assign({ redness: 97 }, MIX), { fill: 86 }, { goals: ['redness_comfort'] }).synthesis;
-  assert.equal(strong.goals.items[0].status, 'no_signal');
+  assert.equal(strong.goals.items[0].status, 'accompanied', 'objectif choisi : accompagnement doux possible, jamais une priorité');
   assert.deepEqual(strong.tiers.priority, []);
 });
 

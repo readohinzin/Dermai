@@ -58,7 +58,7 @@ test('C0 COMPLET empreinte des décisions AVEC l\'accompagnement (étape 27) : c
   /* Ancienne : 4c56df43… (sans accompagnement). Nouvelle : les priorités LOW/MID restent identiques (C0-PRIORITIES, test/c0-priorities.test.js) ;
      ne changent que les profils où un indicateur « good » devient un axe d'accompagnement (soin doux ajouté : actifs, routine, produits, statut des
      objectifs). Le test différentiel ACC-DIFF (test/accompaniment.test.js) le vérifie profil par profil. */
-  assert.equal(decisionFingerprint(), '533ec0711c95a0c692878e337a05a97a9fe6d93e083c325cfa21c59c3d6c6a86');
+  assert.equal(decisionFingerprint(), 'e1b1010f08851199c27914bdd64dc22d815e24fbb2042a8132c934d1810825d2');
 });
 
 test('C1 (17, 19, 20, 21) cas réel de référence : acné favorable sans priorité, pores et hydratation retenus, niacinamide pour les pores', () => {
@@ -70,9 +70,11 @@ test('C1 (17, 19, 20, 21) cas réel de référence : acné favorable sans priori
   assert.deepEqual(r.activePlan.treatments[0].indicators, ['pores']);
   assert.deepEqual(r.activePlan.supports.map(s => s.activeId), ['hyaluronic', 'ceramides']);
   const st = r.synthesis.indicators;
-  assert.equal(st.acne.state, 'favorable'); assert.equal(st.redness.state, 'favorable'); assert.equal(st.pigmentation.state, 'favorable');
+  /* Étape 27 : plus de « favorable » dans les statuts : un indicateur « good » non accompagné est « À entretenir ». */
+  assert.equal(st.acne.state, 'maintain'); assert.equal(st.redness.state, 'maintain'); assert.equal(st.pigmentation.state, 'maintain');
   assert.equal(st.pores.state, 'support'); assert.equal(st.hydration.state, 'support'); assert.equal(st.texture.state, 'descriptive');
-  assert.equal(st.acne.text, 'Le niveau global de cet indicateur reste favorable selon l\'interprétation actuelle de DERMAI. Il n\'est donc pas retenu comme priorité de soin.');
+  assert.equal(st.acne.text, 'Cet indicateur n\'est pas une priorité dans cette analyse. Votre routine de base suffit à l\'entretenir.');
+  assert.equal(st.acne.level, 'À entretenir');
   assert.match(r.synthesis.sections.retained, /^Aucun indicateur ne ressort comme priorité forte\. En revanche, DERMAI retient deux axes à soutenir : hydratation \(70\) et pores \(70\)\./);
   assert.match(r.synthesis.strategy.text, /^Stratégie : soutenir hydratation \(70\) et pores \(70\) avec 1 soin ciblé/);
   assert.equal(r.productMatches.length, 1); assert.equal(r.productMatches[0].stepId, 'morning:treatment:niacinamide');
@@ -121,22 +123,22 @@ test('C4 (3, 16) un seul ui_score par indicateur, partout : résultat, synthèse
   assert.doesNotMatch(code('js/engine/synthesis.js') + code('js/insight-view.js'), /Math\.round|toFixed/);
 });
 
-test('C5 badges des indicateurs : « Favorable » / « Intermédiaire » / « Plus bas » (mêmes seuils d\'affichage) ; le score global garde les siens', () => {
+test('C5 badges des indicateurs : « Niveau élevé » / « Intermédiaire » / « Plus bas » (mêmes seuils d\'affichage ; « Favorable » contredisait un accompagnement) ; le score global garde les siens', () => {
   const v = M.toResultView(norm({ acne: 79, pores: 45, hydration: 20 }));
   const by = k => v.priorities.concat(v.others).find(m => m.key === k);
-  assert.deepEqual([by('acne').bandLabel, by('pores').bandLabel, by('hydration').bandLabel], ['Favorable', 'Intermédiaire', 'Plus bas']);
+  assert.deepEqual([by('acne').bandLabel, by('pores').bandLabel, by('hydration').bandLabel], ['Niveau élevé', 'Intermédiaire', 'Plus bas']);
   assert.deepEqual([by('acne').band, by('pores').band, by('hydration').band], ['good', 'mid', 'low'], 'mêmes bandes (61 / 31)');
   assert.equal(M.scoreBand(75).label, 'Bien', 'score global : libellés inchangés');
   const i = Engine.run(norm({ acne: 79 }), {}).interpretation.indicators.find(x => x.id === 'acne');
-  assert.equal(i.uiBandLabel, 'Favorable');
+  assert.equal(i.uiBandLabel, 'Niveau élevé');
   for (const l of Object.values(M.INDICATOR_BAND_LABELS)) assert.doesNotMatch(l, /priorit|soutenir|surveiller|bien/i, 'jamais le vocabulaire des décisions');
 });
 
 test('C6 trois niveaux distincts : favorable / axe à soutenir / priorité de soin ; les rôles restent une contrainte (18)', () => {
   const r = Engine.run(norm({ hydration: 60, pores: 70, acne: 70, texture: 30, firmness: 30 }, { rawMap: { hydration: 20, pores: 40, acne: 80, texture: 10, firmness: 10 }, rawFill: 85 }), {});
   const st = r.synthesis.indicators;
-  assert.deepEqual([st.hydration.state, st.pores.state, st.acne.state, st.texture.state, st.firmness.state], ['priority', 'support', 'favorable', 'descriptive', 'descriptive']);
-  assert.deepEqual([st.hydration.level, st.pores.level, st.acne.level], ['Priorité de soin', 'Axe à soutenir', 'Favorable']);
+  assert.deepEqual([st.hydration.state, st.pores.state, st.acne.state, st.texture.state, st.firmness.state], ['priority', 'support', 'accompaniment', 'descriptive', 'descriptive']);   // étape 27 : l'acné « good » ressort de ce lot, donc accompagnée
+  assert.deepEqual([st.hydration.level, st.pores.level, st.acne.level], ['Priorité de soin', 'Axe à soutenir', 'Accompagnement léger']);
   assert.ok(!tids(r).some(id => r.activePlan.treatments.find(t => t.activeId === id).indicators.some(x => x === 'texture' || x === 'firmness')), 'texture et fermeté : aucun actif');
   assert.match(r.synthesis.sections.retained, /^DERMAI retient une priorité de soin : hydratation \(60\), et un axe à soutenir : pores \(70\)\./);
   // texture raw < 50 (cas réel) : descriptive, jamais d'actif, même avec l'objectif texture
@@ -165,7 +167,7 @@ test('C8 (4, 5, 8, 9, 10) carte : un indicateur à la fois, ses seuls masques r�
   assert.match(html(undefined), /data-facemap data-key="acne"/, 'première vue : le premier indicateur qui a un masque, seul');
   assert.match(html('pores'), /data-facemap data-key="pores"/);
   assert.match(html('acne'), /Des éléments associés aux imperfections ont été détectés sur votre photo\./);
-  assert.match(html('acne'), /Acné · 70\/100 · Favorable\.<\/b> Le niveau global de cet indicateur reste favorable/);
+  assert.match(html('acne'), /Acné · 70\/100 · À entretenir\.<\/b> Cet indicateur n'est pas une priorité dans cette analyse\./);
   assert.match(html('pores'), /Pores · 70\/100 · Axe à soutenir\.<\/b> DERMAI retient cet indicateur comme axe à soutenir/);
   const none = html('hydration');
   assert.match(none, /data-facemap data-key=""/, 'hydratation sans masque : aucun calque');

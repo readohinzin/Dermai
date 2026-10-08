@@ -74,7 +74,9 @@ test('R7 radiance : information seulement, sauf objectif explicite + règle expl
   // objectif « éclat » (teint) + radiance favorable : aucun problème créé, aucun lien avec la protection solaire
   const fav = run({ radiance: 65 }, { rawMap: { radiance: 66.6 } }, { goals: ['tone'] });
   assert.deepEqual(prio(fav), []);
-  assert.equal(fav.synthesis.goals.items[0].status, 'no_signal');
+  /* Étape 27 : l'objectif « teint » ouvre l'accompagnement de la pigmentation (actif doux validé), jamais celui de la radiance : aucune priorité, aucun lien avec la radiance. */
+  assert.equal(fav.synthesis.goals.items[0].status, 'accompanied');
+  assert.ok(!fav.accompanimentItems.some(a => a.indicator === 'radiance'));
   assert.doesNotMatch(allText(fav), /radiance[^."]*(faible|besoin à soutenir|protection solaire)/i);
   assert.doesNotMatch(Object.values(copy.SYNTH.step).map(v => typeof v === 'function' ? (v.length >= 3 ? v('x', [], null) : v(['x'], [])) : JSON.stringify(v)).join(' '), /radiance|teint/i);
   // rides : même règle, objectif « rides et fermeté »

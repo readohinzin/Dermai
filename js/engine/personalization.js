@@ -39,7 +39,7 @@
   }
 
   /* Avant les actifs : contexte effectif (confort demandé par l'analyse ou choisi par l'utilisateur), exclusions, objectifs et leur statut. */
-  function build(interp, prios, profile) {
+  function build(interp, prios, profile, axes) {
     const preferGentle = !!(profile.comfort && profile.comfort.preferGentle);
     const comfortReasons = [...interp.context.comfortReasons, ...(preferGentle ? ['user_preference'] : [])];
     const level = profile.level;
@@ -61,7 +61,8 @@
       const eligible = all.some(i => dep.priorities.isCandidate(i, profile.goals || []));
       const acting = all.filter(i => i.available && actsFor(i.id, id));
       /* descriptive : l'objectif ne repose que sur des indicateurs décrits sans règle d'action (ex. texture) : il n'oriente rien. */
-      const status = inPriority ? 'priority' : eligible ? 'beyond_cap' : !all.some(i => i.available) ? 'unavailable' : !acting.length ? 'descriptive' : 'no_signal';
+      const accompanied = ((axes && axes.items) || []).some(it => it.domain === def.domain);
+      const status = inPriority ? 'priority' : accompanied ? 'accompanied' : eligible ? 'beyond_cap' : !all.some(i => i.available) ? 'unavailable' : !acting.length ? 'descriptive' : 'no_signal';
       return { id, label, status, indicators: inds, candidateActives: row.indicators.flatMap(r => r.actives).filter((x, k, a) => a.indexOf(x) === k), text: P.goalStatus[status] };
     });
     return { context, exclusions, goals, routineLevel: level };
@@ -101,7 +102,8 @@
       const a = actives.byId(entry.activeId), inds = entry.indicators || [];
       const goalIds = goalIdsFor(inds);
       const parts = [];
-      if (inds.length) parts.push('Votre analyse indique un repère plus faible sur : ' + join(inds.map(i => lower(labelOf(i)))) + '.');
+      if (entry.origin === 'accompaniment') parts.push(P.accompanimentWhy(inds.map(labelOf)));
+      else if (inds.length) parts.push('Votre analyse indique un repère plus faible sur : ' + join(inds.map(i => lower(labelOf(i)))) + '.');
       else parts.push('Il accompagne votre profil pour le confort de la peau.');
       if (goalIds.length) parts.push('Il rejoint votre objectif : ' + join(goalIds.map(g => lower(copy.GOAL_LABELS[g]))) + '.');
       if (entry.choice && P.choice[entry.choice]) parts.push(P.choice[entry.choice]);
@@ -131,6 +133,8 @@
     const rationale = [];
     if (prios.items.length) rationale.push({ code: 'measured', text: P.measured(prios.items.map(i => i.label)), facts: measuredOf(prios.items.map(i => i.indicator)) });
     else rationale.push({ code: 'measured', text: P.measuredNone, facts: [] });
+    const accTreat = activePlan.treatments.filter(t => t.origin === 'accompaniment');
+    if (accTreat.length) rationale.push({ code: 'accompaniment', text: P.accompaniment([...new Set(accTreat.flatMap(t => t.indicators))].map(labelOf)), facts: measuredOf([...new Set(accTreat.flatMap(t => t.indicators))]) });
     if (pers.goals.length) rationale.push({ code: 'goals', text: P.goals(pers.goals.map(g => g.label)), facts: pers.goals.map(g => ({ id: g.id, status: g.status })) });
     rationale.push({ code: 'level', text: P.level[level] || P.level.simple, facts: { level } });
     if (pers.context.comfortMode) rationale.push({ code: 'comfort', text: pers.context.comfortReasons.includes('user_preference') && pers.context.comfortReasons.length === 1 ? P.comfortUser : P.comfortAnalysis, facts: pers.context.comfortReasons });

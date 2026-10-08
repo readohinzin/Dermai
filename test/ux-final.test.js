@@ -93,9 +93,10 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
 });
 
 /* Empreinte des sorties du moteur (décisions ET textes) sur 1500 profils. Étape 27 : `overflow` (priorities) et `origin` (étapes de routine) sont des clés
-   AJOUTÉES, pas des décisions : exclues ici, pour que l'empreinte d'avant l'accompagnement puisse être retrouvée à l'identique. */
+   AJOUTÉES, pas des décisions ; `uiBandLabel` est un LIBELLÉ d'affichage renommé (« Favorable » devient « Niveau élevé », il contredisait un accompagnement) : remappé ici à son ancienne valeur.
+   Clés ajoutées exclues, libellé remappé : l'empreinte d'avant l'accompagnement est retrouvée octet pour octet. */
 function ux7Fingerprint() {
-  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || k === 'origin' || (k === 'reason' && this.slot && this.kind)) ? undefined : v; };
+  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || k === 'origin' || (k === 'reason' && this.slot && this.kind)) ? undefined : (k === 'uiBandLabel' && v === 'Niveau élevé' ? 'Favorable' : v); };
   const out = [];
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
@@ -115,7 +116,7 @@ test('UX7 empreinte des sorties du moteur (règles 1.3.0) sur 1500 profils : tou
      retrouvée à l'identique, la nouvelle voie est additive. ACTIVÉ : la nouvelle empreinte ci-dessous. */
   const s = DECISION.MAX_ACCOMPANIMENT_AXES; DECISION.MAX_ACCOMPANIMENT_AXES = 0;
   try { assert.equal(ux7Fingerprint(), '78d3068469da8dd3a461317af6a4368191965f3409493c2937cd7f7164c4ca94', 'accompagnement désactivé : empreinte d\'avant l\'étape 27'); } finally { DECISION.MAX_ACCOMPANIMENT_AXES = s; }
-  assert.equal(ux7Fingerprint(), '1980957c6679a0a2c0f4eddf182721c4cb1859e38bfdc4656a545c809f0cc312');
+  assert.equal(ux7Fingerprint(), '7ae4dbb00a3de38c43b80167b3368fccfead44f1d2adfd7806fe13612800eebb');
 });
 
 test('UX8 conseils par préoccupation : aucune promesse de texture légère ou non comédogène (même règle que la routine)', () => {

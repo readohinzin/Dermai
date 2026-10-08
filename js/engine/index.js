@@ -53,7 +53,7 @@
     const interpretation = dep.interpret.interpret(normalized);
     const priorities = dep.priorities.compute(interpretation, prof);
     const axes = dep.accompaniment.compute(interpretation, priorities, prof);           // 1. axes d'accompagnement (après les priorités, sans les modifier)
-    const pers = dep.personalization.build(interpretation, priorities, prof);
+    const pers = dep.personalization.build(interpretation, priorities, prof, axes);
     const eff = Object.assign({}, interpretation, { context: Object.assign({}, interpretation.context, pers.context) });
     const priorityPlan = dep.actives.select(priorities.items, eff, prof);               // plan des priorités : inchangé
     const added = dep.actives.addAccompaniment(priorityPlan, axes.items, prof);          // 2. recommandation, 3. soin ajouté si les règles le permettent
@@ -117,7 +117,7 @@
     if (priorities.eyeInfo) explanations.push({ kind: 'info', text: priorities.eyeInfo, trace: { source: priorities.informational.map(i => idx(i.indicator)).join(', '), rule: 'contour des yeux : information seulement', result: 'aucun actif' } });
 
     /* Synthèse personnalisée : lecture des décisions ci-dessus (rien de nouveau n'est décidé ici). */
-    const synthesis = dep.synthesis.build({ interpretation, priorities, profile: prof, goalStatuses: personalization.goals, routinePlan, productMatches, catalog: options && options.catalog, productsApi: dep.products });
+    const synthesis = dep.synthesis.build({ interpretation, priorities, profile: prof, goalStatuses: personalization.goals, routinePlan, productMatches, catalog: options && options.catalog, productsApi: dep.products, accompaniment });
     /* priorityItems : les besoins retenus (priorités LOW/MID) ; accompanimentItems : les axes d'accompagnement ; accompaniment.recommendations : l'état de chacun. */
     return { profile: prof, interpretation, priorities, priorityItems: priorities.items, accompaniment, accompanimentItems: accompaniment.items, personalization, activePlan, routinePlan,
       productMatches, explanations, synthesis };

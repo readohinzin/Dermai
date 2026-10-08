@@ -32,7 +32,7 @@
   const under = i => i.band === 'low' || i.band === 'mid';
 
   /* 1. Hiérarchie : besoins retenus, résultats les moins élevés, résultats les plus élevés, autres. */
-  function tiers(interp, prios) {
+  function tiers(interp, prios, acc) {
     const main = interp.indicators.filter(i => i.available && DEC.isComparable(i.id));
     const values = main.map(i => i.value);
     const gap = main.length ? Math.max(...values) - Math.min(...values) : 0;
@@ -41,18 +41,19 @@
     const lowest = homogeneous ? [] : asc(main).slice(0, size);
     const low = new Set(lowest.map(i => i.id));
     const strength = homogeneous ? [] : desc(main.filter(i => !low.has(i.id))).slice(0, size);
-    const prioIds = new Set(prios.items.map(p => p.indicator));
+    const prioIds = new Set(prios.items.map(p => p.indicator)), accIds = new Set(((acc && acc.items) || []).map(a => a.indicator));
     const tierOf = {};
-    for (const i of main) tierOf[i.id] = prioIds.has(i.id) ? 'priority' : low.has(i.id) ? 'lowest' : strength.some(x => x.id === i.id) ? 'strength' : 'other';
+    for (const i of main) tierOf[i.id] = prioIds.has(i.id) ? 'priority' : accIds.has(i.id) ? 'accompaniment' : low.has(i.id) ? 'lowest' : strength.some(x => x.id === i.id) ? 'strength' : 'other';
     /* Sélection par valeur de décision ; présentation par score affiché (ce que l'utilisateur lit), à égalité valeur puis ordre fixe. */
     const shown = (list, dir) => [...list].sort((a, b) => dir * (a.score - b.score) || dir * (a.value - b.value) || a.order - b.order).map(pick);
     const out = {
       priority: prios.items.map(p => pick(main.find(i => i.id === p.indicator))),
+      accompaniment: ((acc && acc.items) || []).map(a => main.find(i => i.id === a.indicator)).filter(Boolean).map(pick),
       lowest: shown(lowest, 1),
       strength: shown(strength, -1),
       other: asc(main.filter(i => tierOf[i.id] === 'other')).map(pick)
     };
-    return { tiers: out, tierOf, homogeneous, main, prioIds };
+    return { tiers: out, tierOf, homogeneous, main, prioIds, accIds };
   }
 
   /* 2. Les quatre parties */
@@ -80,7 +81,7 @@
     else parts.push(S.noNeed);
     const goals = profile.goals || [];
     const rest = h.main.filter(i => !h.prioIds.has(i.id));
-    const cand = rest.filter(i => dep.priorities.isCandidate(i, goals));
+    const cand = rest.filter(i => dep.priorities.isCandidate(i, goals) && !h.accIds.has(i.id));
     const noLever = rest.filter(i => under(i) && dep.priorities.roleAllows(i, goals) && !dep.actives.hasLever(i.id));
     if (cand.length) parts.push(S.beyondCap(asc(cand).map(pick)));
     if (noLever.length) parts.push(S.noLever(asc(noLever).map(pick)));
@@ -95,21 +96,44 @@
     return parts.join(' ');
   }
 
+  /* Accompagnement léger : trois niveaux dits séparément (axe identifié, recommandation, soin ajouté ou non). Lecture seule de accompaniment.js / actives.js. */
+  function accompanimentText(h, acc) {
+    const recs = (acc && acc.recommendations) || [];
+    if (!recs.length) return '';
+    const pickOf = list => list.map(r => pick(h.main.find(i => i.id === r.indicator)));
+    const parts = [];
+    for (const origin of ['overflow', 'objective', 'distinct']) {
+      const g = recs.filter(r => r.origin === origin);
+      if (g.length) parts.push(S.accompaniment[origin](pickOf(g)));
+    }
+    for (const st of ['added', 'covered', 'identified']) {
+      const g = recs.filter(r => r.status === st);
+      for (const id of [...new Set(g.map(r => r.activeId))]) {
+        const sel = g.filter(r => r.activeId === id), label = (dep.actives.byId(id) || {}).label || id;
+        parts.push(S.accompaniment[st](st === 'covered' ? (dep.actives.byId(sel[0].coveredBy) || {}).label || label : label, pickOf(sel)));
+      }
+    }
+    return parts.join(' ');
+  }
+
   /* Statut DERMAI de chaque indicateur affiché (carte du visage, page d'un indicateur). Lecture des décisions déjà prises : le masque
      de localisation n'entre jamais ici. */
-  function statuses(interp, prios, profile) {
-    const goals = profile.goals || [], kept = new Map(prios.items.map(p => [p.indicator, p]));
+  function statuses(interp, prios, profile, acc) {
+    const goals = profile.goals || [], kept = new Map(prios.items.map(p => [p.indicator, p])), accOf = new Map(((acc && acc.recommendations) || []).map(r => [r.indicator, r]));
     const out = {};
     for (const i of interp.indicators.filter(x => x.available)) {
       let state;
       if (kept.has(i.id)) state = i.band === 'low' ? 'priority' : 'support';
-      else if (!under(i)) state = 'favorable';
-      else if (i.role === 'descriptive') state = 'descriptive';
+      else if (accOf.has(i.id)) state = 'accompaniment';
       else if (i.role === 'informative' || (i.role === 'goal_gated' && !goals.includes(i.roleGoal))) state = 'informative';
+      else if (i.role === 'descriptive') state = 'descriptive';
+      else if (!under(i)) state = 'maintain';
       else if (dep.priorities.isCandidate(i, goals)) state = 'beyond';
       else state = 'noLever';
-      const goal = i.role === 'goal_gated' ? copy.GOAL_LABELS[i.roleGoal] : null;
-      out[i.id] = { id: i.id, label: i.label, score: i.score, state, level: S.LEVELS[state], text: state === 'informative' ? S.status.informative(goal) : S.status[state] };
+      const goal = i.role === 'goal_gated' ? copy.GOAL_LABELS[i.roleGoal] : null, r = accOf.get(i.id);
+      out[i.id] = { id: i.id, label: i.label, score: i.score, state, level: S.LEVELS[state],
+        text: state === 'informative' ? S.status.informative(goal) : state === 'accompaniment' ? S.status.accompaniment(r.origin, r.status, r.activeLabel) : S.status[state] };
+      if (r) Object.assign(out[i.id], { accompaniment: { origin: r.origin, status: r.status, activeId: r.activeId, productStatus: r.productStatus, productId: r.productId } });
     }
     return out;
   }
@@ -127,6 +151,7 @@
       const acts = i => i.role === 'actionable' || (i.role === 'goal_gated' && i.roleGoal === id);
       let sel;
       if (status === 'priority') sel = dom.filter(i => h.prioIds.has(i.id));
+      else if (status === 'accompanied') sel = dom.filter(i => h.accIds.has(i.id));
       else if (status === 'beyond_cap') sel = dom.filter(i => !h.prioIds.has(i.id) && dep.priorities.isCandidate(i, profile.goals));
       else if (status === 'descriptive') sel = dom;
       else sel = dom.filter(acts);
@@ -139,16 +164,23 @@
   }
 
   /* 4. Stratégie : conséquence des besoins retenus, des objectifs, du profil et du niveau */
-  function strategy(h, g, interp, profile, routine) {
-    const treatments = [...routine.slots.morning, ...routine.slots.evening].filter(s => s.kind === 'treatment');
+  function strategy(h, g, interp, profile, routine, acc) {
+    const all = [...routine.slots.morning, ...routine.slots.evening].filter(s => s.kind === 'treatment');
+    const treatments = all.filter(s => s.origin !== 'accompaniment');                         // les soins des priorités seulement : l'accompagnement est dit à part
     const skinLabel = interp.skinType ? interp.skinType.label : null;
     let mode, text, focus = [];
     if (h.tiers.priority.length) {
       mode = 'action';
       focus = [...h.tiers.priority.filter(i => g.matched.includes(i.id)), ...h.tiers.priority.filter(i => !g.matched.includes(i.id))];
-      text = treatments.length ? S.strategy.action(focus, treatments.length, copy.lower(copy.LEVEL_SHORT[profile.level] || '')) : S.strategy.actionNoTreatment(focus);
-    } else { mode = 'maintenance'; text = S.strategy.maintenance(skinLabel); }
-    return { mode, focus: focus.map(i => i.id), text, skinContext: skinLabel ? S.skinContext(skinLabel) : null };
+      text = treatments.length ? S.strategy.action(focus, treatments.length, copy.lower(copy.LEVEL_SHORT[profile.level] || ''))
+        : all.length ? S.strategy.actionNoTreatmentHere(focus) : S.strategy.actionNoTreatment(focus);
+    } else { mode = 'maintenance'; text = ((acc && acc.recommendations) || []).some(r => r.status !== 'covered') ? S.strategy.maintenanceBase(skinLabel) : S.strategy.maintenance(skinLabel); }
+    /* Accompagnement : soin ajouté, ou seulement possible. Un accompagnement gratuit (déjà couvert) n'ajoute rien à dire. */
+    const recs = (acc && acc.recommendations) || [], pk = rs => rs.map(r => h.main.find(i => i.id === r.indicator)).map(pick);
+    const addedRecs = recs.filter(r => r.status === 'added'), possible = recs.filter(r => r.status === 'identified');
+    if (addedRecs.length) text += S.strategy.accompanied((dep.actives.byId(addedRecs[0].activeId) || {}).label, pk(addedRecs));
+    else if (possible.length) text += S.strategy.possible(pk(possible));
+    return { mode, focus: focus.map(i => i.id), accompaniment: recs.map(r => r.indicator), text, skinContext: skinLabel ? S.skinContext(skinLabel) : null };
   }
 
   /* 5. Pourquoi chaque étape de la routine existe. Les étapes de base sont dites telles quelles : jamais « elle entretient votre score ». */
@@ -175,7 +207,7 @@
       } else if (st.kind === 'treatment') {
         const inds = asc((st.indicators || []).map(ind).filter(Boolean));
         const g = (profile.goals || []).find(id => { const d = (D.GOALS.find(x => x.id === id) || {}).domain; return d && inds.some(i => i.domain === d); });
-        t = S.step.treatment(st.activeLabel, inds.map(pick), g ? copy.GOAL_LABELS[g] : null);
+        t = (st.origin === 'accompaniment' ? S.step.accompaniment : S.step.treatment)(st.activeLabel, inds.map(pick), g ? copy.GOAL_LABELS[g] : null);
       }
       out[st.id] = t;
     }
@@ -198,11 +230,11 @@
     return out;
   }
 
-  function build({ interpretation, priorities, profile, goalStatuses, routinePlan, productMatches, catalog, productsApi }) {
-    const h = tiers(interpretation, priorities);
+  function build({ interpretation, priorities, profile, goalStatuses, routinePlan, productMatches, catalog, productsApi, accompaniment }) {
+    const h = tiers(interpretation, priorities, accompaniment);
     const g = goals(h, profile, priorities.mode, goalStatuses);
-    const strat = strategy(h, g, interpretation, profile, routinePlan);
-    const sections = { shows: shows(h, interpretation), lowest: lowestText(h), retained: retained(h, priorities, interpretation, profile), strategy: strat.text };
+    const strat = strategy(h, g, interpretation, profile, routinePlan, accompaniment);
+    const sections = { shows: shows(h, interpretation), lowest: lowestText(h), retained: retained(h, priorities, interpretation, profile), accompaniment: accompanimentText(h, accompaniment), strategy: strat.text };
     return {
       basis: interpretation.basis,
       titles: S.TITLES, sections, scoreNote: S.scoreNote,
@@ -211,7 +243,8 @@
       goals: g,
       strategy: strat,
       steps: steps(h, interpretation, routinePlan, dep.actives, profile),
-      indicators: statuses(interpretation, priorities, profile),
+      indicators: statuses(interpretation, priorities, profile, accompaniment),
+      accompaniment: { items: ((accompaniment && accompaniment.recommendations) || []).map(r => Object.assign({}, r)), text: sections.accompaniment },
       products: productsApi ? products(h, routinePlan, productMatches, catalog, productsApi) : {}
     };
   }

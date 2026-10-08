@@ -402,3 +402,88 @@ test('ACC30 le pays ne change ni la décision ni l\'état du produit : il ne ser
   assert.ok(views.every(v => v.country), 'le pays n\'agit que sur les offres');
   assert.deepEqual(views.map(v => v.tier).filter(t => !['local', 'regional', 'international', 'none'].includes(t)), []);
 });
+
+/* ---------- Synthèse, objectifs et vocabulaire ---------- */
+const accTexts = r => [r.synthesis.sections.accompaniment, r.synthesis.strategy.text, ...Object.values(r.synthesis.indicators).filter(i => i.state === 'accompaniment' || i.state === 'maintain').map(i => i.level + ' ' + i.text),
+  ...Object.entries(r.synthesis.steps).filter(([id]) => /accompaniment|niacinamide/.test(id) && steps(r).find(s => s.id === id && s.origin === 'accompaniment')).map(([, t]) => t),
+  ...r.personalization.selectedActives.filter(a => added(r).some(t => t.activeId === a.activeId)).map(a => a.why), ...r.personalization.goals.map(g => g.text),
+  ...r.accompaniment.recommendations.map(x => x.reason), ...r.explanations.filter(e => e.kind === 'accompaniment').map(e => e.text)].filter(Boolean).join(' ');
+const FORBIDDEN = /diagnostic|gravité|maladie|traiter|traitement|médical|guéri|guérison|disparition|disparaît|garanti|favorable|aucune action|résultat assuré|élimine/i;
+
+/* Les textes montrent le score d'affichage (ici raw + 8 = 84), jamais le raw qui décide. */
+test('ACC31 axe identifié sans soin : dit comme tel, la routine reste simple, jamais « favorable, donc aucun soin »', () => {
+  const r = go({ acne: 76 }), y = r.synthesis;
+  assert.deepEqual([y.indicators.acne.state, y.indicators.acne.level], ['accompaniment', 'Accompagnement léger']);
+  assert.match(y.indicators.acne.text, /^Cet indicateur n'est pas une priorité dans cette analyse\. Il ressort néanmoins suffisamment par rapport aux autres résultats pour justifier un accompagnement cosmétique léger\. Un accompagnement cosmétique léger peut être proposé \(niacinamide\), sans être ajouté à votre routine pour l'instant\.$/);
+  assert.match(y.sections.accompaniment, /^Acné \(84\) : n'est pas une priorité dans cette analyse, mais ressort suffisamment par rapport à vos autres résultats pour justifier un accompagnement cosmétique léger\. Un accompagnement cosmétique léger peut être proposé pour acné \(84\) \(niacinamide\), mais DERMAI ne l'ajoute pas à votre routine pour l'instant\.$/);
+  assert.match(y.strategy.text, /^Stratégie : entretien de base \(nettoyage doux, hydratation, protection solaire\), adapté à votre profil \(peau normale\)\. Un accompagnement cosmétique léger est possible pour acné \(84\), sans soin ajouté pour l'instant\.$/);
+  assert.doesNotMatch(y.strategy.text, /Aucun soin ciblé n'est ajouté/, 'pas de contradiction avec l\'accompagnement possible');
+  assert.deepEqual(y.tiers.accompaniment.map(i => i.id), ['acne']);
+  assert.equal(y.tierOf.acne, 'accompaniment');
+  assert.doesNotMatch(accTexts(r), FORBIDDEN);
+  // aucun accompagnement : le texte d'entretien d'avant reste identique
+  const none = go({ acne: 76, pores: 77, hydration: 76, texture: 75, oiliness: 78, redness: 78, pigmentation: 79, wrinkles: 80, firmness: 77, radiance: 76 });
+  assert.equal(none.synthesis.sections.accompaniment, '');
+  assert.match(none.synthesis.strategy.text, /^Stratégie : entretien de base \(nettoyage doux, hydratation, protection solaire\), adapté à votre profil \(peau normale\)\. Aucun soin ciblé n'est ajouté\.$/);
+  assert.equal(none.synthesis.indicators.acne.level, 'À entretenir');
+});
+
+test('ACC32 soin ajouté : dit dans la stratégie, l\'étape, l\'explication de l\'actif ; les soins prioritaires ne sont pas confondus avec lui', () => {
+  const r = go({ hydration: 30, acne: 70, pores: 70 }), y = r.synthesis;
+  assert.match(y.strategy.text, /^Stratégie : soutenir hydratation \(38\) avec la routine de base \(nettoyage doux, hydratation, protection solaire\), sans soin ciblé pour cet axe\. Un soin doux d'accompagnement s'y ajoute : niacinamide pour acné \(78\) et pores \(78\)\.$/);
+  const st = steps(r).find(s => s.origin === 'accompaniment');
+  assert.match(y.steps[st.id], /^Acné \(78\) et pores \(78\) : accompagnement léger, pas des priorités de cette analyse\. Actif doux recherché : niacinamide\.$/);
+  assert.match(st.reason, /^Soin d'accompagnement léger : niacinamide peut accompagner acné et pores/);
+  assert.match(r.personalization.selectedActives.find(a => a.activeId === 'niacinamide').why, /^Il accompagne acné et pores : ces indicateurs ne sont pas des priorités de cette analyse, c'est un soin doux d'accompagnement\./);
+  assert.ok(r.personalization.rationale.some(x => x.code === 'accompaniment'));
+  assert.ok(r.explanations.some(e => e.kind === 'accompaniment' && e.activeId === 'niacinamide'));
+  assert.doesNotMatch(accTexts(r), FORBIDDEN);
+  // un soin prioritaire + un accompagnement gratuit : le nombre de soins ciblés de la stratégie ne compte que les priorités
+  const free = go({ pores: 40, acne: 70 });
+  assert.match(free.synthesis.strategy.text, /avec 1 soin ciblé/);
+  assert.doesNotMatch(free.synthesis.strategy.text, /Un soin doux d'accompagnement s'y ajoute/, 'accompagnement gratuit : aucune étape annoncée');
+  assert.match(free.synthesis.sections.accompaniment, /déjà accompagné par niacinamide, présent dans votre routine\. Aucune étape n'est ajoutée\./);
+});
+
+test('ACC33 objectifs : statut « accompanied » quand un indicateur du domaine est accompagné, jamais un besoin ; sinon l\'ancien statut', () => {
+  const r = go({ acne: 76 }, { goals: ['blemishes'] }), g = r.personalization.goals[0];
+  assert.equal(g.status, 'accompanied');
+  assert.equal(g.text, 'Un indicateur lié à cet objectif peut être accompagné par un soin doux, sans être une priorité de cette analyse.');
+  assert.match(r.synthesis.goals.items[0].text, /^Imperfections : acné \(84\) n'est pas une priorité, mais peut être accompagné par un soin doux\.$/);
+  assert.match(r.synthesis.indicators.acne.text, /^Cet axe correspond à votre objectif et peut être accompagné par un soin doux\. Un soin doux \(niacinamide\) est ajouté à votre routine\.$/);
+  assert.equal(go({}, { goals: ['hydration'] }).personalization.goals[0].status, 'no_signal', 'hydratation : aucun actif doux, ancien statut');
+  assert.equal(go({ acne: 40 }, { goals: ['blemishes'] }).personalization.goals[0].status, 'priority', 'une priorité reste « priority »');
+  assert.doesNotMatch(accTexts(r), FORBIDDEN);
+});
+
+test('ACC34 débordement : un axe prioritaire écarté par le plafond de 3 est dit accompagné, plus « en attente », quand un soin doux existe', () => {
+  const r = go({ acne: 40, pores: 41, redness: 42, pigmentation: 43 }, { level: 'full' }), y = r.synthesis;
+  assert.equal(y.indicators.pigmentation.state, 'accompaniment');
+  assert.doesNotMatch(y.sections.retained, /Pigmentation \(\d+\) : aussi sous les repères DERMAI, mais la routine se limite à trois axes/);
+  assert.match(y.sections.accompaniment, /Pigmentation \(\d+\) : est sous les repères DERMAI, mais la routine se limite à trois axes prioritaires ; un soin doux peut l'accompagner\./);
+  assert.doesNotMatch(accTexts(r), FORBIDDEN);
+});
+
+test('ACC35 vocabulaire : aucun mot médical, aucune promesse, aucun « favorable » dans les textes d\'accompagnement, sur 1500 profils ; plus de « Favorable » comme statut', () => {
+  const S = require('../js/engine/copy.fr.js').SYNTH;
+  assert.deepEqual(Object.values(S.LEVELS), ['Priorité de soin', 'Axe à soutenir', 'Accompagnement léger', 'À entretenir', 'Axe en attente', 'Indicateur observé', 'Information', 'Sans soin validé']);
+  assert.equal(M.INDICATOR_BAND_LABELS.good, 'Niveau élevé');
+  let seen = 0;
+  for (let s = 1; s <= 1500; s++) {
+    const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
+    if (!r.accompaniment.recommendations.length) continue;
+    seen++;
+    assert.doesNotMatch(accTexts(r), FORBIDDEN, 'profil ' + s);
+    for (const i of Object.values(r.synthesis.indicators)) if (i.state === 'accompaniment') assert.doesNotMatch(i.level + i.text, /favorable/i);
+  }
+  assert.ok(seen > 100);
+});
+
+test('ACC36 analyse sans raw (base ui) : accompagnement possible avec la mention de compatibilité, sans mélanger les bases', () => {
+  const ui = Object.fromEntries(M.METRIC_KEYS.map(k => [k, 88]));
+  const r = Engine.run(norm(Object.assign({}, ui, { acne: 70, pores: 70 }), {}), { goals: [], level: 'simple', cats: [] }, { catalog: C.PRODUCTS });
+  assert.equal(r.interpretation.basis, 'ui');
+  assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.basis]), [['acne', 'ui'], ['pores', 'ui']]);
+  assert.match(r.synthesis.sections.retained, /Analyse historique : données brutes non disponibles/);
+  assert.deepEqual(added(r).map(t => t.activeId), ['niacinamide']);
+});
