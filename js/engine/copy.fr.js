@@ -273,7 +273,8 @@
     map: {
       note: 'Une zone peut être détectée sur votre photo sans devenir une priorité de soin. La carte montre où l\'analyse a repéré des éléments ; les axes retenus par DERMAI dépendent du score de l\'indicateur, jamais du nombre ou de la taille des zones.',
       detected: (id, label) => id === 'acne' ? 'Des éléments associés aux imperfections ont été détectés sur votre photo.' : 'Des zones associées à l\'indicateur « ' + lower(label) + ' » ont été détectées sur votre photo.',
-      unavailable: 'Localisation visuelle indisponible pour cet indicateur.'
+      unavailable: 'Localisation visuelle indisponible pour cet indicateur.',
+      empty: 'Aucune zone localisée pour cet indicateur sur cette photo.'
     },
     /* Statut DERMAI de chaque indicateur (lu par la carte du visage et la page d'un indicateur). */
     LEVELS: { priority: 'Priorité de soin', support: 'Axe à soutenir', beyond: 'Axe en attente', favorable: 'Favorable', descriptive: 'Décrit seulement', informative: 'À titre d\'information', noLever: 'Sans soin validé' },

@@ -1188,8 +1188,8 @@ function after(keep,y){
   motionCtl.scan($app,{route:state.route,key:state.route+`:`+(state.param==null?``:state.param),keep:!!keep,y});   // motion design : apparitions au défilement, compteurs, courbes (js/motion.js)
   const fm=document.querySelector(`[data-facemap]`);
   if(fm&&window.DermaiFaceMap){const sc=SCANS[state.view],k=fm.dataset.key,loc=(sc&&sc.localization)||{};   // un seul indicateur, ses seuls masques réels
-    DermaiFaceMap.mount(fm,{items:k&&loc[k]?[{key:k,label:SkinModel.METRIC_LABELS[k],masks:loc[k]}]:[],hidden:!!state.faceHide,onStatus:failed=>{if(!failed.length)return;
-      const el=document.querySelector(`[data-fm-status]`),d=document.querySelector(`[data-fm-detect]`);if(el)el.textContent=Engine.copy.SYNTH.map.unavailable;if(d)d.remove()}})}
+    DermaiFaceMap.mount(fm,{items:k&&loc[k]?[{key:k,label:SkinModel.METRIC_LABELS[k],masks:loc[k]}]:[],hidden:!!state.faceHide,onStatus:(failed,empty)=>{if(!failed.length&&!(empty&&empty.length))return;   // masque vide ≠ panne
+      const el=document.querySelector(`[data-fm-status]`),d=document.querySelector(`[data-fm-detect]`),M=Engine.copy.SYNTH.map;if(el)el.textContent=failed.length?M.unavailable:M.empty;if(d)d.remove()}})}
   if(state.route===`landing`){const el=document.querySelector(`[data-hc]`);if(el)heroCtl=DermaiHero.init(el,{reduced:false,actives:heroActives()})}
   if(state.route===`scan`&&state.scanStep>=1&&state.scanStep<=3){
     if(DEMO_MODE)timers.push(setTimeout(()=>{const c=document.getElementById(`cam`),q=document.getElementById(`qt`);if(c&&q){c.classList.add(`ready`);q.textContent=`Qualité de l'image : excellente`}},1000));

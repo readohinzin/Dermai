@@ -65,7 +65,9 @@ test('FM3 pas d\'invention : les scores ne créent ni ne modifient aucune zone',
   assert.deepEqual(c.localization, {});
   // le module d'affichage ne lit aucun score, priorité, type de peau, pays ou moteur
   for (const f of ['js/face-map.js', 'server/masks.js']) assert.doesNotMatch(code(f), /ui_score|uiScore|raw_score|priorit|skin_?type|market|country|pays|Engine|routine|catalog/i, f);
-  assert.equal(FM.paint.length, 3, 'paint(alpha, w, h) : aucune entrée de score');
+  /* paint(alpha, w, h, peak, half) : peak et half sont lus dans le MASQUE lui-même (interpretMask), jamais dans un score (étape 26.3). */
+  assert.equal(FM.paint.length, 5);
+  assert.match(code('js/face-map.js'), /paint\(m\.alpha, mw, mh, m\.peak, m\.half\)/);
 });
 
 test('FM4 / FM5 priorités et type de peau : n\'ont aucun effet sur la localisation', async () => {

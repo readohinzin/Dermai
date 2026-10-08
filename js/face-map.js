@@ -1,7 +1,8 @@
 /* DERMAI : carte du visage. Superpose sur la VRAIE photo analysée les masques RÉELS renvoyés par Perfect Corp (server/masks.js).
 
    Un seul indicateur à la fois : seuls ses masques réels sont superposés. Aucune étiquette, aucun trait, aucun contour n'est ajouté par
-   DERMAI : le seul dessin est le masque du fournisseur (remplissage selon son opacité, liseré clair au bord de ses propres pixels).
+   DERMAI : le seul dessin est le masque du fournisseur (remplissage selon son opacité relative, liseré clair au bord de sa zone à
+   mi-hauteur de son propre maximum). Lecture des masques semi-transparents : voir interpretMask.
 
    Règle absolue : aucune zone n'est jamais inventée. Ce module ne connaît ni les scores, ni les priorités, ni le type de peau, ni le
    pays : il reçoit des images de masque et les dessine telles quelles, ou ne dessine rien.
@@ -42,43 +43,81 @@
   }
 
   /* Lecture d'un masque (pixels RGBA). Deux formes reconnues, sinon « unknown » (rien ne sera dessiné) :
-       alpha     : fond transparent, la zone est la partie opaque ;
+       alpha     : fond transparent, la zone est la partie non transparente ;
        luminance : image opaque en niveaux de gris sur fond sombre, la zone est la partie claire.
-     Une image en couleurs opaque (une photo, une superposition déjà colorée…) n'est pas un masque lisible : refusée. */
+     Une image en couleurs opaque (une photo, une superposition déjà colorée…) n'est pas un masque lisible : refusée.
+
+     Vrais masques Perfect Corp (mesurés sur une vraie analyse, étape 26.1) : PNG de la taille de la photo, fond transparent, zones
+     colorées SEMI-TRANSPARENTES (14 masques sur 15 sans aucun pixel opaque ; plusieurs sans aucun pixel à la moitié d'opacité).
+     L'opacité est donc lue comme une valeur CONTINUE, jamais coupée à 50 % (ancien seuil 128, qui déclarait vides de vraies zones).
+     Perfect Corp ne documente pas le sens d'une opacité faible : tout ce qui suit est une lecture technique pour l'AFFICHAGE, jamais une
+     gravité ni une décision (le moteur ne lit pas les masques).
+
+     Grandeurs (n = nombre de pixels du masque, a = opacité 0-255 de chaque pixel) :
+       floor    : seuil de bruit = la valeur qui définit déjà le FOND dans chaque mode (alpha : a < 16, « transparent » ; luminance :
+                  moyenne < 31, « sombre »). Un pixel sous ce seuil est un bord anti-crénelé ou un fond : il reste peint (remplissage
+                  proportionnel), mais il ne compte pas comme présence d'une zone.
+       present  : nombre de pixels au-dessus du seuil de bruit (zone réellement dessinée par le fournisseur).
+       peak     : opacité maximale du masque.
+       coverage : couverture pondérée par l'opacité = somme(a) / (255 × n). Continue, elle ne perd aucune zone semi-transparente.
+       area     : part des pixels à au moins la moitié du MAXIMUM DU MASQUE (a ≥ peak / 2) : étendue de la zone à mi-hauteur, utilisée
+                  pour le contour et pour refuser un masque qui couvre tout le cadre (> 90 %).
+     Classement (level) :
+       empty    : moins de pixels présents que l'aire d'UN pixel d'écran à la plus grande taille d'affichage de la carte
+                  (FRAME_MAX_CSS px de large) : (largeur du masque / FRAME_MAX_CSS)², au moins 1. Rien ne serait visible : masque vide.
+       faint    : zone présente, mais aucun pixel n'atteint la moitié de l'opacité maximale possible (peak < 128) : zone faible mais réelle ;
+       visible  : zone présente avec au moins un pixel à la moitié de l'opacité ou plus. */
+  const FRAME_MAX_CSS = 560;                     // largeur maximale de la carte (css/components/face-map.css, .c-facemap__frame)
+  const FLOOR = { alpha: 16, luminance: 31 };    // mêmes valeurs que la détection du fond ci-dessous
   function interpretMask(px, w, h) {
     const n = w * h;
     if (!n || !px || px.length < n * 4) return { mode: 'unknown' };
     let transparent = 0, colored = 0, dark = 0;
     for (let i = 0; i < n; i++) {
       const r = px[i * 4], g = px[i * 4 + 1], b = px[i * 4 + 2], a = px[i * 4 + 3];
-      if (a < 16) transparent++;
+      if (a < FLOOR.alpha) transparent++;
       if (Math.max(r, g, b) - Math.min(r, g, b) > 24) colored++;
-      if ((r + g + b) / 3 < 31) dark++;
+      if ((r + g + b) / 3 < FLOOR.luminance) dark++;
     }
     const alpha = new Uint8ClampedArray(n);
     let mode;
     if (transparent / n >= 0.2) { mode = 'alpha'; for (let i = 0; i < n; i++) alpha[i] = px[i * 4 + 3]; }
     else if (colored / n <= 0.03 && dark / n >= 0.5) { mode = 'luminance'; for (let i = 0; i < n; i++) alpha[i] = Math.round((px[i * 4] + px[i * 4 + 1] + px[i * 4 + 2]) / 3); }
     else return { mode: 'unknown' };
-    let on = 0;for (let i = 0; i < n; i++) if (alpha[i] >= 128) on++;
-    const coverage = on / n;
-    if (coverage > 0.9) return { mode: 'unknown' };                  // « tout le cadre » : pas un masque de zone
-    return { mode, alpha, coverage, empty: on === 0 };
+    const floor = FLOOR[mode];
+    let sum = 0, present = 0, peak = 0;
+    for (let i = 0; i < n; i++) { const a = alpha[i]; sum += a; if (a >= floor) present++; if (a > peak) peak = a; }
+    if (mode === 'luminance') for (let i = 0; i < n; i++) if (alpha[i] < floor) alpha[i] = 0;   // fond sombre (bruit de compression) : jamais peint
+    const half = Math.max(floor, Math.ceil(peak / 2));
+    let wide = 0;for (let i = 0; i < n; i++) if (alpha[i] >= half) wide++;
+    const coverage = sum / (255 * n), area = wide / n;
+    if (area > 0.9) return { mode: 'unknown' };                       // « tout le cadre » : pas un masque de zone
+    const minPresent = Math.max(1, Math.pow(w / FRAME_MAX_CSS, 2));
+    const level = present < minPresent ? 'empty' : peak < 128 ? 'faint' : 'visible';
+    return { mode, alpha, coverage, area, present, peak, half, level, empty: level === 'empty' };
   }
 
   /* Zone → pixels RGBA, à la manière d'une cartographie : remplissage rose léger + liseré clair au bord de la zone réelle.
-     Couleurs et opacités fixes (jamais liées au score). */
-  function paint(alpha, w, h) {
+     Couleurs et opacités de base fixes (jamais liées au score).
+     Remplissage : proportionnel à l'opacité du masque RAPPORTÉE À SON PROPRE MAXIMUM (a / peak) : la forme et les nuances relatives du
+     masque sont conservées, et une zone que le fournisseur a dessinée semi-transparente reste lisible sur la photo (sinon un masque à 30 %
+     d'opacité serait rendu à 0,42 × 30 % ≈ 13 %, invisible sur une peau foncée). Un masque déjà opaque est rendu comme avant.
+     Contour : au bord de la zone à mi-hauteur de SON maximum (a ≥ half), jamais à un seuil absolu : une zone semi-transparente garde son
+     contour. Les pixels de bord anti-crénelé (sous la mi-hauteur) sont remplis, sans contour. */
+  function paint(alpha, w, h, peak, half) {
     const out = new Uint8ClampedArray(w * h * 4);
+    let pk = peak;if (!(pk > 0)) { pk = 0; for (let i = 0; i < w * h; i++) if (alpha[i] > pk) pk = alpha[i]; }
+    if (!pk) return out;
+    const hf = half > 0 ? half : Math.max(1, Math.ceil(pk / 2));
     const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : alpha[y * w + x]);
     const rad = Math.max(1, Math.round(Math.min(w, h) / 220));   // liseré visible quelle que soit la résolution du masque
-    const near = (x, y) => { for (let d = 1; d <= rad; d++) if (at(x - d, y) < 128 || at(x + d, y) < 128 || at(x, y - d) < 128 || at(x, y + d) < 128) return true; return false; };
+    const near = (x, y) => { for (let d = 1; d <= rad; d++) if (at(x - d, y) < hf || at(x + d, y) < hf || at(x, y - d) < hf || at(x, y + d) < hf) return true; return false; };
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const i = y * w + x, a = alpha[i];
       if (!a) continue;
-      const edge = a >= 128 && near(x, y), c = edge ? EDGE_COLOR : COLOR;
+      const edge = a >= hf && near(x, y), c = edge ? EDGE_COLOR : COLOR;
       out[i * 4] = c[0]; out[i * 4 + 1] = c[1]; out[i * 4 + 2] = c[2];
-      out[i * 4 + 3] = Math.round(255 * (edge ? EDGE : FILL * a / 255));
+      out[i * 4 + 3] = Math.round(255 * (edge ? EDGE : FILL * Math.min(1, a / pk)));
     }
     return out;
   }
@@ -104,8 +143,8 @@
         else if (m.empty) r = { ok: false, reason: 'empty' };
         else {
           const z = document.createElement('canvas'); z.width = mw; z.height = mh;
-          z.getContext('2d').putImageData(new ImageData(paint(m.alpha, mw, mh), mw, mh), 0, 0);
-          r = { ok: true, canvas: z, mode: m.mode };
+          z.getContext('2d').putImageData(new ImageData(paint(m.alpha, mw, mh, m.peak, m.half), mw, mh), 0, 0);
+          r = { ok: true, canvas: z, mode: m.mode, level: m.level };
         }
       }
     } catch (e) { r = { ok: false, reason: 'load' }; }
@@ -114,7 +153,8 @@
   }
 
   /* el : conteneur [data-facemap] (photo <img>, <canvas>). items : [{ key, label, masks }] : l'indicateur sélectionné et ses masques réels.
-     onStatus(échecs) : libellés dont la localisation n'a pas pu être affichée (vide si tout est dessiné). Rien d'autre n'est dessiné. */
+     onStatus(échecs, vides) : libellés dont la localisation n'a pas pu être affichée (masque illisible, proportions…), puis libellés dont
+     les masques sont lisibles mais ne contiennent aucune zone. Rien d'autre n'est dessiné. */
   async function mount(el, { items, hidden, onStatus }) {
     const img = el.querySelector('img'), cv = el.querySelector('canvas');
     if (!img || !cv) return;
@@ -125,15 +165,16 @@
     const g = cv.getContext('2d'); g.clearRect(0, 0, pw, ph);
     const done = await Promise.all((items || []).map(async it => ({ it, res: await Promise.all((it.masks || []).map(m => prepare(m, pw, ph))) })));
     if (!el.isConnected) return;
-    let drawn = 0;const failed = [];
+    let drawn = 0;const failed = [], empty = [];
     for (const { it, res } of done) {
       const good = res.filter(r => r.ok);
-      if (!good.length) { failed.push(it.label); continue; }
+      /* Aucun masque dessinable : « vide » si tous les masques reçus sont lisibles mais sans zone, sinon échec (illisible, proportions…). */
+      if (!good.length) { (res.length && res.every(r => r.reason === 'empty') ? empty : failed).push(it.label); continue; }
       if (!hidden) for (const r of good) { g.drawImage(r.canvas, 0, 0, pw, ph); drawn++; }   // même boîte que la photo : alignement exact
     }
     el.dataset.drawn = String(drawn);
-    onStatus && onStatus(failed);
+    onStatus && onStatus(failed, empty);
   }
 
-  return { sanitize, ratioMatches, interpretMask, paint, mount, COLOR, EDGE_COLOR, FILL, EDGE };
+  return { sanitize, ratioMatches, interpretMask, paint, mount, COLOR, EDGE_COLOR, FILL, EDGE, FLOOR, FRAME_MAX_CSS };
 });
