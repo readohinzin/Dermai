@@ -292,9 +292,9 @@
         /* Règle de départage réellement appliquée (pour expliquer « pourquoi celui-ci plutôt qu'un autre ») */
         const sec = pool[1];
         const rule = !sec ? 'only' : score(pool[0]) !== score(sec) ? 'more_actives' : skinOk(p, routine.skinBase) !== skinOk(sec.p, routine.skinBase) ? 'skin' : byPrio(pool[0], sec) !== 0 ? 'editorial' : 'order';
-        out.push({ stepId: step.id, kind: step.kind, productId: p.id, activeIds: because,
+        out.push(Object.assign({ stepId: step.id, kind: step.kind, productId: p.id, activeIds: because,
           because: because.length ? copy.productBecause(because.map(id => actives.byId(id).label)) : null, demo: p.demo === true,
-          selection: { rule, candidates: pool.length } });
+          selection: { rule, candidates: pool.length } }, step.origin === 'accompaniment' ? { origin: 'accompaniment' } : {}));   // l'origine n'est notée que pour un soin d'accompagnement
       });
     }
     return out;
@@ -313,7 +313,8 @@
   }
 
   /* « Pourquoi ce produit ? » : le rôle qu'il joue dans l'étape (dérivé de la sélection, jamais d'une donnée commerciale). */
-  const whyOf = m => [copy.productWhy(m.kind, (m.activeIds || []).map(id => actives.byId(id).label)), m.demo ? '' : copy.selectionText(m.selection)].filter(Boolean).join(' ');
+  const kindOf = m => (m.origin === 'accompaniment' ? 'accompaniment' : m.kind);   // un produit d'accompagnement est présenté comme tel
+  const whyOf = m => [copy.productWhy(kindOf(m), (m.activeIds || []).map(id => actives.byId(id).label)), m.demo ? '' : copy.selectionText(m.selection)].filter(Boolean).join(' ');
 
   /* Vue du catalogue pour une routine : « Recommandés pour votre routine » et « Autres produits » (avec la raison RÉELLE du moteur).
      Aucune donnée commerciale n'intervient dans ce classement. */
@@ -325,7 +326,7 @@
       if (!chosen.has(m.productId)) chosen.set(m.productId, []);
       chosen.get(m.productId).push(m);
     }
-    const recommended = [...chosen.entries()].map(([productId, ms]) => ({ productId, steps: ms.map(m => ({ stepId: m.stepId, kind: m.kind, activeIds: m.activeIds, why: whyOf(m) })) }));
+    const recommended = [...chosen.entries()].map(([productId, ms]) => ({ productId, steps: ms.map(m => ({ stepId: m.stepId, kind: kindOf(m), activeIds: m.activeIds, why: whyOf(m) })) }));
     const others = list.filter(p => !chosen.has(p.id)).map(p => {
       const relevant = steps.filter(st => fitsStep(p, st));
       let code;

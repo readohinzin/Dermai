@@ -34,7 +34,7 @@
     const chips = (list, cls) => list.length ? `<div class="chips">${list.map(i => chip(i, cls)).join('')}</div>` : '';
     const part = (k, extra) => X[k] ? `<div class="c-insight__group"><h3 class="c-insight__label">${L[k]}</h3><p class="c-insight__text">${X[k]}</p>${extra || ''}</div>` : '';
     return `<section class="c-insight" aria-labelledby="ins-title"><p class="kicker">Synthèse</p><div class="hd"><h2 class="h3" id="ins-title">Ce que votre analyse a trouvé</h2></div>
-     ${part('shows')}${part('lowest', chips(T.lowest, 'c-badge--outline'))}${part('retained', chips(T.priority, 'c-badge--mid'))}${part('strategy')}
+     ${part('shows')}${part('lowest', chips(T.lowest, 'c-badge--outline'))}${part('retained', chips(T.priority, 'c-badge--mid'))}${part('accompaniment', chips(T.accompaniment, 'c-badge--outline'))}${part('strategy')}
      <p class="c-disclaimer c-insight__note">${y.scoreNote}</p></section>`;
   }
 

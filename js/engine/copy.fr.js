@@ -16,7 +16,7 @@
   const NO_GOAL = 'Aucun objectif particulier';
   const GOAL_LIMIT = 'Vous pouvez choisir jusqu\'à 3 objectifs.';
   const SLOT_LABELS = { morning: 'Matin', evening: 'Soir' };
-  const STEP_LABELS = { cleanse: 'Nettoyage doux', treatment: 'Soin ciblé', moisturize: 'Hydratation', spf: 'Protection solaire' };
+  const STEP_LABELS = { cleanse: 'Nettoyage doux', treatment: 'Soin ciblé', accompaniment: 'Soin d\'accompagnement', moisturize: 'Hydratation', spf: 'Protection solaire' };
 
   const joinList = list => (list.length <= 1 ? list.join('') : list.slice(0, -1).join(', ') + ' et ' + list[list.length - 1]);
   const lower = s => s.charAt(0).toLowerCase() + s.slice(1);
@@ -101,6 +101,7 @@
     objective: 'Cet axe correspond à votre objectif et peut être accompagné par un soin doux.',
     overflow: 'Cet indicateur est sous les repères DERMAI, mais la routine se limite à trois axes prioritaires : un soin doux peut l\'accompagner.'
   })[origin] || '';
+  const accompanimentSummary = labels => 'Un soin doux d\'accompagnement s\'y ajoute pour : ' + joinList(labels.map(lower)) + '.';
   const accompanimentStep = (active, labels) => 'Soin d\'accompagnement léger : ' + lower(active) + ' peut accompagner ' + joinList(labels.map(lower)) + ', sans que ce soit une priorité de cette analyse.';
   const productBecause = labels => 'Contient : ' + joinList(labels.map(lower)) + '.';
   /* Pourquoi CE produit : le rôle qu'il joue dans une étape déjà définie par la routine, jamais une promesse ni un langage médical. */
@@ -109,6 +110,7 @@
   const productWhyBody = (kind, labels) => {
     const l = joinList((labels || []).map(lower));
     if (kind === 'treatment') return 'Choisi parce qu\'il contient l\'actif recherché pour cet axe : ' + l + '.';
+    if (kind === 'accompaniment') return 'Choisi parce qu\'il contient l\'actif doux recherché pour l\'accompagnement : ' + l + '.';
     if (kind === 'moisturize') return l ? 'Choisi parce qu\'il contient les ingrédients recherchés pour l\'hydratation : ' + l + '.' : 'Hydratant pour l\'étape d\'hydratation de votre routine.';
     if (kind === 'cleanse') return 'Nettoyant doux pour l\'étape de nettoyage de votre routine.';
     return 'Protection solaire pour l\'étape du matin de votre routine.';
@@ -117,6 +119,7 @@
   const productRole = (kind, labels) => {
     const l = joinList((labels || []).map(lower));
     if (kind === 'treatment') return 'Produit proposé pour le soin ciblé de votre routine' + (l ? ' (actif : ' + l + ')' : '') + '.';
+    if (kind === 'accompaniment') return 'Produit proposé pour le soin d\'accompagnement de votre routine' + (l ? ' (actif : ' + l + ')' : '') + '.';
     if (kind === 'moisturize') return 'Produit proposé pour accompagner l\'hydratation de votre routine.';
     if (kind === 'cleanse') return 'Produit proposé pour accompagner le nettoyage de votre routine.';
     return 'Produit proposé pour accompagner la protection solaire de votre routine.';
@@ -365,6 +368,6 @@
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, accompanimentReason, accompanimentStep, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, accompanimentReason, accompanimentStep, accompanimentSummary, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });

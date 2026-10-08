@@ -817,10 +817,11 @@ V.result=()=>{
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`).join(``);
   const rest=H?[]:eng.interpretation.indicators.filter(i=>!P.items.some(p=>p.indicator===i.id)).map(asShown),eyeOf=m=>m.score!==null&&isInfo(m);
+  const accBadge=m=>{const d=eng.synthesis.indicators[m.id];return d&&d.state===`accompaniment`?`<span class="c-badge c-badge--mid">${d.level}</span>`:bandBadge(m)};
   const rowOf=m=>m.score===null
     ?`<li class="c-indicator c-indicator--na"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value">${bandBadge(m)}</span></li>`
     :isInfo(m)?`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${infoBadge()}</span><span class="c-bar" role="img" aria-label="${m.score} sur 100" style="--value:${m.score}"><span class="c-bar__fill"></span></span></li>`
-    :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${bandBadge(m)}</span>${barHtml(m)}</li>`;
+    :`<li class="c-indicator"><span class="c-indicator__name">${m.label}</span><span class="c-indicator__value"><span class="c-indicator__score">${m.score}<small>/100</small></span>${accBadge(m)}</span>${barHtml(m)}</li>`;
   /* Les indicateurs du contour des yeux sont donnés à titre d'information : ils sont regroupés à part, valeurs et contenus inchangés. */
   const others=H?othersH:rest.filter(m=>!eyeOf(m)).map(rowOf).join(``),eyeRows=rest.filter(eyeOf).map(rowOf).join(``);
   const ask=!H&&signedIn()&&state.photos===null&&s.blob?`<div style="margin-bottom:18px">${DermaiPhotos.ask(ic,state.photoBusy)}</div>`:``;
@@ -910,7 +911,7 @@ V.routine=()=>{
   const whyBlock=st=>{const x=sel[st.activeId];if(!x)return ``;return `<details class="c-why"><summary>Pourquoi cet actif ?</summary><p>${x.why}</p><p>${x.whyNow}</p>${x.whyNot.map(n=>`<p>${n.text}</p>`).join(``)}</details>`};
   const list=(slot,key,icon,label)=>`<section><div class="hd"><h2 class="h3" style="display:flex;gap:10px;align-items:center">${ic(icon)}${label}</h2></div><div class="stack" style="gap:12px">${R.slots[slot].map((st,i)=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId,catalogNow());
-    return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${Y.steps[st.id]||st.reason}</p>
+    return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.origin===`accompaniment`?`accompaniment`:st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${Y.steps[st.id]||st.reason}</p>
       ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}<button class="link" data-go="active:${st.activeId}">Découvrir cet actif</button>`:``}
       ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Proposé par DERMAI : `}${esc(p.name)}</button>`:Y.products[st.id]&&!DEMO_MODE&&(slot===`morning`||!R.slots.morning.some(x=>x.kind===st.kind&&x.activeId===st.activeId))?`<p class="c-routine-step__role muted">${Y.products[st.id].text}</p>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;

@@ -133,7 +133,7 @@ test('S11 produit sans justification : jamais proposé ni présenté comme adapt
       assert.ok(m.activeIds.length > 0, 'tout produit réel proposé contient ce que son étape recherche (' + m.productId + ')');
       assert.ok(st.kind === 'treatment' ? m.activeIds.includes(st.activeId) : m.activeIds.every(id => st.supportIds.includes(id)));
       assert.ok(['only', 'more_actives', 'skin', 'editorial', 'order'].includes(m.selection.rule));
-      assert.match(r.synthesis.products[m.stepId].text, /^Proposé par DERMAI\. Choisi parce qu'il contient (l'actif recherché pour cet axe|les ingrédients recherchés pour l'hydratation) : .*(seul produit|Parmi \d+ produits)/);
+      assert.match(r.synthesis.products[m.stepId].text, /^Proposé par DERMAI\. Choisi parce qu'il contient (l'actif recherché pour cet axe|les ingrédients recherchés pour l'hydratation|l'actif doux recherché pour l'accompagnement) : .*(seul produit|Parmi \d+ produits)/);
     }
   }
   // le Cicaplast reste proposé quand sa composition répond à un besoin réel (soutien retenu), avec la raison

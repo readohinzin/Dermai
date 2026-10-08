@@ -116,7 +116,7 @@ test('UX7 empreinte des sorties du moteur (règles 1.3.0) sur 1500 profils : tou
      retrouvée à l'identique, la nouvelle voie est additive. ACTIVÉ : la nouvelle empreinte ci-dessous. */
   const s = DECISION.MAX_ACCOMPANIMENT_AXES; DECISION.MAX_ACCOMPANIMENT_AXES = 0;
   try { assert.equal(ux7Fingerprint(), '78d3068469da8dd3a461317af6a4368191965f3409493c2937cd7f7164c4ca94', 'accompagnement désactivé : empreinte d\'avant l\'étape 27'); } finally { DECISION.MAX_ACCOMPANIMENT_AXES = s; }
-  assert.equal(ux7Fingerprint(), '7ae4dbb00a3de38c43b80167b3368fccfead44f1d2adfd7806fe13612800eebb');
+  assert.equal(ux7Fingerprint(), '769f07b1413dc2060795d3ce536441bc1dab8fcac4f97d275d23683cc49f9d1c');
 });
 
 test('UX8 conseils par préoccupation : aucune promesse de texture légère ou non comédogène (même règle que la routine)', () => {

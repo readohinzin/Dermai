@@ -75,7 +75,7 @@
     if (ctx.skinBase === 'dry') notes.push(copy.NOTES.dry);
     return {
       level: profile.level, exclusions: profile.exclusions || [], mode: prios.mode, comfortMode: ctx.comfortMode, skinBase: ctx.skinBase,
-      summary: copy.summary(prios.items.map(i => i.label), prios.mode), slots, notes, deferred
+      summary: copy.summary(prios.items.map(i => i.label), prios.mode) + (placed.some(s => s.origin === 'accompaniment') ? ' ' + copy.accompanimentSummary([...new Set(placed.filter(s => s.origin === 'accompaniment').flatMap(s => s.indicators))].map(labelOf)) : ''), slots, notes, deferred
     };
   }
 

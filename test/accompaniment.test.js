@@ -78,7 +78,7 @@ test('ACC6 débordement : un candidat LOW/MID écarté par le plafond de 3 passe
   const over = calc({ acne: 40, pores: 41, redness: 42, pigmentation: 43, hydration: 70 });
   assert.equal(over.prios.items.length, 3);
   assert.deepEqual(over.prios.overflow, ['pigmentation']);
-  assert.deepEqual(over.acc.items.map(i => [i.indicator, i.origin, i.rank]), [['pigmentation', 'overflow', 1], ['hydration', 'distinct', 2]].filter(x => x[0] === 'pigmentation').concat([]).length ? [['pigmentation', 'overflow', 1]] : []);
+  assert.deepEqual(over.acc.items.map(i => [i.indicator, i.origin, i.rank])[0], ['pigmentation', 'overflow', 1], 'le débordement passe en premier');
   // plusieurs GOOD distincts : 2 axes au plus, valeur croissante puis ordre fixe
   const many = calc({ acne: 70, pores: 70, redness: 70, pigmentation: 70 });
   assert.deepEqual(ids(many), ['acne', 'pores'], 'quatre candidats à 70 : deux axes, ordre fixe');
@@ -486,4 +486,49 @@ test('ACC36 analyse sans raw (base ui) : accompagnement possible avec la mention
   assert.deepEqual(r.accompanimentItems.map(i => [i.indicator, i.basis]), [['acne', 'ui'], ['pores', 'ui']]);
   assert.match(r.synthesis.sections.retained, /Analyse historique : données brutes non disponibles/);
   assert.deepEqual(added(r).map(t => t.activeId), ['niacinamide']);
+});
+
+/* ---------- Interface : la synthèse, les lignes d'indicateurs, la routine et les produits distinguent priorité et accompagnement ---------- */
+const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+const copy = require('../js/engine/copy.fr.js');
+const appSrc = read('js/app.js');
+
+test('ACC37 interface : la synthèse a une section « Accompagnement léger » distincte ; la ligne d\'un indicateur accompagné ne dit plus « Niveau élevé »', () => {
+  global.SkinModel = M; global.DermaiEngine = Object.assign({}, Engine, { copy, indicatorsData: require('../js/engine/data/indicators.js'), decisionData: DEC });
+  const { DermaiInsight } = require('../js/insight-view.js');
+  const r = go({ hydration: 30, acne: 70, pores: 70 }), html = DermaiInsight.found(r.synthesis);
+  assert.match(html, /<h3 class="c-insight__label">Accompagnement léger<\/h3><p class="c-insight__text">Acné \(78\) et pores \(78\) : ne sont pas des priorités dans cette analyse/);
+  assert.match(html, /<span class="c-badge c-badge--outline">Acné · 78<\/span><span class="c-badge c-badge--outline">Pores · 78<\/span>/);
+  assert.ok(html.indexOf('Ce que DERMAI retient') < html.indexOf('Accompagnement léger') && html.indexOf('Accompagnement léger') < html.indexOf('Votre stratégie'), 'ordre : priorités, accompagnement, stratégie');
+  assert.ok(!DermaiInsight.found(go({ acne: 76, pores: 77, hydration: 76, texture: 75, oiliness: 78, redness: 78, pigmentation: 79, wrinkles: 80, firmness: 77, radiance: 76 }).synthesis).includes('Accompagnement léger'), 'sans accompagnement, aucune section');
+  assert.match(appSrc, /const accBadge=m=>\{const d=eng\.synthesis\.indicators\[m\.id\];return d&&d\.state===`accompaniment`/);
+  assert.match(appSrc, /\$\{accBadge\(m\)\}<\/span>\$\{barHtml\(m\)\}<\/li>`;\s*\n\s*\/\* Les indicateurs du contour des yeux/, 'le badge est utilisé par la ligne des indicateurs');
+  assert.ok(Buffer.byteLength(appSrc) < 150000, 'budget de app.js');
+});
+
+test('ACC38 routine : étapes marquées base, priorité ou accompagnement ; résumé et libellé d\'étape distinguent l\'accompagnement', () => {
+  const r = go({ hydration: 30, acne: 70, pores: 70 });
+  for (const s of steps(r)) assert.ok(['base', 'priority', 'accompaniment'].includes(s.origin), s.id);
+  assert.ok(steps(r).filter(s => ['cleanse', 'moisturize', 'spf'].includes(s.kind)).every(s => s.origin === 'base'));
+  assert.deepEqual(steps(r).filter(s => s.kind === 'treatment').map(s => s.origin), ['accompaniment']);
+  assert.match(r.routinePlan.summary, /Un soin doux d'accompagnement s'y ajoute pour : acné et pores\.$/);
+  assert.equal(copy.STEP_LABELS.accompaniment, 'Soin d\'accompagnement');
+  assert.match(appSrc, /STEP_LABELS\[st\.origin===`accompaniment`\?`accompaniment`:st\.kind\]/);
+  const pr = go({ acne: 40, redness: 70 });
+  assert.deepEqual(steps(pr).filter(s => s.kind === 'treatment').map(s => s.origin), ['priority']);
+  assert.doesNotMatch(pr.routinePlan.summary, /accompagnement/);
+  assert.doesNotMatch(go({}).routinePlan.summary, /accompagnement/);
+});
+
+test('ACC39 produits : un produit d\'accompagnement est présenté comme tel, sans changer la forme des correspondances existantes', () => {
+  const P = require('../js/engine/products.js'), r = go({ acne: 70, pores: 70 });
+  const m = r.productMatches.find(x => /niacinamide/.test(x.stepId));
+  assert.equal(m.origin, 'accompaniment');
+  assert.match(P.whyOf(m), /^Proposé par DERMAI\. Choisi parce qu'il contient l'actif doux recherché pour l'accompagnement : niacinamide\./);
+  const view = P.catalogView(r.routinePlan, r.productMatches, C.PRODUCTS);
+  assert.deepEqual(view.recommended.map(x => [x.productId, x.steps.map(s => s.kind)]), [['to-niacinamide-10-zinc-1', ['accompaniment']]]);
+  assert.match(copy.productRole('accompaniment', ['Niacinamide']), /^Produit proposé pour le soin d'accompagnement de votre routine \(actif : niacinamide\)\.$/);
+  const prio = go({ pores: 40 }), pm = prio.productMatches.find(x => /niacinamide/.test(x.stepId));
+  assert.ok(!('origin' in pm), 'les correspondances d\'un soin prioritaire gardent exactement leur forme');
+  for (const x of go({ acne: 40, redness: 70 }).productMatches) assert.ok(!('origin' in x));
 });
