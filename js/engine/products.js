@@ -300,6 +300,18 @@
     return out;
   }
 
+  /* État du produit d'une RECOMMANDATION d'accompagnement (étape 27). Ne choisit rien : lit la routine et les produits déjà retenus par match().
+       matched            : l'étape qui porte l'actif a reçu un produit du catalogue (productId) ;
+       no_catalog_product : l'actif est recommandé et une étape existe, mais aucun produit du catalogue ne lui correspond ;
+       not_applicable     : aucune étape n'existe pour cet actif (axe identifié sans soin ajouté) : aucun produit n'est demandé.
+     Jamais de produit, de composition, de prix ni de disponibilité inventés : les offres par pays restent affichées par marketView(). */
+  function productStatusOf(routine, matches, activeId) {
+    const stepIds = [...routine.slots.morning, ...routine.slots.evening].filter(s => s.kind === 'treatment' && s.activeId === activeId).map(s => s.id);
+    if (!stepIds.length) return { status: 'not_applicable', productId: null };
+    const m = (matches || []).find(x => stepIds.includes(x.stepId));
+    return m ? { status: 'matched', productId: m.productId } : { status: 'no_catalog_product', productId: null };
+  }
+
   /* « Pourquoi ce produit ? » : le rôle qu'il joue dans l'étape (dérivé de la sélection, jamais d'une donnée commerciale). */
   const whyOf = m => [copy.productWhy(m.kind, (m.activeIds || []).map(id => actives.byId(id).label)), m.demo ? '' : copy.selectionText(m.selection)].filter(Boolean).join(' ');
 
@@ -343,6 +355,6 @@
       price: null, currency: null, vendor: p.vendor || null, availability: p.availability || null, url: p.url || null };
   }
 
-  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, catalogView, commerceOf, offersOf, marketView, QUALITY, validateOffer, primaryActive, validateProduct, validateCatalog,
+  return { PRODUCTS, CATEGORIES, SKIN_TYPES, AVAILABILITY, CURRENCIES, MARKETS, OFFER_CURRENCIES, OFFER_AVAILABILITY, OFFER_TYPES, PRODUCT_STATUS, byId, ids, usable, match, whyOf, productStatusOf, catalogView, commerceOf, offersOf, marketView, QUALITY, validateOffer, primaryActive, validateProduct, validateCatalog,
     stepCategory, CATALOG_FIELDS, toCatalogEntry };
 });

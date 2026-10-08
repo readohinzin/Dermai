@@ -74,6 +74,10 @@
     const { interpretation, eff, priorities, accompaniment, pers, activePlan, routinePlan } = cur;
     /* options.catalog : catalogue de produits à utiliser (réel ou démonstration, choisi par l'appelant). Le catalogue n'agit QUE sur cette dernière couche. */
     const productMatches = dep.products.match(routinePlan, options && options.catalog);
+    for (const r of accompaniment.recommendations) {
+      const p = dep.products.productStatusOf(routinePlan, productMatches, r.status === 'covered' ? r.coveredBy : r.status === 'added' ? r.activeId : null);
+      r.productStatus = p.status; r.productId = p.productId;
+    }
     const prev = options && options.previous ? core(options.previous, prof) : null;
     const personalization = dep.personalization.finalize(pers, eff, priorities, activePlan, routinePlan, prev);
 

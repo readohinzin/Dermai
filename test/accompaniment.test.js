@@ -371,3 +371,34 @@ test('ACC-DIFF 2000 profils : priorityItems identiques ; différences seulement 
   if (process.env.ACC_VERBOSE) console.log('ACC-DIFF', { withAcc, addedSteps, free });
   assert.ok(withAcc > 100 && addedSteps > 0, `l'accompagnement est exercé (${withAcc} profils avec axes, ${addedSteps} avec soin ajouté, ${free} accompagnements gratuits)`);
 });
+
+/* ---------- Produits : recommandation générée, produit trouvé, aucun produit ---------- */
+test('ACC29 états produit : matched, no_catalog_product, not_applicable ; jamais de produit inventé', () => {
+  const real = go({ acne: 70, pores: 70 });
+  assert.deepEqual(real.accompaniment.recommendations.map(r => [r.indicator, r.status, r.productStatus, r.productId]), [['acne', 'added', 'matched', 'to-niacinamide-10-zinc-1'], ['pores', 'added', 'matched', 'to-niacinamide-10-zinc-1']]);
+  assert.ok(C.PRODUCTS.some(p => p.id === 'to-niacinamide-10-zinc-1'), 'le produit existe réellement dans le catalogue');
+  const none = Engine.run(analysis({ acne: 70, pores: 70 }), { goals: [], level: 'simple', cats: [] }, { catalog: [] });
+  assert.deepEqual(none.accompaniment.recommendations.map(r => [r.status, r.productStatus, r.productId]), [['added', 'no_catalog_product', null], ['added', 'no_catalog_product', null]], 'recommandation générée, aucun produit : dit explicitement');
+  assert.deepEqual(none.productMatches, []);
+  const single = go({ acne: 70 });
+  assert.deepEqual([single.accompaniment.recommendations[0].status, single.accompaniment.recommendations[0].productStatus, single.accompaniment.recommendations[0].productId], ['identified', 'not_applicable', null], 'axe identifié sans étape : aucun produit demandé');
+  const covered = go({ pores: 40, acne: 70 }), coveredNone = Engine.run(analysis({ pores: 40, acne: 70 }), { goals: [], level: 'simple', cats: [] }, { catalog: [] });
+  assert.deepEqual([covered.accompaniment.recommendations[0].status, covered.accompaniment.recommendations[0].productStatus], ['covered', 'matched'], 'couvert : le produit du soin qui le couvre');
+  assert.equal(coveredNone.accompaniment.recommendations[0].productStatus, 'no_catalog_product');
+  for (let s = 1; s <= 600; s++) { const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });
+    for (const x of r.accompaniment.recommendations) {
+      assert.ok(['matched', 'no_catalog_product', 'not_applicable'].includes(x.productStatus), x.productStatus);
+      assert.equal(x.productStatus === 'matched', !!x.productId);
+      if (x.productId) assert.ok(C.PRODUCTS.some(p => p.id === x.productId));
+      if (x.status === 'identified') assert.equal(x.productStatus, 'not_applicable');
+    } }
+});
+
+test('ACC30 le pays ne change ni la décision ni l\'état du produit : il ne sert qu\'à classer les offres d\'un produit déjà choisi', () => {
+  const r = go({ acne: 70, pores: 70 }), P = require('../js/engine/products.js');
+  const prod = P.byId(r.accompaniment.recommendations[0].productId, C.PRODUCTS);
+  const views = ['NG', 'GH', 'KE', 'ZA', 'SN'].map(code => P.marketView(prod, code));
+  assert.equal(JSON.stringify(go({ acne: 70, pores: 70 }).accompaniment.recommendations), JSON.stringify(r.accompaniment.recommendations), 'même recommandation quel que soit le pays consulté');
+  assert.ok(views.every(v => v.country), 'le pays n\'agit que sur les offres');
+  assert.deepEqual(views.map(v => v.tier).filter(t => !['local', 'regional', 'international', 'none'].includes(t)), []);
+});
