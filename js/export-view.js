@@ -5,6 +5,7 @@
      - jamais de rawScore (seuls les scores affichés), jamais de masque de localisation ;
      - la photo n'est incluse que si l'utilisatrice coche « Inclure ma photo » (décochée par défaut), repassée par un canvas : le fichier ne contient
        alors ni métadonnées EXIF ni position GPS ;
+     - « Copier le résumé » met un texte court dans le presse-papiers (aucun PDF) ;
      - « Partager » ouvre le partage du système (fichier PDF si l'appareil le permet, sinon texte, sinon copie dans le presse-papiers) : aucun lien public.
    Chargé avant app.js ; js/export-pdf.js fournit la mise en forme PDF. */
 (function (root) {
@@ -15,10 +16,10 @@
   const TEXT = {
     title: 'Garder ou partager votre résultat', intro: 'Un PDF créé sur votre appareil : rien n\'est envoyé à DERMAI ni enregistré.',
     photo: 'Inclure ma photo', photoNote: 'Le fichier pourra circuler hors de DERMAI : ne l\'incluez que si vous le souhaitez.',
-    download: 'Télécharger en PDF', share: 'Partager',
+    download: 'Télécharger en PDF', share: 'Partager', copy: 'Copier le résumé',
     downloaded: 'PDF téléchargé.', copied: 'Résumé copié : vous pouvez le coller où vous voulez.',
     sharedFallback: 'Le partage n\'est pas disponible ici : le PDF a été téléchargé.',
-    failed: 'Le PDF n\'a pas pu être créé. Réessayez.', shareFailed: 'Le partage n\'a pas pu se faire. Vous pouvez télécharger le PDF.',
+    failed: 'Le PDF n\'a pas pu être créé. Réessayez.', copyFailed: 'La copie n\'a pas fonctionné. Vous pouvez télécharger le PDF à la place.', shareFailed: 'Le partage n\'a pas pu se faire. Vous pouvez télécharger le PDF.',
     footer: 'Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.',
     disclaimer: 'Analyse cosmétique de l\'état apparent de la peau, ce n\'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.',
     subtitle: 'Analyse cosmétique de la peau', earlier: 'Cette analyse n\'est pas la plus récente : la routine de l\'application correspond à votre analyse la plus récente.',
@@ -127,8 +128,26 @@
   }
 
   /* kind : 'download' ou 'share'. Renvoie { ok, message }. Une annulation du partage par l'utilisatrice n'est pas une erreur (message vide). */
+  /* Copie du résumé (texte court : scores affichés et axes, plus l'adresse du site). Presse-papiers moderne, sinon l'ancienne copie par sélection ; aucun PDF n'est créé. */
+  async function copyText(text, env) {
+    const nav = env.nav || {};
+    try { if (nav.clipboard && nav.clipboard.writeText) { await nav.clipboard.writeText(text); return true; } } catch (e) { /* repli ci-dessous */ }
+    try {
+      const d = env.doc, ta = d.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      d.body.appendChild(ta); ta.select();
+      const ok = !!d.execCommand('copy'); ta.remove();
+      return ok;
+    } catch (e) { return false; }
+  }
+
   async function perform(kind, ctx, opts, env) {
     env = Object.assign(defaults(), env || {});
+    if (kind === 'copy') {
+      let text;
+      try { text = summaryOf(modelOf(ctx)) + (env.doc && env.doc.location ? '\n' + env.doc.location.origin : ''); } catch (e) { return { ok: false, message: TEXT.copyFailed, via: 'error' }; }
+      return (await copyText(text, env)) ? { ok: true, message: TEXT.copied, via: 'copy', withPhoto: false } : { ok: false, message: TEXT.copyFailed, via: 'error' };
+    }
     let pdf;
     try { pdf = await makePdf(ctx, opts, env); } catch (e) { return { ok: false, message: TEXT.failed }; }
     if (kind === 'download') { try { save(pdf.blob, pdf.name, env); } catch (e) { return { ok: false, message: TEXT.failed }; } return { ok: true, message: TEXT.downloaded, withPhoto: pdf.withPhoto }; }
@@ -156,7 +175,7 @@
     return `<section class="c-card c-export" aria-labelledby="ex-title"><p class="kicker">Exporter</p><div class="hd"><h2 class="h3" id="ex-title">${TEXT.title}</h2></div>
      <p class="muted">${TEXT.intro}</p>
      ${current.blob ? `<label class="c-export__opt"><input type="checkbox" data-export-photo><span>${TEXT.photo}<small>${TEXT.photoNote}</small></span></label>` : ''}
-     <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-export="download">${TEXT.download}</button><button class="c-btn c-btn--secondary c-btn--block" data-export="share">${TEXT.share}</button></div>
+     <div class="stack"><button class="c-btn c-btn--primary c-btn--block" data-export="download">${TEXT.download}</button><button class="c-btn c-btn--secondary c-btn--block" data-export="share">${TEXT.share}</button><button class="c-btn c-btn--ghost c-btn--block" data-export="copy">${TEXT.copy}</button></div>
      <p class="muted c-export__status" data-export-status role="status" aria-live="polite"></p></section>`;
   }
 
@@ -172,5 +191,5 @@
   }
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('click', onClick);
 
-  root.DermaiExport = { card, modelOf, blocksOf, summaryOf, perform, makePdf, photoOf, filename, TEXT };
+  root.DermaiExport = { card, modelOf, blocksOf, summaryOf, perform, makePdf, photoOf, copyText, filename, TEXT };
 })(typeof self !== 'undefined' ? self : this);

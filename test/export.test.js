@@ -250,3 +250,35 @@ test('EXP14 le moteur ne change pas : l\'export ne lit que la sortie existante, 
   assert.equal(JSON.stringify([ctx.eng, ctx.s]), before, 'aucune mutation de l\'analyse ni du résultat du moteur');
   for (const f of ['js/engine/index.js', 'js/engine/accompaniment.js', 'js/engine/priorities.js', 'js/engine/synthesis.js']) assert.doesNotMatch(code(f), /DermaiExport|DermaiPdf/, f);
 });
+
+test('EXP15 copier le résumé : texte court et adresse du site, sans fabriquer de PDF ; presse-papiers, sinon copie par sélection, sinon message', async () => {
+  const ctx = ctxOf({ hydration: 30, acne: 70, pores: 70 });
+  const written = [], env1 = fakeEnv({ clipboard: { writeText: async t => { written.push(t); } } });
+  const r1 = await X.perform('copy', ctx, {}, env1);
+  assert.deepEqual([r1.ok, r1.via, r1.message, r1.withPhoto], [true, 'copy', 'Résumé copié : vous pouvez le coller où vous voulez.', false]);
+  assert.equal(written[0], 'Mon analyse DERMAI du 10 octobre 2026 : score global 75/100 (Bien). Peau sèche. Axes de soin : hydratation (38). Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.\nhttps://dermai.example');
+  assert.deepEqual([env1.log.created.length, env1.log.anchors.length], [0, 0], 'aucun PDF, aucun téléchargement');
+  assert.doesNotMatch(written[0], /raw|photo|rawScore/i);
+  // le presse-papiers moderne échoue (page non sécurisée, permission refusée) : copie par sélection
+  const sel = [], doc = { location: { origin: 'https://dermai.example' }, body: { appendChild: e => sel.push(['append', e.value]) },
+    createElement: () => ({ setAttribute() {}, style: {}, select() { sel.push(['select']); }, remove() { sel.push(['remove']); } }), execCommand: c => { sel.push([c]); return true; } };
+  const r2 = await X.perform('copy', ctx, {}, { nav: { clipboard: { writeText: async () => { throw new Error('refusé'); } } }, doc });
+  assert.deepEqual([r2.ok, r2.via], [true, 'copy']);
+  assert.deepEqual(sel.map(x => x[0]), ['append', 'select', 'copy', 'remove']);
+  assert.match(sel[0][1], /^Mon analyse DERMAI du 10 octobre 2026[\s\S]*\nhttps:\/\/dermai\.example$/);
+  // aucune copie possible : message clair
+  const r3 = await X.perform('copy', ctx, {}, { nav: {}, doc: Object.assign({}, doc, { execCommand: () => false }) });
+  assert.deepEqual([r3.ok, r3.message], [false, 'La copie n\'a pas fonctionné. Vous pouvez télécharger le PDF à la place.']);
+  const r4 = await X.perform('copy', ctx, {}, { nav: {}, doc: Object.assign({}, doc, { execCommand: () => { throw new Error('x'); } }) });
+  assert.equal(r4.ok, false);
+  // analyse plus ancienne : mêmes règles, axes enregistrés
+  const old = ctxOf({ hydration: 30 }, {}, { H: true }); old.s.rec = { priorities: [{ id: 'hydration', label: 'Hydratation', score: 38, band: 'mid' }], goals: [] };
+  const w2 = []; await X.perform('copy', old, {}, fakeEnv({ clipboard: { writeText: async t => { w2.push(t); } } }));
+  assert.match(w2[0], /Axes retenus : hydratation \(38\)\./);
+  // le bouton est sur la carte, avec le même texte que le résumé partagé
+  const html = X.card(ctx.eng, ctx.s, { catalog: C.PRODUCTS });
+  assert.match(html, /data-export="copy">Copier le résumé<\/button>/);
+  assert.deepEqual([...html.matchAll(/data-export="(\w+)"/g)].map(m => m[1]), ['download', 'share', 'copy']);
+  assert.match(code('js/export-view.js'), /execCommand\('copy'\)/);
+  assert.doesNotMatch(code('js/export-view.js'), /\bfetch\(|localStorage|sessionStorage/, 'toujours aucun réseau ni stockage');
+});
