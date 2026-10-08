@@ -211,6 +211,10 @@
     tearTrough: 'Vallée des larmes', darkCircle: 'Cernes', droopyUpperEyelid: 'Paupière supérieure', droopyLowerEyelid: 'Paupière inférieure'
   };
   const PRIORITY_COUNT = 3;
+  /* Libellés des badges d'un INDICATEUR (même bande, même seuil 61 / 31 que ci-dessus : seule la formulation change). « Bien » était trop
+     absolu à côté d'une carte de détection ; ces libellés ne reprennent jamais le vocabulaire des décisions DERMAI (axe à soutenir,
+     priorité de soin), qui vient du moteur. Le score global garde les libellés de BANDS. */
+  const INDICATOR_BAND_LABELS = { good: 'Favorable', mid: 'Intermédiaire', low: 'Plus bas' };
 
   /* Score affichable : entier de 0 à 100, ou null. */
   function displayScore(v) {
@@ -225,6 +229,7 @@
     return { key: b.key, label: b.label };
   }
   const scoreView = v => { const score = displayScore(v), band = scoreBand(v); return { score, band: band ? band.key : null, bandLabel: band ? band.label : null }; };
+  const indicatorView = v => { const r = scoreView(v); return Object.assign(r, { bandLabel: r.band ? INDICATOR_BAND_LABELS[r.band] : null }); };
   /* Âge cutané : nombre fini entre 1 et 120, arrondi. Sinon null (aucune carte). */
   function displayAge(v) {
     const n = num(v);
@@ -237,7 +242,7 @@
   function toResultView(normalized) {
     const n = isObj(normalized) ? normalized : {};
     const metrics = METRIC_KEYS.map((key, order) => Object.assign({ key, order, label: METRIC_LABELS[key] },
-      scoreView(isObj(n[key]) ? n[key].uiScore : null)));
+      indicatorView(isObj(n[key]) ? n[key].uiScore : null)));
     const ranked = metrics.filter(m => m.score !== null).sort((a, b) => a.score - b.score || a.order - b.order);
     const priorities = ranked.slice(0, PRIORITY_COUNT);
     const chosen = new Set(priorities.map(m => m.key));
@@ -284,7 +289,7 @@
   }
 
   return {
-    SCHEMA_VERSION, METRICS, METRIC_KEYS, SKIN_TYPE_LABELS, OUTPUT_PATH, BANDS, METRIC_LABELS,
+    SCHEMA_VERSION, METRICS, METRIC_KEYS, SKIN_TYPE_LABELS, OUTPUT_PATH, BANDS, INDICATOR_BAND_LABELS, METRIC_LABELS, indicatorView,
     parseSkinResponse, sanitizeNormalized,
     scanLabels,
     displayScore, scoreBand, displayAge, toResultView, TREND_STEP, compareScores, compareScans, globalSeries, skinTypeKey

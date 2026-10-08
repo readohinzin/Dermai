@@ -102,8 +102,10 @@ test('UX7 empreinte des décisions du moteur (règles 1.2.0) sur 1500 profils : 
   /* Étape 25 (règles 1.2.0) : empreinte changée VOLONTAIREMENT (ancienne : 06052f30…, règles 1.1.0). Ces 1500 profils n'ont pas de
      rawScore : ils sont lus en compatibilité (score affiché, repères 61 / 31), et la comparaison exécutée sur les deux versions montre
      que chaque décision modifiée l'est par les rôles des indicateurs (niveau d'huile, texture, fermeté descriptifs ; radiance et rides
-     soumises à un objectif), y compris la place libérée sous le plafond de trois. Aucun autre changement. */
-  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), 'eb08f3bd0fe778bc0ebfdade9381e8e5898f9d0d4280711c6a54688ea3a64800');
+     soumises à un objectif), y compris la place libérée sous le plafond de trois. Aucun autre changement.
+     Étape 26 : empreinte changée par des TEXTES seulement (libellés « Favorable », « axe à soutenir », « priorité de soin »). Les décisions
+     sont inchangées : test/analysis-coherence.test.js (C0) compare une empreinte de décisions seules au code d'avant l'étape. */
+  assert.equal(crypto.createHash('sha256').update(out.join('\n')).digest('hex'), '78d3068469da8dd3a461317af6a4368191965f3409493c2937cd7f7164c4ca94');
 });
 
 test('UX8 conseils par préoccupation : aucune promesse de texture légère ou non comédogène (même règle que la routine)', () => {

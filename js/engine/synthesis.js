@@ -73,7 +73,10 @@
   }
   function retained(h, prios, interp, profile) {
     const parts = [];
-    if (prios.items.length) { parts.push(S.retained(h.tiers.priority)); parts.push(S.retainedWhy(prios.items.length)); }
+    if (prios.items.length) {
+      const strong = h.tiers.priority.filter(i => i.band === 'low'), support = h.tiers.priority.filter(i => i.band !== 'low');
+      parts.push(S.retained(strong, support)); parts.push(S.retainedWhy(prios.items.length));
+    }
     else parts.push(S.noNeed);
     const goals = profile.goals || [];
     const rest = h.main.filter(i => !h.prioIds.has(i.id));
@@ -90,6 +93,25 @@
     if (gated.length) parts.push(S.gated(asc(gated).map(pick), [...new Set(gated.map(i => copy.GOAL_LABELS[i.roleGoal]))]));
     if (interp.basis !== 'raw' && h.main.length) parts.push(S.compat);
     return parts.join(' ');
+  }
+
+  /* Statut DERMAI de chaque indicateur affiché (carte du visage, page d'un indicateur). Lecture des décisions déjà prises : le masque
+     de localisation n'entre jamais ici. */
+  function statuses(interp, prios, profile) {
+    const goals = profile.goals || [], kept = new Map(prios.items.map(p => [p.indicator, p]));
+    const out = {};
+    for (const i of interp.indicators.filter(x => x.available)) {
+      let state;
+      if (kept.has(i.id)) state = i.band === 'low' ? 'priority' : 'support';
+      else if (!under(i)) state = 'favorable';
+      else if (i.role === 'descriptive') state = 'descriptive';
+      else if (i.role === 'informative' || (i.role === 'goal_gated' && !goals.includes(i.roleGoal))) state = 'informative';
+      else if (dep.priorities.isCandidate(i, goals)) state = 'beyond';
+      else state = 'noLever';
+      const goal = i.role === 'goal_gated' ? copy.GOAL_LABELS[i.roleGoal] : null;
+      out[i.id] = { id: i.id, label: i.label, score: i.score, state, level: S.LEVELS[state], text: state === 'informative' ? S.status.informative(goal) : S.status[state] };
+    }
+    return out;
   }
 
   /* 3. Objectifs : chacun est relié à son statut réel (personalization.js) et aux indicateurs concernés. Un objectif n'oriente que s'il
@@ -130,7 +152,7 @@
   }
 
   /* 5. Pourquoi chaque étape de la routine existe. Les étapes de base sont dites telles quelles : jamais « elle entretient votre score ». */
-  function steps(h, interp, routine, actives) {
+  function steps(h, interp, routine, actives, profile) {
     const base = interp.context.skinBase || 'unknown', ind = id => h.main.find(i => i.id === id);
     const all = [...routine.slots.morning, ...routine.slots.evening];
     const exfoliant = all.some(s => s.kind === 'treatment' && (actives.byId(s.activeId).groups || []).includes('evening_strong'));
@@ -141,8 +163,9 @@
       else if (st.kind === 'cleanse') t = S.step.base + (S.step.cleanse[base] || '');
       else if (st.kind === 'moisturize') {
         t = S.step.base;
+        if (h.prioIds.has('hydration')) t += S.step.moistKept;
         if (st.supportIds && st.supportIds.length) {
-          const targets = [...new Set(st.supportIds.flatMap(id => actives.byId(id).targets))].map(ind).filter(i => i && h.prioIds.has(i.id));
+          const targets = [...new Set(st.supportIds.flatMap(id => actives.byId(id).targets))].map(ind).filter(i => i && i.id !== 'hydration' && h.prioIds.has(i.id));
           t += S.step.moistSupports(st.supportIds.map(id => actives.byId(id).label), asc(targets).map(pick));
         }
         if (base === 'oily') t += ' ' + copy.stepReason.moisturizeOily;
@@ -150,7 +173,9 @@
       } else if (st.kind === 'spf') {
         t = S.step.base + (exfoliant ? S.step.spfExfoliant : '');
       } else if (st.kind === 'treatment') {
-        t = S.step.treatment(st.activeLabel, asc((st.indicators || []).map(ind).filter(Boolean)).map(pick));
+        const inds = asc((st.indicators || []).map(ind).filter(Boolean));
+        const g = (profile.goals || []).find(id => { const d = (D.GOALS.find(x => x.id === id) || {}).domain; return d && inds.some(i => i.domain === d); });
+        t = S.step.treatment(st.activeLabel, inds.map(pick), g ? copy.GOAL_LABELS[g] : null);
       }
       out[st.id] = t;
     }
@@ -185,7 +210,8 @@
       informative: interpretation.indicators.filter(i => i.available && i.actionability === 'informative').map(pick),
       goals: g,
       strategy: strat,
-      steps: steps(h, interpretation, routinePlan, dep.actives),
+      steps: steps(h, interpretation, routinePlan, dep.actives, profile),
+      indicators: statuses(interpretation, priorities, profile),
       products: productsApi ? products(h, routinePlan, productMatches, catalog, productsApi) : {}
     };
   }

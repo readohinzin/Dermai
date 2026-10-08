@@ -2,18 +2,27 @@
    (Engine.run → synthesis) ou des masques réels (carte du visage). Chargé avant app.js. */
 (function (root) {
   'use strict';
-  const SM = () => root.SkinModel, EN = () => root.DermaiEngine;
+  const G = typeof globalThis !== 'undefined' ? globalThis : root, SM = () => root.SkinModel || G.SkinModel, EN = () => root.DermaiEngine || G.DermaiEngine;
   const chip = (i, cls) => `<span class="c-badge ${cls}">${i.label} · ${i.score}</span>`;
 
-  /* Carte du visage : photo analysée + masques RÉELS de Perfect Corp. Aucune zone déduite d'un score, d'une priorité ou du type de peau. */
-  function faceMap(s,keys,state,esc){
-    const sel=keys.includes(state.faceKey)?state.faceKey:`all`,lab=k=>SM().METRIC_LABELS[k];
+  /* Carte du visage : photo analysée + masques RÉELS de Perfect Corp, UN indicateur à la fois. Aucune zone déduite d'un score, d'une
+     priorité ou du type de peau ; aucune étiquette ni trait ajoutés sur la photo. Sous la carte : ce qui a été détecté (masque) et ce que
+     DERMAI en décide (score, js/engine/synthesis.js) sont dits séparément : une détection n'est jamais une priorité en soi.
+     s : analyse ; withMasks : indicateurs ayant au moins un masque reçu ; y : synthèse du moteur (statut de chaque indicateur). */
+  function faceMap(s, withMasks, state, esc, y) {
+    const M = SM(), st = (y && y.indicators) || {}, S = EN().copy.SYNTH;
+    const main = M.METRIC_KEYS.filter(k => st[k] && (EN().indicatorsData.INDICATORS[k].actionability === 'actionable' || withMasks.includes(k)));
+    const chips = main.length ? main : withMasks;
+    const sel = chips.includes(state.faceKey) ? state.faceKey : (withMasks[0] || chips[0]);
+    const has = withMasks.includes(sel), info = st[sel];
     return `<section class="c-facemap" aria-labelledby="fm-title"><p class="kicker">Localisation</p><div class="hd"><h2 class="h3" id="fm-title">Zones détectées sur votre photo</h2></div>
-   <p class="muted c-facemap__intro">Chaque zone entourée provient directement du service d'analyse, avec le score de l'indicateur.</p>
-   <div class="chips c-facemap__chips">${[`all`,...keys].map(k=>`<button class="c-chip" data-act="facemap" data-v="${k}" aria-pressed="${k===sel}">${k===`all`?`Toutes les zones`:lab(k)}</button>`).join(``)}</div>
-   <figure class="c-facemap__fig"><div class="c-facemap__frame" data-facemap data-key="${sel}"><img src="${esc(s.photo)}" alt="Votre photo analysée"><canvas aria-hidden="true"></canvas><svg class="c-facemap__lines" aria-hidden="true"></svg><div class="c-facemap__tags"></div></div>
-    <figcaption class="c-facemap__status" data-fm-status role="status" aria-live="polite"></figcaption></figure>
-   <button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide?`Afficher les zones`:`Voir la photo sans les zones`}</button></section>`;
+   <p class="muted c-facemap__intro">Choisissez un indicateur : seules les zones que l'analyse a renvoyées pour lui s'affichent sur votre photo.</p>
+   <div class="chips c-facemap__chips" role="group" aria-label="Indicateur affiché">${chips.map(k => `<button class="c-chip" data-act="facemap" data-v="${k}" aria-pressed="${k === sel}">${M.METRIC_LABELS[k]}</button>`).join('')}</div>
+   <figure class="c-facemap__fig"><div class="c-facemap__frame" data-facemap data-key="${has ? sel : ''}"><img src="${esc(s.photo)}" alt="Votre photo analysée"><canvas aria-hidden="true"></canvas></div>
+    <figcaption class="c-facemap__status" data-fm-status role="status" aria-live="polite">${has ? '' : S.map.unavailable}</figcaption></figure>
+   ${has ? `<button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide ? 'Afficher les zones' : 'Voir la photo sans les zones'}</button>` : ''}
+   <div class="c-facemap__read">${has ? `<p data-fm-detect>${S.map.detected(sel, M.METRIC_LABELS[sel])}</p>` : ''}${info ? `<p><b>${info.label} · ${info.score}/100 · ${info.level}.</b> ${info.text}</p>` : ''}
+   <p class="c-disclaimer">${S.map.note}</p></div></section>`;
   }
 
   /* Synthèse en quatre parties distinctes (js/engine/synthesis.js) : ce que l'analyse montre, vos résultats les moins élevés (comparaison

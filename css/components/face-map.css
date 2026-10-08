@@ -1,22 +1,15 @@
 /* Carte du visage (js/face-map.js) : la photo analysée et les masques réels de Perfect Corp, superposés dans la même boîte,
-   avec des étiquettes autour du visage reliées par un trait fin à un point réel de chaque zone.
-   L'image garde ses proportions (largeur 100 %, hauteur automatique, aucun recadrage) ; canevas, traits et étiquettes couvrent la même boîte. */
+   un indicateur à la fois, sans étiquette ni trait ajoutés. L'image garde ses proportions (largeur 100 %, hauteur automatique, aucun
+   recadrage) ; le canevas des masques couvre exactement la même boîte. */
 .c-facemap{margin-bottom:8px}
 .c-facemap__intro{margin-bottom:14px}
 .c-facemap__chips{margin-bottom:16px;flex-wrap:wrap}
 .c-facemap__fig{margin:0}
 .c-facemap__frame{position:relative;max-width:560px;margin:0 auto;border-radius:var(--radius-lg,24px);overflow:hidden;background:var(--tint,#F8E7EA);line-height:0}
 .c-facemap__frame img{display:block;width:100%;height:auto}
-.c-facemap__frame canvas,.c-facemap__lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.c-facemap__lines line{stroke:rgba(255,246,248,.95);stroke-width:1.5;filter:drop-shadow(0 0 1.5px rgba(33,27,29,.55))}
-.c-facemap__lines circle{fill:#fff;stroke:rgb(224,112,143);stroke-width:2}
-.c-facemap__tags{position:absolute;inset:0;pointer-events:none;line-height:1.15}
-.c-fm-tag{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px;max-width:96px;text-align:center}
-.c-fm-tag--l{left:8px}.c-fm-tag--r{right:8px}
-.c-fm-tag__score{display:grid;place-items:center;width:clamp(38px,9vw,50px);height:clamp(38px,9vw,50px);border-radius:50%;background:rgba(255,255,255,.95);
-  border:3px solid rgb(224,112,143);color:var(--ink,#211B1D);font-weight:800;font-size:clamp(14px,3.6vw,18px);box-shadow:0 4px 14px rgba(33,27,29,.25)}
-.c-fm-tag__name{padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--ink,#211B1D);font-weight:700;font-size:clamp(11px,2.9vw,13px);
-  box-shadow:0 2px 8px rgba(33,27,29,.18);overflow-wrap:anywhere}
+.c-facemap__frame canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .c-facemap__status{min-height:1.2em;margin-top:10px;font-size:14px;color:var(--ink-3,#6E5E64);text-align:center;line-height:1.4}
 .c-facemap__status:empty{display:none}
 .c-facemap__toggle{display:inline-flex;align-items:center;min-height:44px;margin-top:6px}
+.c-facemap__read{max-width:560px;margin:10px auto 0;color:var(--ink,#211B1D);line-height:1.5}
+.c-facemap__read p{margin:0 0 8px}

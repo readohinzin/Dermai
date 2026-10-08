@@ -53,7 +53,7 @@ test('FM2 aucun masque : rien n\'est renvoyé, rien n\'est proposé à l\'affich
   assert.equal(FM.sanitize(undefined, skinModel.METRIC_KEYS), null);
   const app = read('js/app.js');
   assert.match(app, /const fmKeys=!H&&!DEMO_MODE&&s\.photo&&s\.localization\?SkinModel\.METRIC_KEYS\.filter\(k=>s\.localization\[k\]\):\[\];/);
-  assert.match(app, /\$\{fmKeys\.length\?faceMapHtml\(s,fmKeys\):``\}/);
+  assert.match(app, /\$\{fmKeys\.length\?faceMapHtml\(s,fmKeys,eng\.synthesis\):``\}/);
 });
 
 test('FM3 pas d\'invention : les scores ne créent ni ne modifient aucune zone', async () => {
@@ -79,8 +79,8 @@ test('FM4 / FM5 priorités et type de peau : n\'ont aucun effet sur la localisat
 
 test('FM6 pays : le choix du pays ne touche pas aux masques (aucune dépendance)', () => {
   const app = read('js/app.js');
-  assert.match(app, /DermaiFaceMap\.mount\(fm,\{items,hidden:!!state\.faceHide,onStatus:/);
-  assert.match(app, /const items=keys\.map\(k=>\(\{key:k,label:SkinModel\.METRIC_LABELS\[k\],score:SkinModel\.displayScore\(sc\.normalized\[k\]&&sc\.normalized\[k\]\.uiScore\),masks:loc\[k\]\}\)\)/);
+  /* Un seul indicateur, ses seuls masques réels : ni score, ni pays, ni priorité ne sont transmis à la carte. */
+  assert.match(app, /DermaiFaceMap\.mount\(fm,\{items:k&&loc\[k\]\?\[\{key:k,label:SkinModel\.METRIC_LABELS\[k\],masks:loc\[k\]\}\]:\[\],hidden:!!state\.faceHide,onStatus:/);
   assert.doesNotMatch(code('js/face-map.js'), /market|country|MK\./i);
 });
 
@@ -107,7 +107,7 @@ test('FM9 alignement : un masque n\'est superposé que s\'il a les mêmes propor
   assert.equal(FM.ratioMatches(0, 1600, 600, 800), false);
   const css = read('css/components/face-map.css');
   assert.match(css, /\.c-facemap__frame img\{display:block;width:100%;height:auto\}/);
-  assert.match(css, /\.c-facemap__frame canvas,\.c-facemap__lines\{position:absolute;inset:0;width:100%;height:100%;pointer-events:none\}/);
+  assert.match(css, /\.c-facemap__frame canvas\{position:absolute;inset:0;width:100%;height:100%;pointer-events:none\}/);
   assert.doesNotMatch(css, /object-fit/);
 });
 
@@ -205,20 +205,15 @@ test('FM13 handler : masques réels présents → `localization` (data URL) à c
   } finally { perfectcorp.analyzeSkin = orig; console.log = quiet; }
 });
 
-test('FM14 étiquettes : accrochées à un VRAI pixel de la zone, côté choisi par la zone, jamais de chevauchement ni de sortie du cadre', () => {
-  const W = 40, H = 40;
-  // deux zones séparées (joues) dans un même masque : le centre de masse (milieu) n'est PAS dans la zone, le point d'accroche oui
-  const a = new Uint8ClampedArray(W * H);for (let y = 15; y < 25; y++) { for (let x = 4; x < 10; x++) a[y * W + x] = 255; for (let x = 30; x < 36; x++) a[y * W + x] = 255; }
-  const g = FM.zoneGeometry(a, W, H);
-  const inZone = p => a[Math.floor(p.y * H) * W + Math.floor(p.x * W)] >= 128;
-  assert.ok(Math.abs(g.cx - .5) < .05, 'centre de masse au milieu (hors zone)');
-  assert.ok(inZone(g.left) && inZone(g.right), 'points d\'accroche dans la zone réelle');
-  assert.ok(g.left.x < .3 && g.right.x > .7);
-  assert.equal(FM.zoneGeometry(new Uint8ClampedArray(W * H), W, H), null);
-  const tops = FM.layoutTags([100, 104, 108, 112], 400, 60);
-  for (let i = 1; i < tops.length; i++) assert.ok(tops[i] >= tops[i - 1] + 60, 'pas de chevauchement');
-  assert.ok(tops.every(t => t >= 8 && t + 60 <= 392), 'dans le cadre');
-  const low = FM.layoutTags([395, 398], 400, 60);assert.ok(low[1] + 60 <= 392 && low[0] + 60 <= low[1]);
-  // texte affiché tel quel, échappé
-  assert.match(read('js/face-map.js'), /escTxt\(it\.label\)/);
+test('FM14 rien n\'est ajouté par DERMAI sur la photo : ni étiquette, ni trait, ni point, ni contour anatomique (étape 26)', () => {
+  /* Les étiquettes et leurs traits de liaison étaient dessinés par DERMAI (pas par Perfect Corp) : retirés. Le seul dessin est le masque
+     reçu (remplissage + liseré clair au bord de SES pixels, calculé à partir du masque lui-même). */
+  const src = code('js/face-map.js');
+  assert.doesNotMatch(src, /zoneGeometry|layoutTags|c-fm-tag|<line|<circle|svg|lineTo|arc\(|strokeRect|ellipse/i);
+  assert.equal(FM.zoneGeometry, undefined); assert.equal(FM.layoutTags, undefined);
+  assert.doesNotMatch(read('css/components/face-map.css'), /c-fm-tag|c-facemap__lines/);
+  const W = 20, H = 20, a = new Uint8ClampedArray(W * H);
+  for (let y = 5; y < 10; y++) for (let x = 5; x < 10; x++) a[y * W + x] = 255;
+  const px = FM.paint(a, W, H);
+  for (let i = 0; i < W * H; i++) if (!a[i]) assert.equal(px[i * 4 + 3], 0, 'hors du masque : rien n\'est peint');
 });

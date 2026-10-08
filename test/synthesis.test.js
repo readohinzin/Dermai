@@ -30,10 +30,10 @@ test('S0 scénario de référence (dernier résultat réel, sans rawScore) : qua
   assert.deepEqual(ids(y.tiers.other), ['texture', 'acne', 'pigmentation', 'firmness']);
   assert.deepEqual(y.titles, { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DERMAI retient', strategy: 'Votre stratégie' });
   assert.equal(y.sections.shows, 'Votre analyse donne 10 indicateurs principaux, de 65 à 99 sur 100. Vos résultats les plus élevés : rougeurs (99), pores (81) et rides (79). Profil de peau indiqué par l\'analyse : peau grasse.');
-  assert.equal(y.sections.lowest, 'Radiance (65), niveau d\'huile (67) et hydratation (67). C\'est une comparaison entre vos propres résultats : un résultat moins élevé n\'est pas forcément un besoin.');
-  assert.match(y.sections.retained, /^DERMAI ne retient aucun besoin particulier : aucun indicateur sur lequel DERMAI peut agir n'est sous ses repères\. Votre routine reste une routine d'entretien\./);
+  assert.equal(y.sections.lowest, 'Radiance (65), niveau d\'huile (67) et hydratation (67). Vos résultats les moins élevés correspondent à une comparaison entre les indicateurs analysés. Un résultat plus bas ne constitue pas automatiquement une priorité de soin.');
+  assert.match(y.sections.retained, /^DERMAI ne retient ni priorité de soin ni axe à soutenir : aucun indicateur sur lequel DERMAI peut agir n'est sous ses repères\. Votre routine reste une routine d'entretien\./);
   assert.match(y.sections.retained, /Niveau d'huile \(67\) : résultat décrit sans soin ciblé automatique/);
-  assert.match(y.sections.retained, /Cette analyse ne contient pas de données brutes : DERMAI applique ses repères au score affiché, sans rien reconstruire\./);
+  assert.match(y.sections.retained, /Analyse historique : données brutes non disponibles\. DERMAI applique ses repères au score affiché, sans rien reconstruire\./);
   assert.doesNotMatch(y.sections.retained, /radiance/i, 'une radiance favorable ne devient jamais un problème');
   assert.equal(y.sections.strategy, 'Stratégie : entretien de base (nettoyage doux, hydratation, protection solaire), adapté à votre profil (peau grasse). Aucun soin ciblé n\'est ajouté.');
   assert.equal(y.goals.text, 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule.');
@@ -61,13 +61,14 @@ test('S1 cas 1 profil globalement favorable → entretien, rien ne se détache',
   assert.deepEqual(y.tiers.lowest, []);
   assert.match(y.sections.lowest, /très proches les uns des autres : aucun ne se détache/);
   assert.match(y.strategy.text, /^Stratégie : entretien de base/);
-  assert.match(y.sections.retained, /^DERMAI ne retient aucun besoin particulier/);
+  assert.match(y.sections.retained, /^DERMAI ne retient ni priorité de soin ni axe à soutenir/);
 });
 
 test('S2 cas 2 un résultat sous les repères, avec une règle DERMAI → besoin retenu', () => {
   const y = run({ hydration: 40 }).synthesis;
   assert.deepEqual(ids(y.tiers.priority), ['hydration']);
-  assert.match(y.sections.retained, /^DERMAI retient un besoin à soutenir pour : hydratation \(40\)\. D'après les données de l'analyse, ce résultat est sous les repères DERMAI/);
+  assert.match(y.sections.retained, /^Aucun indicateur ne ressort comme priorité forte\. En revanche, DERMAI retient un axe à soutenir : hydratation \(40\)\. D'après les données de l'analyse, ce résultat est sous les repères DERMAI/);
+  assert.match(run({ hydration: 20, pores: 40 }).synthesis.sections.retained, /^DERMAI retient une priorité de soin : hydratation \(20\), et un axe à soutenir : pores \(40\)\./);
   assert.equal(y.strategy.mode, 'action');
 });
 
@@ -131,7 +132,7 @@ test('S11 produit sans justification : jamais proposé ni présenté comme adapt
       assert.ok(m.activeIds.length > 0, 'tout produit réel proposé contient ce que son étape recherche (' + m.productId + ')');
       assert.ok(st.kind === 'treatment' ? m.activeIds.includes(st.activeId) : m.activeIds.every(id => st.supportIds.includes(id)));
       assert.ok(['only', 'more_actives', 'skin', 'editorial', 'order'].includes(m.selection.rule));
-      assert.match(r.synthesis.products[m.stepId].text, /^Proposé par DERMAI\. .*(Ce soin le contient|actifs de soutien retenus).*(seul produit|Parmi \d+ produits)/);
+      assert.match(r.synthesis.products[m.stepId].text, /^Proposé par DERMAI\. Choisi parce qu'il contient (l'actif recherché pour cet axe|les ingrédients recherchés pour l'hydratation) : .*(seul produit|Parmi \d+ produits)/);
     }
   }
   // le Cicaplast reste proposé quand sa composition répond à un besoin réel (soutien retenu), avec la raison

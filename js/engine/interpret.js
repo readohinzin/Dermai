@@ -55,7 +55,7 @@
       const value = !available ? null : basis === 'raw' ? b.raw : b.ui.score;
       const band = decisionBand(value, basis), role = (DEC.ROLES[b.id] || { role: 'descriptive' });
       return { id: b.id, order, label: skin.METRIC_LABELS[b.id],
-        score: b.ui.score, uiBand: b.ui.band, uiBandLabel: b.ui.bandLabel,          // affichage
+        score: b.ui.score, uiBand: b.ui.band, uiBandLabel: b.ui.band ? skin.INDICATOR_BAND_LABELS[b.ui.band] : null,   // affichage
         rawScore: available ? b.raw : null, value, band: band ? band.key : null, bandLabel: band ? band.label : null, basis,   // décision
         available, role: role.role, roleGoal: role.goal || null,
         domain: meta.domain, actionability: meta.actionability, confidence: meta.confidence };

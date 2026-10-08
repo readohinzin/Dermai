@@ -74,7 +74,7 @@ test('R7 radiance : information seulement, sauf objectif explicite + règle expl
   assert.deepEqual(prio(fav), []);
   assert.equal(fav.synthesis.goals.items[0].status, 'no_signal');
   assert.doesNotMatch(allText(fav), /radiance[^."]*(faible|besoin à soutenir|protection solaire)/i);
-  assert.doesNotMatch(Object.values(copy.SYNTH.step).map(v => typeof v === 'function' ? v(['x'], []) : JSON.stringify(v)).join(' '), /radiance|teint/i);
+  assert.doesNotMatch(Object.values(copy.SYNTH.step).map(v => typeof v === 'function' ? (v.length >= 3 ? v('x', [], null) : v(['x'], [])) : JSON.stringify(v)).join(' '), /radiance|teint/i);
   // rides : même règle, objectif « rides et fermeté »
   assert.deepEqual(prio(run({ wrinkles: 60 }, { rawMap: { wrinkles: 30 } })), []);
   assert.deepEqual(prio(run({ wrinkles: 60 }, { rawMap: { wrinkles: 30 } }, { goals: ['aging'] })), ['wrinkles']);
@@ -85,7 +85,8 @@ test('R8 hydratation : peut agir (règle existante), avec les ingrédients de so
   assert.deepEqual(prio(r), ['hydration']);
   const sup = r.activePlan.supports.map(s => s.activeId);
   assert.ok(sup.includes('hyaluronic'), sup.join());
-  assert.match(r.synthesis.steps['morning:moisturize'], /^Cette étape fait partie de l'entretien de base\. Hydratant recherché avec .+, retenus? pour hydratation \(67\)\.$/);
+  assert.match(r.synthesis.steps['morning:moisturize'], /^Cette étape fait partie de l'entretien de base\. DERMAI retient l'hydratation comme axe de soin dans cette analyse\. L'objectif est de soutenir le confort et l'hydratation de la peau\. Ingrédients recherchés dans l'hydratant : .+\.$/);
+  assert.doesNotMatch(r.synthesis.steps['morning:moisturize'], /déshydrat/i);
 });
 
 test('R9 acné : peut agir (règle existante, règles de sécurité conservées)', () => {
@@ -131,7 +132,7 @@ test('R13 analyse ancienne sans raw → compatibilité : score affiché et ancie
   assert.equal(old.interpretation.basis, 'ui');
   assert.deepEqual(prio(old), ['hydration'], 'hydratation 55 : sous l\'ancien repère 61');
   assert.ok(old.interpretation.indicators.every(i => i.rawScore === null), 'aucun rawScore reconstruit');
-  assert.match(old.synthesis.sections.retained, /ne contient pas de données brutes/);
+  assert.match(old.synthesis.sections.retained, /Analyse historique : données brutes non disponibles/);
   // rawScore partiel : jamais de mélange, toute l'analyse reste en compatibilité
   const partial = Engine.run(norm({ hydration: 55, pores: 70 }, { rawMap: { hydration: 90 } }), {});
   assert.equal(partial.interpretation.basis, 'ui');

@@ -1,0 +1,24 @@
+{
+  "_comment": "Analyse réelle n° 2 (étape 26) : rawScore réellement conservés (raw_metrics), copiés tels quels. Les ui_score de cette analyse n'ont pas été communiqués : 'ui' ci-dessous est une valeur d'affichage de test identique pour tous les indicateurs, SANS effet sur la décision (le moteur décide sur raw ; vérifié par le test RC2). Profil : peau grasse, score global environ 72, âge cutané environ 44 ans.",
+  "raw": {
+    "acne": 76.87877999999999,
+    "pores": 46.761481404304504,
+    "eyeBag": 60.3975772857666,
+    "redness": 94.27438354492188,
+    "texture": 48.09679388999939,
+    "firmness": 57.49251842468262,
+    "oiliness": 71.61550903320312,
+    "radiance": 65.79387187957764,
+    "wrinkles": 53.59565615653992,
+    "hydration": 36.81532442569733,
+    "darkCircle": 71.50667309761047,
+    "tearTrough": 50.5317360162735,
+    "pigmentation": 75.44281768798828,
+    "droopyLowerEyelid": 47.08329737186432,
+    "droopyUpperEyelid": 74.13777112960815
+  },
+  "uiForDisplayTests": 70,
+  "skinType": "Oily",
+  "globalScore": 72,
+  "skinAge": 44
+}

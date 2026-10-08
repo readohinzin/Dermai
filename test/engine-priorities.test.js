@@ -15,7 +15,7 @@ test('PR2 un seul score faible : une seule priorité, avec sa raison et son expl
   assert.deepEqual(ids(r.priorities.items), ['pores']);
   const it = r.priorities.items[0];
   assert.deepEqual([it.score, it.band, it.domain, it.objectiveMatch, it.actionability, it.confidence, it.rank], [40, 'mid', 'oil_pores', false, 'actionable', 'medium', 1]);
-  assert.match(it.reason, /sous les repères DERMAI : DERMAI le retient comme besoin à soutenir\./);
+  assert.match(it.reason, /sous les repères DERMAI : DERMAI le retient comme axe à soutenir\./);   // repère « mid » : axe à soutenir (étape 26)
   assert.equal(r.priorities.mode, 'action');
 });
 
