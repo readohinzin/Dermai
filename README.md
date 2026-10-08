@@ -182,3 +182,15 @@ Source unique des rôles : `js/engine/data/decision.js` (`ROLES`, `isInformative
 Limites connues : un seul actif doux validé (rides, fermeté, radiance, contour des yeux n'ont aucun accompagnement possible) ; la règle « distinct » est relative (par rapport aux autres résultats de la même analyse), non calibrée sur des données réelles ; objectifs « texture », « huile » et « fermeté » toujours sans effet sur leur propre indicateur (descriptifs). Les analyses sans raw suivent les mêmes règles sur la base ui (repères 61 / 31). Rien n'est enregistré en plus (pas de migration) : l'historique affiche les priorités enregistrées.
 
 **Empreintes C0** (preuves de non-régression) : `test/c0-priorities.test.js` fige les priorités (ne change jamais) ; `test/analysis-coherence.test.js` : C0 ADDITIF retrouve l'ancienne empreinte des décisions (`4c56df43…`) quand l'accompagnement est désactivé (`MAX_ACCOMPANIMENT_AXES = 0`), C0 COMPLET est la nouvelle empreinte avec accompagnement ; `test/ux-final.test.js` (UX7) retrouve `78d30684…` désactivé. Le test différentiel ACC-DIFF (`test/accompaniment.test.js`) compare ancien et nouveau moteur profil par profil.
+
+## Exporter et partager le résultat (étape 28)
+
+Sur l'écran Résultat, une carte « Garder ou partager votre résultat » : **Télécharger en PDF** et **Partager**. Aucune décision n'y est prise : le document met en page ce que l'écran montre (scores affichés, axes de soin, accompagnement léger, stratégie, routine matin et soir, produits proposés par DERMAI, objectifs), depuis la sortie du moteur.
+
+- **Le PDF est créé sur l'appareil** (`js/export-pdf.js`, sans dépendance : polices standard Helvetica, accents WinAnsi, A4, pagination, pied de page sur chaque page) et mis en forme par `js/export-view.js`. Rien n'est envoyé à un serveur, rien n'est enregistré (ni stockage du navigateur, ni base, ni adresse) ; pas de migration.
+- **Jamais de `raw_score`, jamais de masque** dans le fichier : seuls les scores affichés.
+- **Photo en option** : case « Inclure ma photo », décochée par défaut, proposée seulement si la photo de l'analyse est disponible dans la session. Elle est repassée par un canvas (orientation appliquée, réduite à 900 px, JPEG) : le fichier ne contient ni EXIF ni position GPS. Si la lecture échoue, le document est produit sans photo.
+- **Partager** utilise le partage du système : le fichier PDF si l'appareil le permet, sinon un texte court avec l'adresse du site (jamais le résultat), sinon copie du résumé dans le presse-papiers, sinon téléchargement. Annuler n'affiche aucune erreur. Aucun lien public.
+- **Analyse plus ancienne** : seuls les axes enregistrés à sa date apparaissent, sans stratégie, routine ni accompagnement recalculés (comme l'écran). Mode démonstration : aucune carte.
+- Tests : `test/export.test.js` (EXP1 à EXP14), harnais navigateur aux six largeurs (téléchargement réel, PDF relu avec `pdftotext`, partage simulé, aucune requête réseau).
+

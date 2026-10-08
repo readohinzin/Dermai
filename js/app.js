@@ -849,6 +849,7 @@ V.result=()=>{
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
       <p style="color:var(--ink);margin-bottom:14px">${eng.synthesis.strategy.text}</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>`}
+    ${DermaiExport.card(eng,s,{H,demo:DEMO_MODE,catalog:catalogNow(),blob:s.blob})}
     <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
