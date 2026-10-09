@@ -17,7 +17,9 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
 const fnBody = (src, sig) => { const i = src.indexOf(sig); assert.ok(i >= 0, 'fonction introuvable : ' + sig); let d = 0, j = src.indexOf('{', i); const s0 = j; for (; j < src.length; j++) { if (src[j] === '{') d++; else if (src[j] === '}' && --d === 0) break; } return src.slice(s0, j + 1); };
 const memory = (init) => { const m = new Map(init ? Object.entries(init) : []); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), raw: m }; };
-const REAL = CAT.PRODUCTS, blemish = P.byId('cerave-blemish-control-gel', REAL), noOffer = P.byId('to-hyaluronic-b5-ceramides', REAL);
+const INV = require('./fixtures/catalog-inventory.js');
+const REAL = CAT.PRODUCTS, blemish = P.byId('cerave-blemish-control-gel', REAL);   // modèle d\'identité pour les produits d\'essai : ses vraies offres ne servent à aucune règle ci-dessous
+const NO_OFFER = INV.productWithoutOffers(), noOffer = NO_OFFER.product;           // un produit réel sans offre (copie explicite, `synthetic`, si le catalogue n\'en a plus)
 const mkOffer = o => Object.assign({ retailer: 'Vendeur', type: 'retailer', availability: 'in_stock', source: 'Page du vendeur', checkedAt: '2026-10-07' }, o);
 const mkProduct = offers => Object.assign({}, blemish, { id: 'test-product', offers });
 
@@ -52,10 +54,11 @@ test('MK2 pays demandés présents ; liste extensible sans toucher au moteur ; d
 test('MK3 A. aucun pays choisi : aucun pays par défaut, aucun blocage', () => {
   const st = memory();
   assert.equal(Market.read(st), null); assert.equal(Market.read(null), null);
-  const v = P.marketView(blemish, null);
+  const v = P.marketView(mkProduct([mkOffer({ market: 'ZA', currency: 'ZAR', price: 300 }), mkOffer({ market: 'NG', currency: 'NGN', price: 2999, retailer: 'Autre' })]), null);
   assert.equal(v.country, null); assert.equal(v.tier, 'no-country'); assert.deepEqual([v.local, v.regional, v.international], [[], [], []]);
   assert.equal(P.marketView(blemish, 'XX').tier, 'no-country', 'un code inconnu vaut « pas de pays »');
   assert.equal(v.all.length, 2, 'les offres connues (Afrique du Sud, Nigeria) restent consultables');
+  assert.equal(P.marketView(blemish, null).all.length, P.offersOf(blemish).length, 'sans pays, toutes les offres valides du vrai produit restent consultables');
 });
 
 test('MK4 B, C, Q. pays choisi, modifié, retrouvé après rechargement ; valeurs invalides refusées ; stockage indisponible sans plantage', () => {
@@ -73,17 +76,17 @@ test('MK4 B, C, Q. pays choisi, modifié, retrouvé après rechargement ; valeur
 
 /* ---------- Offres selon le marché : D, E, F, G, H ---------- */
 test('MK5 D. offre locale : elle passe en premier, avec son vendeur, sa devise et son prix', () => {
-  const v = P.marketView(blemish, 'ZA');
+  const v = P.marketView(mkProduct([mkOffer({ market: 'ZA', currency: 'ZAR', price: 300, retailer: 'Dermastore', url: 'https://boutique-vraie.org/za' }), mkOffer({ market: 'NG', currency: 'NGN', price: 2999, retailer: 'Jumia Nigeria', url: 'https://boutique-vraie.org/ng' })]), 'ZA');
   assert.equal(v.tier, 'local'); assert.equal(v.local.length, 1);
   assert.deepEqual([v.local[0].retailer, v.local[0].currency, v.local[0].price, v.local[0].availability], ['Dermastore', 'ZAR', 300, 'in_stock']);
   assert.equal(v.local[0].buyable, true); assert.equal(v.countryName, 'Afrique du Sud');
 });
 
 test('MK6 E. aucune offre locale : ni « indisponible » ni offre inventée ; le produit existe toujours', () => {
-  const bj = P.marketView(blemish, 'BJ');
+  const bj = P.marketView(mkProduct([mkOffer({ market: 'ZA', currency: 'ZAR', price: 300 }), mkOffer({ market: 'NG', currency: 'NGN', price: 2999, retailer: 'Autre' })]), 'BJ');   // offres d\'autres pays seulement
   assert.deepEqual(bj.local, []); assert.notEqual(bj.tier, 'local');
   assert.equal(P.marketView(noOffer, 'BJ').tier, 'none'); assert.equal(P.marketView(noOffer, 'BJ').all.length, 0);
-  assert.equal(P.usable(REAL).includes(noOffer), true, 'un produit sans offre reste dans le catalogue');
+  assert.equal(P.usable(NO_OFFER.synthetic ? REAL.concat([noOffer]) : REAL).includes(noOffer), true, 'un produit sans offre reste dans le catalogue');
   assert.match(copy.MARKET_TEXTS.noLocal, /^Aucune offre vérifiée pour ce pays pour le moment\.$/);
   assert.match(copy.MARKET_TEXTS.noLocalCard, /^Aucune offre vérifiée pour votre pays pour le moment\.$/);
   for (const t of Object.values(copy.MARKET_TEXTS)) if (typeof t === 'string') assert.doesNotMatch(t, /indisponible/i, 'jamais « indisponible » faute de donnée');
@@ -230,8 +233,9 @@ test('MK17 S. aucun faux prix : chaque prix du catalogue réel a sa devise, sa s
   let offers = 0;
   for (const p of REAL) for (const o of (p.offers || [])) { offers++; assert.deepEqual(P.validateOffer(o), [], p.id); if (o.price != null) assert.ok(o.currency && o.source && o.checkedAt, p.id); }
   assert.ok(offers >= 1);
-  const covered = new Set(['GH', 'KE', 'NG', 'ZA']);   // pays pour lesquels des offres vérifiées ont été intégrées (étape 16)
-  for (const c of Market.COUNTRIES) if (!covered.has(c.code)) for (const p of REAL) assert.equal(P.marketView(p, c.code).local.length, 0, c.code + ' / ' + p.id + ' : aucune offre locale inventée');
+  /* aucune offre locale inventée : pour chaque pays et chaque produit, les offres « du pays » affichées sont exactement les offres valides qui portent ce pays (le jeu de pays couverts vient de l\'inventaire) */
+  for (const c of Market.COUNTRIES) for (const p of REAL) assert.equal(P.marketView(p, c.code).local.length, (p.offers || []).filter(o => o.market === c.code && P.validateOffer(o, false).length === 0).length, c.code + ' / ' + p.id + ' : aucune offre locale inventée');
+  assert.ok(INV.markets.every(m => Market.COUNTRIES.some(c => c.code === m)), 'chaque pays d\'offre est un pays connu');
   assert.doesNotMatch(JSON.stringify(MD), /price|prix|vendor|retailer/i, 'la liste des pays ne contient aucune donnée commerciale');
 });
 

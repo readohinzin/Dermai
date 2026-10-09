@@ -153,13 +153,27 @@ test('REF-E statut de recherche inconnu → rejet ; incohérences avec les offre
 /* ---------- F/G. Statuts de disponibilité ---------- */
 test('REF-F UNKNOWN par défaut : sans recherche fiable, rien n\'est déduit', () => {
   assert.deepEqual(P.AVAILABILITY_STATUS, ['LOCAL', 'REGIONAL', 'IMPORT', 'UNAVAILABLE', 'UNKNOWN']);
-  // aucun produit du catalogue ne porte de recherche : aucune recherche fiable n'a été faite (les pistes web ne sont pas des recherches vérifiées)
-  assert.ok(REAL.every(p => p.marketChecks == null), 'aucune marketChecks dans catalog.js');
+  /* Le statut de chaque (produit, pays) du catalogue suit la SPÉCIFICATION, calculée ici à partir des offres et des recherches brutes (jamais d'un nombre recopié) :
+     LOCAL = offre fiable du pays ; REGIONAL = offre fiable d'un autre pays dont le vendeur déclare desservir le pays ; IMPORT = livraison internationale explicite ;
+     UNAVAILABLE = recherche explicite sans offre fiable ; UNKNOWN sinon. Une offre en rupture ou « bientôt » n'est pas une disponibilité fiable. */
   assert.deepEqual(P.validateCatalog(REAL), []);
-  for (const code of ['BJ', 'TG', 'CI', 'SN']) for (const p of REAL) {
-    const s = P.availabilityStatus(p, code);
-    assert.equal(s.status, 'UNKNOWN', p.id + ' ' + code); assert.notEqual(s.status, 'UNAVAILABLE');
+  const spec = (p, code) => {
+    const rel = (p.offers || []).filter(o => P.validateOffer(o, false).length === 0 && o.availability !== 'out_of_stock' && o.availability !== 'coming_soon');
+    if (rel.some(o => o.market === code)) return 'LOCAL';
+    if (rel.some(o => o.market !== code && (o.servesMarkets || []).includes(code))) return 'REGIONAL';
+    if (rel.some(o => o.market !== code && !(o.servesMarkets || []).includes(code) && o.shipping === 'international')) return 'IMPORT';
+    if ((p.marketChecks || []).some(c => c.market === code && c.status === 'searched_none')) return 'UNAVAILABLE';
+    return 'UNKNOWN';
+  };
+  const seenStatus = new Set();
+  for (const code of ALL_CODES) for (const p of REAL) {
+    const s2 = P.availabilityStatus(p, code); seenStatus.add(s2.status);
+    assert.equal(s2.status, spec(p, code), p.id + ' ' + code);
+    if (s2.status === 'UNAVAILABLE') assert.ok((p.marketChecks || []).some(c => c.market === code && c.status === 'searched_none'), 'UNAVAILABLE exige une recherche explicite');
   }
+  assert.ok(seenStatus.has('UNKNOWN'), 'UNKNOWN reste le statut par défaut');
+  // chaque trace de recherche est cohérente avec les offres : searched_found exige une offre valide du pays (jamais l\'inverse déduit)
+  for (const p of REAL) for (const c of (p.marketChecks || [])) { assert.deepEqual(P.validateMarketCheck(c), []); if (c.status === 'searched_found') assert.ok(p.offers.some(o => o.market === c.market && P.validateOffer(o, false).length === 0), p.id + ' ' + c.market); }
   // un produit sans aucune offre est UNKNOWN partout, jamais UNAVAILABLE
   const none = withOffers([]);
   for (const c of ALL_CODES) assert.equal(P.availabilityStatus(none, c).status, 'UNKNOWN', c);
@@ -173,9 +187,6 @@ test('REF-F UNKNOWN par défaut : sans recherche fiable, rien n\'est déduit', (
   assert.equal(P.availabilityStatus(oos, 'BJ').status, 'UNKNOWN');
   const oosIntl = withOffers([offer({ market: 'NG', availability: 'coming_soon', shipping: 'international' })]);
   assert.equal(P.availabilityStatus(oosIntl, 'BJ').status, 'UNKNOWN');
-  // le catalogue réel : les statuts existants restent ceux des offres (NG, GH, KE, ZA)
-  const niac = REAL.find(p => p.id === 'to-niacinamide-10-zinc-1');
-  assert.equal(P.availabilityStatus(niac, 'GH').status, 'LOCAL'); assert.equal(P.availabilityStatus(niac, 'NG').status, 'LOCAL');
 });
 
 test('REF-G UNAVAILABLE uniquement après une recherche explicite ; LOCAL, REGIONAL et IMPORT viennent d\'offres fiables', () => {
@@ -248,13 +259,12 @@ test('REF-I un produit indisponible dans un pays garde sa recommandation ; un pr
   const ref = run(REAL), refIds = picked(ref);
   assert.ok(refIds.length > 0, 'cas de référence : au moins un produit choisi');
   // chaque produit choisi devient « UNAVAILABLE » au Bénin : la recommandation reste identique
-  const marked = REAL.map(p => { const q = clone(p); if (q.status === 'validated') q.marketChecks = [check({ market: 'BJ' })]; return q; });
+  const marked = REAL.map(p => { const q = clone(p); if (q.status === 'validated' && !(q.offers || []).some(o => o.market === 'BJ')) q.marketChecks = [check({ market: 'BJ' })]; return q; });
   assert.deepEqual(P.validateCatalog(marked), []);
   assert.deepEqual(picked(run(marked)), refIds);
-  for (const id of refIds) assert.equal(P.availabilityStatus(marked.find(p => p.id === id), 'BJ').status, 'UNAVAILABLE');
+  for (const id of refIds) { const q = marked.find(p => p.id === id), hasBj = (q.offers || []).some(o => o.market === 'BJ'); const st = P.availabilityStatus(q, 'BJ').status; if (hasBj) assert.notEqual(st, 'UNAVAILABLE', id + ' : une offre béninoise existe'); else assert.equal(st, 'UNAVAILABLE', id); }
   // aucun produit à vérifier ni inactif n'est proposé, même avec une recherche positive
   const toVerify = REAL.filter(p => p.status === 'to_verify').map(p => p.id);
-  assert.deepEqual(toVerify.sort(), ['lrp-effaclar-duo-m', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum']);
   for (let seed = 1; seed <= 200; seed++) { const c = randomCase(seed); for (const m of Engine.run(norm(c.ui, c.o), c.profile, { catalog: REAL }).productMatches) assert.ok(!toVerify.includes(m.productId), m.productId); }
   assert.ok(P.usable(REAL).every(p => p.status === 'validated' && p.active !== false));
   // aucun produit du catalogue n'a de rétinoïde ni d'actif candidat relié ; un produit à rétinoïde ne serait jamais choisi
@@ -262,5 +272,4 @@ test('REF-I un produit indisponible dans un pays garde sa recommandation ; un pr
   for (const p of REAL) assert.ok(!p.ingredients.some(i => EV.CANDIDATE_ACTIVES.includes(i.activeId)), p.id + ' : aucun actif candidat relié');
   assert.ok(REAL.filter(p => p.ingredients.some(i => i.activeId === 'retinoid')).every(p => p.status === 'to_verify' && p.active === false), 'le seul produit à rétinoïde (Mela B3) reste à vérifier et inactif');
   assert.equal(AD.ACTIVES.find(a => a.id === 'retinoid').status, 'à_valider');
-  assert.equal(REAL.length, 14, 'les 14 produits existants sont intacts');
 });

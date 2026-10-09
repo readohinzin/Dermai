@@ -12,7 +12,9 @@ const Market = require('../js/market.js');
 const copy = require('../js/engine/copy.fr.js');
 const { Engine, norm, randomCase } = require('./helpers/engine.js');
 
+const INV = require('./fixtures/catalog-inventory.js');
 const REAL = CAT.PRODUCTS, ROOT = path.join(__dirname, '..');
+const TPL = INV.usableProducts[0];   // un produit réel validé et actif, utilisé comme modèle d\'identité pour les produits d\'essai (jamais pour ses offres)
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
 const fnBody = (src, sig) => { const i = src.indexOf(sig); assert.ok(i >= 0, 'introuvable : ' + sig); let d = 0, j = src.indexOf('{', i); const s0 = j; for (; j < src.length; j++) { if (src[j] === '{') d++; else if (src[j] === '}' && --d === 0) break; } return src.slice(s0, j + 1); };
@@ -112,7 +114,7 @@ test('S4 preuve dynamique : le moteur et la sélection tournent sur un catalogue
       assert.ok(Array.isArray(v.recommended) && Array.isArray(v.others));
     }
   } finally { if (had) Object.defineProperty(globalThis, 'localStorage', had); else delete globalThis.localStorage; }
-  const touched = P.usable(trapped).length; assert.equal(touched, 11, 'la liste des produits utilisables ne lit que le statut et l\'état actif');
+  const touched = P.usable(trapped).length; assert.equal(touched, INV.usableProducts.length, 'la liste des produits utilisables ne lit que le statut et l\'état actif');
 });
 
 test('S5 TESTS A–K, M–Q : sortie moteur, sections « Recommandés » / « Autres produits » et raisons strictement identiques pour 11 variantes de catalogue × 40 profils', () => {
@@ -124,7 +126,7 @@ test('S5 TESTS A–K, M–Q : sortie moteur, sections « Recommandés » / « Au
   // les variantes sont réellement différentes sur le plan commercial (le test ne compare pas deux fois la même chose)
   const prices = c => JSON.stringify(c.map(p => p.offers));
   assert.notEqual(prices(VARIANTS['M prix multipliés par 10 / supprimés']()), prices(REAL)); assert.notEqual(prices(VARIANTS['J toutes les offres en rupture']()), prices(REAL));
-  assert.equal(P.offersOf(VARIANTS['I plusieurs offres, toutes dans le même pays']().find(p => p.id === 'to-niacinamide-10-zinc-1')).length, 6);
+  assert.equal(P.offersOf(VARIANTS['I plusieurs offres, toutes dans le même pays']().find(p => p.id === 'to-niacinamide-10-zinc-1')).length, 3 * P.offersOf(REAL.find(p => p.id === 'to-niacinamide-10-zinc-1')).length, 'la variante « plusieurs offres » triple les offres valides du produit');
 });
 
 test('S6 TESTS A, D, E, F, I : 54 pays × états d\'offres (ready / unknown / unavailable / aucune / plusieurs) → mêmes recommandations ; seul marketView change', () => {
@@ -141,10 +143,16 @@ test('S6 TESTS A, D, E, F, I : 54 pays × états d\'offres (ready / unknown / un
     }
   }
   // la présentation, elle, change bien avec le pays et avec l'état des offres
-  const nia = id => REAL.find(p => p.id === id);
-  assert.equal(P.marketView(nia('to-niacinamide-10-zinc-1'), 'GH').summary, 'ready'); assert.equal(P.marketView(nia('to-niacinamide-10-zinc-1'), 'BJ').summary, 'elsewhere');
-  assert.equal(P.marketView(states['rupture'].find(p => p.id === 'to-niacinamide-10-zinc-1'), 'GH').summary, 'unavailable'); assert.equal(P.marketView(states['unknown'].find(p => p.id === 'to-niacinamide-10-zinc-1'), 'GH').summary, 'partial');
-  assert.equal(P.marketView(states['aucune'].find(p => p.id === 'to-niacinamide-10-zinc-1'), 'GH').summary, 'none');
+  // sonde dérivée de l'inventaire : un produit qui a une offre dans un pays, et un pays où il n'en a pas (mais d'autres pays en ont, sans livraison locale seulement)
+  const probe = INV.offers.find(x => x.offer.availability === 'in_stock' && x.offer.price != null && x.offer.url) || INV.offers[0];
+  const pid = probe.productId, own = probe.offer.market;
+  const other = INV.countryCodes.find(c => c !== own && !REAL.find(p => p.id === pid).offers.some(o => o.market === c || (o.servesMarkets || []).includes(c)));
+  const view = (cat, c) => P.marketView(cat.find(p => p.id === pid), c).summary;
+  assert.ok(['ready', 'partial', 'unavailable'].includes(view(REAL, own)), 'pays de l\'offre : résumé d\'une offre du pays');
+  if (probe.offer.availability === 'in_stock' && probe.offer.price != null && probe.offer.url) assert.equal(view(REAL, own), 'ready');
+  assert.equal(view(REAL, other), REAL.find(p => p.id === pid).offers.some(o => o.market !== other && o.shipping !== 'local') ? 'elsewhere' : 'none', 'autre pays : offres d\'ailleurs seulement, ou aucune');
+  assert.equal(view(states['rupture'], own), 'unavailable'); assert.equal(view(states['unknown'], own), 'partial');
+  assert.equal(view(states['aucune'], own), 'none');
 });
 
 test('S7 TESTS G, H + scénarios A–D : recommandé sans offre reste recommandé ; non recommandé avec offre locale reste non recommandé ; cartes cohérentes', () => {
@@ -185,8 +193,8 @@ test('S8 TESTS I, J, K, L : changer de pays ne lance aucune analyse et ne modifi
 
 test('S9 TEST M, N, O : prix, disponibilité, vendeur d\'une offre réelle modifiés → moteur et sections identiques, présentation commerciale différente', () => {
   const touch = (id, fn) => REAL.map(p => p.id === id ? Object.assign({}, p, { offers: p.offers.map(o => Object.assign(clone(o), fn(o))) }) : p);
-  const id = 'to-niacinamide-10-zinc-1';
-  for (const fn of [o => ({ price: o.price + 777 }), o => ({ availability: 'out_of_stock' }), o => ({ retailer: 'Autre boutique', seller: 'Quelqu\'un' })]) {
+  const id = INV.productsWithOffers.find(p => p.offers.some(o => o.price != null)).id;   // un produit réel qui a une offre avec prix
+  for (const fn of [o => ({ price: (o.price || 1) + 777 }), o => ({ availability: 'out_of_stock' }), o => ({ retailer: 'Autre boutique', seller: 'Quelqu\'un' })]) {
     const cat = touch(id, fn);
     PROFILES.forEach(({ n, profile }, i) => assert.equal(snapshot(n, profile, cat).json, BASE[i].json));
     assert.notEqual(JSON.stringify(P.offersOf(cat.find(p => p.id === id))), JSON.stringify(P.offersOf(REAL.find(p => p.id === id))), 'la présentation, elle, change');
@@ -219,19 +227,19 @@ test('S11 structure des données : catalogue ≠ marché ≠ offres ; champs com
   for (const p of REAL) { for (const k of FLAT) assert.equal(p[k], undefined, p.id + ' : champ commercial plat interdit ' + k); }
   for (const p of REAL) for (const o of p.offers) { for (const k of ['name', 'brand', 'ingredients', 'inci', 'category', 'skinTypes', 'targets', 'description', 'format', 'primaryActiveId']) assert.equal(o[k], undefined, 'une offre ne recopie pas les données du produit : ' + k); }
   // facultatifs : un produit sans `offers`, une offre sans seller / city / stockNote / servesMarkets / verifiedAt restent valides
-  for (const p of REAL) { const c = Object.assign({}, p); delete c.offers; assert.deepEqual(P.validateProduct(c), [], p.id + ' sans offers'); }
+  for (const p of REAL) { const c = Object.assign({}, p); delete c.offers; delete c.marketChecks; assert.deepEqual(P.validateProduct(c), [], p.id + ' sans offers'); }
   for (const o of REAL.flatMap(p => p.offers)) { const c = Object.assign({}, o); for (const k of ['seller', 'city', 'stockNote', 'servesMarkets', 'verifiedAt', 'shipping']) delete c[k]; assert.deepEqual(P.validateOffer(c), [], 'offre minimale : ' + o.retailer); }
   assert.doesNotMatch(JSON.stringify(MD), /offer|price|prix|retailer|vendeur|stock|availab|ingredient|\binci\b/i, 'markets.js : aucun commerce, aucun produit');
   assert.doesNotMatch(read('js/market.js').replace(/\/\*[\s\S]*?\*\//g, ''), /offer|price|retailer|availab|ingredient|catalog/i, 'market.js : préférence et liste de pays seulement');
   const cat = strip(read('js/engine/data/catalog.js'));
   assert.doesNotMatch(cat, /MARKETS|marketView|Market|country/, 'le catalogue ne connaît pas la logique de marché');
   // la devise d'un pays est une information d'affichage : jamais utilisée pour déduire une offre locale (XOF au Sénégal ≠ offre au Bénin)
-  const sn = Object.assign({}, REAL[1], { offers: [{ market: 'SN', retailer: 'Dakar', type: 'retailer', currency: 'XOF', price: 9000, availability: 'in_stock', url: 'https://boutique-vraie.org/sn', shipping: null, source: 'test', checkedAt: '2026-10-07' }] });
+  const sn = Object.assign({}, TPL, { offers: [{ market: 'SN', retailer: 'Dakar', type: 'retailer', currency: 'XOF', price: 9000, availability: 'in_stock', url: 'https://boutique-vraie.org/sn', shipping: null, source: 'test', checkedAt: '2026-10-07' }] });
   assert.equal(P.marketView(sn, 'BJ').local.length, 0); assert.equal(P.marketView(sn, 'BJ').regional.length, 0); assert.equal(P.marketView(sn, 'BJ').summary, 'elsewhere');
 });
 
 test('S12 livraison et devises : aucune inférence entre pays ; livraison internationale affichée seulement si renseignée ; aucune conversion', () => {
-  const make = (offers) => Object.assign({}, REAL[1], { offers });
+  const make = (offers) => Object.assign({}, TPL, { offers });
   const o = (market, extra) => Object.assign({ market, retailer: 'V' + market, type: 'retailer', currency: Market.byCode(market).currency, price: 1000, availability: 'in_stock', url: 'https://boutique-vraie.org/' + market, shipping: null, source: 'test', checkedAt: '2026-10-07' }, extra || {});
   const view = (offers, c) => P.marketView(make(offers), c);
   // Nigeria ≠ Bénin, Ghana ≠ Togo, Afrique du Sud ≠ Afrique entière
@@ -241,16 +249,17 @@ test('S12 livraison et devises : aucune inférence entre pays ; livraison intern
   const app = strip(read('js/app.js'));
   assert.match(lineOf(app, 'const note=tier==='), /o\.shipping===`international`/, 'texte de livraison internationale : uniquement si la donnée est renseignée');
   assert.doesNotMatch(app + strip(read('js/market.js')) + strip(read('js/engine/products.js')), /convertCurrency|exchangeRate|rate\(|\btaux\b|toXOF|toFCFA|fcfaEquivalent|≈|environ \d+ ?FCFA/i);
-  assert.doesNotMatch(read('js/engine/data/catalog.js'), /FCFA|XOF|XAF/, 'aucune offre ni prix en FCFA converti');
-  const priced = REAL.flatMap(p => P.offersOf(p)); for (const x of priced) { const raw = REAL.flatMap(p => p.offers).find(r => r.url === x.url); assert.equal(x.price, raw.price); assert.equal(x.currency, raw.currency); }
+  assert.doesNotMatch(strip(read('js/engine/data/catalog.js')), /convertCurrency|exchangeRate|toXOF|toFCFA|fcfaEquivalent|converted|conversion/i, 'aucune conversion de devise dans les données');
+  assert.ok(REAL.flatMap(p => p.offers).every(o => !Object.keys(o).some(k => /^(convert|conversion|rate|fcfa|equivalent)/i.test(k))), 'aucun champ de conversion dans les offres');
+  for (const p of REAL) for (const x of P.offersOf(p)) { const raw = p.offers.find(r => r.market === x.market && r.retailer === x.retailer && (r.url || null) === x.url); assert.ok(raw, p.id); assert.equal(x.price, raw.price == null ? null : raw.price); assert.equal(x.currency, raw.price == null ? (raw.currency || null) : raw.currency); }   // affiché = enregistré, par offre
 });
 
 test('S13 qualité d\'offre, textes et bouton : propriété d\'affichage, jamais un score ; ready seulement → « Acheter en ligne » ; partial → « Voir l\'offre » ; unavailable → aucun bouton ; aucune garantie', () => {
-  const offer = extra => P.offersOf(Object.assign({}, REAL[1], { offers: [Object.assign({ market: 'NG', retailer: 'V', type: 'retailer', currency: 'NGN', price: 1000, availability: 'in_stock', url: 'https://boutique-vraie.org/p', shipping: null, source: 'test', checkedAt: '2026-10-07' }, extra)] }))[0];
+  const offer = extra => P.offersOf(Object.assign({}, TPL, { offers: [Object.assign({ market: 'NG', retailer: 'V', type: 'retailer', currency: 'NGN', price: 1000, availability: 'in_stock', url: 'https://boutique-vraie.org/p', shipping: null, source: 'test', checkedAt: '2026-10-07' }, extra)] }))[0];
   const cases = [[{}, 'ready', true, false], [{ availability: 'unknown' }, 'partial', false, true], [{ price: null, currency: null }, 'partial', false, true], [{ url: null }, 'partial', false, false],
     [{ availability: 'out_of_stock' }, 'unavailable', false, false], [{ availability: 'coming_soon' }, 'unavailable', false, false]];
   for (const [extra, q, buy, link] of cases) { const o = offer(extra); assert.equal(o.quality, q, JSON.stringify(extra)); assert.equal(o.buyable, buy, 'Acheter : ' + JSON.stringify(extra)); assert.equal(o.linkOnly, link, 'Voir l\'offre : ' + JSON.stringify(extra)); }
-  assert.ok(P.QUALITY.every(q => typeof q === 'string')); assert.doesNotMatch(JSON.stringify(P.offersOf(REAL[1])), /"(?:score|rank|relevance|pertinence|percent)/i);
+  assert.ok(P.QUALITY.every(q => typeof q === 'string')); assert.doesNotMatch(JSON.stringify(P.offersOf(TPL)), /"(?:score|rank|relevance|pertinence|percent)/i);
   const app = strip(read('js/app.js'));
   assert.match(app, /o\.buyable\?`<a [^>]*>Acheter en ligne<\/a>`:o\.linkOnly\?`<a [^>]*>Voir l'offre<\/a>`:``/);
   assert.equal((app.match(/Acheter en ligne/g) || []).length, 2, 'seulement la ligne d\'offre et la carte (gardée par o.inPlan||noReal())');
@@ -259,7 +268,7 @@ test('S13 qualité d\'offre, textes et bouton : propriété d\'affichage, jamais
   assert.doesNotMatch(texts, /garanti(?!t pas)|en temps réel|disponible actuellement|stock garanti|prix garanti|livraison garantie|assuré/i);
   assert.equal(copy.MARKET_TEXTS.summary.ready, 'Offre locale : stock et prix indiqués au relevé'); assert.equal(copy.MARKET_TEXTS.summary.partial, 'Offre locale à vérifier : stock, prix ou lien non confirmé');
   assert.equal(copy.MARKET_TEXTS.summary.unavailable, 'Offre locale : rupture ou bientôt disponible'); assert.equal(copy.MARKET_TEXTS.summary.elsewhere, 'Offres dans d\'autres pays seulement'); assert.equal(copy.MARKET_TEXTS.summary.none, 'Aucune offre vérifiée pour ce pays pour le moment.');
-  assert.equal(P.marketView(Object.assign({}, REAL[1], { offers: [] }), 'NG').summary, 'none');
+  assert.equal(P.marketView(Object.assign({}, TPL, { offers: [] }), 'NG').summary, 'none');
   // un produit recommandé sans offre reste visible : la carte n'est jamais conditionnée à une offre
   assert.doesNotMatch(fnBody(app, 'function productCard('), /hasOffers|if\s*\(!?co\)\s*return|\.buyable\s*\?\s*`<button/);
 });

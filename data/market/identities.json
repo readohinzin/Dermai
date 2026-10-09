@@ -1,0 +1,1010 @@
+{
+  "version": 1,
+  "note": "Identités des produits du catalogue pour l'outillage Market Discovery. Hors du navigateur. Champs dérivés du catalogue (marque, nom, volume, variante, actifs, concentrations) vérifiés par test ; alias de nom, indices de volume, frères et notes : portés à la main, chacun avec sa source (champ du catalogue) et l'extrait qui l'établit.",
+  "products": {
+    "to-salicylic-2-solution": {
+      "brand": {
+        "canonical": "The Ordinary",
+        "aliases": [
+          "the ordinary",
+          "theordinary"
+        ]
+      },
+      "name": {
+        "canonical": "Salicylic Acid 2% Solution",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "salicylic",
+            "label": "Acide salicylique 2 %"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "salicylic acid",
+            "activeId": "salicylic",
+            "percentage": 2,
+            "qualifiers": [],
+            "sources": [
+              "name",
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [
+        {
+          "relation": "formulation",
+          "label": "version anhydre",
+          "variant": "anhydrous",
+          "volume": null,
+          "productId": null,
+          "status": "known",
+          "source": "description",
+          "evidence": "version anhydre"
+        }
+      ],
+      "notes": []
+    },
+    "to-niacinamide-10-zinc-1": {
+      "brand": {
+        "canonical": "The Ordinary",
+        "aliases": [
+          "the ordinary",
+          "theordinary"
+        ]
+      },
+      "name": {
+        "canonical": "Niacinamide 10% + Zinc 1%",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "niacinamide",
+            "label": "Niacinamide 10 %"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "niacinamide",
+            "activeId": "niacinamide",
+            "percentage": 10,
+            "qualifiers": [],
+            "sources": [
+              "name",
+              "ingredients[0].label"
+            ]
+          },
+          {
+            "ingredient": "zinc",
+            "activeId": "zinc",
+            "percentage": 1,
+            "qualifiers": [],
+            "sources": [
+              "name",
+              "ingredients[1].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": [
+        {
+          "text": "La composition peut varier selon la date et la région d'achat (précisé par la fiche fabricant).",
+          "source": "inciNote",
+          "evidence": "la liste peut varier selon la date et la région d'achat"
+        }
+      ]
+    },
+    "to-azelaic-acid-10": {
+      "brand": {
+        "canonical": "The Ordinary",
+        "aliases": [
+          "the ordinary",
+          "theordinary"
+        ]
+      },
+      "name": {
+        "canonical": "Azelaic Acid Suspension 10%",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "azelaic",
+            "label": "Acide azélaïque 10 %"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "azelaic acid",
+            "activeId": "azelaic",
+            "percentage": 10,
+            "qualifiers": [],
+            "sources": [
+              "name",
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": []
+    },
+    "to-ascorbyl-glucoside-12": {
+      "brand": {
+        "canonical": "The Ordinary",
+        "aliases": [
+          "the ordinary",
+          "theordinary"
+        ]
+      },
+      "name": {
+        "canonical": "Ascorbyl Glucoside Solution 12%",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "vitamin_c",
+            "label": "Ascorbyl glucoside 12 % (dérivé de vitamine C)"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "ascorbyl glucoside",
+            "activeId": "vitamin_c",
+            "percentage": 12,
+            "qualifiers": [],
+            "sources": [
+              "name",
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": []
+    },
+    "to-mandelic-acid-10-ha": {
+      "brand": {
+        "canonical": "The Ordinary",
+        "aliases": [
+          "the ordinary",
+          "theordinary"
+        ]
+      },
+      "name": {
+        "canonical": "Mandelic Acid 10% + HA",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "aha_pha",
+            "label": "Acide mandélique 10 % (AHA)"
+          },
+          {
+            "activeId": "hyaluronic",
+            "label": "Hyaluronate de sodium (crosspolymère)"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "mandelic acid",
+            "activeId": "aha_pha",
+            "percentage": 10,
+            "qualifiers": [],
+            "sources": [
+              "name",
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": []
+    },
+    "to-hyaluronic-b5-ceramides": {
+      "brand": {
+        "canonical": "The Ordinary",
+        "aliases": [
+          "the ordinary",
+          "theordinary"
+        ]
+      },
+      "name": {
+        "canonical": "Hyaluronic Acid 2% + B5",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": {
+        "id": "with_ceramides",
+        "raw": "with Ceramides",
+        "exactness": "explicit",
+        "source": "name"
+      },
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "hyaluronic",
+            "label": "Acide hyaluronique (5 formes)"
+          },
+          {
+            "activeId": "panthenol",
+            "label": "Pro-vitamine B5 (panthénol)"
+          },
+          {
+            "activeId": "ceramides",
+            "label": "Céramides (selon la marque ; phospholipides et sphingolipides dans l'INCI)"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "hyaluronic acid",
+            "activeId": "hyaluronic",
+            "percentage": 2,
+            "qualifiers": [],
+            "sources": [
+              "name"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [
+        {
+          "relation": "formulation",
+          "label": "ancienne formule « Original Formulation »",
+          "variant": "original",
+          "volume": null,
+          "productId": null,
+          "status": "known",
+          "source": "description",
+          "evidence": "ancienne formule « Original Formulation »"
+        },
+        {
+          "relation": "size",
+          "label": "format 60 ml",
+          "variant": "with_ceramides",
+          "volume": {
+            "raw": "60 ml",
+            "value": 60,
+            "unit": "ml",
+            "normalized": {
+              "value": 60,
+              "unit": "ml"
+            },
+            "kind": "volume"
+          },
+          "productId": null,
+          "status": "known",
+          "source": "sources[0].label",
+          "evidence": "30 ml et 60 ml"
+        }
+      ],
+      "notes": []
+    },
+    "cerave-hydrating-ha-serum": {
+      "brand": {
+        "canonical": "CeraVe",
+        "aliases": [
+          "cerave",
+          "cera ve"
+        ]
+      },
+      "name": {
+        "canonical": "Hydrating Hyaluronic Acid Serum",
+        "aliases": [
+          {
+            "text": "Hydrating Hyaluronic Acid Face Serum",
+            "source": "sources[1].label",
+            "evidence": "Hydrating Hyaluronic Acid Face Serum",
+            "status": "source_label"
+          }
+        ],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "hyaluronic",
+            "label": "Hyaluronate de sodium"
+          },
+          {
+            "activeId": "panthenol",
+            "label": "Panthénol"
+          },
+          {
+            "activeId": "ceramides",
+            "label": "Céramides NP, AP, EOP"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": []
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": [
+        {
+          "text": "La formule vendue dans un pays donné peut différer (liste relevée sur les sites cerave.com et cerave.co.uk).",
+          "source": "inciNote",
+          "evidence": "la formule vendue dans un pays donné peut différer"
+        }
+      ]
+    },
+    "cerave-blemish-control-gel": {
+      "brand": {
+        "canonical": "CeraVe",
+        "aliases": [
+          "cerave",
+          "cera ve"
+        ]
+      },
+      "name": {
+        "canonical": "Blemish Control Gel",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "40 ml",
+        "value": 40,
+        "unit": "ml",
+        "normalized": {
+          "value": 40,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "salicylic",
+            "label": "Acide salicylique 2 %"
+          },
+          {
+            "activeId": "aha_pha",
+            "label": "Acides glycolique et lactique (AHA)"
+          },
+          {
+            "activeId": "niacinamide",
+            "label": "Niacinamide"
+          },
+          {
+            "activeId": "ceramides",
+            "label": "Céramides NP, AP, EOP"
+          },
+          {
+            "activeId": "hyaluronic",
+            "label": "Hyaluronate de sodium"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "salicylic acid",
+            "activeId": "salicylic",
+            "percentage": 2,
+            "qualifiers": [],
+            "sources": [
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [
+        {
+          "relation": "regional",
+          "label": "version américaine « Acne Control Gel »",
+          "variant": null,
+          "volume": null,
+          "productId": null,
+          "status": "known",
+          "source": "inciNote",
+          "evidence": "La version américaine « Acne Control Gel » est un autre produit"
+        }
+      ],
+      "notes": []
+    },
+    "cerave-skin-renewing-vitamin-c-serum": {
+      "brand": {
+        "canonical": "CeraVe",
+        "aliases": [
+          "cerave",
+          "cera ve"
+        ]
+      },
+      "name": {
+        "canonical": "Skin Renewing Vitamin C Serum",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "vitamin_c",
+            "label": "Vitamine C pure (acide ascorbique, 10 % selon la marque)"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "ascorbic acid",
+            "activeId": "vitamin_c",
+            "percentage": 10,
+            "qualifiers": [
+              "per_brand"
+            ],
+            "sources": [
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": []
+    },
+    "lrp-effaclar-duo-m": {
+      "brand": {
+        "canonical": "La Roche-Posay",
+        "aliases": [
+          "la roche posay",
+          "laroche posay",
+          "lrp"
+        ]
+      },
+      "name": {
+        "canonical": "Effaclar Duo+M",
+        "aliases": [
+          {
+            "text": "Effaclar Duo+M Multi-Target Acne Treatment",
+            "source": "sources[1].label",
+            "evidence": "Effaclar Duo+M Multi-Target Acne Treatment",
+            "status": "source_label"
+          }
+        ],
+        "variantTerms": [
+          "duo"
+        ]
+      },
+      "volume": {
+        "raw": "40 ml",
+        "value": 40,
+        "unit": "ml",
+        "normalized": {
+          "value": 40,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "niacinamide",
+            "label": "Niacinamide"
+          },
+          {
+            "activeId": "salicylic",
+            "label": "Acide salicylique 0,5 % (fiche US) et dérivé LHA : à confirmer selon le pays"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "salicylic acid",
+            "activeId": "salicylic",
+            "percentage": 0.5,
+            "qualifiers": [
+              "us_sheet",
+              "to_confirm"
+            ],
+            "sources": [
+              "ingredients[1].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": [
+        {
+          "text": "Produit à vérifier (statut to_verify) : le pourcentage d'acide salicylique dépend de la fiche et du pays.",
+          "source": "ingredients[1].label",
+          "evidence": "à confirmer selon le pays"
+        }
+      ]
+    },
+    "lrp-cicaplast-baume-b5-plus": {
+      "brand": {
+        "canonical": "La Roche-Posay",
+        "aliases": [
+          "la roche posay",
+          "laroche posay",
+          "lrp"
+        ]
+      },
+      "name": {
+        "canonical": "Cicaplast Baume B5+",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "40 ml",
+        "value": 40,
+        "unit": "ml",
+        "normalized": {
+          "value": 40,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "panthenol",
+            "label": "Panthénol (vitamine B5)"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": []
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [
+        {
+          "relation": "formulation",
+          "label": "l'ancien « Baume B5 »",
+          "variant": "old_formula",
+          "volume": null,
+          "productId": null,
+          "status": "known",
+          "source": "inciNote",
+          "evidence": "l'ancien « Baume B5 »"
+        },
+        {
+          "relation": "sun_protection",
+          "label": "version avec indice solaire",
+          "variant": "with_spf",
+          "volume": null,
+          "productId": null,
+          "status": "known",
+          "source": "inciNote",
+          "evidence": "la version avec indice solaire"
+        },
+        {
+          "relation": "size",
+          "label": "format 15 ml",
+          "variant": null,
+          "volume": {
+            "raw": "15 ml",
+            "value": 15,
+            "unit": "ml",
+            "normalized": {
+              "value": 15,
+              "unit": "ml"
+            },
+            "kind": "volume"
+          },
+          "productId": null,
+          "status": "known",
+          "source": "sources[0].label",
+          "evidence": "formats 15, 40 et 100 ml"
+        },
+        {
+          "relation": "size",
+          "label": "format 100 ml",
+          "variant": null,
+          "volume": {
+            "raw": "100 ml",
+            "value": 100,
+            "unit": "ml",
+            "normalized": {
+              "value": 100,
+              "unit": "ml"
+            },
+            "kind": "volume"
+          },
+          "productId": null,
+          "status": "known",
+          "source": "sources[0].label",
+          "evidence": "formats 15, 40 et 100 ml"
+        }
+      ],
+      "notes": []
+    },
+    "lrp-pure-vitamin-c10-serum": {
+      "brand": {
+        "canonical": "La Roche-Posay",
+        "aliases": [
+          "la roche posay",
+          "laroche posay",
+          "lrp"
+        ]
+      },
+      "name": {
+        "canonical": "Pure Vitamin C10 Serum",
+        "aliases": [],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "vitamin_c",
+            "label": "Vitamine C pure (acide ascorbique)"
+          },
+          {
+            "activeId": "salicylic",
+            "label": "Acide salicylique"
+          },
+          {
+            "activeId": "hyaluronic",
+            "label": "Hyaluronate de sodium et acide hyaluronique hydrolysé"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": []
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": []
+    },
+    "lrp-mela-b3-serum": {
+      "brand": {
+        "canonical": "La Roche-Posay",
+        "aliases": [
+          "la roche posay",
+          "laroche posay",
+          "lrp"
+        ]
+      },
+      "name": {
+        "canonical": "Mela B3 Serum",
+        "aliases": [
+          {
+            "text": "Mela B3 Dark Spot Serum",
+            "source": "sources[0].label",
+            "evidence": "Mela B3 Dark Spot Serum",
+            "status": "source_label"
+          },
+          {
+            "text": "Mela B3 Intense Anti-Dark Spot Serum",
+            "source": "sources[1].label",
+            "evidence": "Mela B3 Intense Anti-Dark Spot Serum",
+            "status": "source_label"
+          }
+        ],
+        "variantTerms": []
+      },
+      "volume": {
+        "raw": "30 ml",
+        "value": 30,
+        "unit": "ml",
+        "normalized": {
+          "value": 30,
+          "unit": "ml"
+        },
+        "kind": "volume"
+      },
+      "volumeHints": [],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "niacinamide",
+            "label": "Niacinamide 10 %"
+          },
+          {
+            "activeId": "retinoid",
+            "label": "Palmitate de rétinyle (ester de vitamine A)"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "niacinamide",
+            "activeId": "niacinamide",
+            "percentage": 10,
+            "qualifiers": [],
+            "sources": [
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": [
+        {
+          "text": "Produit à vérifier (statut to_verify) : les fiches américaine et britannique portent des noms différents.",
+          "source": "sources[1].label",
+          "evidence": "Intense Anti-Dark Spot"
+        }
+      ]
+    },
+    "vichy-liftactiv-vitamin-c-serum": {
+      "brand": {
+        "canonical": "Vichy",
+        "aliases": [
+          "vichy"
+        ]
+      },
+      "name": {
+        "canonical": "Liftactiv Supreme Vitamin C Serum",
+        "aliases": [
+          {
+            "text": "Liftactiv Sérum Vitamine C",
+            "source": "sources[0].label",
+            "evidence": "Liftactiv Sérum Vitamine C",
+            "status": "source_label"
+          },
+          {
+            "text": "Liftactiv Vitamin C Serum",
+            "source": "sources[1].label",
+            "evidence": "Liftactiv Vitamin C Serum",
+            "status": "source_label"
+          }
+        ],
+        "variantTerms": []
+      },
+      "volume": null,
+      "volumeHints": [
+        {
+          "raw": "20 ml",
+          "value": 20,
+          "unit": "ml",
+          "normalized": {
+            "value": 20,
+            "unit": "ml"
+          },
+          "kind": "volume",
+          "source": "sources[0].label",
+          "evidence": "(20 ml)",
+          "status": "unverified"
+        }
+      ],
+      "variant": null,
+      "attributes": {
+        "actives": [
+          {
+            "activeId": "vitamin_c",
+            "label": "Vitamine C pure (15 % selon la fiche consultée)"
+          },
+          {
+            "activeId": "hyaluronic",
+            "label": "Acide hyaluronique hydrolysé"
+          },
+          {
+            "activeId": "glycerin",
+            "label": "Glycérine"
+          }
+        ],
+        "concentrations": [
+          {
+            "ingredient": "vitamin c",
+            "activeId": "vitamin_c",
+            "percentage": 15,
+            "qualifiers": [
+              "per_consulted_sheet"
+            ],
+            "sources": [
+              "ingredients[0].label"
+            ]
+          }
+        ]
+      },
+      "identifiers": {
+        "gtin": null,
+        "mpn": null,
+        "sku": null
+      },
+      "siblings": [],
+      "notes": [
+        {
+          "text": "Produit à vérifier (statut to_verify) : format non retenu au catalogue ; la fiche française indique 20 ml.",
+          "source": "sources[0].label",
+          "evidence": "(20 ml)"
+        }
+      ]
+    }
+  }
+}

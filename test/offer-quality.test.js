@@ -46,9 +46,16 @@ test('Q3 résumé pour le pays : ready / partial / unavailable (meilleure offre 
   for (const k of ['ready', 'partial', 'unavailable', 'elsewhere', 'none']) assert.ok(copy.MARKET_TEXTS.summary[k].length > 10, k);
   assert.doesNotMatch(JSON.stringify(copy.MARKET_TEXTS.summary), /garanti|actuellement disponible|%|meilleur/i, 'jamais « garanti », « disponible actuellement » ni « meilleur »');
   assert.match(copy.MARKET_TEXTS.summary.none, /Aucune offre vérifiée pour ce pays pour le moment/); assert.doesNotMatch(copy.MARKET_TEXTS.summary.none, /indisponible/i);
-  // catalogue réel
-  const real = (id, c) => P.marketView(P.byId(id, REAL), c).summary;
-  assert.equal(real('to-niacinamide-10-zinc-1', 'GH'), 'ready'); assert.equal(real('to-salicylic-2-solution', 'NG'), 'partial'); assert.equal(real('to-hyaluronic-b5-ceramides', 'GH'), 'none'); assert.equal(real('to-salicylic-2-solution', 'BJ'), 'elsewhere');
+  // catalogue réel : le résumé de chaque (produit, pays) suit les offres brutes (oracle indépendant du classement), sans produit ni nombre en dur
+  const RANK = ['ready', 'partial', 'unavailable'], qualityRaw = o => (o.availability === 'out_of_stock' || o.availability === 'coming_soon') ? 'unavailable' : (o.availability === 'in_stock' && o.price != null && o.url) ? 'ready' : 'partial';
+  const oracle = (p, c) => {
+    const valid = (p.offers || []).filter(o => P.validateOffer(o, false).length === 0);
+    const mine = valid.filter(o => o.market === c || (o.servesMarkets || []).includes(c));
+    if (mine.length) return mine.map(qualityRaw).sort((a, b) => RANK.indexOf(a) - RANK.indexOf(b))[0];
+    return valid.some(o => o.market !== c && o.shipping !== 'local') ? 'elsewhere' : 'none';
+  };
+  for (const p of REAL) for (const c of ['GH', 'NG', 'KE', 'ZA', 'BJ', 'TG', 'CI', 'SN']) assert.equal(P.marketView(p, c).summary, oracle(p, c), p.id + ' / ' + c);
+  assert.ok(REAL.some(p => ['GH', 'NG', 'KE', 'ZA', 'BJ'].some(c => ['ready', 'partial', 'unavailable'].includes(oracle(p, c)))), 'des offres locales existent au catalogue (le test n\'est pas vide)');
 });
 
 test('Q4 le choix du produit vient AVANT le pays : 54 pays × produits → mêmes sections « Recommandés » / « Autres produits » ; aucun produit ne change de section', () => {

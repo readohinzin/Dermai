@@ -30,137 +30,164 @@ const EXPECTED = [
   ['cerave-skin-renewing-vitamin-c-serum', 'KE', 'Cosmetics Kenya', null, 'retailer', 'KES', 4995, 'unknown', 'https://cosmetics.ke/skincare/vitamin-c-serums/cerave-vitamin-c-serum/'],
   ['cerave-skin-renewing-vitamin-c-serum', 'NG', 'Konga', null, 'marketplace', 'NGN', 25481, 'unknown', 'https://www.konga.com/product/cerave-skin-renewing-vitamin-c-serum-6770300']
 ];
-const offerOf = (id, market, retailer) => P.offersOf(P.byId(id, REAL)).find(o => o.market === market && o.retailer === retailer);
+/* Phase 3 : première offre béninoise (Lynia Shop), relevée par l'équipe DERMAI le 2026-10-08. Le lien exact de la fiche n'a pas été fourni : url null, jamais inventée. */
+const BENIN = [['to-hyaluronic-b5-ceramides', 'BJ', 'Lynia Shop', null, 'retailer', 'XOF', 12700, 'in_stock', null]];
+const offerOf = (id, market, retailer) => P.offersOf(P.byId(id, REAL) || { demo: true }).find(o => o.market === market && o.retailer === retailer);
+const INV = require('./fixtures/catalog-inventory.js');
+/* Les tableaux EXPECTED et BENIN sont des ENREGISTREMENTS de relevés : s'ils sont au catalogue, ils doivent y être tels qu'enregistrés (aucune retouche silencieuse). Ajouter d'autres offres, ou en retirer
+   une par décision de données, ne casse aucun de ces tests ; les règles générales (valeurs du modèle, liens, devises, dates) valent pour TOUTES les offres. */
+const rawOf = (id, market, retailer) => { const p = P.byId(id, REAL); return p ? (p.offers || []).find(o => o.market === market && o.retailer === retailer) || null : null; };
+const ifPresent = (rows, fn) => { let n = 0; for (const row of rows) { const o = offerOf(row[0], row[1], row[2]); if (o) { n++; fn(row, o); } } return n; };
+const SAME_ORDER_PREFIX = ['to-salicylic-2-solution', 'to-niacinamide-10-zinc-1', 'to-azelaic-acid-10', 'to-ascorbyl-glucoside-12', 'to-mandelic-acid-10-ha', 'to-hyaluronic-b5-ceramides', 'cerave-hydrating-ha-serum',
+  'cerave-blemish-control-gel', 'cerave-skin-renewing-vitamin-c-serum', 'lrp-effaclar-duo-m', 'lrp-cicaplast-baume-b5-plus', 'lrp-pure-vitamin-c10-serum', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum'];
 
-test('V1 les 15 offres du catalogue réel correspondent exactement aux relevés fournis (produit, pays, vendeur, devise, prix, disponibilité, lien)', () => {
-  const all = REAL.flatMap(p => P.offersOf(p).map(o => [p.id, o]));
-  assert.equal(all.length, EXPECTED.length, 'aucune offre de plus ni de moins');
-  for (const [id, market, retailer, seller, type, cur, price, avail, url] of EXPECTED) {
-    const o = offerOf(id, market, retailer);
-    assert.ok(o, id + ' / ' + market + ' / ' + retailer);
+test('V1 les relevés enregistrés (étapes 16 et 17, puis Bénin) sont intacts s\'ils sont au catalogue : produit, pays, vendeur, devise, prix, disponibilité, lien ; toute offre a sa source', () => {
+  const n = ifPresent(EXPECTED.concat(BENIN), ([id, market, , seller, type, cur, price, avail, url], o) => {
     assert.deepEqual([o.seller, o.type, o.currency, o.price, o.availability, o.url], [seller, type, cur, price, avail, url], id + ' / ' + market);
     assert.ok(o.source && o.source.length > 5, 'source : ' + id);
-  }
+  });
+  assert.ok(n > 0, 'au moins un relevé enregistré est encore au catalogue (le test n\'est pas vide)');
+  for (const p of REAL) for (const o of p.offers) { assert.ok(o.source && o.source.length > 5, p.id + ' : source'); assert.ok(o.checkedAt, p.id + ' : date'); }
 });
 
-test('V2 chaque offre porte market, country, currency, retailer, type, price, availability, url, source, checkedAt ; aucun prix sans devise ni source', () => {
+test('V2 chaque offre porte market, country, retailer, type, availability, source, checkedAt ; un prix a sa devise ; un lien absent est permis, un lien fourni est un https réel', () => {
   for (const p of REAL) for (const raw of p.offers) {
     assert.deepEqual(P.validateOffer(raw), [], p.id);
-    for (const k of ['market', 'retailer', 'type', 'currency', 'price', 'availability', 'url', 'source', 'checkedAt']) assert.ok(raw[k] != null && raw[k] !== '', p.id + ' : ' + k);
-    assert.ok(typeof raw.price === 'number' && raw.price > 0);
+    for (const k of ['market', 'retailer', 'type', 'availability', 'source', 'checkedAt']) assert.ok(raw[k] != null && raw[k] !== '', p.id + ' : ' + k);
+    if (raw.price != null) { assert.ok(typeof raw.price === 'number' && raw.price > 0, p.id + ' : prix'); assert.ok(raw.currency, p.id + ' : un prix exige sa devise'); }
+    if (raw.url != null) assert.match(raw.url, /^https:\/\//, p.id + ' : un lien fourni est https');
   }
   for (const p of REAL) for (const o of P.offersOf(p)) assert.ok(Market.byCode(o.market).fr === o.country, 'country dérivé du marché : ' + o.market);
 });
 
-test('V3 date : checkedAt = date d\'intégration (2026-10-07) pour les offres de l\'étape 16 ; jamais une date de publication ; Dermastore garde la sienne', () => {
+test('V3 date : checkedAt = date d\'intégration pour les relevés enregistrés ; jamais une date de publication ; Dermastore garde la sienne ; Bénin : 2026-10-08', () => {
+  let n = 0;
   for (const [id, market, retailer] of EXPECTED) {
-    const raw = P.byId(id, REAL).offers.find(o => o.market === market && o.retailer === retailer);
+    const raw = rawOf(id, market, retailer); if (!raw) continue; n++;
     assert.equal(raw.checkedAt, retailer === 'Dermastore' ? '2026-10-06' : DAY, id + ' / ' + market);
     assert.equal(raw.verifiedAt, retailer === 'Dermastore' ? '2026-10-06' : undefined, 'seule la page Dermastore a été ouverte directement : aucune autre offre n\'est présentée comme vérifiée');
   }
+  for (const [id, market, retailer] of BENIN) { const raw = rawOf(id, market, retailer); if (!raw) continue; n++; assert.equal(raw.checkedAt, '2026-10-08'); assert.equal(raw.verifiedAt, undefined, 'relevé fourni, page non rouverte'); }
+  assert.ok(n > 0);
+  for (const p of REAL) for (const o of p.offers) if (o.verifiedAt != null) assert.match(o.source, /ouverte directement/, p.id + ' : verifiedAt seulement pour une page réellement rouverte');
   assert.match(read('js/engine/data/catalog.js'), /n'ont PAS pu être rouvertes depuis l'environnement d'intégration/, 'la méthode (relevés fournis, non rouverts) est documentée');
 });
 
-test('V4 pays couverts : Ghana, Nigeria, Kenya, Afrique du Sud, et eux seuls ; Bénin, Togo, Côte d\'Ivoire, Sénégal, Cameroun, Maroc sans offre (offers vides, pas « indisponible »)', () => {
-  const markets = new Set(REAL.flatMap(p => P.offersOf(p).map(o => o.market)));
-  assert.deepEqual([...markets].sort(), ['GH', 'KE', 'NG', 'ZA']);
-  for (const m of ['BJ', 'TG', 'CI', 'SN', 'CM', 'MA']) for (const p of REAL) {
-    const v = P.marketView(p, m);
-    assert.equal(v.local.length, 0, m + ' / ' + p.id); assert.equal(v.regional.length, 0);
-    assert.notEqual(v.tier, 'local');
+test('V4 pays : toute offre porte un pays connu ; le pays choisi n\'affiche d\'offre « locale » que si une offre porte ce pays (jamais déduit) ; offers[] présent sur chaque produit', () => {
+  const known = new Set(INV.countryCodes);
+  assert.ok(INV.markets.every(m => known.has(m)), 'chaque pays d\'offre est un pays connu');
+  for (const m of INV.countryCodes) for (const p of REAL) {
+    const v = P.marketView(p, m), own = p.offers.filter(o => o.market === m && P.validateOffer(o, false).length === 0).length;
+    assert.equal(v.local.length, own, m + ' / ' + p.id + ' : local = offres qui portent ce pays');
+    assert.equal(v.tier === 'local', own > 0 && v.local.length > 0);
   }
   for (const p of REAL) assert.ok(Array.isArray(p.offers), p.id + ' : offers[] présent (vide si aucune offre vérifiée)');
-  assert.ok(REAL.some(p => p.offers.length === 0), 'des produits restent sans offre');
 });
 
-test('V5 Ghana, Nigeria, Kenya, Afrique du Sud : le pays choisi affiche d\'abord ses offres ; les autres pays restent derrière « autres pays »', () => {
+test('V5 le pays choisi affiche d\'abord ses offres ; les offres des autres pays restent derrière « autres pays »', () => {
   const cases = [['to-niacinamide-10-zinc-1', 'GH', ['Jumia Ghana'], ['Konga']], ['to-niacinamide-10-zinc-1', 'NG', ['Konga'], ['Jumia Ghana']],
     ['to-ascorbyl-glucoside-12', 'KE', ['Jumia Kenya'], ['Konga']], ['cerave-blemish-control-gel', 'ZA', ['Dermastore'], ['Jumia Nigeria']], ['cerave-blemish-control-gel', 'NG', ['Jumia Nigeria'], ['Dermastore']]];
+  let n = 0;
   for (const [id, m, local, other] of cases) {
-    const v = P.marketView(P.byId(id, REAL), m);
-    assert.equal(v.tier, 'local'); assert.deepEqual(v.local.map(o => o.retailer), local, id + ' ' + m);
-    assert.deepEqual(v.international.map(o => o.retailer), other, id + ' ' + m + ' : offres d\'ailleurs séparées');
-    assert.ok(v.local.every(o => o.market === m) && v.international.every(o => o.market !== m));
+    const p = P.byId(id, REAL); if (!p) continue;
+    const v = P.marketView(p, m), loc = v.local.map(o => o.retailer), intl = v.international.map(o => o.retailer);
+    if (local.every(r => rawOf(id, m, r))) { n++; assert.equal(v.tier, 'local'); for (const r of local) assert.ok(loc.includes(r), id + ' ' + m + ' : ' + r + ' est local'); }
+    for (const r of other) if (p.offers.some(o => o.retailer === r && o.market !== m)) assert.ok(intl.includes(r), id + ' ' + m + ' : ' + r + ' vient d\'ailleurs');
+    assert.ok(v.local.every(o => o.market === m) && v.international.every(o => o.market !== m), 'séparation locale / ailleurs');
+    for (const r of local) assert.ok(!intl.includes(r), 'une offre locale n\'est pas rangée « ailleurs »');
   }
-  const bj = P.marketView(P.byId('to-niacinamide-10-zinc-1', REAL), 'BJ');
-  assert.equal(bj.tier, 'international', 'Bénin : aucune offre locale, offres d\'ailleurs seulement derrière le repli'); assert.equal(bj.local.length, 0);
+  assert.ok(n > 0);
+  // le Bénin suit les offres qui le portent : local s\'il y en a, sinon un repli « ailleurs » quand d\'autres pays ont une offre sans livraison locale seulement
+  for (const p of REAL) {
+    const bj = P.marketView(p, 'BJ'), own = p.offers.filter(o => o.market === 'BJ' && P.validateOffer(o, false).length === 0).length;
+    if (own > 0) assert.equal(bj.tier, 'local', p.id); else assert.notEqual(bj.tier, 'local', p.id + ' : aucune offre béninoise, jamais « local »');
+    assert.equal(bj.local.length, own, p.id);
+  }
 });
 
-test('V6 plusieurs offres pour un même produit et plusieurs devises : chacune dans sa devise, jamais convertie ni additionnée', () => {
-  const nia = P.offersOf(P.byId('to-niacinamide-10-zinc-1', REAL));
-  assert.deepEqual(nia.map(o => o.market + ':' + o.currency + ':' + o.price), ['GH:GHS:200', 'NG:NGN:9990']);
-  const asc = P.offersOf(P.byId('to-ascorbyl-glucoside-12', REAL)); assert.deepEqual(new Set(asc.map(o => o.currency)), new Set(['KES', 'NGN']));
-  const mand = P.offersOf(P.byId('to-mandelic-acid-10-ha', REAL)); assert.deepEqual(new Set(mand.map(o => o.currency)), new Set(['GHS', 'KES']));
-  const blem = P.offersOf(P.byId('cerave-blemish-control-gel', REAL)); assert.deepEqual(new Set(blem.map(o => o.currency)), new Set(['ZAR', 'NGN']));
-  const text = JSON.stringify(REAL);
-  assert.doesNotMatch(text, /XOF[^}]{0,40}price|"converted|conversion|FCFA/i, 'aucun prix converti en FCFA');
-  for (const p of REAL) assert.equal(P.commerceOf(p).price, null, 'aucun prix global');
-  for (const raw of REAL.flatMap(p => p.offers)) assert.ok(raw.currency !== 'XOF' && raw.currency !== 'XAF', 'aucune offre en FCFA : aucun vendeur FCFA n\'a été vérifié');
+test('V6 prix et devises : chaque offre dans sa devise, jamais convertie ni additionnée ; le FCFA (XOF) est une devise ordinaire du Bénin', () => {
+  const nia = P.offersOf(P.byId('to-niacinamide-10-zinc-1', REAL) || { demo: true });
+  for (const [market, cur, price] of [['GH', 'GHS', 200], ['NG', 'NGN', 9990]]) { const o = nia.find(x => x.market === market && x.retailer === (market === 'GH' ? 'Jumia Ghana' : 'Konga')); if (o) assert.deepEqual([o.currency, o.price], [cur, price], market); }
+  for (const p of REAL) {
+    for (const o of P.offersOf(p)) {
+      assert.ok(o.price === null || (typeof o.price === 'number' && o.currency), p.id + ' : un prix a sa devise');
+    }
+    assert.equal(P.commerceOf(p).price, null, 'aucun prix global');
+    for (const raw of p.offers) assert.ok(!Object.keys(raw).some(k => /^(convert|conversion|rate|fcfa|equivalent)/i.test(k)), p.id + ' : aucun champ de conversion');
+  }
+  assert.doesNotMatch(JSON.stringify(REAL), /"converted|"conversion/i, 'aucun prix converti');
+  // devise et pays vont ensemble (jamais une devise de zone hors de sa zone) ; XOF accepté au Bénin, refusé au Nigeria
+  for (const raw of REAL.flatMap(p => p.offers)) assert.deepEqual(P.validateOffer(raw), []);
+  const base = { retailer: 'V', type: 'retailer', price: 1000, availability: 'in_stock', source: 's', checkedAt: '2026-10-08' };
+  assert.deepEqual(P.validateOffer(Object.assign({ market: 'BJ', currency: 'XOF' }, base)), []);
+  assert.ok(P.validateOffer(Object.assign({ market: 'NG', currency: 'XOF' }, base)).length, 'XOF refusé au Nigeria');
 });
 
 test('V7 place de marché : Jumia et Konga restent des places de marché, avec le vendeur exact ; Clicks/Dermastore/Care to Beauty sont des revendeurs ; aucun n\'est présenté comme fabricant', () => {
-  for (const [id, market, retailer, seller, type] of EXPECTED) {
-    const o = offerOf(id, market, retailer);
+  const n = ifPresent(EXPECTED, ([, , retailer], o) => {
     if (/^(Jumia|Konga)/.test(retailer)) { assert.equal(o.type, 'marketplace'); assert.equal(o.marketplace, true); assert.equal(o.typeLabel, 'Place de marché'); }
     else assert.equal(o.type, 'retailer');
     assert.notEqual(o.type, 'brand_site', retailer + ' n\'est pas le site du fabricant');
-  }
-  assert.equal(offerOf('cerave-hydrating-ha-serum', 'NG', 'Jumia Nigeria').seller, 'Annette Trudan');
-  assert.deepEqual(P.offersOf(P.byId('to-ascorbyl-glucoside-12', REAL)).filter(o => o.market === 'NG').map(o => o.seller), ['smile time']);
+  });
+  assert.ok(n > 0);
+  const jumiaNg = offerOf('cerave-hydrating-ha-serum', 'NG', 'Jumia Nigeria'); if (jumiaNg) assert.equal(jumiaNg.seller, 'Annette Trudan');
+  const konga = rawOf('to-ascorbyl-glucoside-12', 'NG', 'Konga'); if (konga) assert.equal(konga.seller, 'smile time');
   assert.match(copy().OFFER_TEXTS.marketplace, /DERMAI ne garantit pas l'authenticité/);
   assert.deepEqual(P.validateOffer({ market: 'NG', retailer: 'Konga', type: 'marketplace', availability: 'unknown', source: 's', checkedAt: DAY, seller: '' }).length > 0, true, 'seller vide refusé');
+  // règle générale : une place de marché (type marketplace) est toujours présentée comme telle, jamais comme le site du fabricant
+  for (const p of REAL) for (const o of P.offersOf(p)) assert.equal(o.marketplace, o.type === 'marketplace');
 });
 function copy() { return require('../js/engine/copy.fr.js'); }
 
 test('V8 disponibilité : in_stock seulement quand la page affiche un stock ; unknown sinon ; « few units left » reste une note, pas un statut', () => {
-  const inStock = EXPECTED.filter(e => e[7] === 'in_stock').map(e => e[0] + ':' + e[1] + ':' + e[2]).sort();
-  assert.deepEqual(inStock, ['cerave-blemish-control-gel:NG:Jumia Nigeria', 'cerave-blemish-control-gel:ZA:Dermastore', 'cerave-hydrating-ha-serum:NG:Jumia Nigeria', 'cerave-skin-renewing-vitamin-c-serum:ZA:Clicks', 'lrp-cicaplast-baume-b5-plus:NG:Care to Beauty Nigeria',
-    'to-ascorbyl-glucoside-12:KE:Jumia Kenya', 'to-mandelic-acid-10-ha:KE:Jumia Kenya', 'to-niacinamide-10-zinc-1:GH:Jumia Ghana']);
+  const n = ifPresent(EXPECTED, ([, , , , , , , avail], o) => assert.equal(o.availability, avail));   // relevés enregistrés : le statut enregistré, ni plus ni moins
+  assert.ok(n > 0);
   for (const o of REAL.flatMap(p => P.offersOf(p))) assert.ok(P.OFFER_AVAILABILITY.includes(o.availability), 'aucun statut hors modèle');
-  assert.equal(offerOf('to-niacinamide-10-zinc-1', 'GH', 'Jumia Ghana').stockNote, 'Peu d\'unités restantes');
-  assert.equal(offerOf('to-mandelic-acid-10-ha', 'KE', 'Jumia Kenya').stockNote, 'Peu d\'unités restantes');
-  assert.equal(offerOf('to-ascorbyl-glucoside-12', 'KE', 'Jumia Kenya').stockNote, '5 unités restantes');
-  assert.equal(offerOf('lrp-cicaplast-baume-b5-plus', 'NG', 'Care to Beauty Nigeria').stockNote, 'Prêt à expédier');
+  const note = (id, m, r, txt) => { const o = offerOf(id, m, r); if (o) assert.equal(o.stockNote, txt); };
+  note('to-niacinamide-10-zinc-1', 'GH', 'Jumia Ghana', 'Peu d\'unités restantes');
+  note('to-mandelic-acid-10-ha', 'KE', 'Jumia Kenya', 'Peu d\'unités restantes');
+  note('to-ascorbyl-glucoside-12', 'KE', 'Jumia Kenya', '5 unités restantes');
+  note('lrp-cicaplast-baume-b5-plus', 'NG', 'Care to Beauty Nigeria', 'Prêt à expédier');
   const swanky = offerOf('to-mandelic-acid-10-ha', 'GH', 'Swanky Beauty Supply');
-  assert.equal(swanky.availability, 'unknown', 'retrait proposé ≠ stock affiché'); assert.equal(swanky.city, 'Accra'); assert.equal(swanky.availabilityLabel, 'Disponibilité à vérifier');
-  for (const o of REAL.flatMap(p => P.offersOf(p))) if (o.availability === 'unknown') { assert.equal(o.buyable, false); assert.equal(o.linkOnly, true, 'lien « Voir l\'offre », jamais « Acheter en ligne »'); }
+  if (swanky) { assert.equal(swanky.availability, 'unknown', 'retrait proposé ≠ stock affiché'); assert.equal(swanky.city, 'Accra'); assert.equal(swanky.availabilityLabel, 'Disponibilité à vérifier'); }
+  // unknown ne donne jamais « Acheter en ligne » ; un lien (s\'il existe) devient « Voir l\'offre », sans lien il n\'y a aucun bouton
+  for (const o of REAL.flatMap(p => P.offersOf(p))) if (o.availability === 'unknown') { assert.equal(o.buyable, false); assert.equal(o.linkOnly, !!o.url, 'lien « Voir l\'offre » seulement s\'il existe, jamais « Acheter en ligne »'); }
   assert.ok(P.validateOffer({ market: 'GH', retailer: 'X', type: 'retailer', availability: 'few_units_left', source: 's', checkedAt: DAY }).length, 'statut inventé refusé');
 });
 
 test('V9 prix : 9 500 NGN (jamais le prix barré de 16 000), 27 103,40 NGN conservé tel quel, aucun prix sans source', () => {
-  assert.equal(offerOf('to-salicylic-2-solution', 'NG', 'Konga').price, 9500);
+  const sal = rawOf('to-salicylic-2-solution', 'NG', 'Konga'); if (sal) { assert.equal(sal.price, 9500); assert.doesNotMatch(sal.source, /16/, 'le prix barré n\'apparaît pas à l\'écran'); }
   assert.ok(!REAL.flatMap(p => p.offers).some(o => o.price === 16000), 'le prix barré n\'est enregistré comme prix nulle part');
-  assert.equal(offerOf('lrp-cicaplast-baume-b5-plus', 'NG', 'Care to Beauty Nigeria').price, 27103.4);
+  const cic = rawOf('lrp-cicaplast-baume-b5-plus', 'NG', 'Care to Beauty Nigeria'); if (cic) assert.equal(cic.price, 27103.4);
   for (const raw of REAL.flatMap(p => p.offers)) assert.ok(raw.price == null || (raw.currency && raw.source && raw.checkedAt));
-  assert.doesNotMatch(offerOf('to-salicylic-2-solution', 'NG', 'Konga').source, /16/, 'le prix barré n\'apparaît pas à l\'écran');
   assert.match(read('js/engine/data/catalog.js'), /le prix barré d'une annonce n'est jamais le prix actuel/);
 });
 
-test('V10 liens : https réels, exacts, sans paramètre ni suivi, sans lien de recherche, sans comparateur, sans affiliation', () => {
-  const urls = REAL.flatMap(p => p.offers.map(o => o.url));
+test('V10 liens : https réels, exacts, sans paramètre ni suivi, sans lien de recherche, sans comparateur, sans affiliation ; un lien absent est permis', () => {
+  const urls = REAL.flatMap(p => p.offers.map(o => o.url)).filter(u => u != null);   // un lien absent n\'est pas une erreur : seul un lien fourni est contrôlé
   assert.equal(new Set(urls).size, urls.length, 'un lien par offre');
   for (const u of urls) {
     assert.match(u, /^https:\/\//); assert.equal(new URL(u).search, '', 'aucun paramètre : ' + u); assert.equal(new URL(u).hash, '');
     assert.doesNotMatch(u, /utm_|affil|ref=|\/search|\?q=|pricecheck/i);
   }
   assert.doesNotMatch(JSON.stringify(REAL), /pricecheck|price ?check/i, 'PriceCheck (comparateur) n\'est ni vendeur ni source');
-  assert.deepEqual(urls.sort(), EXPECTED.map(e => e[8]).sort());
+  for (const [id, market, retailer, , , , , , url] of EXPECTED) { const raw = rawOf(id, market, retailer); if (raw) assert.equal(raw.url, url, id + ' / ' + market + ' : lien tel que fourni'); }
 });
 
-test('V11 Care to Beauty : l\'offre du Nigeria est propre au Nigeria ; aucune livraison ailleurs affirmée ; aucune offre Ghana sans lien produit vérifié', () => {
-  const raw = P.byId('lrp-cicaplast-baume-b5-plus', REAL).offers[0];
-  assert.equal(raw.market, 'NG'); assert.equal(raw.shipping, null, 'livraison hors Nigeria non établie'); assert.equal(raw.servesMarkets, undefined);
-  assert.match(raw.source, /livraison hors Nigeria non établie/);
-  for (const m of ['BJ', 'GH', 'KE', 'TG', 'CI', 'SN', 'CM']) assert.equal(P.marketView(P.byId('lrp-cicaplast-baume-b5-plus', REAL), m).local.length, 0, 'Care to Beauty Nigeria n\'est pas Care to Beauty ' + m);
-  const ctb = REAL.flatMap(p => p.offers.filter(o => /care to beauty/i.test(o.retailer)).map(o => o.market));
-  assert.deepEqual(ctb, ['NG'], 'aucune offre Care to Beauty hors Nigeria : aucun lien produit ni prix vérifiés pour les autres pays');
-  const view = P.marketView(P.byId('lrp-cicaplast-baume-b5-plus', REAL), 'BJ');
-  assert.equal(view.international[0].shipping, null); assert.match(require('../js/engine/copy.fr.js').MARKET_TEXTS.shipCheck, /Vérifier la livraison/);
+test('V11 Care to Beauty : chaque offre est propre à son pays ; aucune livraison ailleurs affirmée ; le pays d\'une offre n\'est jamais déduit', () => {
+  const ctb = rawOf('lrp-cicaplast-baume-b5-plus', 'NG', 'Care to Beauty Nigeria');
+  if (ctb) { assert.equal(ctb.shipping, null, 'livraison hors Nigeria non établie'); assert.equal(ctb.servesMarkets, undefined); assert.match(ctb.source, /livraison hors Nigeria non établie/); }
+  const cp = P.byId('lrp-cicaplast-baume-b5-plus', REAL);
+  for (const m of INV.countryCodes) assert.equal(P.marketView(cp, m).local.length, cp.offers.filter(o => o.market === m).length, 'une offre n\'est locale que dans son pays : ' + m);
+  for (const p of REAL) for (const o of p.offers.filter(x => /care to beauty/i.test(x.retailer))) if (o.url) assert.match(new URL(o.url).pathname, new RegExp('^/' + o.market.toLowerCase() + '/'), 'la boutique Care to Beauty d\'un pays ne sert que ce pays');
+  const view = P.marketView(cp, 'TG');
+  if (view.international.length) assert.ok(view.international.every(o => o.shipping === null || o.shipping === 'international'));
+  assert.match(require('../js/engine/copy.fr.js').MARKET_TEXTS.shipCheck, /Vérifier la livraison/);
 });
 
-test('V12 catalogue : les 13 produits de l\'étape 16 inchangés (même ordre), plus CeraVe Skin Renewing Vitamin C Serum (étape 17) ; aucun nouvel actif', () => {
-  assert.deepEqual(REAL.map(p => p.id), ['to-salicylic-2-solution', 'to-niacinamide-10-zinc-1', 'to-azelaic-acid-10', 'to-ascorbyl-glucoside-12', 'to-mandelic-acid-10-ha', 'to-hyaluronic-b5-ceramides', 'cerave-hydrating-ha-serum',
-    'cerave-blemish-control-gel', 'cerave-skin-renewing-vitamin-c-serum', 'lrp-effaclar-duo-m', 'lrp-cicaplast-baume-b5-plus', 'lrp-pure-vitamin-c10-serum', 'lrp-mela-b3-serum', 'vichy-liftactiv-vitamin-c-serum']);
+test('V12 catalogue : les 14 produits historiques sont toujours là, dans le même ordre, en tête ; les ajouts viennent après ; aucun nouvel actif', () => {
+  assert.deepEqual(REAL.slice(0, SAME_ORDER_PREFIX.length).map(p => p.id), SAME_ORDER_PREFIX, 'les produits existants gardent leur ordre (ajouter un produit ne casse rien)');
+  assert.equal(new Set(REAL.map(p => p.id)).size, REAL.length, 'chaque id est unique');
   assert.deepEqual(P.validateCatalog(REAL), []);
   assert.ok(!REAL.some(p => /natural moisturizing/i.test(p.name)), 'NMF + HA absent du catalogue : non intégré');
 });

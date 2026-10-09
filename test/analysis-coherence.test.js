@@ -9,6 +9,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { M, Engine, norm, randomCase } = require('./helpers/engine.js');
 const C = require('../js/engine/data/catalog.js');
+const FROZEN = require('./fixtures/catalog-matching.fixture.js');   // catalogue FIGÉ de la Phase 2 : les empreintes C0 testent les règles du moteur, pas le contenu courant du catalogue
 const DEC = require('../js/engine/data/decision.js');
 const FM = require('../js/face-map.js');
 const copy = require('../js/engine/copy.fr.js');
@@ -35,13 +36,13 @@ function decisionFingerprint() {
     ['morning', 'evening'].map(k => r.routinePlan.slots[k].map(s => [s.id, s.kind, s.activeId || null, !!s.slowDown, s.owned])), r.productMatches.map(m => [m.stepId, m.productId, m.selection && m.selection.rule]),
     r.personalization.goals.map(g => [g.id, g.status])]);
   const out = [];
-  for (let s = 1; s <= 1500; s++) { const c = randomCase(s * 37 + 5); out.push(dec(Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS }))); }
+  for (let s = 1; s <= 1500; s++) { const c = randomCase(s * 37 + 5); out.push(dec(Engine.run(norm(c.ui, c.o), c.profile, { catalog: FROZEN.PRODUCTS }))); }
   const rng = seed => { let s = seed; return () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296; };
   for (let s = 1; s <= 500; s++) {
     const r = rng(9000 + s), ui = {}, raw = {};
     for (const k of M.METRIC_KEYS) { raw[k] = 5 + r() * 95; ui[k] = Math.min(99, Math.round(raw[k] + 10)); }
     out.push(dec(Engine.run(norm(ui, { rawMap: raw, skin: ['Normal', 'Oily', 'Dry', 'Combination', 'Oily & Redness'][s % 5] }),
-      { goals: [[], ['tone'], ['aging'], ['hydration', 'texture']][s % 4], level: ['none', 'simple', 'full'][s % 3] }, { catalog: C.PRODUCTS })));
+      { goals: [[], ['tone'], ['aging'], ['hydration', 'texture']][s % 4], level: ['none', 'simple', 'full'][s % 3] }, { catalog: FROZEN.PRODUCTS })));
   }
   return crypto.createHash('sha256').update(out.join('\n')).digest('hex');
 }

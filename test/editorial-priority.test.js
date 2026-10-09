@@ -172,10 +172,14 @@ test('E16 non-régression : l\'ajout de la priorité ne change AUCUNE sortie (1 
 
 test('E17 données : priorités explicites seulement là où plusieurs produits concourent ; valeurs valides ; aucun produit unique ne reçoit de hiérarchie ; catalogue inchangé par ailleurs', () => {
   const withP = REAL.filter(p => p.editorialPriority).map(p => [p.id, p.editorialPriority]);
-  assert.deepEqual(withP, [['to-salicylic-2-solution', { salicylic: 1 }], ['to-ascorbyl-glucoside-12', { vitamin_c: 1 }], ['cerave-skin-renewing-vitamin-c-serum', { vitamin_c: 2 }], ['lrp-pure-vitamin-c10-serum', { salicylic: 2 }]]);
-  // pour chaque priorité : l'actif est relié au produit, il y a au moins deux produits utilisables compatibles avec cet actif
+  assert.ok(withP.length > 0, 'le catalogue contient des priorités éditoriales (le test n\'est pas vide)');
+  // pour chaque priorité : l'actif est relié au produit, il y a au moins deux produits utilisables compatibles avec cet actif (une priorité n'existe que là où plusieurs produits concourent)
   for (const [id, ep] of withP) for (const act of Object.keys(ep)) { assert.ok(P.ids(P.byId(id, REAL)).includes(act)); assert.ok(P.usable(REAL).filter(p => P.ids(p).includes(act) && p.category === 'serum').length >= 2, act + ' : plusieurs produits'); }
-  for (const act of ['azelaic', 'niacinamide', 'aha_pha']) assert.ok(!REAL.some(p => p.editorialPriority && p.editorialPriority[act]), act + ' : un seul produit, aucune hiérarchie');
+  // et réciproquement : un actif porté par un seul produit utilisable (en soin ciblé) ne reçoit aucune hiérarchie
+  for (const act of new Set(REAL.flatMap(p => P.ids(p)))) {
+    const competing = P.usable(REAL).filter(p => P.ids(p).includes(act) && p.category === 'serum');
+    if (competing.length <= 1) assert.ok(!REAL.some(p => p.editorialPriority && p.editorialPriority[act]), act + ' : un seul produit, aucune hiérarchie');
+  }
   assert.deepEqual(P.validateCatalog(REAL), []);
   // validation
   const bad = (ep, re) => assert.ok(P.validateProduct(Object.assign({}, BASE_VC, { editorialPriority: ep })).some(m => re.test(m)), JSON.stringify(ep));

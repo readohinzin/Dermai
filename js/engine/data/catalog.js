@@ -45,6 +45,7 @@
   'use strict';
 
   const D = '2026-10-06';
+  const D3 = '2026-10-08';   // date d'intégration de l'offre béninoise (Phase 3)
   const D2 = '2026-10-07';   // date d'intégration des offres ci-dessous (étape 16)
   const M = 'Recherche web ciblée sur le domaine du fabricant (résumé de la fiche ; page non ouverte directement, accès réseau bloqué)';
   const MD = 'Page fabricant ouverte directement (téléchargement HTTP) et lue le jour du relevé';
@@ -125,7 +126,12 @@
       inci: ['Aqua (Water)', 'Sodium Hyaluronate', 'Propanediol', 'Pentylene Glycol', 'Hydrolyzed Hyaluronic Acid', 'Sodium Hyaluronate Crosspolymer', 'Phospholipids', 'Sphingolipids', 'Panthenol', 'Ahnfeltiopsis Concinna Extract', 'Glycerin', 'Polysorbate 20', 'Citric Acid', 'Sodium Citrate', 'p-Anisic Acid', 'Tocopherol', 'Trisodium Ethylenediamine Disuccinate', 'Caprylyl Glycol', 'Ethoxydiglycol', 'Ethylhexylglycerin', 'Hexylene Glycol', 'Phenoxyethanol', 'Chlorphenesin'],
       inciNote: 'Formule actuelle « with Ceramides » uniquement : l\'ancienne formule « Original Formulation » est un autre produit et n\'est pas mélangée ici. L\'INCI ne nomme pas de « ceramide » : la marque présente les phospholipides et sphingolipides comme ses céramides.',
       sources: [direct('The Ordinary : Hyaluronic Acid 2% + B5 (with Ceramides), 30 ml et 60 ml', 'https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html')],
-      offers: [], image: { src: 'img/products/to-hyaluronic-b5-ceramides.webp', alt: 'Flacon The Ordinary Hyaluronic Acid 2% + B5 (with Ceramides)', sourceUrl: 'https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
+      offers: [
+        { market: 'BJ', retailer: 'Lynia Shop', type: 'retailer', currency: 'XOF', price: 12700, availability: 'in_stock', url: null, shipping: null,
+          source: 'Lynia Shop (lynia-shop.com) : relevé fourni par l\'équipe DERMAI, correspondance « with Ceramides » confirmée par elle ; page non rouverte ici', checkedAt: D3 }
+      ],
+      marketChecks: [{ market: 'BJ', status: 'searched_found', checkedAt: D3, method: 'Fiche vendeur Lynia Shop relevée par l\'équipe DERMAI et fournie au projet ; page non rouverte depuis l\'environnement d\'intégration', note: 'Lien exact de la fiche, ville et type de vendeur à confirmer' }],
+      image: { src: 'img/products/to-hyaluronic-b5-ceramides.webp', alt: 'Flacon The Ordinary Hyaluronic Acid 2% + B5 (with Ceramides)', sourceUrl: 'https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'cerave-hydrating-ha-serum', name: 'Hydrating Hyaluronic Acid Serum', brand: 'CeraVe', format: '30 ml', category: 'serum',
       ingredients: [{ activeId: 'hyaluronic', label: 'Hyaluronate de sodium' }, { activeId: 'panthenol', label: 'Panthénol' }, { activeId: 'ceramides', label: 'Céramides NP, AP, EOP' }, { activeId: 'glycerin', label: 'Glycérine' }], primaryActiveId: 'hyaluronic',
