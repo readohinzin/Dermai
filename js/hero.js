@@ -38,8 +38,8 @@
 
   /* Contenu : une diapositive = un message, dit une fois. Les valeurs de scores sont des EXEMPLES (100 = meilleur résultat, comme dans l'application). */
   const SLIDES = [
-    { id: 'scan', theme: 'rose', kicker: 'Analyse cosmétique assistée par IA', title: ['Votre peau.', 'Votre analyse.', 'Votre routine.'],
-      text: 'Analysez visuellement votre peau et découvrez une routine personnalisée adaptée à vos besoins.', more: ['how', 'En savoir plus'],
+    { id: 'scan', theme: 'rose', kicker: 'Analyse cosmétique par intelligence artificielle', title: ['Votre peau.', 'Votre analyse.', 'Votre routine.'],
+      text: 'Prenez une photo : l\'intelligence artificielle analyse votre peau, puis DERMAI vous propose une routine cosmétique personnalisée.', more: ['how', 'En savoir plus'],
       person: 1, alt: 'Portrait fictif d\'une femme, avec un cadre de détection du visage' },
     { id: 'scores', theme: 'lilac', kicker: 'Votre analyse', title: ['Des scores clairs,', 'zone par zone.'],
       text: 'DERMAI lit quinze indicateurs visibles sur l\'ensemble du visage et vous donne un score de 0 à 100 pour chacun, 100 étant le meilleur résultat.', more: ['observe', 'Ce que DERMAI observe'],

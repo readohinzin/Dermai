@@ -50,7 +50,9 @@ test('B3 intégration : bouton accessible, image décorative aux dimensions fixe
 
 test('B4 titre et aperçu de lien : plus de « maquette », description, Open Graph avec une image de partage CARRÉE (le D seul, vignette compacte dans WhatsApp)', () => {
   const html = read('index.html');
-  assert.match(html, /<title>DERMAI, analyse de peau et routine personnalisée<\/title>/);
+  assert.match(html, /<title>DERMAI, analyse de peau par IA et routine personnalisée<\/title>/);
+  assert.match(html, /name="description" content="[^"]*par IA[^"]*pas un diagnostic médical/, 'l\'IA est mise en avant, la mention « pas un diagnostic médical » reste');
+  assert.doesNotMatch(html, /dermatolog/i, 'aucune allégation dermatologique : l\'analyse est cosmétique');
   assert.doesNotMatch(html, /maquette/i);
   assert.match(html, /<meta name="description" content="[^"]{60,200}">/);
   for (const re of [/property="og:title"/, /property="og:description"/, /property="og:type" content="website"/, /property="og:locale" content="fr_FR"/, /name="twitter:card" content="summary">/]) assert.match(html, re);
