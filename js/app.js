@@ -220,14 +220,16 @@ async function persist(){
   saving=false;
   if(epoch===authEpoch&&state.route===`profile`&&state.save.status===`error`)render(true);
 }
+/* Compte sans préférences enregistrées : les trois questions s'ouvrent d'elles-mêmes, sinon accueil. */
+const afterAuth=o=>state.noProfile?go(`onb`,`1`,o):go(`home`,null,o);
 async function enterSession(user,fresh){
   authEpoch++;state.account.status=`signedIn`;state.account.email=user.email;state.user.email=user.email;state.account.error=``;state.account.info=``;
-  state.account.loading=true;
+  state.account.loading=true;state.noProfile=!!fresh;
   if(fresh){applyProfile({})}
   const epoch=authEpoch,r=await ACCOUNT.loadProfile();
   if(epoch!==authEpoch)return;
   state.account.loading=false;
-  if(r.ok){if(r.profile)applyProfile(r.profile);else applyProfile({});state.photos=r.photos;state.save={status:`idle`,message:``}}
+  if(r.ok){state.noProfile=!r.profile;if(r.profile)applyProfile(r.profile);else applyProfile({});state.photos=r.photos;state.save={status:`idle`,message:``}}
   else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
   else{state.save={status:`error`,message:r.error}}
   if(fresh)state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};   // compte tout juste créé : aucun historique à charger
@@ -372,7 +374,7 @@ async function handleAuthRedirect(redirect){
   await enterSession(r.user,false);
   if(!signedIn())return;
   if(r.type===`recovery`){state.account.recovery=true;go(`reset`,null,{reset:true,replace:true});return}
-  toast(DermaiAccount.MSG.emailConfirmed);go(`welcome`,null,{reset:true,replace:true});
+  toast(DermaiAccount.MSG.emailConfirmed);afterAuth({reset:true,replace:true});
 }
 async function bootAccount(arrivedWithoutPage,redirect){
   if(!ACCOUNT||!ACCOUNT.available)return;
@@ -428,7 +430,7 @@ async function submitAuth(kind,form){
   resetPrivateState();
   await enterSession(r.user,kind===`signup`);
   state.account.formEmail=``;
-  if(kind===`signup`)go(`welcome`,null,{replace:true});else go(`home`,null,{reset:true});
+  afterAuth(kind===`signup`?{replace:true}:{reset:true});
 }
 async function logout(){
   await ACCOUNT.signOut();authEpoch++;
@@ -713,7 +715,7 @@ V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center
 /* Onboarding */
 V.onb=n=>{
   n=Number(n)||1;
-  const top=`<div class="flowtop"><button class="iconbtn c-icon-btn" data-go="${n===1?`welcome`:`onb:`+(n-1)}" aria-label="Retour">${ic(`back`)}</button><div class="dots" aria-label="Question ${n} sur 3">${[1,2,3].map(i=>`<i class="${i<=n?`on`:``}"></i>`).join(``)}</div></div>`;
+  const top=`<div class="flowtop"><button class="iconbtn c-icon-btn" data-go="${n===1?`home`:`onb:`+(n-1)}" aria-label="Retour">${ic(`back`)}</button><div class="dots" aria-label="Question ${n} sur 3">${[1,2,3].map(i=>`<i class="${i<=n?`on`:``}"></i>`).join(``)}</div></div>`;
   let body=``;
   if(n===1) body=`<h1>Quels sont vos objectifs ?</h1><p style="margin:10px 0 8px">Facultatif. Vous pouvez en choisir jusqu'à 3. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><p class="muted" role="status" aria-live="polite" style="margin:0 0 16px"><b>${goalCount()}</b></p><div class="stack" style="gap:10px">${Engine.goalList().map(g=>`<button class="opt" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}"><span class="grow"><b>${g.label}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}<button class="opt" data-act="goal" data-v="none" aria-pressed="${state.noGoal}"><span class="grow"><b>${Engine.copy.NO_GOAL}</b></span><span class="tick">${ic(`check`)}</span></button></div>`;
   if(n===2) body=`<h1>Quelle est votre routine actuelle ?</h1><p style="margin:10px 0 22px">Pas de mauvaise réponse.</p><div class="stack" style="gap:10px">${[[`none`,`Aucune routine`,`Je n'ai pas de soins réguliers.`],[`simple`,`Routine simple`,`Je nettoie et j'hydrate.`],[`full`,`Routine complète`,`J'utilise plusieurs soins, dont des sérums.`]].map(o=>`<button class="opt" data-act="level" data-v="${o[0]}" aria-pressed="${state.level===o[0]}"><span class="grow"><b>${o[1]}</b><span class="s">${o[2]}</span></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}</div>`;

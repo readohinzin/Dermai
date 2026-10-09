@@ -139,5 +139,5 @@ test('NM-L hors du navigateur : ni app.js, ni index.html, ni js/ ne référencen
     if (!/\.(js|html)$/.test(f)) continue;
     assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /tools\/market\/|(?<![\w.])data\/market\/|identities\.json/, path.relative(ROOT, f));
   }
-  assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149365, 'budget app.js inchangé');
+  assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149552, 'budget app.js inchangé');
 });

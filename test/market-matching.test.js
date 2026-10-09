@@ -273,7 +273,7 @@ test('MT-19 périmètre : pas de discovery.js, review.js, apply.js (confidence.j
   for (const f of ['discovery.js', 'review.js', 'apply.js']) assert.ok(!fs.existsSync(path.join(ROOT, 'tools/market', f)), f + ' ne doit pas exister à ce stade');
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   for (const f of walk(path.join(ROOT, 'js')).concat(walk(path.join(ROOT, 'server')), walk(path.join(ROOT, 'api')))) if (/\.js$/.test(f)) assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /tools\/market|market\/match|identities\.json/, path.relative(ROOT, f));
-  assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149365);
+  assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149552);
   const P = require('../js/engine/products.js'), lynia = PRODUCTS.find(p => p.id === HA);
   if (lynia && (lynia.offers || []).some(o => o.market === 'BJ' && /lynia/i.test(o.retailer))) { assert.equal(P.availabilityStatus(lynia, 'BJ').status, 'LOCAL'); assert.equal(P.availabilityStatus(lynia, 'TG').status, 'UNKNOWN'); }   // relevé enregistré : présent-si
   const src = fs.readFileSync(path.join(ROOT, 'tools/market/match.js'), 'utf8');

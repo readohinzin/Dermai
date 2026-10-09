@@ -324,7 +324,7 @@ test('MK-15 pureté et périmètre : aucune mutation, aucun réseau, aucune horl
   for (const f of ['discovery.js', 'review.js', 'apply.js']) assert.ok(!fs.existsSync(path.join(ROOT, 'tools/market', f)), f + ' ne doit pas exister à ce stade');
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   for (const f of walk(path.join(ROOT, 'js')).concat(walk(path.join(ROOT, 'server')), walk(path.join(ROOT, 'api')))) if (/\.js$/.test(f)) assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /tools\/market|market\/(?:confidence|classify|observation)/, path.relative(ROOT, f));
-  assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149365, 'app.js inchangé');
+  assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149552, 'app.js inchangé');
   const sig = fs.readFileSync(path.join(ROOT, 'js/engine/products.js'), 'utf8');
   assert.match(sig, /function availabilityStatus\(p, country\)/); assert.ok(sig.includes("return { country: code, status: 'UNAVAILABLE', reason: 'searched_none', checkedAt: check.checkedAt };"), 'availabilityStatus inchangée');
 });
