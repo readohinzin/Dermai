@@ -48,17 +48,24 @@ test('B3 intégration : bouton accessible, image décorative aux dimensions fixe
   assert.ok(!/https?:\/\/[^"'\s)]*dermai[^"'\s)]*\.(webp|png)/i.test(app), 'logo servi par le projet');
 });
 
-test('B4 titre et aperçu de lien : plus de « maquette », description, Open Graph avec image de partage 1200x630', () => {
+test('B4 titre et aperçu de lien : plus de « maquette », description, Open Graph avec une image de partage CARRÉE (le D seul, vignette compacte dans WhatsApp)', () => {
   const html = read('index.html');
   assert.match(html, /<title>DERMAI, analyse de peau et routine personnalisée<\/title>/);
   assert.doesNotMatch(html, /maquette/i);
   assert.match(html, /<meta name="description" content="[^"]{60,200}">/);
-  for (const re of [/property="og:title"/, /property="og:description"/, /property="og:type" content="website"/, /property="og:locale" content="fr_FR"/, /name="twitter:card" content="summary_large_image"/]) assert.match(html, re);
+  for (const re of [/property="og:title"/, /property="og:description"/, /property="og:type" content="website"/, /property="og:locale" content="fr_FR"/, /name="twitter:card" content="summary">/]) assert.match(html, re);
+  assert.doesNotMatch(html, /summary_large_image/, 'plus de grande carte : le logo complet en bandeau n\'est plus l\'image de partage');
   const img = html.match(/property="og:image" content="(https:\/\/[^"]+)"/)[1];
-  assert.equal(new URL(img).pathname, '/img/brand/og-image.jpg');
-  const jpg = buf('img/brand/og-image.jpg');
+  assert.equal(new URL(img).pathname, '/img/brand/og-square-512.jpg');
+  const jpg = buf('img/brand/og-square-512.jpg');
   assert.equal(jpg[0], 0xff); assert.equal(jpg[1], 0xd8);
   assert.ok(jpg.length < 300000, 'léger (< 300 Ko) pour les aperçus de messagerie');
+  // dimensions réelles lues dans le fichier : carrées, et identiques à celles déclarées
+  let i = 2, w = 0, h = 0;
+  while (i < jpg.length) { if (jpg[i] !== 0xff) { i++; continue; } const m = jpg[i + 1]; if (m >= 0xc0 && m <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(m)) { h = jpg.readUInt16BE(i + 5); w = jpg.readUInt16BE(i + 7); break; } i += 2 + jpg.readUInt16BE(i + 2); }
+  assert.equal(w, h, 'image carrée : ' + w + 'x' + h); assert.ok(w >= 300 && w <= 1200, 'assez grande pour être nette, assez petite pour la vignette : ' + w);
+  assert.match(html, new RegExp('property="og:image:width" content="' + w + '"')); assert.match(html, new RegExp('property="og:image:height" content="' + h + '"'));
+  assert.match(html, /property="og:image:type" content="image\/jpeg"/);
   // aucun texte visible « maquette » dans l'application, ni dans le README
   assert.doesNotMatch(read('js/app.js').replace(/\/\*[\s\S]*?\*\//g, ''), /maquette/i);
   assert.doesNotMatch(read('README.md').split('\n').slice(0, 5).join('\n'), /maquette/i);
