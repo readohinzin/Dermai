@@ -269,8 +269,8 @@ test('MT-18 le catalogue peut grandir sans casser le matcher (simulations A à F
   assert.equal(M.findMatches({ title: tt }, M.buildIndex(fileE))[0].matchClass, 'POSSIBLE_MATCH');
 });
 
-test('MT-19 périmètre : pas de safe-fetch.js, discovery.js, review.js, apply.js (confidence.js et classify.js existent depuis la phase 3B-4) ; le matcher n\'est lu ni par le navigateur ni par le moteur ; disponibilité inchangée', () => {
-  for (const f of ['safe-fetch.js', 'discovery.js', 'review.js', 'apply.js']) assert.ok(!fs.existsSync(path.join(ROOT, 'tools/market', f)), f + ' ne doit pas exister à ce stade');
+test('MT-19 périmètre : pas de discovery.js, review.js, apply.js (confidence.js et classify.js existent depuis la phase 3B-4, safe-fetch.js et extractors.js depuis la phase 3B-5) ; le matcher n\'est lu ni par le navigateur ni par le moteur ; disponibilité inchangée', () => {
+  for (const f of ['discovery.js', 'review.js', 'apply.js']) assert.ok(!fs.existsSync(path.join(ROOT, 'tools/market', f)), f + ' ne doit pas exister à ce stade');
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   for (const f of walk(path.join(ROOT, 'js')).concat(walk(path.join(ROOT, 'server')), walk(path.join(ROOT, 'api')))) if (/\.js$/.test(f)) assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /tools\/market|market\/match|identities\.json/, path.relative(ROOT, f));
   assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149365);

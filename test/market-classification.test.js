@@ -321,7 +321,7 @@ test('MK-15 pureté et périmètre : aucune mutation, aucun réseau, aucune horl
   assert.deepEqual(requires('confidence.js'), ['./observation.js']); assert.deepEqual(requires('observation.js'), ['../../js/engine/products.js']);
   const hostile = [undefined, null, 0, 'x', [], {}, { targetCountry: 5 }, { targetCountry: 'BJ', observation: 5 }, { targetCountry: 'BJ', observation: { seller: 5 } }, { targetCountry: 'BJ', observations: 'x' }, { targetCountry: 'BJ', observations: [null, 1, {}], marketChecks: 'x' }, { targetCountry: 'BJ', observations: [{ shipsTo: [null] }], marketChecks: [null, 3, {}] }];
   for (const h of hostile) { let r; assert.doesNotThrow(() => { r = K.classifyMarket(h); }, JSON.stringify(h)); assert.equal(r.status, 'UNKNOWN', JSON.stringify(h)); assert.doesNotThrow(() => K.classify(h)); }
-  for (const f of ['safe-fetch.js', 'discovery.js', 'review.js', 'apply.js']) assert.ok(!fs.existsSync(path.join(ROOT, 'tools/market', f)), f + ' ne doit pas exister à ce stade');
+  for (const f of ['discovery.js', 'review.js', 'apply.js']) assert.ok(!fs.existsSync(path.join(ROOT, 'tools/market', f)), f + ' ne doit pas exister à ce stade');
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   for (const f of walk(path.join(ROOT, 'js')).concat(walk(path.join(ROOT, 'server')), walk(path.join(ROOT, 'api')))) if (/\.js$/.test(f)) assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /tools\/market|market\/(?:confidence|classify|observation)/, path.relative(ROOT, f));
   assert.equal(fs.statSync(path.join(ROOT, 'js/app.js')).size, 149365, 'app.js inchangé');
