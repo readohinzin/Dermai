@@ -24,6 +24,7 @@ const MESSAGES = {
   SERVICE_UNAVAILABLE: 'Le service d\'analyse est momentanément indisponible.',
   TASK_ERROR: 'L\'analyse n\'a pas pu être terminée.',
   TIMEOUT: 'L\'analyse prend trop de temps. Veuillez réessayer.',
+  TIME_BUDGET: 'L\'analyse prend plus de temps que prévu et n\'a pas pu être terminée. Réessayez dans quelques minutes.',
   ANALYSIS_DISABLED: 'L\'analyse n\'est pas disponible pour le moment.',
   AUTH_REQUIRED: 'Connectez-vous pour analyser votre peau.',
   QUOTA_EXCEEDED: 'Vous avez atteint le nombre d\'analyses disponibles pour le moment. Réessayez plus tard.',

@@ -4,7 +4,8 @@ const { AnalysisError, toUserMessage } = require('../server/errors');
 const perfectcorp = require('../server/perfectcorp');
 const auth = require('../server/auth');
 const quota = require('../server/quota');
-const { isAnalysisEnabled, isDebugRawEnabled } = require('../server/config');
+const { isAnalysisEnabled, isDebugRawEnabled, TIME_BUDGET } = require('../server/config');
+const { createBudget } = require('../server/budget');
 const { describeStructure } = require('../server/structure');
 const masks = require('../server/masks');   // localisation réelle : masques Perfect Corp, téléchargés ici, renvoyés en data URL
 /* Module partagé avec le navigateur (js/skin-model.js) : localise le résultat et ne garde que les champs autorisés. */
@@ -22,6 +23,8 @@ function send(res, status, body) {
 }
 
 async function handler(req, res) {
+  /* Budget de temps global, démarré avant toute opération réseau liée à l'analyse (session, photo, quota, fournisseur, masques). */
+  const budget = createBudget();
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return send(res, 405, { ok: false, error: toUserMessage('METHOD_NOT_ALLOWED') });
@@ -45,12 +48,16 @@ async function handler(req, res) {
     console.log('[DERMAI] Skin analysis started');
     const body = await readBody(req);
     const image = validateImage(body, req.headers['content-type']);
+    /* Pas assez de temps pour mener une analyse : refus AVANT la réservation du crédit et avant tout appel au fournisseur. La réservation peut
+       elle-même durer jusqu'à quota.TIMEOUT_MS : le seuil la compte, pour qu'il reste minStartMs une fois le crédit réservé (sans garantie de
+       réussite). */
+    if (!budget.canStart(TIME_BUDGET.minStartMs + quota.TIMEOUT_MS)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant le quota (${budget.elapsed()} ms écoulées)` });
     /* Quota : réservation atomique côté base, avec l'identité du jeton. Dernier contrôle avant Perfect Corp : refus (quota atteint, base ou
        fonction indisponible) = aucun appel au fournisseur. Les photos invalides ci-dessus ne consomment rien. */
     if (!perfectcorp.isConfigured()) throw new AnalysisError('SERVICE_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });   // rien n'est réservé si le service ne peut pas répondre
     await quota.reserve(auth.bearerToken(req));
     console.log('[DERMAI] Analysis quota reserved');
-    const envelope = await perfectcorp.analyzeSkin(image);
+    const envelope = await perfectcorp.analyzeSkin(image, { budget });
     /* Log de la structure seulement (noms de champs et types) : jamais de valeurs, d'URL ni de photo. */
     console.log('[DERMAI] Perfect Corp result structure', JSON.stringify(describeStructure(envelope)));
     for (const line of diagnosticLines(envelope)) console.log(line);   // DIAGNOSTIC TEMPORAIRE : valeurs de skin_type, all, skin_age
@@ -75,9 +82,10 @@ async function handler(req, res) {
        Les URL d'origine ne quittent pas le serveur ; rien n'est stocké. Clé absente quand aucun masque n'est exploitable. */
     let localization = {};
     try {
-      const m = await masks.collect(envelope);
+      const m = await masks.collect(envelope, { budget });
       localization = m.localization;
-      console.log('[DERMAI] Localization: metrics', m.stats.metrics, '| listed', m.stats.listed, '| kept', m.stats.kept);
+      if (m.stats.skipped) console.log('[DERMAI] Localization skipped: time budget');
+      else console.log('[DERMAI] Localization: metrics', m.stats.metrics, '| listed', m.stats.listed, '| kept', m.stats.kept);
     } catch (e) { console.warn('[DERMAI] Localization unavailable'); }
     const payload = { ok: true, result };
     if (Object.keys(localization).length) payload.localization = localization;

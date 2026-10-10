@@ -43,4 +43,4 @@ async function reserve(token, env = process.env) {
   throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : réponse inattendue' });
 }
 
-module.exports = { reserve, api };
+module.exports = { reserve, api, TIMEOUT_MS };   // TIMEOUT_MS : délai maximal de la requête de réservation, lu par le handler pour son budget de temps

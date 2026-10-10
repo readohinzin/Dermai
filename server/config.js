@@ -21,10 +21,20 @@ const IMAGE = {
   maxBytes: 4 * 1024 * 1024   // la limite de corps d'une fonction Vercel est d'environ 4,5 Mo
 };
 
+/* Budget de temps GLOBAL de /api/skin-analysis (voir server/budget.js). Il démarre à l'entrée du handler et couvre toutes les étapes réseau.
+   maxDuration vaut 60 s (vercel.json) : 52 s laissent 8 s de marge pour l'envoi de la réponse et les variations de démarrage.
+   minStartMs : temps restant minimal pour MENER l'analyse une fois le crédit réservé ; le handler y ajoute le délai maximal de la réservation
+   elle-même (quota.TIMEOUT_MS) avant de la tenter. minStepMs : temps restant minimal pour commencer UNE étape réseau du fournisseur.
+   minTaskMs : temps restant minimal pour CRÉER la tâche (étape qui engage le crédit chez le fournisseur) = 3 s pour au moins une interrogation
+   de statut + 5 s pour la requête de création elle-même (même ordre de grandeur que les délais de session et de quota). minMasksMs : idem
+   pour le téléchargement (facultatif) des masques. Valeurs de sécurité PROVISOIRES : elles réduisent le risque de créer une tâche que l'on ne
+   pourrait pas suivre, elles ne garantissent pas la réussite (une requête peut toujours échouer ou être interrompue après son émission). */
+const TIME_BUDGET = { totalMs: 52000, minStartMs: 15000, minStepMs: 3000, minTaskMs: 8000, minMasksMs: 3000 };
+
 const POLLING = {
   intervalMs: 2000,
   maxAttempts: 25,
-  totalTimeoutMs: 50000       // reste sous maxDuration (60 s, voir vercel.json)
+  totalTimeoutMs: 50000       // plafond du polling seul ; le budget global (TIME_BUDGET) est la vraie limite de la fonction
 };
 
 /* Verrous d'exploitation (variables d'environnement serveur, désactivés par défaut). */
@@ -56,4 +66,4 @@ const analysisQuota = (env = process.env) => ({
   windowSeconds: intIn(env.DERMAI_ANALYSIS_PERIOD_HOURS, 1, 8760, QUOTA_DEFAULTS.hours) * 3600
 });
 
-module.exports = { analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING };
+module.exports = { analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET };

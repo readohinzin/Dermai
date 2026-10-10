@@ -12,6 +12,7 @@
    Un échec de téléchargement n'empêche jamais l'analyse : la localisation est un complément facultatif.
    Rien n'est stocké : le résultat ne part que dans la réponse de l'analyse en cours. */
 const skinModel = require('../js/skin-model.js');
+const { TIME_BUDGET } = require('./config');
 
 const LIMITS = {
   maxPerMetric: 4,                 // plusieurs masques par métrique : conservés (dans la limite)
@@ -54,8 +55,8 @@ function sniff(buf) {
   return null;
 }
 
-async function download(url, budget) {
-  const ctl = new AbortController();const timer = setTimeout(() => ctl.abort(), LIMITS.timeoutMs);
+async function download(url, budget, timeoutMs = LIMITS.timeoutMs) {
+  const ctl = new AbortController();const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     const res = await api.fetchImpl(url, { method: 'GET', redirect: 'follow', signal: ctl.signal });   // aucune clé API, aucun jeton
     if (!res || !res.ok) return null;
@@ -74,12 +75,16 @@ async function download(url, budget) {
 
 /* { <clé DERMAI>: [dataURL, …] } ; seules les métriques avec au moins un masque téléchargé et reconnu y figurent.
    stats : nombres seulement, pour les logs (jamais d'URL). */
-async function collect(envelope) {
+async function collect(envelope, { budget: clock } = {}) {
+  /* Budget de temps global (server/budget.js) : les masques sont facultatifs. Trop peu de temps restant → aucune requête, aucune localisation ;
+     sinon le délai de téléchargement ne dépasse jamais ce qu'il reste. */
+  if (clock && !clock.canStart(TIME_BUDGET.minMasksMs)) return { localization: {}, stats: { metrics: 0, listed: 0, kept: 0, skipped: true } };
+  const timeoutMs = clock ? Math.min(LIMITS.timeoutMs, clock.remaining()) : LIMITS.timeoutMs;
   const refs = maskRefs(envelope);
   const budget = { left: LIMITS.maxBytesTotal };
   const stats = { metrics: refs.length, listed: refs.reduce((s, r) => s + r.urls.length, 0), kept: 0 };
   // tout en parallèle : la durée totale reste bornée par un seul délai (timeoutMs), l'ordre des masques est conservé
-  const results = await Promise.all(refs.map(async r => [r.key, (await Promise.all(r.urls.map(u => download(u, budget)))).filter(Boolean)]));
+  const results = await Promise.all(refs.map(async r => [r.key, (await Promise.all(r.urls.map(u => download(u, budget, timeoutMs)))).filter(Boolean)]));
   const localization = {};
   for (const [k, list] of results) if (list.length) { localization[k] = list; stats.kept += list.length; }
   return { localization, stats };
