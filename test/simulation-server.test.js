@@ -119,11 +119,26 @@ test('SIM-S4 verrou fermé par défaut : 503, la photo n\'est pas lue, rien n\'e
 });
 
 test('SIM-S5 verrou ouvert mais compte non autorisé (ou liste absente/vide) : 403, rien n\'est appelé ni réservé', async () => {
-  for (const list of [undefined, '', OTHER, 'tous', '*', USER.slice(0, 20)]) {
+  for (const list of [undefined, '', OTHER, 'tous', '**', '* ?', 'all', USER.slice(0, 20)]) {
     const r = await run({ DERMAI_SIMULATION_ALLOWED_USER_IDS: list }, () => call('POST'));
     assert.equal(r.status, 403, String(list)); assert.equal(r.body.error, errors.MESSAGES.SIM_DISABLED);
     assert.equal(rec.calls.length, 0); assert.deepEqual(rpc(), []);
   }
+});
+
+test('SIM-S5b « * » : tout compte CONNECTÉ peut simuler (choix explicite) ; le verrou, la session et le quota PAR compte restent exigés', async () => {
+  for (const list of ['*', ' * ', 'x, *', '*,' + OTHER]) {
+    const a = await run({ DERMAI_SIMULATION_ALLOWED_USER_IDS: list, DERMAI_MAX_SIMULATIONS_PER_PERIOD: '1' }, async () => [await call('POST'), await call('POST', { token: TOKEN2 }), await call('POST'), await call('GET', { token: TOKEN2 })]);
+    assert.deepEqual(a.map(r => r.status), [200, 200, 429, 200], list + ' : chacun son quota, le troisième appel du premier compte est refusé');
+    assert.deepEqual(a[3].body, { ok: true, available: true });
+    assert.equal(SB.simUsage.get(USER).length, 1); assert.equal(SB.simUsage.get(OTHER).length, 1);
+  }
+  let r = await run({ DERMAI_SIMULATION_ALLOWED_USER_IDS: '*', DERMAI_SIMULATION_ENABLED: undefined }, () => call('POST')); assert.equal(r.status, 503, '« * » n\'ouvre rien sans le verrou');
+  r = await run({ DERMAI_SIMULATION_ALLOWED_USER_IDS: '*' }, () => call('POST', { token: null })); assert.equal(r.status, 401, 'toujours une session valide');
+  r = await run({ DERMAI_SIMULATION_ALLOWED_USER_IDS: '*' }, () => call('GET', { token: 'aaaaaaaa.bbbbbbbb.invalid0' })); assert.equal(r.status, 401);
+  r = await run({ DERMAI_SIMULATION_ALLOWED_USER_IDS: '*' }, () => call('POST', { query: 'concern=oiliness' })); assert.equal(r.status, 400, 'la liste blanche des zones ne change pas');
+  assert.equal(config.isSimulationAllowed('', { DERMAI_SIMULATION_ALLOWED_USER_IDS: '*' }), false, 'pas d\'identité = refus, même avec « * »');
+  assert.equal(config.isSimulationAllowed(USER, { DERMAI_SIMULATION_ALLOWED_USER_IDS: '' }), false); assert.equal(config.isSimulationAllowed(USER, {}), false, 'défaut : personne');
 });
 
 test('SIM-S6 zone : une seule, dans la liste blanche ; « oiliness » et les noms piégés sont refusés avant la photo, le quota et le fournisseur', async () => {

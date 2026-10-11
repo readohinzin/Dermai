@@ -90,10 +90,16 @@ const SIM_CONCERNS = {
 const SIM_INTENSITY = 0.5;   // fixe, côté serveur : valeur prudente et provisoire (le navigateur ne la choisit pas)
 
 /* Verrou : sans DERMAI_SIMULATION_ENABLED, aucune simulation, aucun crédit. Même activé, seuls les comptes listés dans
-   DERMAI_SIMULATION_ALLOWED_USER_IDS (identifiants Supabase séparés par des virgules) peuvent l'utiliser : liste vide = personne. */
+   DERMAI_SIMULATION_ALLOWED_USER_IDS (identifiants Supabase séparés par des virgules) peuvent l'utiliser : liste vide = personne ; « * » = tout compte connecté (voir isSimulationAllowed). */
 const isSimulationEnabled = (env = process.env) => flag(env.DERMAI_SIMULATION_ENABLED);
 const simulationAllowList = (env = process.env) => new Set(String(env.DERMAI_SIMULATION_ALLOWED_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean));
-const isSimulationAllowed = (userId, env = process.env) => typeof userId === 'string' && !!userId && simulationAllowList(env).has(userId);
+/* La valeur « * » (seule, écrite explicitement) ouvre la simulation à TOUT compte connecté, vérifié par Supabase : choix délibéré, jamais un défaut.
+   Le verrou DERMAI_SIMULATION_ENABLED reste nécessaire, et le quota reste PAR compte. Liste vide ou absente = personne. */
+const isSimulationAllowed = (userId, env = process.env) => {
+  if (typeof userId !== 'string' || !userId) return false;
+  const list = simulationAllowList(env);
+  return list.has('*') || list.has(userId);
+};
 /* Quota propre aux simulations (jamais celui des analyses). Défaut : une simulation par 24 h, jamais « illimité ». */
 const SIM_QUOTA_DEFAULTS = { limit: 1, hours: 24 };
 const simulationQuota = (env = process.env) => ({
