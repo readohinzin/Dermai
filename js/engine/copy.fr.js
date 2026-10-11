@@ -9,7 +9,7 @@
   'use strict';
 
   const DOMAIN_LABELS = {
-    hydration: 'Hydratation', oil_pores: 'Niveau d\'huile et pores', blemishes: 'Imperfections', tone: 'Teint et taches',
+    hydration: 'Hydratation', oil_pores: 'Niveau d\'huile et pores', blemishes: 'Acné et imperfections', tone: 'Teint et taches',
     redness_comfort: 'Rougeurs et confort', texture: 'Texture', aging: 'Rides et fermeté', eye_contour: 'Contour des yeux'
   };
   const GOAL_LABELS = Object.assign({}, DOMAIN_LABELS, { maintenance: 'Entretien global' });
