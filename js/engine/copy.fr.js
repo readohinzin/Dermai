@@ -13,6 +13,13 @@
     redness_comfort: 'Rougeurs et confort', texture: 'Texture', aging: 'Rides et fermeté', eye_contour: 'Contour des yeux'
   };
   const GOAL_LABELS = Object.assign({}, DOMAIN_LABELS, { maintenance: 'Entretien global' });
+  /* Une ligne en mots de tous les jours sous chaque choix : on reconnaît sa préoccupation sans connaître le vocabulaire de l'outil. */
+  const GOAL_HINTS = {
+    hydration: 'Peau qui tiraille, sèche ou inconfortable.', oil_pores: 'Peau qui brille, pores visibles.',
+    blemishes: 'Boutons, points noirs, marques qui restent après un bouton.', tone: 'Taches, teint inégal ou terne.',
+    redness_comfort: 'Rougeurs, peau qui réagit facilement.', texture: 'Peau rugueuse ou irrégulière au toucher.',
+    aging: 'Rides, ridules, peau moins ferme.', maintenance: 'Garder une peau en forme, sans souci particulier.'
+  };
   const NO_GOAL = 'Aucun objectif particulier';
   const GOAL_LIMIT = 'Vous pouvez choisir jusqu\'à 3 objectifs.';
   const SLOT_LABELS = { morning: 'Matin', evening: 'Soir' };
@@ -367,7 +374,7 @@
   const selectionText = sel => (!sel ? '' : sel.rule === 'only' ? SELECTION.only : SELECTION[sel.rule] ? SELECTION[sel.rule](sel.candidates) : '');
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
-    DOMAIN_LABELS, GOAL_LABELS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
+    DOMAIN_LABELS, GOAL_LABELS, GOAL_HINTS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
     priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, accompanimentReason, accompanimentStep, accompanimentSummary, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });
