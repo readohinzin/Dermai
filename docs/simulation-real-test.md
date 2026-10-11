@@ -15,7 +15,7 @@ Le code livré est fermé par défaut : tant que les étapes 3 et 4 ne sont pas 
 | Variable | Valeur pendant le test | Portée | Remarque |
 |---|---|---|---|
 | `DERMAI_SIMULATION_ENABLED` | `1` | **Preview seulement** | absente = fermé. Ajoutée à l'étape 4, retirée à l'étape 9 |
-| `DERMAI_SIMULATION_ALLOWED_USER_IDS` | l'UUID Supabase du compte de test, seul | **Preview seulement** | liste vide ou absente = personne. Pas de joker |
+| `DERMAI_SIMULATION_ALLOWED_USER_IDS` | l'UUID Supabase du compte de test, seul | **Preview seulement** | liste vide ou absente = personne. `*` = tout compte connecté (choix délibéré, voir README) |
 | `DERMAI_MAX_SIMULATIONS_PER_PERIOD` | `1` | Preview | c'est aussi la valeur par défaut ; ne jamais l'augmenter pour « réessayer » |
 | `DERMAI_SIMULATION_PERIOD_HOURS` | `24` (défaut) | Preview | |
 | `DERMAI_DEBUG_RAW` | `1` | **Preview seulement, le temps du test** | renvoie la réponse brute du fournisseur au navigateur pour fixer le chemin du résultat. À retirer à l'étape 9 |
