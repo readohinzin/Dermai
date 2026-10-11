@@ -46,7 +46,9 @@ test('U3 le moteur reste pur : aucun compte, réseau ni Supabase dans js/engine'
 
 test('U4 le profil n\'est jamais copié dans le stockage local ; seules la session et la photo de démonstration y vivent', () => {
   const uses = [...code.matchAll(/(?:localStorage|sessionStorage)[^;\n]*/g)].map(m => m[0]);
-  for (const u of uses) assert.match(u, /dermai_demo_photo|localStorage\}catch/, u);
+  /* Seule exception : le tampon temporaire d'une analyse reçue mais pas encore enregistrée (js/analysis-flow.js, sessionStorage de l'onglet).
+     Il ne contient pas le profil : voir analysis-flow.test.js pour la liste blanche de ses champs et ses règles d'effacement. */
+  for (const u of uses) assert.match(u, /dermai_demo_photo|localStorage\}catch|^sessionStorage,userId:\(\)=>/, u);
   const acc = strip(read('js/account.js'));
   assert.match(acc, /SESSION_KEY = 'dermai\.session'/);
   assert.doesNotMatch(acc, /setItem\([^)]*(goals|profile|level)/i);
@@ -65,7 +67,10 @@ test('U5 profil : une seule source (state), persistance après chaque modificati
 test('U6 déconnexion et changement de compte : tout l\'état privé est réinitialisé, rien d\'une session à l\'autre', () => {
   const reset = app.slice(app.indexOf('function resetPrivateState'), app.indexOf('const softStatus'));
   for (const k of ['state.goals=[]', 'state.level=``', 'state.gentle=false', 'state.exclusions=[]', 'state.cats=[]', 'SCANS.length=0', 'state.user.email=``']) assert.ok(reset.includes(k), k);
-  assert.match(app, /async function logout\(\)\{\s*await ACCOUNT\.signOut\(\);authEpoch\+\+;/);
+  /* confirmation si une analyse n'est pas enregistrée, puis déconnexion : la session est fermée ET authEpoch change dans le même instant (aucun await entre les deux),
+     sinon une réponse de l'ancien compte arrivée entre-temps passerait pour valide (voir session-race-browser.test.js, SB3 et SB4) */
+  assert.match(app, /async function logout\(\)\{\s*if\(!F\.leave\(\)\)return;\s*ACCOUNT\.signOut\(\);authEpoch\+\+;/);
+  assert.doesNotMatch(app.slice(app.indexOf('async function logout'), app.indexOf('const esc=')), /await/);
   assert.match(app, /resetPrivateState\(\);\s*await enterSession/);
 });
 

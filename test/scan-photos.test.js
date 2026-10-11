@@ -138,7 +138,7 @@ test('PH9 interface : une photo n\'est gardée qu\'après « oui » et une fois 
   assert.match(keep, /if\(state\.photos===false\)sc\.blob=null;/);
   assert.match(keep, /if\(state\.photos!==true\|\|!sc\.blob\|\|!sc\.saved\|\|!signedIn\(\)\)return;/);
   assert.match(keep, /ACCOUNT\.uploadPhoto\(sc\.rec\.id,b\)/);
-  assert.match(between('async function saveScan', 'async function deleteHistory'), /sc\.saved=true;[^\n]*keepPhoto\(sc\)/);
+  assert.match(between('const F=DermaiAnalysisFlow.create', 'function recordOfScan'), /s\.saved=true;keepPhoto\(s\)/);   // au succès de l'enregistrement seulement
   assert.match(between('async function photoChoice', 'async function attachPhotos'), /SCANS\.forEach\(keepPhoto\)/);
 });
 

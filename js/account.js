@@ -160,17 +160,23 @@
     const now = o.now || (() => Math.floor(Date.now() / 1000));
     const available = !!(base && key && doFetch);
     let session = null;
+    /* Génération de la session : change à chaque ouverture ou fermeture (connexion, déconnexion, suppression du compte, session retrouvée au
+       démarrage), jamais pour un simple renouvellement des jetons du même compte. Toute opération asynchrone qui touche à la session la capture
+       avant d'attendre et la revérifie avant d'écrire : une réponse arrivée après une déconnexion, ou après la connexion d'un autre compte,
+       ne modifie ni la session en mémoire, ni le stockage, et ne sert à aucune requête. */
+    let gen = 0;
 
     const saveStored = () => { try { if (store) { if (session) store.setItem(SESSION_KEY, JSON.stringify(session)); else store.removeItem(SESSION_KEY); } } catch (e) { /* stockage indisponible : session limitée à cette page */ } };
     const readStored = () => { try { const v = store && store.getItem(SESSION_KEY); const s = v ? JSON.parse(v) : null; return s && s.access_token && s.refresh_token && s.user && s.user.id ? s : null; } catch (e) { return null; } };
-    const setSession = body => {
+    const setSession = (body, renewal) => {
       if (!body || !body.access_token || !body.refresh_token || !body.user || !body.user.id) return null;
+      if (renewal) { if (!session || session.user.id !== String(body.user.id)) return null; } else gen++;   // un renouvellement ne change jamais de compte
       session = { access_token: body.access_token, refresh_token: body.refresh_token,
         expires_at: body.expires_at || (now() + (Number(body.expires_in) || 3600)), user: { id: String(body.user.id), email: String(body.user.email || '') } };
       saveStored();
       return session;
     };
-    const clear = () => { session = null; saveStored(); };
+    const clear = () => { session = null; gen++; saveStored(); };
 
     async function call(path, init, withUser) {
       const headers = Object.assign({ apikey: key, 'Content-Type': 'application/json' }, (init && init.headers) || {});
@@ -200,13 +206,29 @@
       return null;
     }
 
-    async function refresh() {
-      if (!session) return false;
-      const r = await call('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: session.refresh_token }) }, false);
-      if (r.network) return false;               // erreur réseau : on garde la session, on réessaiera
-      if (r.ok && setSession(r.body)) return true;
-      clear();                                    // jeton refusé : session terminée
-      return false;
+    /* Renouvelle les jetons de la session courante. Résultat explicite :
+       'ok'          jetons renouvelés ;
+       'refused'     le serveur refuse le jeton de renouvellement : la session est réellement terminée (elle est fermée ici) ;
+       'unavailable' réseau coupé, délai dépassé, 408, 429 ou 5xx : on ne sait pas, la session est conservée, on pourra réessayer ;
+       'stale'       la session a changé pendant l'attente (déconnexion, autre compte) : cette réponse n'est plus la nôtre, rien n'est modifié.
+       Un seul renouvellement à la fois pour une même session : les appels simultanés partagent la même réponse. */
+    let renewing = null;
+    function renew() {
+      const s0 = session, g0 = gen;
+      if (!s0) return Promise.resolve('stale');
+      if (renewing && renewing.g === g0) return renewing.p;
+      const p = (async () => {
+        const r = await call('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: s0.refresh_token }) }, false);
+        if (gen !== g0 || !session) return 'stale';
+        if (r.network || r.status === 408 || r.status === 429 || r.status >= 500) return 'unavailable';
+        if (r.ok && setSession(r.body, true)) return 'ok';
+        clear();                                   // jeton de renouvellement refusé : session terminée
+        return 'refused';
+      })();
+      renewing = { g: g0, p };
+      const done = () => { if (renewing && renewing.p === p) renewing = null; };
+      p.then(done, done);
+      return p;
     }
 
     /* Au démarrage : retrouve la session mémorisée (la rafraîchit si besoin). Ne lève jamais d'erreur. */
@@ -214,11 +236,10 @@
       if (!available) return null;
       const s = readStored();
       if (!s) return null;
-      session = s;
+      session = s; gen++;
       if (session.expires_at - now() <= REFRESH_MARGIN_S) {
-        const ok = await refresh();
-        if (!ok && !session) return null;
-        if (!ok && session && session.expires_at <= now()) return null;
+        const st = await renew();
+        if (st === 'unavailable' && session && session.expires_at <= now()) return null;   // expirée et renouvellement impossible pour l'instant : session gardée, on réessaiera
       }
       return session ? { id: session.user.id, email: session.user.email } : null;
     }
@@ -251,8 +272,16 @@
     /* Requête authentifiée avec un seul rafraîchissement en cas de jeton expiré. */
     async function authed(path, init) {
       if (!available || !session) return { status: 401, ok: false, body: null, noSession: true };
+      const g0 = gen, stale = { status: 401, ok: false, body: null, noSession: true, stale: true };
       let r = await call(path, init, true);
-      if (r.status === 401 && await refresh()) r = await call(path, init, true);
+      if (r.status === 401) {
+        if (gen !== g0) return stale;                                          // la session a changé pendant la requête : pas de nouvelle requête sous une autre
+        const st = await renew();
+        if (st === 'unavailable') return { network: true, unavailable: true };   // pas une session expirée : une panne, à réessayer plus tard
+        if (st === 'refused') return r;                                       // renew() a fermé la session : la réponse 401 remonte comme « session expirée »
+        if (st !== 'ok' || gen !== g0) return stale;
+        r = await call(path, init, true);                                     // même session, jeton renouvelé
+      }
       return r;
     }
 
@@ -290,8 +319,17 @@
        la réponse est ramenée à 401 pour que l'application traite la session comme expirée. */
     const jwtError = r => !!r && !r.ok && !r.network && (r.status === 401 || /jwt|exp claim|invalid token/i.test(JSON.stringify(r.body || '')));
     async function storage(path, init) {
+      const g0 = gen;
       let r = await authed(path, init);
-      if (jwtError(r) && r.status !== 401 && await refresh()) r = await authed(path, init);
+      if (jwtError(r) && r.status !== 401 && !r.stale) {
+        if (gen !== g0) return { status: 401, ok: false, body: null, noSession: true, stale: true };
+        const st = await renew();
+        if (st === 'unavailable') return { network: true, unavailable: true };
+        if (st !== 'refused') {
+          if (st !== 'ok' || gen !== g0) return { status: 401, ok: false, body: null, noSession: true, stale: true };
+          r = await authed(path, init);
+        }
+      }
       return jwtError(r) ? Object.assign({}, r, { status: 401 }) : r;
     }
     /* Garde la photo d'une analyse enregistrée. Idempotent : une photo déjà présente pour cette analyse n'est pas remplacée. */
@@ -412,14 +450,18 @@
 
     /* ---------- Historique des analyses ---------- */
     /* Ajoute une analyse au compte connecté. Idempotent : le même `id` envoyé deux fois ne crée qu'une ligne (réponse perdue, nouvel essai). */
-    async function saveAnalysis(analysis) {
+    /* `ownerId` : le compte auquel l'analyse appartient. Si la session courante est celle d'un autre compte (ou n'existe plus), rien n'est envoyé. */
+    async function saveAnalysis(analysis, ownerId) {
+      const stray = () => ownerId !== undefined && (!session || session.user.id !== ownerId);
+      if (stray()) return session ? { ok: false, error: MSG.analysisSaveFailed, foreign: true } : { ok: false, error: MSG.sessionExpired, expired: true };
       const row = analysisToRow(analysis);
       if (!row) return { ok: false, error: MSG.analysisSaveFailed };
       const post = body => authed('/rest/v1/skin_analyses?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(body) });
       let r = await post(row);
-      if (row.raw_metrics && missingRawColumn(r)) { const legacy = Object.assign({}, row); delete legacy.raw_metrics; r = await post(legacy); }
-      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired };
-      if (r.network || !r.ok) return { ok: false, error: MSG.analysisSaveFailed };
+      if (row.raw_metrics && missingRawColumn(r)) { if (stray()) return { ok: false, error: MSG.analysisSaveFailed, foreign: true }; const legacy = Object.assign({}, row); delete legacy.raw_metrics; r = await post(legacy); }
+      if (r.stale) return { ok: false, error: MSG.analysisSaveFailed, foreign: true };   // la session a changé en route : ni expirée, ni à réessayer sous la nouvelle
+      if (r.noSession || r.status === 401) return { ok: false, error: MSG.sessionExpired, expired: true };
+      if (r.network || !r.ok) return { ok: false, error: MSG.analysisSaveFailed, retryable: !!(r.network || r.status >= 500 || r.status === 429 || r.status === 408) };   // réessayer n'a de sens que pour une panne passagère
       return { ok: true };
     }
     /* Une page de l'historique du compte connecté, de la plus récente à la plus ancienne (20 par défaut, jamais plus de 50). Seules les colonnes
@@ -446,8 +488,9 @@
        Le serveur le vérifie auprès de Supabase : le navigateur ne prouve rien par lui-même. */
     async function accessToken() {
       if (!available || !session) return null;
-      if (session.expires_at - now() <= REFRESH_MARGIN_S) await refresh();
-      return session ? session.access_token : null;
+      const g0 = gen;
+      if (session.expires_at - now() <= REFRESH_MARGIN_S) await renew();
+      return session && gen === g0 ? session.access_token : null;               // jamais le jeton d'un autre compte que celui qui le demande
     }
 
     return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,

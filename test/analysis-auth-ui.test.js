@@ -14,7 +14,7 @@ test('AU1 visiteur : message humain et orientation vers la connexion, jamais d\'
   assert.match(app, /function askLogin\(\)\{state\.account\.info=AUTH_NEEDED;[^}]*go\(`login`/);
   assert.match(app, /if\(route===`scan`&&needsLogin\(\)\)\{[^}]*route=`login`/);                     // « Analyser ma peau » mène à la connexion
   assert.match(app, /case `scan-start`:if\(needsLogin\(\)\)\{askLogin\(\);break\}/);                // garde de dernier recours
-  assert.match(app, /async function runRealAnalysis\(\)\{\s*const tok=\+\+anTok;\s*if\(needsLogin\(\)\)\{askLogin\(\);return\}/);   // aucune requête partie
+  assert.match(app, /async function runRealAnalysis\(\)\{\s*if\(F\.busy\(\)\)return;[^\n]*\n\s*if\(needsLogin\(\)\)\{askLogin\(\);return\}/);   // aucune requête partie
   assert.match(app, /state\.route===`scan`\|\|state\.route===`analyzing`\)\{askLogin\(\);return\}/);          // adresse /scan ouverte directement
 });
 

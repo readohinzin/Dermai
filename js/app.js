@@ -121,12 +121,13 @@ function postJpeg(blob,onStatus,token){
     x.onload=()=>{
       let j=null;try{j=JSON.parse(x.responseText)}catch(e){}
       if(x.status>=200&&x.status<300&&j&&j.ok)return resolve(j);
+      const nv=!(j&&typeof j.ok===`boolean`);   // pas de réponse DERMAI : issue incertaine
       if(x.status===401)return reject(Object.assign(userError(AUTH_NEEDED),{authRequired:true}));
       if(x.status===429)return reject(Object.assign(userError(j&&typeof j.error===`string`&&j.error?j.error:SCAN_ERR_GENERIC),{quota:true}));
-      reject(userError(j&&typeof j.error===`string`&&j.error?j.error:x.status===413?`La photo est trop volumineuse. Veuillez en choisir une plus légère.`:SCAN_ERR_GENERIC));
+      reject(Object.assign(userError(j&&typeof j.error===`string`&&j.error?j.error:x.status===413?`La photo est trop volumineuse. Veuillez en choisir une plus légère.`:SCAN_ERR_GENERIC),{noVerdict:nv}));
     };
-    x.onerror=()=>reject(userError(`Connexion impossible. Vérifiez votre réseau et réessayez.`));
-    x.ontimeout=()=>reject(userError(`L'analyse prend trop de temps. Veuillez réessayer.`));
+    x.onerror=()=>reject(Object.assign(userError(`Connexion impossible. Vérifiez votre réseau et réessayez.`),{noVerdict:true}));
+    x.ontimeout=()=>reject(Object.assign(userError(`L'analyse prend trop de temps. Veuillez réessayer.`),{noVerdict:true}));
     onStatus(`uploading`);
     x.send(blob);
   });
@@ -141,9 +142,10 @@ function toScan(normalized){
   return Object.assign({id:null,real:true,saved:false,day:null,analyzedAt:now.toISOString()},SkinModel.scanLabels(now),{normalized});
 }
 /* Premier scan réel réussi : les analyses fictives sont retirées, démo et réel ne sont jamais mélangés dans l'historique. */
-function commitRealScan(r){
+function commitRealScan(r,blob){
   if(SCANS.some(s=>!s.real))SCANS.length=0;
-  r.photo=state.realPreview;state.realPreview=``;r.blob=state.realBlob;state.faceKey=``;state.faceHide=false;   // carte : chaque analyse s'ouvre sur son premier indicateur localisé   // l'aperçu passe de la photo en attente à l'analyse qu'il a produite
+  const mine=state.realBlob===blob;
+  r.photo=mine?state.realPreview:URL.createObjectURL(blob);if(mine){state.realPreview=``;state.realBlob=null}r.blob=blob;state.faceKey=``;state.faceHide=false;   // carte : chaque analyse s'ouvre sur son premier indicateur localisé   // l'aperçu passe de la photo en attente à l'analyse qu'il a produite
   r.id=SCANS.length;SCANS.push(r);
   const last=SCANS.length-1;
   state.latest=r.id;state.view=r.id;state.cmpA=Math.max(last-1,0);state.cmpB=last;   // la progression compare la dernière analyse à la précédente
@@ -180,7 +182,6 @@ state.save={status:`idle`,message:``};                                          
 /* Historique des analyses (table skin_analyses, scores seulement) : état du chargement et de la dernière analyse enregistrée. */
 const HISTORY_PAGE=20;
 state.history={status:`idle`,hasMore:false,loadingMore:false,error:``,moreError:``};   // idle | loading | ready | error
-state.analysisSave={scan:null,status:`idle`,message:``};                              // idle | visitor | saving | saved | error | skipped
 const accountOn=()=>state.account.status!==`off`;
 /* Visiteur (non connecté, comptes disponibles) : il peut naviguer, mais une analyse exige une connexion. Message humain puis écran de connexion. */
 const needsLogin=()=>!DEMO_MODE&&state.account.status===`visitor`;
@@ -194,14 +195,14 @@ function applyProfile(p){const n=Engine.normalizeProfile(p||{});state.goals=n.go
 function resetPrivateState(){
   state.goals=[];state.noGoal=false;state.level=``;state.gentle=false;state.exclusions=[];state.cats=[];state.done={};state.photos=undefined;state.photoBusy=false;
   state.user.name=``;state.user.email=``;state.save={status:`idle`,message:``};
-  state.history={status:`idle`,hasMore:false,loadingMore:false,error:``,moreError:``};state.analysisSave={scan:null,status:`idle`,message:``};
+  state.history={status:`idle`,hasMore:false,loadingMore:false,error:``,moreError:``};
   if(!DEMO_MODE){SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;clearReal()}
 }
 const softStatus=()=>{const el=document.getElementById(`saveStatus`);if(el)el.textContent=state.save.message};
 /* Session invalide ou expirée (jeton refusé et non renouvelable) : retour visiteur, plus aucune donnée du compte, invitation à se reconnecter. */
 function expireSession(){
   authEpoch++;ACCOUNT.signOut();
-  state.account.status=`visitor`;state.account.email=``;state.account.loading=false;state.account.error=``;state.account.info=DermaiAccount.MSG.sessionExpired;
+  state.account.status=`visitor`;state.account.email=``;state.account.loading=false;state.account.error=``;state.account.info=DermaiAccount.MSG.sessionExpired+F.note();
   resetPrivateState();go(`login`,null,{reset:true});
 }
 let saving=false,pendingSave=false;
@@ -233,11 +234,9 @@ async function enterSession(user,fresh){
   else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
   else{state.save={status:`error`,message:r.error}}
   if(fresh)state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};   // compte tout juste créé : aucun historique à charger
-  else await loadHistory();
+  else{await F.flush(user.id);if(epoch!==authEpoch)return;await loadHistory()}   // d'abord les analyses en attente de CE compte
 }
 /* ---------- Historique persistant ---------- */
-const newAnalysisId=()=>{try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}
-  return `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c===`x`?r:(r&3|8)).toString(16)})};
 const tsOf=s=>s.rec?Date.parse(s.rec.analyzedAt):s.id;
 /* Une ligne enregistrée → un scan. Scores enregistrés seulement (uiScore ; rawScore s'il a été enregistré, sinon null : jamais reconstruit). Aucune photo. */
 function scanOfRecord(a){
@@ -257,8 +256,10 @@ async function loadHistory(){
     state.history={status:`error`,hasMore:false,loadingMore:false,error:r.error,moreError:``};
     return;
   }
-  SCANS.length=0;
-  r.analyses.slice().sort((a,b)=>Date.parse(a.analyzedAt)-Date.parse(b.analyzedAt)||(a.id<b.id?-1:1)).forEach(a=>{const sc=scanOfRecord(a);if(sc)SCANS.push(sc)});   // ordre chronologique explicite
+  const have=new Set(r.analyses.map(a=>a.id)),mem=SCANS.slice();
+  SCANS.length=0;   // le compte remplace la session, sauf ses analyses pas encore enregistrées
+  r.analyses.concat(F.list().filter(e=>e.status!==`skipped`&&!have.has(e.rec.id)).map(e=>e.rec)).sort((a,b)=>Date.parse(a.analyzedAt)-Date.parse(b.analyzedAt)||(a.id<b.id?-1:1)).forEach(a=>{
+    const sc=have.has(a.id)?scanOfRecord(a):mem.find(x=>x.rec&&x.rec.id===a.id)||Object.assign(scanOfRecord(a)||{},{saved:false});if(sc&&sc.normalized)SCANS.push(sc)});   // ordre chronologique explicite
   reindex();
   const last=SCANS.length-1;
   state.latest=Math.max(last,0);state.view=state.latest;state.cmpA=Math.max(last-1,0);state.cmpB=Math.max(last,0);
@@ -286,15 +287,15 @@ async function loadMoreHistory(){
   const k=older.length;state.latest+=k;state.view+=k;state.cmpA+=k;state.cmpB+=k;
   H.hasMore=r.hasMore;render(true);attachPhotos();
 }
-/* Enregistrement d'une analyse réelle réussie. Ne bloque jamais l'affichage du résultat ; une panne ne fait jamais perdre le résultat.
-   Un identifiant propre à l'analyse (créé ici, pas le task_id du fournisseur) rend le nouvel essai et le double clic sans effet de doublon. */
-const SAVE_FAIL=DermaiAccount.MSG.analysisSaveFailed;
-const inflight=new Set();
-const softAnalysisStatus=()=>{if(state.route===`result`)render(true)};
+/* Enregistrement (js/analysis-flow.js) : le résultat est mis de côté dans ce navigateur, lié à son compte, puis envoyé avec un identifiant propre à l'analyse. Jamais de doublon, jamais de nouvelle analyse. */
+const F=DermaiAnalysisFlow.create({storage:()=>window.sessionStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,save:(r,u)=>ACCOUNT.saveAnalysis(r,u),
+  confirm:m=>window.confirm(m),toast:m=>toast(m),timer:(f,t)=>setTimeout(f,t),untimer:h=>clearTimeout(h),onExpired:()=>expireSession(),
+  onChange:()=>{if([`result`,`home`,`analyses`].includes(state.route))render(true)},
+  onSaved:id=>{const s=SCANS.find(x=>x.rec&&x.rec.id===id);if(s){s.saved=true;keepPhoto(s)}}});
 function recordOfScan(sc){
   const n=sc.normalized,r=viewOf(sc),metrics={};
   const raw={};SkinModel.METRIC_KEYS.forEach(k=>{metrics[k]=SkinModel.displayScore(n[k]&&n[k].uiScore);const v=n[k]&&n[k].rawScore;if(typeof v===`number`&&v>=0&&v<=100)raw[k]=v});
-  return{id:newAnalysisId(),analyzedAt:sc.analyzedAt,globalScore:r.global.score,skinType:(n.skinType&&n.skinType.whole)||null,skinAge:r.skinAge,metrics,
+  return{id:F.newId(),analyzedAt:sc.analyzedAt,globalScore:r.global.score,skinType:(n.skinType&&n.skinType.whole)||null,skinAge:r.skinAge,metrics,
     rawMetrics:raw,priorities:engineFor(sc).priorities.items.map(m=>({id:m.indicator,label:m.label,score:m.score,band:m.uiBand})),goals:[...state.goals],engineVersion:Engine.VERSION};
 }
 /* Une analyse n'est enregistrée que si tous ses scores présents sont exploitables (0-100) et qu'au moins un indicateur l'est : rien d'inventé. */
@@ -302,22 +303,7 @@ function isRecordable(sc){
   const n=sc.normalized,bad=v=>v!==null&&v!==undefined&&SkinModel.displayScore(v)===null;
   return SkinModel.METRIC_KEYS.some(k=>SkinModel.displayScore(n[k]&&n[k].uiScore)!==null)&&!SkinModel.METRIC_KEYS.some(k=>bad(n[k]&&n[k].uiScore))&&!bad(n.globalScore);
 }
-async function saveScan(sc){
-  if(DEMO_MODE||!ACCOUNT||!ACCOUNT.available||!sc||sc.saved)return;
-  if(!isRecordable(sc)){state.analysisSave={scan:sc,status:`skipped`,message:`Votre analyse est disponible, mais elle n'a pas été ajoutée à votre historique : certaines valeurs ne sont pas exploitables.`};softAnalysisStatus();return}
-  if(!signedIn()){state.analysisSave={scan:sc,status:`visitor`,message:`Cette analyse n'est pas enregistrée : elle disparaîtra quand vous quitterez cette session. Créez un compte ou connectez-vous avant votre prochaine analyse pour conserver votre historique.`};softAnalysisStatus();return}
-  if(!sc.rec)sc.rec=recordOfScan(sc);
-  if(inflight.has(sc.rec.id))return;                                  // double clic ou événement répété : un seul envoi à la fois
-  inflight.add(sc.rec.id);const epoch=authEpoch;
-  state.analysisSave={scan:sc,status:`saving`,message:`Enregistrement de votre analyse…`};softAnalysisStatus();
-  const r=await ACCOUNT.saveAnalysis(sc.rec);
-  inflight.delete(sc.rec.id);
-  if(epoch!==authEpoch||!signedIn())return;                           // déconnexion ou changement de compte pendant l'enregistrement
-  if(r.ok){sc.saved=true;state.analysisSave={scan:sc,status:`saved`,message:`Analyse enregistrée dans votre historique.`};keepPhoto(sc)}
-  else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
-  else state.analysisSave={scan:sc,status:`error`,message:SAVE_FAIL};
-  softAnalysisStatus();
-}
+function saveScan(sc){if(!DEMO_MODE&&ACCOUNT&&ACCOUNT.available&&sc&&!sc.saved)F.add(sc.rec,{recordable:isRecordable(sc),signedIn:signedIn()})}
 async function deleteHistory(){
   if(!DEMO_MODE&&signedIn()){
     const epoch=authEpoch,p=await ACCOUNT.deletePhotos();   // les photos d'abord : aucune photo sans son analyse
@@ -327,7 +313,7 @@ async function deleteHistory(){
     if(epoch!==authEpoch)return;
     if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
   }
-  SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;state.analysisSave={scan:null,status:`idle`,message:``};
+  SCANS.length=0;state.latest=0;state.view=0;state.cmpA=0;state.cmpB=1;F.clear();
   state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};
   toast(`Historique supprimé.`);if(state.route===`privacy`||state.route===`analyses`)render(true);
 }
@@ -416,7 +402,7 @@ async function deleteMyAccount(){
   if(epoch!==authEpoch)return;
   if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
   authEpoch++;state.account.status=`visitor`;state.account.email=``;state.account.loading=false;state.account.recovery=false;
-  resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
+  F.clear();resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
 }
 async function submitAuth(kind,form){
   const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=form.querySelector(`[name=password]`).value||``;
@@ -433,7 +419,8 @@ async function submitAuth(kind,form){
   afterAuth(kind===`signup`?{replace:true}:{reset:true});
 }
 async function logout(){
-  await ACCOUNT.signOut();authEpoch++;
+  if(!F.leave())return;
+  ACCOUNT.signOut();authEpoch++;   // aucune attente entre les deux
   state.account.status=`visitor`;state.account.email=``;state.account.loading=false;
   resetPrivateState();go(`landing`,null,{reset:true});toast(`Vous êtes déconnecté.`);
 }
@@ -731,7 +718,7 @@ V.home=()=>{
   const doneN=steps.filter((_,i)=>state.done[key+i]).length;
   const top2=P.items.slice(0,2).map(m=>m.label.toLowerCase()),stype=skinLabel(r);
   return shell(`
-  <header class="hello"><div><p class="kicker">Bonjour${state.user.name?` ${esc(state.user.name)}`:``}</p><h1>Votre peau aujourd'hui</h1></div><button class="avatar" data-go="profile" data-reset="1" aria-label="Mon profil">${initial()}</button></header>
+  <header class="hello"><div><p class="kicker">Bonjour${state.user.name?` ${esc(state.user.name)}`:``}</p><h1>Votre peau aujourd'hui</h1></div><button class="avatar" data-go="profile" data-reset="1" aria-label="Mon profil">${initial()}</button></header>${F.banner()}
   <div class="grid2">
    <div class="col">
     <section class="skin-now${!DEMO_MODE&&!s.photo?` nophoto`:``}">${!DEMO_MODE&&!s.photo?``:`<div class="mf">${portrait({photo:s.photo})}</div>`}
@@ -769,8 +756,8 @@ V.scan=()=>{
   const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn c-icon-btn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
   if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve que si vous l'avez choisi.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
   if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}${touchUi()?`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Prendre une autre photo</button><button class="c-btn c-btn--ghost c-btn--block" data-act="gallery">Choisir dans ma galerie</button>`:`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Choisir une autre photo</button>`}</div>`}
-   ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:photoNotice()}
-   ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:state.photoCheck&&state.photoCheck.level===`block`&&!state.scanError?``:`<button class="c-btn ${state.photoCheck&&state.photoCheck.level===`warn`&&!state.scanError?`c-btn--secondary`:`c-btn--primary`} c-btn--block" data-go="analyzing">${state.scanError?`Réessayer`:state.photoCheck&&state.photoCheck.level===`warn`?`Analyser quand même`:`Analyser ma peau`}</button>`}</div></div>`;
+   ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:state.scanError===DermaiAnalysisFlow.MSG.uncertain?`Réponse non reçue`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:photoNotice()}
+   ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:state.photoCheck&&state.photoCheck.level===`block`&&!state.scanError?``:`<button class="c-btn ${state.photoCheck&&state.photoCheck.level===`warn`&&!state.scanError?`c-btn--secondary`:`c-btn--primary`} c-btn--block" data-act="analyze">${state.scanError?`Réessayer`:state.photoCheck&&state.photoCheck.level===`warn`?`Analyser quand même`:`Analyser ma peau`}</button>`}</div></div>`;
   const s=SHOT[st-1];
   return `<div class="scan">${head}<div class="scan-grid"><div><div class="segs">${(DEMO_MODE?[1,2,3]:[1]).map(i=>`<i class="${i<=st?`on`:``}"></i>`).join(``)}</div>
    <h2 class="cam-h">${st===1?`Positionnez votre visage<br>au centre`:st===2?`Tournez doucement<br>la tête vers la droite`:`Tournez doucement<br>la tête vers la gauche`}</h2>
@@ -827,7 +814,7 @@ V.result=()=>{
   /* Les indicateurs du contour des yeux sont donnés à titre d'information : ils sont regroupés à part, valeurs et contenus inchangés. */
   const others=H?othersH:rest.filter(m=>!eyeOf(m)).map(rowOf).join(``),eyeRows=rest.filter(eyeOf).map(rowOf).join(``);
   const ask=!H&&signedIn()&&state.photos===null&&s.blob?`<div style="margin-bottom:18px">${DermaiPhotos.ask(ic,state.photoBusy)}</div>`:``;
-  const sv=state.analysisSave,svBox=!DEMO_MODE&&sv.scan===s&&sv.status!==`idle`?`<div class="c-notice${sv.status===`saved`?` c-notice--success`:``}" role="status" aria-live="polite">${ic(sv.status===`saved`?`check`:`info`)}<div>${sv.message}${sv.status===`error`?` <button class="link" data-act="retry-analysis">Réessayer</button>`:``}</div></div>`:``;
+  const sv=(!DEMO_MODE&&s.rec&&F.notice(s.rec.id))||{status:`idle`},svBox=sv.status!==`idle`?`<div class="c-notice${sv.status===`saved`?` c-notice--success`:``}" role="status" aria-live="polite">${ic(sv.status===`saved`?`check`:`info`)}<div>${sv.message}${sv.status===`error`||sv.status===`pending`?` <button class="link" data-act="retry-analysis">Réessayer</button>`:``}</div></div>`:``;
   return shell(`
   <div class="pagehead"><p class="kicker">Analyse du ${dateLabel(s)}${H?` · analyse précédente`:``}</p><h1>${H?`Votre analyse du ${dateLabel(s)}`:`Votre analyse`}</h1><p>Une analyse cosmétique de l'état apparent de votre peau.</p></div>
   ${DermaiExport.card(eng,s,{H,demo:DEMO_MODE,catalog:catalogNow()})}
@@ -1086,7 +1073,7 @@ V.progress=()=>{
 
 /* Historique : une page de 20 analyses à la fois, les plus récentes d'abord. */
 const historyMore=()=>{const H=state.history;return !DEMO_MODE&&H.hasMore?`<div style="padding-top:18px;border-top:1px solid var(--line)">${H.moreError?`<p class="c-notice" role="status" style="margin-bottom:10px">${H.moreError}</p>`:``}<button class="c-btn c-btn--secondary c-btn--block" data-act="more-history" ${H.loadingMore?`disabled`:``}>${H.loadingMore?`Chargement…`:`Voir plus d'analyses`}</button></div>`:``};
-V.analyses=()=>noReal()?emptyScan(`Mes analyses`,signedIn()?[`Votre historique apparaîtra après votre première analyse.`,`Faites votre première analyse pour la retrouver ici.`]:EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>
+V.analyses=()=>noReal()?emptyScan(`Mes analyses`,signedIn()?[`Votre historique apparaîtra après votre première analyse.`,`Faites votre première analyse pour la retrouver ici.`]:EMPTY_MSG,{back:true,title:`Mes analyses`}):shell(`<div class="pagehead"><h1>Mes analyses</h1>${DEMO_MODE?`<p>Les analyses du 30 octobre et du 30 novembre sont simulées pour la démonstration.</p>`:``}</div>${F.banner()}
   <div style="max-width:640px">${[...SCANS].sort((a,b)=>tsOf(b)-tsOf(a)||b.id-a.id).map(s=>{const r=viewOf(s),g=r.global;return `<div class="rowlink" style="align-items:flex-start;padding:22px 0;border-top:1px solid var(--line)"><div class="grow"><b style="font-family:var(--serif);font-weight:400;font-size:1.7rem;line-height:1.1">${dateLabel(s)}</b>${s.id===state.latest?` <span class="c-badge c-badge--outline">Analyse actuelle</span>`:``}<p class="muted" style="margin:4px 0 10px">${skinLabel(r)}</p><p style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${g.score===null?`<span class="muted">Score global indisponible</span>`:`<b>Score global ${g.score}/100</b>${bandBadge(g)}`}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">${s.id===state.latest?`Priorités actuelles`:`Repères à soutenir à cette date`}</p><div class="chips">${pi.slice(0,2).map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(s.rec&&s.id!==state.latest?s.rec.priorities:engineFor(s).priorities.items)}</div><button class="c-btn c-btn--tonal c-btn--sm" data-act="viewscan" data-v="${s.id}">Voir l'analyse</button></div>`}).join(``)}${historyMore()}</div>`,{back:true,title:`Mes analyses`});
 
 /* Profil */
@@ -1154,7 +1141,7 @@ function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=fa
   else if(!replace&&!NOSTACK.has(state.route)&&state.route!==route)state.stack.push({route:state.route,param:state.param});
   if(route===`scan`&&state.route!==`scan`&&!keepScan){state.scanStep=0;state.shots=[false,false,false];state.retake=false;if(!DEMO_MODE)clearReal()}
   if(!DEMO_MODE&&route!==`scan`&&route!==`analyzing`)clearReal();
-  state.route=route;state.param=param;render();scrollTo(0,0);
+  state.route=route;state.param=param;render();scrollTo(0,0);F.resume();
   if(!noHash)syncHash(replace);
 }
 /* ---------- Adresse = page (rechargement et boutons précédent / suivant du navigateur) ----------
@@ -1230,7 +1217,7 @@ function runAnalysis(){
   };
   tick();
 }
-function toast(m){const t=document.getElementById(`toast`);t.textContent=m;t.classList.add(`show`);clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove(`show`),2600)}
+function toast(m){const t=document.getElementById(`toast`);t.textContent=m;t.classList.add(`show`);clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove(`show`),Math.max(2600,(m+``).length*55))}
 function sheet(html){$ov.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true">${html}</div>`;$ov.classList.add(`open`);document.body.style.overflow=`hidden`}
 function closeSheet(){state.sheetProduct=null;$ov.classList.remove(`open`);$ov.innerHTML=``;document.body.style.overflow=``}
 function toggle(arr,v){const i=arr.indexOf(v);i>-1?arr.splice(i,1):arr.push(v)}
@@ -1310,26 +1297,31 @@ async function handleRealPhoto(file){
 }
 /* Analyse réelle : l'état affiché suit la vraie requête (uploading → processing → success | error). */
 async function runRealAnalysis(){
-  const tok=++anTok;
+  if(F.busy())return;                                                    // rendu répété : jamais un second envoi
   if(needsLogin()){askLogin();return}
-  if(!state.realBlob){toast(`Aucune photo à analyser. Veuillez prendre une photo.`);go(`scan`,null,{replace:true});return}
-  if(state.photoCheck&&state.photoCheck.level===`block`){toast(`Cette photo ne peut pas être analysée. Choisissez-en une autre.`);go(`scan`,null,{replace:true});return}   // jamais d'envoi d'une photo jugée inutilisable
+  if(!F.armed()){if(state.scanStatus!==`success`)go(`scan`,null,{replace:true});return}   // sans clic « Analyser » : rien n'est lancé
+  const blob=state.realBlob;
+  if(!blob||(state.photoCheck&&state.photoCheck.level===`block`)){F.disarm();toast(blob?`Cette photo ne peut pas être analysée. Choisissez-en une autre.`:`Aucune photo à analyser. Veuillez prendre une photo.`);go(`scan`,null,{replace:true});return}   // jamais d'envoi d'une photo jugée inutilisable
+  const run=F.begin();if(!run)return;
+  const tok=++anTok,epoch=authEpoch,M=DermaiAnalysisFlow.MSG;
   state.scanError=``;
   setScanStatus(`uploading`);
   try{
-    const r=await provider.analyzeSkin(state.realBlob,{onStatus:s=>{if(tok===anTok)setScanStatus(s)}});
-    if(tok!==anTok)return;
-    setScanStatus(`success`);
-    commitRealScan(r);
-    state.realBlob=null;   // la photo reste seulement sur l'analyse en mémoire, le temps d'être gardée si l'utilisatrice l'a choisi
-    state.run++;
-    timers.push(setTimeout(()=>go(`result`,null,{replace:true}),500));
+    const r=await provider.analyzeSkin(blob,{onStatus:s=>{if(tok===anTok)setScanStatus(s)}});
+    run.end();
+    if(epoch!==authEpoch){toast(M.abandonedEpoch);return}                // jamais rattaché à un autre compte
+    commitRealScan(r,blob);state.run++;
+    if(state.route===`analyzing`){setScanStatus(`success`);timers.push(setTimeout(()=>go(`result`,null,{replace:true}),500))}
+    else toast(M.ready);                                                 // autre écran : résultat gardé, navigation non forcée
   }catch(err){
-    if(tok!==anTok)return;
+    run.end(!!(err&&err.noVerdict));
+    if(epoch!==authEpoch)return;
     if(err&&err.authRequired){if(signedIn())expireSession();else askLogin();return}   // session refusée par le serveur : retour à la connexion, sans message technique
-    state.scanStatus=`error`;state.scanError=(err&&err.userMessage)||SCAN_ERR_GENERIC;state.scanQuota=!!(err&&err.quota);
+    const msg=err&&err.noVerdict?M.uncertain:(err&&err.userMessage)||SCAN_ERR_GENERIC;
+    if(state.route!==`analyzing`){toast(msg);return}
+    state.scanStatus=`error`;state.scanError=msg;state.scanQuota=!!(err&&err.quota);
     state.scanStep=4;state.retake=false;
-    toast(state.scanError);
+    toast(msg);
     go(`scan`,null,{replace:true,keepScan:true});
   }
 }
@@ -1360,7 +1352,8 @@ function act(a,v,el){
     case `logout`:logout();break;
     case `retry-save`:persist();break;
     case `resend-confirmation`:resendConfirmation();break;
-    case `retry-analysis`:saveScan(state.analysisSave.scan);break;
+    case `retry-analysis`:F.resume(true);break;
+    case `analyze`:if(DEMO_MODE||F.arm())go(`analyzing`);break;   // seul chemin vers une analyse réelle
     case `retry-history`:retryHistory();break;
     case `more-history`:loadMoreHistory();break;
     case `cat`:if(v===`none`)state.cats=state.cats.includes(`none`)?[]:[`none`];else{state.cats=state.cats.filter(c=>c!==`none`);toggle(state.cats,v)}render(true);break;
@@ -1402,6 +1395,7 @@ document.addEventListener(`change`,e=>{
 });
 document.addEventListener(`submit`,e=>{const f=e.target&&e.target.dataset&&e.target.dataset.form;if(!f||!ACCOUNT)return;e.preventDefault();if(f===`forgot`)submitForgot(e.target);else if(f===`reset`)submitReset(e.target);else submitAuth(f,e.target)});
 document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
+window.addEventListener(`online`,()=>F.resume());document.addEventListener(`visibilitychange`,()=>{if(!document.hidden)F.resume()});
 window.addEventListener(`popstate`,()=>{const h=readLocation();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
 const authRedirect=(!DEMO_MODE&&window.DermaiAccount)?DermaiAccount.readAuthRedirect(location.hash):null;
 if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}                                    // les jetons ne restent pas dans la barre d'adresse

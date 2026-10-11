@@ -137,7 +137,7 @@ test('H10 pannes : messages humains, aucun détail technique ; session expirée 
   const { acc, fake } = setup();
   await acc.signUp('a@exemple.com', 'motdepasse1');
   fake.state.failNetwork = true;
-  assert.deepEqual(await acc.saveAnalysis(sample(1)), { ok: false, error: Account.MSG.analysisSaveFailed });
+  assert.deepEqual(await acc.saveAnalysis(sample(1)), { ok: false, error: Account.MSG.analysisSaveFailed, retryable: true });   // panne réseau : un nouvel essai a un sens
   assert.deepEqual(await acc.listAnalyses(), { ok: false, error: Account.MSG.historyLoadFailed });
   assert.deepEqual(await acc.deleteAnalyses(), { ok: false, error: Account.MSG.historyDeleteFailed });
   fake.state.failNetwork = false; fake.state.failAnalyses = true;
@@ -146,12 +146,12 @@ test('H10 pannes : messages humains, aucun détail technique ; session expirée 
   }
   fake.state.failAnalyses = false; fake.tokens.clear(); fake.refresh.clear();
   const e = await acc.saveAnalysis(sample(1));
-  assert.deepEqual(e, { ok: false, error: Account.MSG.sessionExpired });
+  assert.deepEqual(e, { ok: false, error: Account.MSG.sessionExpired, expired: true });
 });
 
 test('H11 sans session : rien n\'est envoyé, session expirée', async () => {
   const { acc, fake } = setup();
-  assert.deepEqual(await acc.saveAnalysis(sample(1)), { ok: false, error: Account.MSG.sessionExpired });
+  assert.deepEqual(await acc.saveAnalysis(sample(1)), { ok: false, error: Account.MSG.sessionExpired, expired: true });
   assert.deepEqual(await acc.listAnalyses(), { ok: false, error: Account.MSG.sessionExpired });
   assert.equal(fake.log.filter(l => l.path.startsWith('/rest')).length, 0);
 });

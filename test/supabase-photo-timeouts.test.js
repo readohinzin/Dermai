@@ -188,11 +188,11 @@ test('D2-5 session via le handler : corps bloqué et budget presque épuisé →
   })));
 });
 
-test('D2-6 navigateur : seul un 401 déconnecte ; un 503 ou un 504 affiche le message sans toucher à la session (js/app.js inchangé)', () => {
+test('D2-6 navigateur : seul un 401 déconnecte ; un 503 ou un 504 affiche le message sans toucher à la session', () => {
   const app = fs.readFileSync(path.join(__dirname, '..', 'js/app.js'), 'utf8');
   assert.equal((app.match(/authRequired:true/g) || []).length, 1);
   assert.match(app, /if\(x\.status===401\)return reject\(Object\.assign\(userError\(AUTH_NEEDED\),\{authRequired:true\}\)\)/);
-  assert.match(app, /reject\(userError\(j&&typeof j\.error===`string`&&j\.error\?j\.error:/);   // tout autre statut : le message du serveur, sans authRequired
+  assert.match(app, /reject\(Object\.assign\(userError\(j&&typeof j\.error===`string`&&j\.error\?j\.error:[^\n]*\{noVerdict:nv\}\)\)/);   // tout autre statut : le message du serveur, sans authRequired (seul le drapeau d'issue incertaine s'y ajoute)
 });
 
 /* =================== T1 : réservation du quota =================== */

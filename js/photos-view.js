@@ -36,6 +36,7 @@
       : [['lock', 'Si vous créez un compte, vos préférences (objectifs, niveau de routine, approche douce) sont associées à ce compte.'],
         ['eye', 'Ces préférences servent uniquement à personnaliser votre expérience. Elles ne contiennent aucune information médicale.'],
         ['layers', 'Si vous êtes connecté, vos analyses peuvent être enregistrées dans votre compte pour afficher votre historique et votre progression. Seuls vos scores, vos priorités du moment et vos objectifs de ce jour sont conservés avec l\'analyse.'],
+        ['lock', 'Si une analyse vient d\'être reçue mais n\'est pas encore enregistrée, ses scores, priorités et objectifs de ce jour (jamais votre photo) sont gardés temporairement dans la mémoire de cet onglet, liés à votre compte, pour réessayer l\'enregistrement sans refaire l\'analyse. Ils sont effacés à votre déconnexion, à la fermeture de l\'onglet ou au bout de 23 heures.'],
         ['lock', 'Si vous choisissez un pays pour vos achats, ce choix reste dans ce navigateur : il n\'est pas envoyé à DERMAI, et DERMAI n\'utilise ni votre position ni votre adresse IP.'],
         ['camera', 'Pour obtenir l\'analyse, votre photo est transmise à notre service d\'analyse.'],
         ['image', 'Vos photos d\'analyse ne sont gardées dans votre compte que si vous l\'avez choisi. Elles sont privées : personne d\'autre que vous n\'y a accès, et vous pouvez les supprimer à tout moment. Les zones détectées sur la photo ne sont jamais conservées.'],

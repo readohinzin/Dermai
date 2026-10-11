@@ -15,13 +15,13 @@ test('HU1 version du moteur déterministe (sémantique), enregistrée avec chaqu
 });
 
 test('HU2 l\'enregistrement ne se fait qu\'en mode réel, après une analyse réussie, jamais en démo', () => {
-  assert.match(between('async function saveScan', 'async function deleteHistory'), /if\(DEMO_MODE\|\|!ACCOUNT\|\|!ACCOUNT\.available/);
+  assert.match(between('function saveScan', 'async function deleteHistory'), /if\(!DEMO_MODE&&ACCOUNT&&ACCOUNT\.available/);
   const commit = between('function commitRealScan', 'const provider=');
   assert.match(commit, /saveScan\(r\)/);
-  assert.equal((app.match(/saveScan\(/g) || []).length, 3, 'définition, commitRealScan, nouvel essai');
+  assert.equal((app.match(/saveScan\(/g) || []).length, 2, 'définition, commitRealScan : le nouvel essai passe par F.resume, jamais par saveScan');
   // l'analyse démo n'appelle jamais saveScan : seule runRealAnalysis passe par commitRealScan, uniquement dans le chemin « succès »
   const real = between('async function runRealAnalysis', 'function loadPhoto');
-  assert.ok(real.indexOf('commitRealScan(r)') < real.indexOf('catch(err)'));
+  assert.ok(real.indexOf('commitRealScan(r,blob)') > 0 && real.indexOf('commitRealScan(r,blob)') < real.indexOf('catch(err)'));
   assert.doesNotMatch(between('function runAnalysis()', 'function toast'), /saveScan|commitRealScan|saveAnalysis/);
 });
 
@@ -33,8 +33,10 @@ test('HU3 l\'enregistrement ne bloque pas l\'affichage du résultat et ne perd j
 });
 
 test('HU4 idempotence : identifiant propre à l\'analyse, envois simultanés écartés, jamais le task_id', () => {
-  assert.match(app, /crypto\.randomUUID/);
-  assert.match(between('async function saveScan', 'async function deleteHistory'), /if\(inflight\.has\(sc\.rec\.id\)\)return/);
+  const flow = require('fs').readFileSync(path.join(__dirname, '../js/analysis-flow.js'), 'utf8');
+  assert.match(flow, /crypto\.randomUUID/);
+  assert.match(app, /return\{id:F\.newId\(\),/);
+  assert.match(flow, /async function attempt\(e\) \{\s*if \(e\.busy \|\| e\.status === 'saved'\) return;/);   // un seul envoi à la fois par analyse
   assert.match(acct, /resolution=ignore-duplicates/);
   assert.doesNotMatch(between('function recordOfScan', 'function isRecordable'), /task_?id|taskId/i);
   assert.doesNotMatch(acct.slice(acct.indexOf('function analysisToRow'), acct.indexOf('function analysisFromRow')), /task_?id|taskId/i);
@@ -51,8 +53,8 @@ test('HU5 la ligne enregistrée ne contient ni photo, ni masque, ni JSON du four
 });
 
 test('HU6 une analyse échouée ou invalide ne crée aucune ligne', () => {
-  assert.match(between('function isRecordable', 'async function saveScan'), /displayScore/);
-  assert.match(app, /certaines valeurs ne sont pas exploitables/);
+  assert.match(between('function isRecordable', 'function saveScan'), /displayScore/);
+  assert.match(require('fs').readFileSync(path.join(__dirname, '../js/analysis-flow.js'), 'utf8'), /certaines valeurs ne sont pas exploitables/);   // message de l'état « skipped » (aucune ligne créée)
 });
 
 test('HU7 historique : tri explicite récent → ancien, page de 20, « Voir plus », états vide et erreur', () => {
@@ -98,7 +100,6 @@ test('HU10 confidentialité : analyses dans le compte, photos gardées seulement
 
 test('HU11 changement de compte et déconnexion : plus aucune analyse en mémoire ; suppression réelle, pas simulée', () => {
   assert.match(between('function resetPrivateState', 'const softStatus'), /SCANS\.length=0/);
-  assert.match(between('function resetPrivateState', 'const softStatus'), /state\.analysisSave=/);
   assert.match(app, /case `do-confirm`:closeSheet\(\);if\(v===`history`&&!DEMO_MODE\)\{deleteHistory\(\);break\}/);
   assert.match(app, /await loadHistory\(\)/);
 });
