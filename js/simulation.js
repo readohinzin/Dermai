@@ -17,8 +17,8 @@
   'use strict';
   /* Même liste blanche que server/config.js (SIM_CONCERNS) : un test vérifie l'égalité. */
   const CONCERNS = [
-    ['wrinkle', 'Rides et ridules'], ['radiance', 'Éclat'], ['acne', 'Imperfections'], ['eye_bags', 'Poches sous les yeux'], ['dark_circle', 'Cernes'],
-    ['spots', 'Taches'], ['pores', 'Pores'], ['texture', 'Grain de peau'], ['redness', 'Rougeurs']
+    ['wrinkle', 'Rides'], ['radiance', 'Radiance'], ['acne', 'Acné'], ['eye_bags', 'Poches'], ['dark_circle', 'Cernes'],
+    ['spots', 'Taches'], ['pores', 'Pores'], ['texture', 'Texture'], ['redness', 'Rougeurs']
   ];
   const MSG = {
     sessionExpired: 'Votre session a expiré. Reconnectez-vous pour utiliser la simulation.',

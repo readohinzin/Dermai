@@ -134,7 +134,7 @@ test('SU9 l\'image simulée et les avertissements : « illustration, pas une pr�
   await ready(t); t.click('pick', { c: 'acne' }); t.click('run'); await new Promise(r => setTimeout(r, 20));
   const p = t.api.page(t.st.scan);
   assert.match(p, /Une illustration, pas une prédiction/); assert.match(p, /ne prédit pas l'effet de vos soins, ne promet aucun résultat et n'a aucune valeur médicale/);
-  assert.match(p, /alt="Image simulée, illustrative"/); assert.match(p, /Avant \/ après simulation : Imperfections/);
+  assert.match(p, /alt="Image simulée, illustrative"/); assert.match(p, /Avant \/ après simulation : Acné/);
   assert.match(p, /compte dans votre quota de simulations, même si elle échoue/);
 });
 

@@ -72,7 +72,7 @@ Tant que la fonction est absente, le serveur répond « indisponible » et n'app
 
 ## 6. Une seule simulation
 1. Ouvrir l'application Preview avec le compte de test, ouvrir l'analyse la plus récente, cliquer « Simuler une amélioration ».
-2. Choisir UNE zone (par exemple « Éclat »). Si l'écran demande une photo, choisir la photo autorisée.
+2. Choisir UNE zone (par exemple « Radiance »). Si l'écran demande une photo, choisir la photo autorisée.
 3. Cliquer UNE fois sur « Lancer la simulation ». Ne pas recharger la page, ne pas cliquer à nouveau, ne pas changer d'onglet pour « réessayer ».
 4. Attendre la fin (jusqu'à environ une minute). Noter l'heure de début et de fin.
 5. Alternative en ligne de commande, équivalente et à n'utiliser qu'UNE fois : `curl -X POST "https://<preview>/api/skin-simulation?concern=radiance" -H "Authorization: Bearer <jeton du compte de test>" -H "Content-Type: image/jpeg" --data-binary @photo.jpg`. Le jeton ne doit pas rester dans l'historique du terminal.

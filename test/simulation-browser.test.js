@@ -58,7 +58,7 @@ test('SB2 parcours complet (analyse en mémoire) : bouton, zone, photo réutilis
   let t = await text(page);
   assert.match(t, /Une illustration, pas une prédiction/); assert.match(t, /ne promet aucun résultat/); assert.match(t, /aucune valeur médicale/);
   assert.match(t, /compte dans votre quota de simulations/); assert.match(t, /n'est pas conservée/);
-  for (const l of ['Rides et ridules', 'Éclat', 'Imperfections', 'Poches sous les yeux', 'Cernes', 'Taches', 'Pores', 'Grain de peau', 'Rougeurs']) assert.match(t, new RegExp(l));
+  for (const l of ['Rides', 'Radiance', 'Acné', 'Poches', 'Cernes', 'Taches', 'Pores', 'Texture', 'Rougeurs']) assert.match(t, new RegExp(l));
   assert.doesNotMatch(t, /Brillance|Sébum|oiliness/i, 'aucune zone dont l\'effet serait inversé');
   assert.doesNotMatch(t, /Une photo est nécessaire/, 'la photo de l\'analyse en cours est réutilisée');
   assert.equal(await page.isDisabled('[data-sim=run]'), true, 'rien ne part sans zone choisie');
@@ -71,7 +71,7 @@ test('SB2 parcours complet (analyse en mémoire) : bouton, zone, photo réutilis
   assert.equal(env.stats.sim.length, 1); const q = env.stats.sim[0];
   assert.match(q.url, /\/api\/skin-simulation\?concern=wrinkle$/); assert.equal(q.type, 'image/jpeg'); assert.ok(q.auth); assert.ok(q.size > 1000);
   t = await text(page);
-  assert.match(t, /Avant \/ après simulation : Rides et ridules/); assert.match(t, /Simulation cosmétique générée par ordinateur, à titre d'illustration seulement/); assert.match(t, /ni une promesse de résultat ni un avis médical/);
+  assert.match(t, /Avant \/ après simulation : Rides/); assert.match(t, /Simulation cosmétique générée par ordinateur, à titre d'illustration seulement/); assert.match(t, /ni une promesse de résultat ni un avis médical/);
   assert.equal(await page.getAttribute('[data-sim=after]', 'src'), PNG);
   await page.fill('[data-sim=range]', '20').catch(() => {}); await page.$eval('[data-sim=range]', el => { el.value = '20'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   assert.match(await page.$eval('[data-sim=after]', el => el.style.clipPath), /20%/);
