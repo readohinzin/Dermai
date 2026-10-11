@@ -120,7 +120,7 @@ test('SU7 réponse perdue : trace de session, confirmation avant relance ; répo
 });
 
 test('SU8 réponses non conformes : jamais d\'image ; seules les images data: JPEG/PNG/WebP de la bonne zone sont acceptées', async () => {
-  for (const sim of [{ concern: 'acne', image: 'https://evil/x.png' }, { concern: 'acne', image: 'javascript:alert(1)' }, { concern: 'acne', image: 'data:text/html;base64,AAAA' }, { concern: 'acne', image: 'data:image/svg+xml;base64,AAAA' }, { concern: 'pores', image: PNG }, { concern: 'acne', image: PNG + '"onerror="x' }, null]) {
+  for (const sim of [{ concern: 'acne', image: 'https://evil/x.png' }, { concern: 'acne', image: 'http://cdn.example.com/x.png' }, { concern: 'acne', image: 'https://127.0.0.1/x.png' }, { concern: 'acne', image: 'https://user:pw@cdn.example.com/x.png' }, { concern: 'acne', image: 'https://cdn.example.com:8443/x.png' }, { concern: 'acne', image: 'https://localhost.local/x.png' }, { concern: 'acne', image: 'https://cdn.example.com/' + 'a'.repeat(5000) }, { concern: 'acne', image: 'javascript:alert(1)' }, { concern: 'acne', image: 'data:text/html;base64,AAAA' }, { concern: 'acne', image: 'data:image/svg+xml;base64,AAAA' }, { concern: 'pores', image: PNG }, { concern: 'acne', image: PNG + '"onerror="x' }, null]) {
     const t = make({ responses: [avail(true), { res: resp(200, { ok: true, simulation: sim }) }] });
     await ready(t); t.click('pick', { c: 'acne' }); t.click('run'); await new Promise(r => setTimeout(r, 20));
     assert.equal(t.api.state().status, 'error', JSON.stringify(sim)); assert.equal(t.api.state().image, '');
@@ -152,4 +152,17 @@ test('SU11 vie privée : ni localStorage, ni envoi hors /api/skin-simulation, ni
   assert.doesNotMatch(src, /localStorage|document\.cookie|indexedDB|XMLHttpRequest|sendBeacon/);
   const urls = [...src.matchAll(/doFetch\(([^,)]+)/g)].map(m => m[1]);
   assert.ok(urls.every(u => /'\/api\/skin-simulation|url/.test(u)), urls.join(' | '));
+});
+
+test('SU12 URL https temporaire du fournisseur : acceptée (cas réel) ; image illisible : message clair, rien de cassé', async () => {
+  globalThis.URL.createObjectURL = globalThis.URL.createObjectURL || (() => 'blob:x');
+  const U = 'https://results.example-pc.com/out/sim.png?sig=abc';
+  const t = make({ responses: [avail(true), { res: resp(200, { ok: true, simulation: { concern: 'acne', image: U } }) }] });
+  await ready(t); t.click('pick', { c: 'acne' }); t.click('run'); await new Promise(r => setTimeout(r, 20));
+  assert.equal(t.api.state().status, 'done'); assert.equal(t.api.state().image, U);
+  const p = t.api.page(t.st.scan); assert.match(p, /data-sim="after"/); assert.ok(p.includes('src="' + U.replace(/&/g, '&amp;') + '"') || p.includes('src="' + U + '"'));
+  const drawn = t.log.renders;
+  t.doc.handlers.error.forEach(f => f({ target: { getAttribute: k => (k === 'data-sim' ? 'after' : null) } }));
+  assert.equal(t.api.state().status, 'error'); assert.equal(t.api.state().image, ''); assert.ok(t.log.renders > drawn);
+  assert.match(t.api.page(t.st.scan), /n'a pas pu être chargée/); assert.doesNotMatch(t.api.page(t.st.scan), /data-sim="after"/);
 });

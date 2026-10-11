@@ -4,7 +4,7 @@
    GET  : réponse { ok, available } pour le compte connecté. Aucun appel au fournisseur, aucun quota, rien n'est consommé.
    POST : corps = photo JPEG brute ; ?concern=<zone> (une seule, liste blanche). Ordre des garde-fous, chacun AVANT le suivant :
           méthode → session Supabase → verrou → utilisateur autorisé → zone → lecture/validation de la photo → temps restant → clé configurée →
-          quota de simulations (réservation atomique, jamais remboursée) → Perfect Corp → image résultat (data URL). */
+          quota de simulations (réservation atomique, jamais remboursée) → Perfect Corp → URL https temporaire de l'image résultat. */
 const { readBody, validateImage } = require('../server/validation');
 const { AnalysisError, toSimulationMessage: toUserMessage } = require('../server/errors');
 const auth = require('../server/auth');

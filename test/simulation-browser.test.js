@@ -128,13 +128,13 @@ test('SB5 réponse perdue (réseau coupé) : « réponse non reçue », trace de
 });
 
 test('SB6 réponse incomplète (ok sans image, image non conforme) : erreur claire, aucune image affichée', opts, async () => {
-  for (const body of [{ ok: true, simulation: { concern: 'wrinkle', intensity: 0.5 } }, { ok: true, simulation: { concern: 'wrinkle', image: 'https://evil.example/x.png' } }, { ok: true, simulation: { concern: 'acne', image: PNG } }, { ok: true }]) {
+  for (const body of [{ ok: true, simulation: { concern: 'wrinkle', intensity: 0.5 } }, { ok: true, simulation: { concern: 'wrinkle', image: 'http://evil.example/x.png' } }, { ok: true, simulation: { concern: 'wrinkle', image: 'https://127.0.0.1/x.png' } }, { ok: true, simulation: { concern: 'wrinkle', image: 'javascript:alert(1)' } }, { ok: true, simulation: { concern: 'acne', image: PNG } }, { ok: true }]) {
     const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true, behaviors: [{ status: 200, body }] } });
     const { page } = env;
     await analyse(env); await openSim(page);
     await page.click('[data-sim=pick][data-c=wrinkle]'); await page.click('[data-sim=run]');
     await page.waitForFunction(() => /n'est pas utilisable/.test(document.getElementById('app').innerText));
-    assert.equal(await page.locator('[data-sim=after]').count(), 0); assert.equal(await page.locator('img[src^="https://evil"]').count(), 0);
+    assert.equal(await page.locator('[data-sim=after]').count(), 0); assert.equal(await page.locator('img[src^="http://evil"], img[src^="https://127"], img[src^="javascript"]').count(), 0);
     clean(env); await env.close();
   }
 });
@@ -189,4 +189,18 @@ test('SB9 analyse ancienne (historique) : aucun bouton ; changement de compte : 
   const t = await text(page);
   assert.doesNotMatch(t, /Avant \/ après/); assert.equal(await page.locator('[data-sim=after]').count(), 0, 'l\'image simulée de A n\'est pas montrée à B');
   clean(env); await env.close();
+});
+
+test('SB10 image simulée renvoyée par une URL https temporaire (cas réel) : affichée telle quelle ; si elle ne se charge pas, message clair et aucune image cassée', opts, async () => {
+  const URL_IMG = 'https://results.example-pc.com/out/sim.png';
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true, behaviors: [{ status: 200, body: { ok: true, simulation: { concern: 'acne', intensity: 0.5, image: URL_IMG } } }] } });
+  const { page } = env;
+  await analyse(env); await openSim(page);
+  await page.click('[data-sim=pick][data-c=acne]'); await page.click('[data-sim=run]');
+  await page.waitForFunction(() => /n'a pas pu être chargée/.test(document.getElementById('app').innerText));   // le banc d'essai bloque tout hôte externe : le chargement échoue
+  assert.equal(await page.locator('[data-sim=after]').count(), 0, 'aucune image cassée affichée');
+  assert.deepEqual(env.stats.escaped.filter(u => !/fonts\.(googleapis|gstatic)\.com/.test(u)), [URL_IMG], 'la seule requête externe est l\'image elle-même, demandée par le navigateur');
+  assert.equal(env.stats.sim.length, 1, 'aucune relance');
+  assert.deepEqual(env.stats.serverApi, []); assert.deepEqual(env.errors, []);
+  await env.close();
 });

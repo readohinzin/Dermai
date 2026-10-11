@@ -80,9 +80,9 @@ Tant que la fonction est absente, le serveur répond « indisponible » et n'app
 Le quota (1 par 24 h) refuse toute seconde demande. Ne pas le relever pour contourner ce refus.
 
 ## 6bis. Statut du contrat API (résumé ; détail dans le README, « Contrat de l'API »)
-- **Confirmé** (dépôt officiel MCP, lu directement) : Bearer, `src_file_id`, corps de l'outil MCP avec intensités 0 à 1, fonctionnement asynchrone.
-- **Rapporté** (résumés de recherche, pages officielles non ouvertes) : création `POST /s2s/v2.0/task/skin-simulation`, statut `GET /s2s/v2.0/task/skin-simulation/{task_id}`, existence de points d'accès au solde et à l'historique des unités.
-- **Non vérifié** : champ de l'image finale, structure du corps REST, facturation d'un échec, coût par simulation, chemins et gratuité des points d'accès au solde et à l'historique. L'essai réel unique est le seul moyen de les établir si la documentation reste inaccessible ; la console Perfect Corp reste la référence pour le solde.
+- **Confirmé** : par le dépôt officiel MCP (Bearer, `src_file_id`, intensités 0 à 1, asynchrone) ET par le premier essai réel du 11/10/2026 : création `POST /s2s/v2.0/task/skin-simulation`, statut `GET …/task/skin-simulation/{task_id}`, corps `{ src_file_id, <zone>: 0.5 }`, image dans `data.results.url`, tâche terminée en environ 4,4 s, **4 unités débitées** pour cette simulation (zone acné, un seul relevé).
+- **Rapporté** (résumés de recherche, pages officielles non ouvertes) : existence de points d'accès au solde et à l'historique des unités (chemins non connus).
+- **Non vérifié** : facturation d'une tâche en erreur, tarif ferme par zone ou résolution (un seul relevé), durée de validité de l'URL du résultat, chemins et gratuité des points d'accès au solde et à l'historique. La console Perfect Corp reste la référence pour le solde.
 - Ne pas appeler les points d'accès au solde ou à l'historique des unités tant que leur chemin et leurs conditions n'ont pas été lus dans la documentation officielle : leur gratuité n'est pas vérifiée.
 
 ## 7. Mesures
