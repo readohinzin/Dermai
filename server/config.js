@@ -87,7 +87,15 @@ const SIM_CONCERNS = {
   wrinkle: 'wrinkle', radiance: 'radiance', acne: 'acne', eye_bags: 'eye_bags', dark_circle: 'dark_circle',
   spots: 'spots', pores: 'pores', texture: 'texture', redness: 'redness'
 };
-const SIM_INTENSITY = 0.5;   // fixe, côté serveur : valeur prudente et provisoire (le navigateur ne la choisit pas)
+/* Intensité de la simulation (0 = photo d'origine, 1 = effet maximal). Choisie côté serveur, jamais par le navigateur. Le premier essai à 0,5 (zone acné) n'a
+   donné aucune différence visible ; le guide du fournisseur (résumé, non lu directement) décrit 0,7 à 1,0 comme l'effet marqué. Défaut 0,8, réglable sans modifier
+   le code par DERMAI_SIMULATION_INTENSITY (nombre de 0,1 à 1 ; absent ou invalide : défaut). Valeur provisoire, à ajuster d'après les essais. */
+const SIM_INTENSITY = 0.8;
+const simulationIntensity = (env = process.env) => {
+  const s = String(env.DERMAI_SIMULATION_INTENSITY === undefined ? '' : env.DERMAI_SIMULATION_INTENSITY).trim();
+  const n = /^(?:0(?:\.\d{1,2})?|1(?:\.0{1,2})?|\.\d{1,2})$/.test(s) ? Number(s) : NaN;
+  return n >= 0.1 && n <= 1 ? n : SIM_INTENSITY;
+};
 
 /* Verrou : sans DERMAI_SIMULATION_ENABLED, aucune simulation, aucun crédit. Même activé, seuls les comptes listés dans
    DERMAI_SIMULATION_ALLOWED_USER_IDS (identifiants Supabase séparés par des virgules) peuvent l'utiliser : liste vide = personne ; « * » = tout compte connecté (voir isSimulationAllowed). */
@@ -109,5 +117,5 @@ const simulationQuota = (env = process.env) => ({
 
 module.exports = {
   analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET,
-  SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota
+  SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, simulationIntensity, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota
 };

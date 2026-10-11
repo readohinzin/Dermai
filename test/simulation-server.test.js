@@ -191,6 +191,17 @@ test('SIM-S10 requête fournisseur : API fichier, UNE tâche de simulation avec 
   assert.ok(config.SIM_INTENSITY > 0 && config.SIM_INTENSITY <= 1);
 });
 
+test('SIM-S10b intensité : défaut 0,8 ; réglable par DERMAI_SIMULATION_INTENSITY (0,1 à 1) ; valeur invalide = défaut ; envoyée au fournisseur et renvoyée', async () => {
+  assert.equal(config.SIM_INTENSITY, 0.8);
+  for (const [v, want] of [[undefined, 0.8], ['', 0.8], ['abc', 0.8], ['0', 0.8], ['0.05', 0.8], ['1.5', 0.8], ['-1', 0.8], ['0.8; drop', 0.8], ['0.3', 0.3], ['1', 1], ['1.0', 1], ['0.55', 0.55], ['.7', 0.7], [' 0.9 ', 0.9]]) {
+    assert.equal(config.simulationIntensity({ DERMAI_SIMULATION_INTENSITY: v }), want, String(v));
+  }
+  const r = await run({ DERMAI_SIMULATION_INTENSITY: '0.95' }, () => call('POST', { query: 'concern=acne' }));
+  assert.equal(r.status, 200); assert.equal(r.body.simulation.intensity, 0.95); assert.deepEqual(mock.taskBody, { src_file_id: 'file-1', acne: 0.95 });
+  const d = await run({ DERMAI_SIMULATION_INTENSITY: 'n\'importe quoi' }, () => call('POST', { query: 'concern=acne' }));
+  assert.equal(d.body.simulation.intensity, 0.8); assert.deepEqual(mock.taskBody, { src_file_id: 'file-1', acne: 0.8 });
+});
+
 test('SIM-S11 quota PROPRE : le second appel est refusé (429, Retry-After), un seul crédit chez le fournisseur ; les analyses n\'y comptent pas', async () => {
   const [a, b] = await run({ DERMAI_MAX_SIMULATIONS_PER_PERIOD: '1' }, async () => [await call('POST'), await call('POST')]);
   assert.equal(a.status, 200); assert.equal(b.status, 429); assert.equal(b.body.error, errors.MESSAGES.SIM_QUOTA_EXCEEDED); assert.ok(Number(b.headers['Retry-After']) >= 1);

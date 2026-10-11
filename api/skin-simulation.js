@@ -11,7 +11,7 @@ const auth = require('../server/auth');
 const quota = require('../server/quota');
 const perfectcorp = require('../server/perfectcorp');
 const simulation = require('../server/perfectcorp-simulation');
-const { isSimulationEnabled, isSimulationAllowed, isDebugRawEnabled, TIME_BUDGET, SIM_INTENSITY } = require('../server/config');
+const { isSimulationEnabled, isSimulationAllowed, isDebugRawEnabled, TIME_BUDGET, simulationIntensity } = require('../server/config');
 const { createBudget } = require('../server/budget');
 
 const config = { api: { bodyParser: false } };
@@ -61,9 +61,10 @@ async function handler(req, res) {
     if (!perfectcorp.isConfigured()) throw new AnalysisError('SIM_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });
     await quota.reserveSimulation(auth.bearerToken(req), process.env, { budget });
     console.log('[DERMAI] Simulation quota reserved');
-    const out = await simulation.simulate({ buffer: image.buffer, mime: image.mime, concern }, { budget });
+    const intensity = simulationIntensity();
+    const out = await simulation.simulate({ buffer: image.buffer, mime: image.mime, concern, intensity }, { budget });
     /* Le navigateur ne reçoit que l'image et la zone : ni enveloppe, ni task_id, ni URL du fournisseur. */
-    const payload = { ok: true, simulation: { concern, intensity: SIM_INTENSITY, image: out.image } };
+    const payload = { ok: true, simulation: { concern, intensity, image: out.image } };
     if (isDebugRawEnabled()) payload.raw = out.envelope;
     return send(res, 200, payload);
   } catch (err) {

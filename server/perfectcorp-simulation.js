@@ -17,17 +17,17 @@ const concernParam = key => (typeof key === 'string' && Object.prototype.hasOwnP
 
 /* NON CONFIRMÉ — forme du corps de création. D'après le schéma de l'outil officiel : l'image (src_file_id) et UNE intensité 0..1 sous le nom du
    paramètre de la préoccupation ; les autres intensités restent absentes (valeur par défaut du fournisseur = pas d'effet demandé). */
-function buildTaskBody(fileId, param) {
-  return { src_file_id: fileId, [param]: SIM_INTENSITY };
+function buildTaskBody(fileId, param, intensity = SIM_INTENSITY) {
+  return { src_file_id: fileId, [param]: intensity };
 }
 
 /* NON CONFIRMÉ — création de la tâche. Le seuil de temps est celui de l'analyse (crédit engagé : de quoi interroger au moins une fois). */
-async function createSimulationTask({ fileId, param }, env) {
+async function createSimulationTask({ fileId, param, intensity }, env) {
   requireKey(env);
   const json = await call(env, 'task', env.baseUrl + SIM_PATHS.task, {
     method: 'POST',
     headers: { ...authHeaders(env), 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildTaskBody(fileId, param))
+    body: JSON.stringify(buildTaskBody(fileId, param, intensity))
   }, readJson, env.budget.minTaskMs);
   const taskId = json && json.data && json.data.task_id;
   if (!taskId) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: 'simulation task : task_id absent de la réponse' });
@@ -85,14 +85,14 @@ function extractResultUrl(envelope) {
 
 /* Orchestration : fichier → tâche de simulation → polling → URL de l'image. Une seule tâche par appel. Renvoie { image (URL https), envelope }.
    `concern` : clé DERMAI déjà validée par le handler (revérifiée ici). */
-async function simulate({ buffer, mime, concern }, opts = {}) {
+async function simulate({ buffer, mime, concern, intensity = SIM_INTENSITY }, opts = {}) {
   const param = concernParam(concern);
   if (!param) throw new AnalysisError('SIM_INVALID_CONCERN', { status: 400 });
   const env = pc.makeEnv(opts);
   requireKey(env);
   const up = await pc.requestUploadUrl({ size: buffer.length, mime }, env);       // API fichier, la même que pour l'analyse
   await pc.uploadFile({ url: up.url, method: up.method, headers: up.headers, buffer, mime }, env);
-  const taskId = await createSimulationTask({ fileId: up.fileId, param }, env);
+  const taskId = await createSimulationTask({ fileId: up.fileId, param, intensity }, env);
   const envelope = await pollSimulationTask(taskId, env);
   /* Structure seulement (chemins et types, jamais de valeur ni d'URL) : si le chemin du résultat n'est pas celui attendu, ce journal est la seule
      trace exploitable de l'essai réel, qui ne doit pas être répété pour la retrouver. */

@@ -136,7 +136,7 @@
       const disclaimer = `<div class="c-notice u-my-5">${ic('info')}<div><span class="c-notice__title">Une illustration, pas une prédiction</span>Cette image est générée par ordinateur sur une seule zone. Elle ne prédit pas l'effet de vos soins, ne promet aucun résultat et n'a aucune valeur médicale. Vos vrais résultats dépendent de nombreux facteurs.</div></div>`;
       const ready = !!ui.concern && !busy && !mustAsk && (!pending || ui.acked);
       const result = ui.status === 'done' && ui.image ? beforeAfter(scan) : '';
-      return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone : DERMAI génère une image illustrative de cette zone un peu améliorée, à comparer avec votre photo.</p></div>
+      return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone : DERMAI génère une image illustrative de cette zone améliorée, à comparer avec votre photo.</p></div>
         ${disclaimer}
         <section><div class="hd"><h2 class="h3">Quelle zone ?</h2></div><div class="chips" style="margin-bottom:14px">${chips}</div></section>
         ${askPhoto}${ack}${notice}
