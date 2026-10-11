@@ -7,40 +7,49 @@
    du fournisseur n'est pas vérifiée ; c'est l'hypothèse la plus sûre pour le coût). Ni la photo ni aucun résultat ne sont envoyés ici. */
 const { publicSupabase, analysisQuota } = require('./config');
 const { AnalysisError } = require('./errors');
+const { startDeadline } = require('./budget');
 
 const TIMEOUT_MS = 5000;
 /* Remplaçable par les tests (aucun réseau). */
 const api = { fetchImpl: (...args) => fetch(...args) };
 
-async function reserve(token, env = process.env) {
+/* `budget` (facultatif) : budget global de la requête. TIMEOUT_MS reste le délai maximal et couvre la requête ET la lecture complète de la réponse.
+   Aucune nouvelle tentative : si la réponse n'arrive pas, la réservation a pu être exécutée en base (état inconnu), l'appelant s'arrête. */
+async function reserve(token, env = process.env, { budget } = {}) {
   const cfg = publicSupabase(env);
   if (!cfg || typeof token !== 'string' || !token) throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : Supabase non configuré ou jeton absent' });
   const { limit, windowSeconds } = analysisQuota(env);
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-  let res;
+  const dl = startDeadline({ timeoutMs: TIMEOUT_MS, budget, label: 'quota' });
   try {
-    res = await api.fetchImpl(cfg.supabaseUrl + '/rest/v1/rpc/reserve_analysis', {
-      method: 'POST',
-      headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_limit: limit, p_window_seconds: windowSeconds }),
-      signal: ctl.signal
-    });
-  } catch (e) {
-    throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, cause: e });
-  } finally { clearTimeout(timer); }
-  if (res.status === 401) throw new AnalysisError('AUTH_REQUIRED', { status: 401 });
-  if (!res.ok) throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : Supabase a répondu ' + res.status });   // fonction absente (migration non appliquée) comprise
-  let body = null;
-  try { body = JSON.parse(await res.text()); } catch (e) { body = null; }
-  if (!body || typeof body !== 'object') throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : réponse illisible' });
-  if (body.ok === true) return { used: Number(body.used) || 0, limit };
-  if (body.ok === false) {
-    const err = new AnalysisError('QUOTA_EXCEEDED', { status: 429 });
-    err.retryAfter = Number.isFinite(Number(body.retry_after)) ? Math.max(1, Math.min(Math.round(Number(body.retry_after)), 31536000)) : null;
-    throw err;
-  }
-  throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : réponse inattendue' });
+    let res;
+    try {
+      res = await api.fetchImpl(cfg.supabaseUrl + '/rest/v1/rpc/reserve_analysis', {
+        method: 'POST',
+        headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_limit: limit, p_window_seconds: windowSeconds }),
+        signal: dl.signal
+      });
+    } catch (e) {
+      throw dl.timedOut() ? dl.error('QUOTA_UNAVAILABLE', 'quota : délai dépassé avant la réponse (réservation possiblement exécutée)') : new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, cause: e });
+    }
+    if (res.status === 401) throw new AnalysisError('AUTH_REQUIRED', { status: 401 });
+    if (!res.ok) throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : Supabase a répondu ' + res.status });   // fonction absente (migration non appliquée) comprise
+    let text;
+    try { text = await res.text(); }
+    catch (e) {
+      throw dl.timedOut() ? dl.error('QUOTA_UNAVAILABLE', 'quota : délai dépassé pendant la lecture de la réponse (réservation possiblement exécutée)') : new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, cause: e, detail: 'quota : réponse illisible' });
+    }
+    let body = null;
+    try { body = JSON.parse(text); } catch (e) { body = null; }
+    if (!body || typeof body !== 'object') throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : réponse illisible' });
+    if (body.ok === true) return { used: Number(body.used) || 0, limit };
+    if (body.ok === false) {
+      const err = new AnalysisError('QUOTA_EXCEEDED', { status: 429 });
+      err.retryAfter = Number.isFinite(Number(body.retry_after)) ? Math.max(1, Math.min(Math.round(Number(body.retry_after)), 31536000)) : null;
+      throw err;
+    }
+    throw new AnalysisError('QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : réponse inattendue' });
+  } finally { dl.clear(); }
 }
 
 module.exports = { reserve, api, TIMEOUT_MS };   // TIMEOUT_MS : délai maximal de la requête de réservation, lu par le handler pour son budget de temps

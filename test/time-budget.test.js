@@ -402,8 +402,12 @@ test('TD5 handler : le seuil avant la réservation du quota inclut le délai max
   assert.equal(below.r.body.error, toUserMessage('TIME_BUDGET'));
   assert.equal(below.quotaCalls, 0);
   assert.equal(below.analyzeCalls, 0);
-  /* Exactement au seuil : la réservation a lieu et l'analyse (simulée) démarre. */
-  const at = await attempt(threshold);
+  /* Au seuil exact, la fenêtre de lecture de la photo est vide (D2) : aucune lecture ne pourrait finir avant le seuil, donc refus sans lire. */
+  const exact = await attempt(threshold);
+  assert.equal(exact.r.status, 504);
+  assert.equal(exact.quotaCalls, 0);
+  /* Au-dessus du seuil, avec de quoi lire la photo : la réservation a lieu et l'analyse (simulée) démarre. */
+  const at = await attempt(threshold + 1000);
   assert.equal(at.r.status, 200);
   assert.equal(at.quotaCalls, 1);
   assert.equal(at.analyzeCalls, 1);

@@ -168,7 +168,7 @@ test('SA-K source : aucune clé service_role, la clé Perfect Corp reste côté 
   for (const f of ['server/auth.js', 'api/skin-analysis.js', 'api/config-js.js', 'js/app.js', 'js/account.js', 'index.html']) assert.doesNotMatch(read(f), /SERVICE_ROLE_KEY|process\.env\.SUPABASE_SERVICE|sb_secret|eyJ[A-Za-z0-9_-]{30,}\.eyJ/, f);
   assert.doesNotMatch(read('js/app.js') + read('js/account.js') + read('index.html'), /PERFECT_CORP_API_KEY|makeupar\.com/);
   assert.match(read('js/app.js'), /setRequestHeader\(`Authorization`,`Bearer \$\{token\}`\)/);
-  assert.match(read('api/skin-analysis.js'), /await auth\.verifyUser\(req\)[\s\S]*isAnalysisEnabled\(\)[\s\S]*readBody\(req\)[\s\S]*perfectcorp\.analyzeSkin/);
+  assert.match(read('api/skin-analysis.js'), /await auth\.verifyUser\(req, process\.env, \{ budget \}\)[\s\S]*isAnalysisEnabled\(\)[\s\S]*readBody\(req, undefined, \{ timeoutMs: readWindowMs \}\)[\s\S]*perfectcorp\.analyzeSkin/);
 });
 
 /* Fournisseur SIMULÉ au niveau réseau (jamais un vrai appel) : on exécute le VRAI module server/perfectcorp.js, dont le fetch est remplacé. */

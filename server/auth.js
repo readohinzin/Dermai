@@ -8,6 +8,7 @@
    configuré → refus (503). Dans tous les cas, avant toute lecture de la photo et tout appel à Perfect Corp. Le jeton n'est jamais journalisé. */
 const { publicSupabase } = require('./config');
 const { AnalysisError } = require('./errors');
+const { startDeadline } = require('./budget');
 
 const TIMEOUT_MS = 5000;
 /* Forme d'un JWT : trois segments base64url. Un en-tête absent ou mal formé est refusé sans même interroger Supabase. */
@@ -23,25 +24,33 @@ function bearerToken(req) {
   return m && JWT_RE.test(m[1]) ? m[1] : null;
 }
 
-async function verifyUser(req, env = process.env) {
+/* `budget` (facultatif) : budget global de la requête (server/budget.js). Le délai maximal reste TIMEOUT_MS ; il couvre la requête ET la lecture
+   complète de la réponse. Une réponse illisible ou une panne n'est JAMAIS une session invalide : 503 (disponibilité), jamais 401. */
+async function verifyUser(req, env = process.env, { budget } = {}) {
   const token = bearerToken(req);
   if (!token) throw new AnalysisError('AUTH_REQUIRED', { status: 401 });
   const cfg = publicSupabase(env);
   if (!cfg) throw new AnalysisError('AUTH_UNAVAILABLE', { status: 503, detail: 'SUPABASE_URL / SUPABASE_ANON_KEY non configurés : analyse refusée' });
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-  let res;
+  const dl = startDeadline({ timeoutMs: TIMEOUT_MS, budget, label: 'auth' });
   try {
-    res = await api.fetchImpl(cfg.supabaseUrl + '/auth/v1/user', { method: 'GET', headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + token }, signal: ctl.signal });
-  } catch (e) {
-    throw new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: e });
-  } finally { clearTimeout(timer); }
-  if ([400, 401, 403, 422].includes(res.status)) throw new AnalysisError('AUTH_REQUIRED', { status: 401 });
-  if (!res.ok) throw new AnalysisError('AUTH_UNAVAILABLE', { status: 503, detail: 'Supabase a répondu ' + res.status });
-  let body = null;
-  try { body = JSON.parse(await res.text()); } catch (e) { body = null; }
-  if (!body || typeof body.id !== 'string' || !ID_RE.test(body.id)) throw new AnalysisError('AUTH_REQUIRED', { status: 401 });
-  return { id: body.id };
+    let res;
+    try {
+      res = await api.fetchImpl(cfg.supabaseUrl + '/auth/v1/user', { method: 'GET', headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + token }, signal: dl.signal });
+    } catch (e) {
+      throw dl.timedOut() ? dl.error('AUTH_UNAVAILABLE', 'auth : délai dépassé avant la réponse') : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: e });
+    }
+    if ([400, 401, 403, 422].includes(res.status)) throw new AnalysisError('AUTH_REQUIRED', { status: 401 });
+    if (!res.ok) throw new AnalysisError('AUTH_UNAVAILABLE', { status: 503, detail: 'Supabase a répondu ' + res.status });
+    let text;
+    try { text = await res.text(); }
+    catch (e) {
+      throw dl.timedOut() ? dl.error('AUTH_UNAVAILABLE', 'auth : délai dépassé pendant la lecture de la réponse') : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: e, detail: 'auth : réponse illisible' });
+    }
+    let body;
+    try { body = JSON.parse(text); } catch (e) { throw new AnalysisError('AUTH_UNAVAILABLE', { status: 503, detail: 'auth : réponse non JSON' }); }
+    if (!body || typeof body.id !== 'string' || !ID_RE.test(body.id)) throw new AnalysisError('AUTH_REQUIRED', { status: 401 });   // réponse LISIBLE sans utilisateur valide
+    return { id: body.id };
+  } finally { dl.clear(); }
 }
 
 module.exports = { verifyUser, bearerToken, api, JWT_RE };

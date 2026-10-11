@@ -32,7 +32,7 @@ async function handler(req, res) {
   /* Authentification d'abord : seule une session Supabase valide (vérifiée auprès de Supabase) peut déclencher une analyse. Refus AVANT toute lecture
      du corps, toute validation de photo et tout appel à Perfect Corp, y compris verrou ouvert. L'état du verrou n'est donc jamais révélé à un anonyme. */
   try {
-    await auth.verifyUser(req);
+    await auth.verifyUser(req, process.env, { budget });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: err });
     console.warn('[DERMAI] Skin analysis refused:', e.code);
@@ -46,7 +46,11 @@ async function handler(req, res) {
   }
   try {
     console.log('[DERMAI] Skin analysis started');
-    const body = await readBody(req);
+    /* Lecture de la photo bornée : au plus le temps qui sépare l'instant présent du seuil exigé avant la réservation du crédit (au-delà, le contrôle
+       ci-dessous refuserait de toute façon). Aucun temps disponible : refus sans lire la photo. Aucun crédit n'est réservé avant la fin de la lecture. */
+    const readWindowMs = budget.remaining() - (TIME_BUDGET.minStartMs + quota.TIMEOUT_MS);
+    if (readWindowMs <= 0) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant la lecture de la photo (${budget.elapsed()} ms écoulées)` });
+    const body = await readBody(req, undefined, { timeoutMs: readWindowMs });
     const image = validateImage(body, req.headers['content-type']);
     /* Pas assez de temps pour mener une analyse : refus AVANT la réservation du crédit et avant tout appel au fournisseur. La réservation peut
        elle-même durer jusqu'à quota.TIMEOUT_MS : le seuil la compte, pour qu'il reste minStartMs une fois le crédit réservé (sans garantie de
@@ -55,7 +59,7 @@ async function handler(req, res) {
     /* Quota : réservation atomique côté base, avec l'identité du jeton. Dernier contrôle avant Perfect Corp : refus (quota atteint, base ou
        fonction indisponible) = aucun appel au fournisseur. Les photos invalides ci-dessus ne consomment rien. */
     if (!perfectcorp.isConfigured()) throw new AnalysisError('SERVICE_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });   // rien n'est réservé si le service ne peut pas répondre
-    await quota.reserve(auth.bearerToken(req));
+    await quota.reserve(auth.bearerToken(req), process.env, { budget });
     console.log('[DERMAI] Analysis quota reserved');
     const envelope = await perfectcorp.analyzeSkin(image, { budget });
     /* Log de la structure seulement (noms de champs et types) : jamais de valeurs, d'URL ni de photo. */

@@ -2,25 +2,58 @@
 const { IMAGE } = require('./config');
 const { AnalysisError } = require('./errors');
 
-/* Lit le corps brut de la requête avec une limite stricte de taille. */
-function readBody(req, maxBytes = IMAGE.maxBytes) {
+/* Lit le corps brut de la requête avec une limite stricte de taille.
+   `timeoutMs` (facultatif) : durée maximale de la lecture, fournie par le handler d'après le budget global. À l'échéance la lecture s'arrête
+   avec TIME_BUDGET (504) SANS détruire la connexion : le handler doit encore pouvoir envoyer sa réponse ; la suite de l'envoi est simplement
+   écartée (req.resume()). Une fermeture ou une erreur du flux avant la fin donne UPLOAD_INTERRUPTED (400). Une seule issue (resolve ou reject),
+   les écouteurs sont retirés ensuite sauf un 'error' neutre : sans lui, une erreur tardive du flux ferait tomber le processus. */
+function readBody(req, maxBytes = IMAGE.maxBytes, { timeoutMs } = {}) {
   return new Promise((resolve, reject) => {
     const declared = Number(req.headers['content-length']);
     if (Number.isFinite(declared) && declared > maxBytes) {
       return reject(new AnalysisError('TOO_LARGE', { status: 413 }));
     }
+    /* Requête déjà détruite ou interrompue (le client est parti pendant la vérification de session) : réponse immédiate, sans attendre la fenêtre de
+       lecture. Un 'error' neutre est branché : une destruction avec erreur l'émet au tour suivant, et sans écouteur il ferait tomber le processus. */
+    if (req.destroyed || req.errored) {
+      req.on('error', () => {});
+      return reject(new AnalysisError('UPLOAD_INTERRUPTED', { status: 400, cause: req.errored || null, detail: 'lecture de la photo : requête déjà interrompue' }));
+    }
+    if (timeoutMs !== undefined && !(timeoutMs > 0)) {
+      return reject(new AnalysisError('TIME_BUDGET', { status: 504, detail: 'lecture de la photo : aucun temps disponible' }));
+    }
     const chunks = [];
-    let size = 0;
-    req.on('data', chunk => {
+    let size = 0, settled = false, timer = null;
+    const finish = (fn, value, drain) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      req.removeListener('data', onData); req.removeListener('end', onEnd); req.removeListener('close', onClose);
+      if (drain && typeof req.resume === 'function') req.resume();   // écarte la suite de l'envoi sans fermer la connexion
+      fn(value);
+    };
+    const onData = chunk => {
       size += chunk.length;
       if (size > maxBytes) {
+        settled = true; clearTimeout(timer);
+        req.removeListener('data', onData); req.removeListener('end', onEnd); req.removeListener('close', onClose);
         req.destroy();
         return reject(new AnalysisError('TOO_LARGE', { status: 413 }));
       }
       chunks.push(chunk);
-    });
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', err => reject(new AnalysisError('UNKNOWN', { cause: err })));
+    };
+    const onEnd = () => finish(resolve, Buffer.concat(chunks), false);
+    const interrupted = cause => finish(reject, new AnalysisError('UPLOAD_INTERRUPTED', { status: 400, cause, detail: 'lecture de la photo : flux interrompu' }), false);
+    const onClose = () => interrupted(null);                      // fermeture avant 'end'
+    const onError = err => {                                      // reste branché après la fin : voir plus haut
+      if (settled) return;
+      if (err && (err.code === 'ECONNRESET' || err.code === 'ERR_STREAM_PREMATURE_CLOSE' || err.message === 'aborted')) return interrupted(err);
+      finish(reject, new AnalysisError('UNKNOWN', { cause: err }), false);
+    };
+    req.on('data', onData); req.on('end', onEnd); req.on('close', onClose); req.on('error', onError);
+    if (timeoutMs !== undefined) {
+      timer = setTimeout(() => finish(reject, new AnalysisError('TIME_BUDGET', { status: 504, detail: `lecture de la photo : échéance de ${Math.round(timeoutMs)} ms atteinte (${size} octets reçus)` }), true), timeoutMs);
+    }
   });
 }
 
