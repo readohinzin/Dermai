@@ -1,7 +1,7 @@
 'use strict';
 /* Banc d'essai navigateur : le VRAI index.html et le VRAI js/app.js tournent dans Chromium, mais AUCUN service externe n'est joignable.
    - /api/config-js est servi par un petit serveur local (mode réel, projet Supabase factice) ;
-   - tout /api/skin-analysis est intercepté par le navigateur : aucune requête ne part vers le serveur, encore moins vers Perfect Corp ;
+   - tout /api/skin-analysis ET /api/skin-simulation est intercepté par le navigateur : aucune requête ne part vers le serveur, encore moins vers Perfect Corp ;
    - Supabase est remplacé par test/helpers/fake-supabase.js ;
    - toute autre requête sortante est bloquée et comptée (stats.escaped doit rester vide).
    Playwright et Chromium viennent de l'environnement (pas de dépendance du projet) : sans eux, available() renvoie false et les tests sont ignorés. */
@@ -60,8 +60,10 @@ async function makeJpeg(page) {
 
 /* options : { fake, behaviors } ; behaviors = file d'actions pour les appels à /api/skin-analysis (la dernière se répète) :
    { status, body, delay } | { abort: true } | { never: true }. */
-async function open(browser, server, { fake = createFake(), behaviors = [{ status: 200, body: analysisPayload() }], user = null, preload = null } = {}) {
-  const stats = { skin: [], escaped: [], serverApi: server.stats.serverApi, supabase: [] };
+async function open(browser, server, { fake = createFake(), behaviors = [{ status: 200, body: analysisPayload() }], user = null, preload = null, sim = null } = {}) {
+  /* sim : { available, behaviors } — par défaut la simulation est FERMÉE (GET → available:false) et aucune demande de simulation n'est attendue. */
+  const simCfg = Object.assign({ available: false, behaviors: [{ status: 200, body: { ok: false, error: 'simulation de test non configurée' } }] }, sim || {});
+  const stats = { skin: [], escaped: [], serverApi: server.stats.serverApi, supabase: [], simProbe: [], sim: [] };
   const context = await browser.newContext({ baseURL: `http://127.0.0.1:${server.address().port}`, viewport: { width: 420, height: 900 } });
   const hold = [];
   await context.route('**/*', async route => {
@@ -70,6 +72,15 @@ async function open(browser, server, { fake = createFake(), behaviors = [{ statu
       if (url.pathname === '/api/skin-analysis') {
         const n = stats.skin.push({ at: Date.now(), size: (req.postDataBuffer() || Buffer.alloc(0)).length, auth: !!req.headers().authorization });
         const b = behaviors[Math.min(n - 1, behaviors.length - 1)];
+        if (b.abort) return route.abort('connectionreset');
+        if (b.never) { hold.push(route); return; }
+        if (b.delay) await new Promise(r => setTimeout(r, b.delay));
+        return route.fulfill({ status: b.status || 200, contentType: b.contentType || 'application/json', body: typeof b.body === 'string' ? b.body : JSON.stringify(b.body) });
+      }
+      if (url.pathname === '/api/skin-simulation') {
+        if (req.method() === 'GET') { stats.simProbe.push({ auth: !!req.headers().authorization }); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, available: !!simCfg.available }) }); }
+        const n = stats.sim.push({ at: Date.now(), url: req.url(), size: (req.postDataBuffer() || Buffer.alloc(0)).length, auth: !!req.headers().authorization, type: req.headers()['content-type'] });
+        const b = simCfg.behaviors[Math.min(n - 1, simCfg.behaviors.length - 1)];
         if (b.abort) return route.abort('connectionreset');
         if (b.never) { hold.push(route); return; }
         if (b.delay) await new Promise(r => setTimeout(r, b.delay));

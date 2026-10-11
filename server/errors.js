@@ -34,6 +34,15 @@ const MESSAGES = {
   RESULT_NOT_FOUND: 'L\'analyse n\'a pas pu être terminée.',
   RESULT_INVALID: 'L\'analyse n\'a pas pu être terminée.',
   RESULT_AMBIGUOUS: 'L\'analyse n\'a pas pu être terminée.',
+  SIM_DISABLED: 'La simulation n\'est pas disponible pour le moment.',
+  SIM_INVALID_CONCERN: 'Choisissez l\'une des zones proposées.',
+  SIM_QUOTA_EXCEEDED: 'Le nombre de simulations disponibles est atteint pour le moment. Réessayez plus tard.',
+  SIM_QUOTA_UNAVAILABLE: 'La simulation n\'est pas disponible pour le moment. Réessayez plus tard.',
+  SIM_RESULT_INVALID: 'La simulation n\'a pas pu être terminée.',
+  SIM_TIMEOUT: 'La simulation prend plus de temps que prévu et n\'a pas pu être terminée. Réessayez dans quelques minutes.',
+  SIM_AUTH_REQUIRED: 'Connectez-vous pour utiliser la simulation.',
+  SIM_INVALID_IMAGE: 'Cette photo ne peut pas être utilisée pour la simulation.',
+  SIM_UNAVAILABLE: 'La simulation n\'est pas disponible pour le moment. Réessayez plus tard.',
   METHOD_NOT_ALLOWED: 'Requête non autorisée.',
   NOT_IMPLEMENTED: 'Le service d\'analyse est momentanément indisponible.',
   UNKNOWN: 'Nous n\'avons pas pu analyser cette photo. Veuillez réessayer.'
@@ -43,6 +52,11 @@ const MESSAGES = {
 function toUserMessage(code) {
   return MESSAGES[code] || MESSAGES.UNKNOWN;
 }
+
+/* Messages de la simulation : les codes génériques (fournisseur, délais, session) sont reformulés pour ne jamais parler d'« analyse ». */
+const SIM_REWRITE = { AUTH_REQUIRED: 'SIM_AUTH_REQUIRED', TIMEOUT: 'SIM_TIMEOUT', TIME_BUDGET: 'SIM_TIMEOUT', TASK_ERROR: 'SIM_RESULT_INVALID', SERVICE_UNAVAILABLE: 'SIM_UNAVAILABLE',
+  INVALID_IMAGE: 'SIM_INVALID_IMAGE', UNKNOWN: 'SIM_RESULT_INVALID', NOT_IMPLEMENTED: 'SIM_UNAVAILABLE' };
+const toSimulationMessage = code => toUserMessage(SIM_REWRITE[code] || code);
 
 /* Reconnaissance prudente d'un code d'erreur Perfect Corp dans un texte (corps HTTP ou erreur de tâche).
    Les libellés ci-dessous sont des motifs de repérage, pas une liste officielle : à confirmer avec les
@@ -60,4 +74,4 @@ function fromPerfectCorpError(text) {
   return null;
 }
 
-module.exports = { AnalysisError, toUserMessage, fromPerfectCorpError, MESSAGES };
+module.exports = { AnalysisError, toUserMessage, toSimulationMessage, fromPerfectCorpError, MESSAGES };
