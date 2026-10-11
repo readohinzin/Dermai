@@ -229,26 +229,33 @@ Illustration visuelle d'une zone « un peu améliorée » à partir de la photo 
 - **Photo** : la photo de l'analyse en cours si elle est encore en mémoire ; sinon celle que l'utilisatrice a choisi de garder dans son compte (lien temporaire, JPEG vérifié) ; sinon l'écran explique que la photo n'est plus disponible et demande une photo de face, **sans lancer d'analyse**. Le fournisseur n'a pas de `file_id` réutilisable : la photo est renvoyée à chaque simulation.
 - `js/app.js` : 3 lignes de branchement (149 812 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
 
-### Contrat de l'API : vérifié et non vérifié
-Source consultée : le dépôt officiel `YouCam-API/beauty-skin-care-MCP` (`lhm.plugin.json`, `README.md`), cloné en lecture seule. La documentation REST (`docs.perfectcorp.com`) n'est pas joignable depuis l'environnement de développement, et AUCUNE requête n'a été envoyée à Perfect Corp pour valider le contrat.
+### Contrat de l'API : ce qui est confirmé, rapporté ou non vérifié
+Trois statuts, à ne pas confondre :
+- **Confirmé** : lu directement dans une source officielle. Seule source de ce type consultée : le dépôt public `YouCam-API/beauty-skin-care-MCP` (`lhm.plugin.json`, `README.md`), cloné en lecture seule. Elle décrit l'outil MCP, pas l'API REST.
+- **Rapporté** : indiqué par un RÉSUMÉ de recherche web des pages officielles (`docs.perfectcorp.com/reference/ai_skin_simulation`, `…/reference/unit_system`, `yce.perfectcorp.com/ai-api/products/ai-skin-simulation-api`). Ces pages elles-mêmes n'ont PAS pu être ouvertes (réseau de l'environnement de développement : `docs.perfectcorp.com` et `yce.perfectcorp.com` refusés). Un résumé peut être inexact : ce n'est pas une vérification.
+- **Non vérifié** : aucune source consultée ne le dit. Rien n'est supposé en silence.
+Aucune requête n'a été envoyée à Perfect Corp pour valider quoi que ce soit.
 
-| Élément | Statut | Ce qui le fonde |
+| Élément | Statut | Source et réserves |
 |---|---|---|
-| Authentification `Authorization: Bearer <clé>` | Vérifié (MCP) et déjà en service pour l'analyse | README officiel (« le préfixe `Bearer ` est obligatoire ») |
-| Envoi de la photo : API fichier (`file_id`) puis `src_file_id` | Vérifié (schéma de l'outil) | `src_file_id` : « ID de fichier issu de l'API d'envoi » ; `src_file_url` existe aussi (URL publique) |
-| Corps : un objet plat avec `src_file_id` et des intensités 0 à 1 par zone (`wrinkle`, `radiance`, `acne`, `eye_bags`, `dark_circle`, `spots`, `pores`, `texture`, `redness`, `oiliness`) | Vérifié pour l'outil MCP, **supposé identique en REST** | schéma d'entrée de `AI-Skin-simulation` ; 0 = peau d'origine, 1 = effet maximal ; `oiliness` : 1 = plus de brillance |
-| Version de l'outil : v2.0 | Vérifié (métadonnées de l'outil) | cohérent avec le chemin supposé |
-| Chemin REST de création `/s2s/v2.0/task/skin-simulation` | **Très probable, non lu directement** | absent du dépôt MCP ; des résumés de recherche de la page officielle `docs.perfectcorp.com/reference/ai_skin_simulation` le donnent (POST, image envoyée avec la configuration, retourne un `task_id`), avec une incohérence : un exemplaire de la page cite `/s2s/v2.0/file/skin-simulation` dans son aperçu. La page elle-même n'est pas joignable d'ici |
-| Chemin REST de statut `…/task/skin-simulation/<task_id>` | **NON confirmé** (le guide cité dit `GET /task/${task_id}` de façon générique ; les autres produits Perfect Corp suivent le motif `/s2s/v2.0/task/<produit>/{task_id}`, ex. l'analyse de peau) | l'outil de statut MCP prend `task_id` et `task_type` (`AI-Skin-simulation` figure dans la liste), ce qui suggère un chemin par fonction, sans le prouver |
-| Suivi asynchrone : tâche, puis interrogation jusqu'à la fin | Vérifié (README officiel : « la plupart des outils sont asynchrones ») | forme exacte du statut REST (`data.task_status`) supposée comme pour l'analyse |
-| Résultat : « URL de résultat hébergées temporairement, à ne pas modifier » | Vérifié dans le principe | l'**emplacement** de l'URL dans la réponse n'est PAS documenté : `extractResultUrl` n'accepte qu'une liste fermée de chemins |
-| Erreurs : visage non détecté, photo invalide, unités insuffisantes, tâche qui ne se termine pas | Mentionnées par le README officiel (messages, pas de codes REST) | gestion DERMAI : erreurs génériques, jamais de détail au navigateur |
-| Intensité | 0,0 à 1,0 (guide officiel via résumé : 0,0 = peau d'origine ; 0,7 à 1,0 = effet marqué) ; la page produit parle de 100 niveaux | cohérent avec le schéma MCP |
-| Durée | « quelques secondes » (texte commercial), **aucune garantie** | polling borné (25 interrogations, 52 s au total) |
-| Coût en unités, facturation en cas d'échec | **Non documenté dans le dépôt** | l'outil gratuit `Get_Feature_Cost` et la page de tarifs en font foi ; rien n'est supposé |
-| Durée de conservation des résultats | « temporaire », durée non précisée | téléchargement immédiat côté serveur |
+| Authentification `Authorization: Bearer <clé>` | **Confirmé** (MCP) | README du dépôt officiel (« le préfixe `Bearer ` est obligatoire »). Déjà utilisée par l'analyse REST en service |
+| Envoi de la photo : API fichier puis `src_file_id` (ou `src_file_url`, URL publique) | **Confirmé** (schéma de l'outil `AI-Skin-simulation`, v2.0) | `lhm.plugin.json` |
+| Corps de l'outil : objet plat `src_file_id` + intensités 0 à 1 par zone (`wrinkle`, `radiance`, `acne`, `eye_bags`, `dark_circle`, `spots`, `pores`, `texture`, `redness`, `oiliness`) ; 0 = peau d'origine, 1 = effet maximal ; `oiliness` : 1 = plus de brillance | **Confirmé pour l'outil MCP** | `lhm.plugin.json`. Le corps REST ne figure pas dans ce dépôt |
+| Structure exacte du corps de la requête REST | **Non vérifié** | `buildTaskBody` suppose la même forme que l'outil MCP (`{ src_file_id, <zone>: 0.5 }`) |
+| Tâches asynchrones : création, puis interrogation jusqu'à la fin | **Confirmé** dans le principe (MCP) | README du dépôt officiel |
+| Création : `POST /s2s/v2.0/task/skin-simulation`, retourne un `task_id` | **Rapporté** par un résumé de recherche | un autre résumé cite `/s2s/v2.0/file/skin-simulation` dans un « aperçu » de la page : incohérence NON tranchée |
+| Statut : `GET /s2s/v2.0/task/skin-simulation/{task_id}`, jusqu'à `success` ou `error` | **Rapporté** par un résumé de recherche | un résumé précédent du même guide disait `GET /task/${task_id}` de façon générique. La forme exacte de la réponse (`data.task_status`) est supposée comme pour l'analyse |
+| Intensité de 0,0 à 1,0 (0,7 à 1,0 = effet marqué) ; « 100 niveaux de granularité » | **Rapporté** (0 à 1 est aussi **confirmé** par le schéma MCP) | |
+| **Champ contenant l'image finale** | **Non vérifié** | seul un résumé sur l'analyse de peau évoque une URL d'image traitée ; celui d'un produit voisin (forme du sein) parle d'un champ `url` valable 2 h. Rien pour la simulation. `extractResultUrl` n'accepte qu'une liste fermée de chemins et refuse le reste. L'outil MCP dit seulement que les URL de résultat sont temporaires et ne doivent pas être modifiées (**confirmé**) |
+| Durée de conservation des résultats | **Non vérifié** pour la simulation | « 24 h » est le motif d'autres produits ; l'outil MCP dit seulement « temporaire » |
+| Durée d'une simulation | **Non vérifié** | « quelques secondes » est un texte commercial de l'outil MCP, sans garantie ; polling borné à 25 interrogations et 52 s |
+| **Coût en unités d'une simulation** | **Non vérifié** | l'outil MCP `Get-Feature-Cost` « vérifie la consommation d'unités de chaque API » (**confirmé** : il existe) et renvoie à la page de tarifs ; aucune valeur n'a été lue |
+| **Facturation d'une requête échouée** | **Non vérifié** | aucune source consultée ne le dit (ni pour la simulation, ni dans les résumés de la page des unités) |
+| Points d'accès au solde et à l'historique des unités | **Rapporté** (existence seulement) : un résumé de la page « unit system » dit que l'API en possède pour le solde et pour l'historique | **chemins, méthodes, gratuité et contenu : non vérifiés**. Aucun chemin n'est donné ici, volontairement. À lire dans la documentation avant tout usage |
+| `Get-Feature-Cost` gratuit ? | **Non vérifié** | l'outil est marqué en lecture seule, ce qui ne prouve pas l'absence de facturation. Ne pas l'appeler sans avoir lu les conditions |
+| Erreurs : visage non détecté, photo invalide, unités insuffisantes, tâche qui ne se termine pas | **Confirmé** comme messages (README MCP) ; codes REST **non vérifiés** | gestion DERMAI : erreurs génériques, jamais de détail au navigateur |
 
-Chaque point supposé est isolé dans UNE constante ou fonction : `SIM_PATHS` (`server/config.js`), `buildTaskBody` et `extractResultUrl` (`server/perfectcorp-simulation.js`). Si le fournisseur répond avec une structure inattendue, la simulation est refusée (`SIM_RESULT_INVALID`, jamais une image devinée) et la STRUCTURE de la réponse (chemins et types, aucune valeur) est écrite dans les journaux de la fonction, pour corriger sans refaire d'essai payant.
+Chaque point non confirmé est isolé dans UNE constante ou fonction : `SIM_PATHS` (`server/config.js`), `buildTaskBody` et `extractResultUrl` (`server/perfectcorp-simulation.js`). Si le fournisseur répond avec une structure inattendue, la simulation est refusée (`SIM_RESULT_INVALID`, jamais une image devinée) et la STRUCTURE de la réponse (chemins et types, aucune valeur) est écrite dans les journaux de la fonction, pour corriger sans refaire d'essai payant. Le seul moyen sûr de lever les points « non vérifié » sans dépenser est de lire la documentation officielle (autoriser `docs.perfectcorp.com` et `yce.perfectcorp.com` dans les réglages réseau de l'environnement de développement, ou la consulter soi-même) ; sinon, c'est l'essai réel unique qui les établit.
 
 ### Test réel contrôlé
 Procédure complète, À NE PAS EXÉCUTER sans autorisation explicite : `docs/simulation-real-test.md`.

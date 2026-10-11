@@ -29,7 +29,7 @@ Un changement de variable ne s'applique qu'à un nouveau déploiement Preview.
 ## 1bis. Quelle base Supabase la Preview utilise-t-elle ? (à vérifier AVANT tout)
 Décision : pas de projet Supabase de test séparé. La Preview utilisera donc très probablement la **base de production** (les variables `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont en général définies pour tous les environnements Vercel). Cela n'a pas pu être vérifié depuis le développement (aucun accès à Vercel ni à Supabase) ; à confirmer en 2 minutes, sans afficher de secret :
 1. Vercel, Settings, Environment Variables : pour `SUPABASE_URL`, noter les **environnements cochés** (Production, Preview, Development). Si Production et Preview sont cochés pour la même entrée, c'est la même base. Deux entrées distinctes = deux bases. Ne pas copier la valeur de `SUPABASE_ANON_KEY` nulle part.
-2. Contre-vérification publique et gratuite : ouvrir `https://<adresse de la Preview>/api/config-js` et `https://<adresse de production>/api/config-js` dans le navigateur. Ces pages exposent seulement l'URL du projet Supabase (publique) : comparer le sous-domaine `xxxx.supabase.co`. Identique = même base.
+2. Contre-vérification publique (aucun appel à un fournisseur) : ouvrir `https://<adresse de la Preview>/api/config-js` et `https://<adresse de production>/api/config-js` dans le navigateur. Ces pages exposent seulement l'URL du projet Supabase (publique) : comparer le sous-domaine `xxxx.supabase.co`. Identique = même base.
 3. Même contrôle pour `PERFECT_CORP_API_KEY` : si elle est cochée Production ET Preview, la Preview dépense le **solde de production** (aucune importance pour le test unique, mais aucun autre usage ne doit consommer pendant la mesure).
 4. Si Vercel crée déjà un déploiement Preview pour chaque branche (intégration Git), `feature/skin-simulation` en a probablement déjà un depuis le push. Il est fermé tant qu'aucune variable `DERMAI_SIMULATION_*` n'existe. Vérifier surtout qu'aucune de ces variables n'est cochée « Production » ou « All Environments » : une variable de simulation ne doit exister qu'en Preview.
 
@@ -66,7 +66,7 @@ Tant que la fonction est absente, le serveur répond « indisponible » et n'app
 - [ ] Le compte de test a une analyse dans son historique (sinon le bouton n'apparaît pas) ; `DERMAI_ANALYSIS_ENABLED` est fermé.
 - [ ] Personne d'autre n'utilise la clé Perfect Corp pendant le test (autre application, autre Preview, Production). Sinon le solde ne permettra pas de conclure.
 - [ ] **Solde AVANT** relevé dans la console Perfect Corp (https://yce.perfectcorp.com/api-console/), avec date, heure, valeur exacte, et une capture si possible.
-- [ ] Facultatif et gratuit d'après le dépôt officiel : demander le coût annoncé de la fonction `AI-Skin-simulation` (outil `Get_Feature_Cost` du serveur MCP officiel, ou la page de tarifs https://yce.perfectcorp.com/ai-api/api-pricing). Noter la valeur pour la comparer au constat. Ne pas confondre avec une mesure.
+- [ ] Facultatif, **seulement après avoir lu les conditions officielles** : comparer le coût annoncé de la fonction de simulation (page de tarifs https://yce.perfectcorp.com/ai-api/api-pricing, à ouvrir dans un navigateur ; l'outil MCP `Get-Feature-Cost` existe aussi). Sa gratuité n'est PAS vérifiée : ne pas l'appeler avec la clé sans l'avoir confirmée. Noter la valeur pour la comparer au constat. Ce n'est pas une mesure.
 - [ ] La photo est autorisée (section 0), de face, bien éclairée.
 - [ ] Les journaux de la fonction `api/skin-simulation` sont ouverts (Vercel, Logs), filtrés sur ce chemin.
 
@@ -78,6 +78,12 @@ Tant que la fonction est absente, le serveur répond « indisponible » et n'app
 5. Alternative en ligne de commande, équivalente et à n'utiliser qu'UNE fois : `curl -X POST "https://<preview>/api/skin-simulation?concern=radiance" -H "Authorization: Bearer <jeton du compte de test>" -H "Content-Type: image/jpeg" --data-binary @photo.jpg`. Le jeton ne doit pas rester dans l'historique du terminal.
 
 Le quota (1 par 24 h) refuse toute seconde demande. Ne pas le relever pour contourner ce refus.
+
+## 6bis. Statut du contrat API (résumé ; détail dans le README, « Contrat de l'API »)
+- **Confirmé** (dépôt officiel MCP, lu directement) : Bearer, `src_file_id`, corps de l'outil MCP avec intensités 0 à 1, fonctionnement asynchrone.
+- **Rapporté** (résumés de recherche, pages officielles non ouvertes) : création `POST /s2s/v2.0/task/skin-simulation`, statut `GET /s2s/v2.0/task/skin-simulation/{task_id}`, existence de points d'accès au solde et à l'historique des unités.
+- **Non vérifié** : champ de l'image finale, structure du corps REST, facturation d'un échec, coût par simulation, chemins et gratuité des points d'accès au solde et à l'historique. L'essai réel unique est le seul moyen de les établir si la documentation reste inaccessible ; la console Perfect Corp reste la référence pour le solde.
+- Ne pas appeler les points d'accès au solde ou à l'historique des unités tant que leur chemin et leurs conditions n'ont pas été lus dans la documentation officielle : leur gratuité n'est pas vérifiée.
 
 ## 7. Mesures
 1. **Solde APRÈS** : relever le solde de la console (attendre 5 à 10 minutes s'il est différé), avec date et heure.
