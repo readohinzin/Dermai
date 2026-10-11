@@ -21,21 +21,37 @@ Le code livré est fermé par défaut : tant que les étapes 3 et 4 ne sont pas 
 | `DERMAI_DEBUG_RAW` | `1` | **Preview seulement, le temps du test** | renvoie la réponse brute du fournisseur au navigateur pour fixer le chemin du résultat. À retirer à l'étape 9 |
 | `DERMAI_ANALYSIS_ENABLED` | **absente ou `0`** | Preview | l'analyse n'est pas nécessaire : une analyse déjà présente dans l'historique du compte suffit pour afficher le bouton. Ne pas en lancer une (16 unités) |
 | `DERMAI_DEMO_MODE` | `false` | Preview | indispensable pour que l'interface appelle le serveur |
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | projet de test | Preview | voir section 2 |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | déjà configurées (base existante, probablement celle de la production) | déjà en place, ne pas modifier | voir section 1bis |
 | `PERFECT_CORP_API_KEY` | clé existante | Preview | la clé et son solde sont partagés avec tout autre usage : voir section 5 |
 
 Un changement de variable ne s'applique qu'à un nouveau déploiement Preview.
 
+## 1bis. Quelle base Supabase la Preview utilise-t-elle ? (à vérifier AVANT tout)
+Décision : pas de projet Supabase de test séparé. La Preview utilisera donc très probablement la **base de production** (les variables `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont en général définies pour tous les environnements Vercel). Cela n'a pas pu être vérifié depuis le développement (aucun accès à Vercel ni à Supabase) ; à confirmer en 2 minutes, sans afficher de secret :
+1. Vercel, Settings, Environment Variables : pour `SUPABASE_URL`, noter les **environnements cochés** (Production, Preview, Development). Si Production et Preview sont cochés pour la même entrée, c'est la même base. Deux entrées distinctes = deux bases. Ne pas copier la valeur de `SUPABASE_ANON_KEY` nulle part.
+2. Contre-vérification publique et gratuite : ouvrir `https://<adresse de la Preview>/api/config-js` et `https://<adresse de production>/api/config-js` dans le navigateur. Ces pages exposent seulement l'URL du projet Supabase (publique) : comparer le sous-domaine `xxxx.supabase.co`. Identique = même base.
+3. Même contrôle pour `PERFECT_CORP_API_KEY` : si elle est cochée Production ET Preview, la Preview dépense le **solde de production** (aucune importance pour le test unique, mais aucun autre usage ne doit consommer pendant la mesure).
+4. Si Vercel crée déjà un déploiement Preview pour chaque branche (intégration Git), `feature/skin-simulation` en a probablement déjà un depuis le push. Il est fermé tant qu'aucune variable `DERMAI_SIMULATION_*` n'existe. Vérifier surtout qu'aucune de ces variables n'est cochée « Production » ou « All Environments » : une variable de simulation ne doit exister qu'en Preview.
+
+Conséquences si la base est celle de la production : le compte de test est un vrai compte de production ; seul l'identifiant listé peut utiliser la simulation (contrôle serveur), les autres comptes voient une application inchangée ; la migration de l'étape 2 touche la base de production et exige une autorisation distincte.
+
 ## 2. Base de données : migration du quota
-Le fichier `supabase/proposals/20261011120000_simulation_quota.sql` crée la table fermée `simulation_usage` et la fonction `reserve_simulation`. Il n'est pas dans `supabase/migrations/` : rien ne l'applique automatiquement.
-1. **Choisir la base.** Recommandé : un projet Supabase de TEST (ou une branche) distinct de la production. Si la Preview partage la base de production, appliquer ce fichier est un changement de la base de production : il est purement additif et fermé (RLS sans politique), mais il exige l'autorisation explicite de la fondatrice.
-2. **Relire** le fichier en entier avant de l'exécuter. Il ne touche ni `analysis_usage`, ni `reserve_analysis`, ni les données existantes.
-3. **Appliquer** dans l'éditeur SQL du projet choisi (une seule fois).
-4. **Vérifier** : `select to_regproc('public.reserve_simulation');` renvoie la fonction ; `select count(*) from public.simulation_usage;` renvoie 0 ; un compte connecté ne peut pas lire la table (`permission denied`).
-5. Tant que la fonction est absente, le serveur répond « indisponible » et n'appelle pas Perfect Corp : c'est le comportement sûr.
+Fichiers : `supabase/proposals/20261011120000_simulation_quota.sql` (application) et `supabase/proposals/20261011120000_simulation_quota.rollback.sql` (annulation). Ils ne sont pas dans `supabase/migrations/` : rien ne les applique automatiquement.
+
+**Ce que la migration crée (et uniquement cela)** : la table `public.simulation_usage` (colonnes `id`, `user_id` avec clé étrangère vers `auth.users` en cascade, `used_at`), son index `simulation_usage_user_used_idx`, sa clé primaire, la sécurité par ligne activée SANS politique et tous les droits retirés à `anon` et `authenticated`, et la fonction `public.reserve_simulation(integer, integer)` (`security definer`, `search_path` vide, droit d'exécution retiré à `public` et `anon`, accordé à `authenticated` seulement).
+**Ce qu'elle ne touche pas** : `analysis_usage`, `reserve_analysis`, `profiles`, `skin_analyses`, `delete_my_account`, le bucket Storage, les données. Aucun `alter` d'objet existant, aucun `drop`, aucune donnée lue ou modifiée. Les quotas d'analyse sont donc inchangés (le verrou consultatif de la simulation a une clé distincte, `simulation:<uid>`).
+**Vérifié sur un PostgreSQL 16 jetable avec des simulations minimales de Supabase** (`test/simulation-quota-db.test.js`) : exactement 4 objets nouveaux et aucun objet existant retiré ou remplacé ; rejouable deux fois sans erreur ; essai à blanc dans une transaction annulée sans trace ; annulation propre ; `analysis_usage` et `reserve_analysis` intactes ; atomicité sous 10 requêtes simultanées ; droits. **Non vérifié** : l'exécution sur le vrai projet Supabase (version de PostgreSQL, privilèges par défaut du projet). Les privilèges sont retirés explicitement, comme dans la migration du quota d'analyses déjà en service.
+
+**Procédure sur la base de production (seulement avec une autorisation explicite)**
+1. Pré-contrôle (doit renvoyer deux fois `null`, sinon S'ARRÊTER : un objet du même nom existe déjà) : `select to_regclass('public.simulation_usage'), to_regproc('public.reserve_simulation');`
+2. Essai à blanc dans l'éditeur SQL : écrire `begin;`, coller le contenu du fichier d'application, puis `rollback;`. Aucune erreur attendue, rien ne reste.
+3. Application réelle : coller le contenu du fichier d'application (sans `begin`/`rollback`) et exécuter une fois.
+4. Post-contrôles : `select to_regproc('public.reserve_simulation');` renvoie la fonction ; `select count(*) from public.simulation_usage;` renvoie 0 ; `select has_function_privilege('anon', 'public.reserve_simulation(integer,integer)', 'execute');` renvoie `false` ; `select has_table_privilege('authenticated', 'public.simulation_usage', 'select');` renvoie `false`.
+5. Annulation si nécessaire : exécuter le fichier d'annulation. Il supprime la fonction et la table de simulation seulement ; la simulation redevient impossible (échec fermé).
+Tant que la fonction est absente, le serveur répond « indisponible » et n'appelle pas Perfect Corp.
 
 ## 3. Déploiement Preview, fonctionnalité FERMÉE
-1. Déployer la branche `feature/skin-simulation` en Preview **sans** aucune variable `DERMAI_SIMULATION_*`.
+1. Utiliser exclusivement la branche `feature/skin-simulation` (jamais `master`, jamais Production) en Preview, **sans** aucune variable `DERMAI_SIMULATION_*`. Si Vercel a déjà construit cette branche automatiquement, ce déploiement convient.
 2. Vérifier que tout est fermé (aucun coût) : avec le jeton du compte de test, `GET /api/skin-simulation` doit répondre `{"ok":true,"available":false}` ; sans jeton, 401 ; `POST /api/skin-simulation?concern=radiance` doit répondre 503 « La simulation n'est pas disponible pour le moment. » sans lire la photo. Le bouton « Simuler une amélioration » n'apparaît pas dans l'application.
 3. Vérifier que l'analyse existante n'a pas changé : l'écran d'accueil et l'historique s'ouvrent comme avant. Ne pas lancer de nouvelle analyse.
 

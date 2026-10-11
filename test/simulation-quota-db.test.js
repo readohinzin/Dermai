@@ -106,9 +106,35 @@ test('SQ5 la suppression du compte emporte les lignes de simulation', live, () =
   assert.equal(psql(`select count(*) from public.simulation_usage where user_id = '${G}';`).out, '0');
 });
 
+test('SQ7 additive, réversible, rejouable : seuls 4 objets nouveaux ; essai à blanc dans une transaction ; annulation propre ; le quota d\'analyses est intact', live, () => {
+  if (!up) return;
+  const snap = () => psql(`select string_agg(x, ',' order by x) from (
+    select 'r:' || relname as x from pg_class c join pg_namespace n on n.oid = c.relnamespace where nspname = 'public'
+    union all select 'f:' || proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where nspname = 'public'
+    union all select 'p:' || polname from pg_policy) t;`).out.split(',');
+  const PROP = SQL('supabase/proposals/20261011120000_simulation_quota.sql'), ROLL = SQL('supabase/proposals/20261011120000_simulation_quota.rollback.sql');
+  const applied = snap();
+  const aBefore = psql('select count(*) from public.analysis_usage;').out;
+  assert.ok(psql(ROLL).ok);
+  const base = snap();
+  assert.deepEqual(applied.filter(x => !base.includes(x)), ['f:reserve_simulation', 'r:simulation_usage', 'r:simulation_usage_pkey', 'r:simulation_usage_user_used_idx'], 'la proposition ne crée que ces objets');
+  assert.deepEqual(base.filter(x => !applied.includes(x)), [], 'et ne retire ni ne remplace rien d\'existant');
+  assert.equal(psql('select count(*) from public.analysis_usage;').out, aBefore, 'analysis_usage intacte après annulation');
+  assert.equal(rj(ana(A, 1000, 3600)).ok, true, 'reserve_analysis fonctionne toujours');
+  assert.equal(sim(A, 1, 3600).ok, false, 'sans la fonction : refus (le serveur répond « indisponible »)');
+  // essai à blanc : tout dans une transaction annulée, rien ne reste
+  const dry = psql(`begin;\n${PROP}\nselect set_config('request.jwt.claim.sub', '${A}', true);\nselect public.reserve_simulation(1, 60) is not null;\nrollback;`);
+  assert.ok(dry.ok, dry.err);
+  assert.deepEqual(snap(), base, 'l\'essai à blanc ne laisse aucune trace');
+  // application réelle, deux fois (rejouable), puis le test continue sur l'état appliqué
+  assert.ok(psql(PROP).ok); assert.ok(psql(PROP).ok, 'rejouable sans erreur');
+  assert.deepEqual(snap(), applied);
+});
+
 test('SQ6 la proposition n\'est PAS dans supabase/migrations/ (aucune application automatique)', () => {
   assert.ok(!fs.readdirSync(path.join(__dirname, '..', 'supabase/migrations')).some(f => /simul/i.test(f)));
   assert.ok(fs.existsSync(path.join(__dirname, '..', 'supabase/proposals/20261011120000_simulation_quota.sql')));
+  assert.ok(fs.existsSync(path.join(__dirname, '..', 'supabase/proposals/20261011120000_simulation_quota.rollback.sql')));
 });
 
 test.after(() => { if (up) sh(path.join(BIN, 'pg_ctl'), ['-D', path.join(dir, 'data'), '-m', 'immediate', 'stop']); try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* sans importance */ } });
