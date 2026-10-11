@@ -1,16 +1,7 @@
 'use strict';
-/* =========================================================
-   DERMAI, application web (interface)
-   0. Configuration    1. Données fictives   2. Fournisseurs d'analyse
-   3. Composants       4. Écrans             5. Navigation
-
-   ARCHITECTURE CIBLE
-   Frontend DERMAI -> Backend DERMAI -> SkinAnalysisProvider
-   -> Perfect Corp (ou autre) -> JSON brut -> Normalizer
-   -> Concern Engine -> Recommendation Engine -> Routine -> Produits
-   La clé API du fournisseur ne doit JAMAIS apparaître ici :
-   elle reste côté serveur.
-   ========================================================= */
+/* DERMAI, application web (interface). 0. Configuration  1. Données fictives  2. Fournisseurs d'analyse  3. Composants  4. Écrans  5. Navigation
+   Frontend -> Backend DERMAI -> SkinAnalysisProvider -> Perfect Corp -> Normalizer -> moteur (priorités, routine) -> produits.
+   La clé API du fournisseur ne doit JAMAIS apparaître ici : elle reste côté serveur. */
 
 /* ---------- 0. CONFIGURATION ---------- */
 /* Mode démo : vrai par défaut. Seul /api/config-js (servi par Vercel selon DERMAI_DEMO_MODE) peut le passer à faux, et uniquement
@@ -173,9 +164,8 @@ if(!DEMO_MODE){SCANS.length=0;state.cmpA=0;state.cmpB=1}   // mode réel : aucun
 const $app=document.getElementById(`app`),$ov=document.getElementById(`overlay`);
 
 /* ---------- Compte et profil persistant ----------
-   Supabase Auth + table profiles via js/account.js (clé publique seulement, RLS côté base). Le profil (objectifs, niveau, approche douce,
-   exclusions) est chargé UNE fois à la connexion puis tenu dans `state`, que tous les écrans lisent. Il n'est jamais copié dans le stockage local
-   (seule la session d'authentification l'est). Mode démo : aucun compte. Aucune photo, aucun masque, aucun task_id n'est enregistré. */
+   Supabase Auth + table profiles via js/account.js (clé publique, RLS côté base). Le profil est chargé UNE fois à la connexion puis tenu dans `state` ;
+   il n'est jamais copié dans le stockage local (seule la session l'est). Démo : aucun compte. Aucune photo, aucun masque, aucun task_id n'est enregistré. */
 const ACCOUNT=(!DEMO_MODE&&window.DermaiAccount&&window.DERMAI_CONFIG)?DermaiAccount.create({url:window.DERMAI_CONFIG.supabaseUrl,anonKey:window.DERMAI_CONFIG.supabaseAnonKey,storage:(()=>{try{return window.localStorage}catch(e){return null}})()}):null;
 state.account={status:ACCOUNT&&ACCOUNT.available?`checking`:`off`,email:``,loading:false,busy:false,error:``,info:``,formEmail:``,recovery:false};   // off | checking | visitor | signedIn
 state.save={status:`idle`,message:``};                                                                                            // idle | saving | saved | error
@@ -402,7 +392,7 @@ async function deleteMyAccount(){
   if(epoch!==authEpoch)return;
   if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
   authEpoch++;state.account.status=`visitor`;state.account.email=``;state.account.loading=false;state.account.recovery=false;
-  F.clear();resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
+  F.clear();CP.clear();resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
 }
 async function submitAuth(kind,form){
   const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=form.querySelector(`[name=password]`).value||``;
@@ -451,6 +441,7 @@ const ICONS={
   image:`<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>`
 };
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||``}</svg>`;
+const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
@@ -839,7 +830,7 @@ V.result=()=>{
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
       <p style="color:var(--ink);margin-bottom:14px">${eng.synthesis.strategy.text}</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>`}
-    <div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
+    ${H?``:DermaiInsight.limits(eng)}<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
   </div>`,{back:true,title:`Analyse`});
@@ -914,12 +905,13 @@ V.routine=()=>{
   <div class="grid2">${list(`morning`,`am`,`sun`,`Matin`)}${list(`evening`,`pm`,`moon`,`Soir`)}</div>
   <div class="grid2" style="margin-top:36px"><section class="sand"><h2 class="h3" style="margin-bottom:10px">À retenir</h2>
     <ul class="l-list" style="margin-top:0">${R.notes.map(n=>`<li>${ic(`check`)}<span>${n}</span></li>`).join(``)}${cautions.map(c=>`<li>${ic(`info`)}<span>${c}</span></li>`).join(``)}${DEMO_MODE&&eng.productMatches.length?`<li>${ic(`info`)}<span>${Engine.copy.NOTES.demoProducts}</span></li>`:``}</ul></section>
-  <div class="col"><button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}${!DEMO_MODE&&!Engine.products.usable(catalogNow()).length?`<p class="muted" style="margin-bottom:10px">Le catalogue de produits est en préparation : votre routine indique déjà les actifs à chercher.</p>`:``}<button class="c-btn c-btn--primary c-btn--block" data-go="products">${DEMO_MODE?`Voir des exemples de produits`:`Voir les produits de ma routine`}</button></div></div>`);
+  <div class="col">${CP.entry()}<button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}${!DEMO_MODE&&!Engine.products.usable(catalogNow()).length?`<p class="muted" style="margin-bottom:10px">Le catalogue de produits est en préparation : votre routine indique déjà les actifs à chercher.</p>`:``}<button class="c-btn c-btn--primary c-btn--block" data-go="products">${DEMO_MODE?`Voir des exemples de produits`:`Voir les produits de ma routine`}</button></div></div>`);
 };
 
-/* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DERMAI pour votre routine » = produits choisis par le moteur pour chaque étape ;
-   « Autres produits » = le reste du catalogue, avec la raison réelle du moteur. Aucun score, aucun pourcentage. Données commerciales (prix, vendeur,
-   lien) affichées seulement si elles existent et sont sourcées ; sinon « Données à venir ». Catalogue réel vide : état clair, aucun produit fictif. */
+V.program=()=>noReal()?emptyScan(`Programme`,EMPTY_MSG,{back:true,title:`Programme`}):shell(CP.page(engineFor(SCANS[state.latest]),SCANS[state.latest]),{back:true,title:`Programme`});
+
+/* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DERMAI » = choisis par le moteur pour chaque étape ; « Autres produits » = le reste du
+   catalogue, avec la raison du moteur. Aucun score. Prix, vendeur, lien : affichés seulement s'ils existent et sont sourcés, sinon « Données à venir ». Catalogue réel vide : aucun produit fictif. */
 const SKIN_FR={all:`tous types de peau`,normal:`peau normale`,oily:`peau grasse`,dry:`peau sèche`,combination:`peau mixte`};
 const CAT_FILTERS=[[`all`,`Tous`],[`cleanser`,`Nettoyants`],[`serum`,`Soins ciblés`],[`moisturizer`,`Hydratants`],[`spf`,`Protection solaire`]];
 const fmtPrice=pr=>pr.currency===`XOF`?fmt(pr.amount):`${pr.amount.toLocaleString(`fr-FR`)}${NB}€`;
@@ -1144,11 +1136,10 @@ function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=fa
   state.route=route;state.param=param;render();scrollTo(0,0);F.resume();
   if(!noHash)syncHash(replace);
 }
-/* ---------- Adresse = page (rechargement et boutons précédent / suivant du navigateur) ----------
-   La page courante est écrite dans l'adresse (/profile, /concern/acne…). Vercel renvoie toute adresse inconnue vers index.html (vercel.json).
-   La page d'accueil du site est /accueil ; la racine « / » veut dire « aucune page choisie ». Une page « en cours » (analyse) n'est jamais restaurée.
-   Les anciens liens avec « # » (/#scan) sont encore compris et convertis. */
-const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`,`forgot`]);
+/* ---------- Adresse = page (rechargement, boutons précédent / suivant) ----------
+   La page courante est dans l'adresse (/profile, /concern/acne…) ; Vercel renvoie toute adresse inconnue vers index.html. L'accueil du site est /accueil ;
+   « / » veut dire « aucune page choisie ». Une page « en cours » (analyse) n'est jamais restaurée. Les anciens liens « /#scan » sont convertis. */
+const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`,`forgot`,`program`]);
 const PATH_OF={landing:`accueil`};
 const ROUTE_OF=Object.fromEntries(Object.entries(PATH_OF).map(([k,v])=>[v,k]));
 const pathOf=(r,p)=>`/${PATH_OF[r]||r}${p!=null&&p!==``?`/${encodeURIComponent(p)}`:``}`;

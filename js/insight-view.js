@@ -45,5 +45,26 @@
     return [y.strategy.text, ...(y.goals.mode === 'none' ? [y.goals.text] : y.goals.items.map(g => g.text)), r('level'), r('comfort'), y.strategy.skinContext].filter(Boolean);
   }
 
-  root.DermaiInsight = { faceMap, found, why };
+  /* « Limites et précautions » de l'analyse : ce qu'elle ne peut pas dire, quand demander un avis professionnel. Seule donnée lue : les indicateurs
+     que l'analyse n'a pas renvoyés (rien n'est inféré à leur place). */
+  const LIMITS = {
+    title: 'À savoir sur cette analyse',
+    base: [
+      'Cette analyse repose sur une seule photo : la lumière, l\'angle, le maquillage et la qualité de l\'image peuvent modifier les résultats.',
+      'Elle décrit l\'état apparent de la peau, à titre cosmétique. Un score plus bas est un repère de soin cosmétique : il ne permet pas de conclure à un problème de santé, et ce n\'est pas un diagnostic médical.',
+      'Les axes sont classés d\'après les données de cette analyse et vos objectifs. Ils peuvent changer à la prochaine analyse.',
+      'Aucun résultat n\'est garanti : l\'évolution de la peau dépend de la régularité, de la tolérance et de nombreux autres facteurs.',
+      'Boutons douloureux ou qui s\'étendent, plaie qui ne cicatrise pas, grain de beauté qui change d\'aspect, gonflement ou réaction après un produit : demandez l\'avis d\'un professionnel de santé. En cas de gonflement du visage ou de difficulté à respirer, consultez en urgence.'
+    ],
+    missing: list => 'Non évalués dans cette analyse : ' + list + '. DERMAI n\'en tire aucune conclusion.'
+  };
+  function limits(eng) {
+    const M = SM(), ind = (eng && eng.interpretation && eng.interpretation.indicators) || [];
+    const missing = ind.filter(i => !i.available).map(i => M.METRIC_LABELS[i.id] || i.label).filter(Boolean);
+    const items = LIMITS.base.slice(); if (missing.length) items.splice(2, 0, LIMITS.missing(missing.join(', ')));
+    return `<section class="c-insight" aria-labelledby="lim-title"><p class="kicker">Limites et précautions</p><div class="hd"><h2 class="h3" id="lim-title">${LIMITS.title}</h2></div>
+     <ul class="l-list" style="margin-top:0">${items.map(t => `<li><span>${t}</span></li>`).join('')}</ul></section>`;
+  }
+
+  root.DermaiInsight = { faceMap, found, why, limits, LIMITS };
 })(typeof self !== 'undefined' ? self : this);
