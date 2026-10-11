@@ -81,9 +81,7 @@ class MockProvider extends SkinAnalysisProvider{
   }
 }
 class PerfectCorpProvider extends SkinAnalysisProvider{
-  /* Appelle le backend DERMAI (jamais Perfect Corp directement).
-     Le backend garde la clé API, envoie la photo et ne renvoie que la racine des scores (liste blanche). */
-  /* `blob` : le JPEG de l'utilisateur (jamais PORTRAIT_SRC ni une photo de démonstration). */
+  /* Backend DERMAI seulement (jamais Perfect Corp). `blob` : le JPEG de l'utilisateur, jamais une photo de démonstration. */
   async analyzeSkin(blob,{onStatus=()=>{}}={}){
     if(!(blob instanceof Blob)||!blob.size)throw userError(`Aucune photo à analyser. Veuillez prendre une photo.`);
     if(blob.type!==`image/jpeg`)throw userError(`Format de photo non pris en charge. Utilisez une photo JPEG.`);
@@ -307,8 +305,7 @@ async function deleteHistory(){
   state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};
   toast(`Historique supprimé.`);if(state.route===`privacy`||state.route===`analyses`)render(true);
 }
-/* Photos de scan (js/photos-view.js, js/account.js) : gardées seulement si l'utilisatrice l'a choisi. La photo d'une analyse ne quitte la mémoire
-   que vers le Storage privé de son compte ; jamais dans le navigateur (localStorage, URL). Liens d'affichage temporaires, redemandés au chargement. */
+/* Photos de scan (js/photos-view.js, js/account.js) : gardées seulement si l'utilisatrice l'a choisi, dans le Storage privé de son compte ; jamais dans le navigateur. Liens d'affichage temporaires. */
 async function keepPhoto(sc){
   if(state.photos===false)sc.blob=null;
   if(state.photos!==true||!sc.blob||!sc.saved||!signedIn())return;
@@ -442,6 +439,7 @@ const ICONS={
 };
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||``}</svg>`;
 const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
+const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
@@ -830,7 +828,7 @@ V.result=()=>{
     <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
       <p style="color:var(--ink);margin-bottom:14px">${eng.synthesis.strategy.text}</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>`}
-    ${H?``:DermaiInsight.limits(eng)}<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
+    ${H?``:SIM.entry(s)}${H?``:DermaiInsight.limits(eng)}<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
     <p class="c-disclaimer">Analyse cosmétique de l'état apparent de la peau, ce n'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.</p>
    </div>
   </div>`,{back:true,title:`Analyse`});
@@ -908,6 +906,7 @@ V.routine=()=>{
   <div class="col">${CP.entry()}<button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Comprendre chaque choix</span></div>${ic(`chev`)}</button><button class="rowlink" data-go="profile"><div class="grow"><b>Modifier mes objectifs et mon niveau</b><span class="s">La routine se recalcule aussitôt</span></div>${ic(`chev`)}</button>${disc()}${!DEMO_MODE&&!Engine.products.usable(catalogNow()).length?`<p class="muted" style="margin-bottom:10px">Le catalogue de produits est en préparation : votre routine indique déjà les actifs à chercher.</p>`:``}<button class="c-btn c-btn--primary c-btn--block" data-go="products">${DEMO_MODE?`Voir des exemples de produits`:`Voir les produits de ma routine`}</button></div></div>`);
 };
 
+V.simulation=()=>noReal()?emptyScan(`Simulation`,EMPTY_MSG,{back:true,title:`Simulation`}):shell(SIM.page(SCANS[state.view]),{back:true,title:`Simulation`});
 V.program=()=>noReal()?emptyScan(`Programme`,EMPTY_MSG,{back:true,title:`Programme`}):shell(CP.page(engineFor(SCANS[state.latest]),SCANS[state.latest]),{back:true,title:`Programme`});
 
 /* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DERMAI » = choisis par le moteur pour chaque étape ; « Autres produits » = le reste du
@@ -1136,9 +1135,9 @@ function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=fa
   state.route=route;state.param=param;render();scrollTo(0,0);F.resume();
   if(!noHash)syncHash(replace);
 }
-/* ---------- Adresse = page (rechargement, boutons précédent / suivant) ----------
-   La page courante est dans l'adresse (/profile, /concern/acne…) ; Vercel renvoie toute adresse inconnue vers index.html. L'accueil du site est /accueil ;
-   « / » veut dire « aucune page choisie ». Une page « en cours » (analyse) n'est jamais restaurée. Les anciens liens « /#scan » sont convertis. */
+/* ---------- Adresse = page ----------
+   La page courante est dans l'adresse (/profile, /concern/acne…) ; Vercel renvoie toute adresse inconnue vers index.html. Accueil : /accueil ; « / » = aucune page choisie.
+   Une page « en cours » (analyse) n'est jamais restaurée. Les anciens liens « /#scan » sont convertis. */
 const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`,`forgot`,`program`]);
 const PATH_OF={landing:`accueil`};
 const ROUTE_OF=Object.fromEntries(Object.entries(PATH_OF).map(([k,v])=>[v,k]));

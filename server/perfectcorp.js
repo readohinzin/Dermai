@@ -171,5 +171,7 @@ async function analyzeSkin({ buffer, mime }, opts = {}) {
 const isConfigured = (env = process.env) => !!env.PERFECT_CORP_API_KEY;
 
 module.exports = {
-  isConfigured, requestUploadUrl, uploadFile, createSkinAnalysisTask, getSkinAnalysisTask, pollSkinAnalysisTask, analyzeSkin, makeEnv
+  isConfigured, requestUploadUrl, uploadFile, createSkinAnalysisTask, getSkinAnalysisTask, pollSkinAnalysisTask, analyzeSkin, makeEnv,
+  /* Étapes communes (budget, délais, erreurs) réutilisées par la simulation (server/perfectcorp-simulation.js). Rien ne change pour l'analyse. */
+  shared: { call, readJson, authHeaders, requireKey, budgetExhausted }
 };

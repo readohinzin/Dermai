@@ -209,3 +209,49 @@ Le rapport et la routine existaient déjà (priorités classées avec « Pourquo
 - **Données** : le suivi reste dans ce navigateur (`localStorage`, une clé par compte `dermai.care.<id>`), jamais envoyé, jamais lu par un autre compte. Effacé par « Effacer mon suivi » et à la suppression du compte ; conservé à la déconnexion (même compte). Plusieurs onglets : chaque action relit le stockage avant d'écrire. Si le navigateur refuse d'écrire, l'écran le dit.
 - Tests : `test/care-program.test.js` (calendrier, pauses, bilans, état hostile, vocabulaire prudent, écran), `test/care-program-browser.test.js` (vrai `app.js` dans Chromium, réseau simulé).
 - **Textes de sécurité** : relus pour cette étape (arrêt de tout produit qui pique ou brûle, reprise seulement si la peau est apaisée, avis d'un professionnel de santé avant reprise après une réaction importante, urgence, aucun diagnostic ni score présenté comme tel). Ce sont des choix éditoriaux prudents, **non validés par un professionnel de santé** ; les paramètres (pause de 3 jours, introduction à une semaine d'intervalle, seuils de régularité 80 % / 50 %) sont à faire valider avant d'être présentés comme des recommandations médicales.
+
+## Simulation cosmétique avant/après (développée, FERMÉE, jamais testée en réel)
+
+Illustration visuelle d'une zone « un peu améliorée » à partir de la photo de l'utilisatrice, via l'outil officiel Perfect Corp *AI Skin Simulation*. Ce n'est ni une prédiction, ni une promesse de résultat, ni un résultat médical : l'écran le dit. **Aucun appel réel à Perfect Corp n'a été fait** pour développer cette fonction ; tous les tests utilisent un faux fournisseur qui refuse tout hôte inconnu et toute l'API d'analyse.
+
+### Verrous (tout est fermé par défaut, pour tout le monde)
+- `DERMAI_SIMULATION_ENABLED` : verrou de `/api/skin-simulation` (fermé si absent, vide, `0`, `false`…).
+- `DERMAI_SIMULATION_ALLOWED_USER_IDS` : identifiants Supabase autorisés, séparés par des virgules. Verrou ouvert + liste vide ou absente = **personne**. Il n'existe aucun joker ni contournement.
+- `DERMAI_MAX_SIMULATIONS_PER_PERIOD` (défaut 1) et `DERMAI_SIMULATION_PERIOD_HOURS` (défaut 24) : quota PROPRE aux simulations. Valeurs invalides : défaut prudent, jamais « illimité ».
+- Quota en base : fonction `reserve_simulation` (compteur `simulation_usage`) **proposée, non appliquée**, dans `supabase/proposals/20261011120000_simulation_quota.sql` (volontairement hors de `supabase/migrations/`). Tant qu'elle est absente, le serveur reçoit 404 et refuse (échec fermé, aucun appel fournisseur). Justification : le quota doit être atomique et ne pas se confondre avec celui des analyses. Testée sur un PostgreSQL jetable (`test/simulation-quota-db.test.js`) : atomicité, isolation, droits, suppression du compte.
+- `vercel.json` : `api/skin-simulation.js` reçoit `maxDuration: 60` comme l'analyse (sinon la durée par défaut de la plateforme coupe la fonction).
+
+### Fonctionnement
+- **Serveur** (`api/skin-simulation.js`, `server/perfectcorp-simulation.js`). `GET` : « la simulation est-elle ouverte pour ce compte ? » (aucun fournisseur, aucun quota). `POST ?concern=<zone>` (corps = JPEG brut), garde-fous dans cet ordre : méthode → session Supabase → verrou → compte autorisé → zone (liste blanche, une seule) → lecture et validation de la photo → temps restant → clé configurée → quota de simulations (réservation atomique, jamais remboursée) → Perfect Corp → téléchargement de l'image résultat (hôte https public, octets réellement JPEG/PNG/WebP, 2,5 Mo maximum) → réponse `{ ok, simulation: { concern, intensity, image (data URL) } }`. Ni clé, ni task_id, ni URL du fournisseur ne partent au navigateur ; l'enveloppe brute seulement avec `DERMAI_DEBUG_RAW`.
+- **Réutilisé** de l'analyse, sans la modifier : l'API fichier (`requestUploadUrl`, `uploadFile`) et les étapes communes (budget de temps global de 52 s, délais, erreurs) via `perfectcorp.shared`. **Jamais appelé** : `/task/skin-analysis` (des tests le vérifient dans le code et à l'exécution). Le quota d'analyses n'est jamais touché.
+- **Zones proposées** (une par demande) : rides, éclat, imperfections, poches, cernes, taches, pores, grain de peau, rougeurs. `oiliness` est exclue : son intensité AJOUTE de la brillance (sens inverse), ce ne serait pas une amélioration. Intensité fixe 0,5, côté serveur (provisoire).
+- **Navigateur** (`js/simulation.js`, chargé avant `app.js`) : bouton « Simuler une amélioration » dans le résultat de l'analyse la plus récente, uniquement si le serveur répond « disponible » pour ce compte. Écran : avertissement « une illustration, pas une prédiction », choix de la zone, mention du quota, curseur avant/après. Une seule demande à la fois, clic explicite ; une demande restée sans réponse laisse une trace de session et la relance exige une confirmation (elle a peut-être été comptée). L'image simulée reste en mémoire de la page (jamais dans `localStorage`).
+- **Photo** : la photo de l'analyse en cours si elle est encore en mémoire ; sinon celle que l'utilisatrice a choisi de garder dans son compte (lien temporaire, JPEG vérifié) ; sinon l'écran explique que la photo n'est plus disponible et demande une photo de face, **sans lancer d'analyse**. Le fournisseur n'a pas de `file_id` réutilisable : la photo est renvoyée à chaque simulation.
+- `js/app.js` : 3 lignes de branchement (149 812 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
+
+### Contrat de l'API : vérifié et non vérifié
+Source consultée : le dépôt officiel `YouCam-API/beauty-skin-care-MCP` (`lhm.plugin.json`, `README.md`), cloné en lecture seule. La documentation REST (`docs.perfectcorp.com`) n'est pas joignable depuis l'environnement de développement, et AUCUNE requête n'a été envoyée à Perfect Corp pour valider le contrat.
+
+| Élément | Statut | Ce qui le fonde |
+|---|---|---|
+| Authentification `Authorization: Bearer <clé>` | Vérifié (MCP) et déjà en service pour l'analyse | README officiel (« le préfixe `Bearer ` est obligatoire ») |
+| Envoi de la photo : API fichier (`file_id`) puis `src_file_id` | Vérifié (schéma de l'outil) | `src_file_id` : « ID de fichier issu de l'API d'envoi » ; `src_file_url` existe aussi (URL publique) |
+| Corps : un objet plat avec `src_file_id` et des intensités 0 à 1 par zone (`wrinkle`, `radiance`, `acne`, `eye_bags`, `dark_circle`, `spots`, `pores`, `texture`, `redness`, `oiliness`) | Vérifié pour l'outil MCP, **supposé identique en REST** | schéma d'entrée de `AI-Skin-simulation` ; 0 = peau d'origine, 1 = effet maximal ; `oiliness` : 1 = plus de brillance |
+| Version de l'outil : v2.0 | Vérifié (métadonnées de l'outil) | cohérent avec le chemin supposé |
+| Chemin REST de création `/s2s/v2.0/task/skin-simulation` | **NON confirmé** (supposé par analogie avec l'analyse) | absent du dépôt officiel |
+| Chemin REST de statut `…/task/skin-simulation/<task_id>` | **NON confirmé** | l'outil de statut MCP prend `task_id` et `task_type` (`AI-Skin-simulation` figure dans la liste), ce qui suggère un chemin par fonction, sans le prouver |
+| Suivi asynchrone : tâche, puis interrogation jusqu'à la fin | Vérifié (README officiel : « la plupart des outils sont asynchrones ») | forme exacte du statut REST (`data.task_status`) supposée comme pour l'analyse |
+| Résultat : « URL de résultat hébergées temporairement, à ne pas modifier » | Vérifié dans le principe | l'**emplacement** de l'URL dans la réponse n'est PAS documenté : `extractResultUrl` n'accepte qu'une liste fermée de chemins |
+| Erreurs : visage non détecté, photo invalide, unités insuffisantes, tâche qui ne se termine pas | Mentionnées par le README officiel (messages, pas de codes REST) | gestion DERMAI : erreurs génériques, jamais de détail au navigateur |
+| Durée | « quelques secondes » (texte commercial), **aucune garantie** | polling borné (25 interrogations, 52 s au total) |
+| Coût en unités, facturation en cas d'échec | **Non documenté dans le dépôt** | l'outil gratuit `Get_Feature_Cost` et la page de tarifs en font foi ; rien n'est supposé |
+| Durée de conservation des résultats | « temporaire », durée non précisée | téléchargement immédiat côté serveur |
+
+Chaque point supposé est isolé dans UNE constante ou fonction : `SIM_PATHS` (`server/config.js`), `buildTaskBody` et `extractResultUrl` (`server/perfectcorp-simulation.js`). Si le fournisseur répond avec une structure inattendue, la simulation est refusée (`SIM_RESULT_INVALID`, jamais une image devinée) et la STRUCTURE de la réponse (chemins et types, aucune valeur) est écrite dans les journaux de la fonction, pour corriger sans refaire d'essai payant.
+
+### Test réel contrôlé
+Procédure complète, À NE PAS EXÉCUTER sans autorisation explicite : `docs/simulation-real-test.md`.
+
+### Précautions contre une consommation involontaire
+Verrou fermé et liste vide par défaut ; une zone, une photo, un clic ; quota propre limité à 1 par 24 h ; quota fail-closed (migration absente = refus) ; aucune relance automatique, nulle part ; une demande sans réponse exige une confirmation avant la suivante ; le polling est borné (25 interrogations, budget global 52 s) et ne recrée jamais de tâche ; les tests n'ont aucun accès réseau réel (`globalThis.fetch` remplacé, hôte inconnu = échec du test) ; `/task/skin-analysis` n'est jamais appelé.
+Tests : `test/simulation-server.test.js` (authentification, autorisation, zones, photo, quota, simultanéité, fuites, erreurs, délais, résultats hostiles), `test/simulation-ui.test.js` (module client), `test/simulation-browser.test.js` (vrai `app.js` dans Chromium, réseau simulé), `test/simulation-quota-db.test.js` (PostgreSQL jetable).

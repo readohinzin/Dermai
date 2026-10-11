@@ -66,4 +66,42 @@ const analysisQuota = (env = process.env) => ({
   windowSeconds: intIn(env.DERMAI_ANALYSIS_PERIOD_HOURS, 1, 8760, QUOTA_DEFAULTS.hours) * 3600
 });
 
-module.exports = { analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET };
+/* ───── Simulation cosmétique avant/après (AI Skin Simulation, Perfect Corp) ─────
+   Fonction DISTINCTE de l'analyse : verrou, liste d'utilisateurs autorisés et quota propres. Désactivée par défaut, pour tout le monde.
+
+   Établi (outil « AI-Skin-simulation » du dépôt officiel YouCam-API/beauty-skin-care-MCP, lhm.plugin.json v2.0) : l'entrée est une image
+   (src_file_id issu de l'API fichier, ou src_file_url), plus une intensité facultative de 0 à 1 par préoccupation (0 = photo d'origine,
+   1 = effet maximal) pour : wrinkle, radiance, oiliness, acne, eye_bags, dark_circle, spots, pores, texture, redness.
+   NON CONFIRMÉ (la documentation REST n'était pas joignable depuis l'environnement de développement), à vérifier au premier essai contrôlé :
+     - le chemin REST de création et de statut (SIM_PATHS) ;
+     - la forme exacte du corps de création (server/perfectcorp-simulation.js, buildTaskBody) ;
+     - l'emplacement de l'image résultat dans la réponse (extractResultUrl) ;
+     - la durée d'une simulation et son coût en unités. */
+const SIM_PATHS = {
+  task: '/s2s/v2.0/task/skin-simulation',                                  // NON CONFIRMÉ — POST : création
+  taskStatus: id => `/s2s/v2.0/task/skin-simulation/${encodeURIComponent(id)}`   // NON CONFIRMÉ — GET : statut
+};
+/* Préoccupations proposées : clé DERMAI → paramètre Perfect Corp. `oiliness` est volontairement ABSENT : son intensité AJOUTE de la brillance
+   (sens inverse des autres) ; ce ne serait pas une amélioration. Une seule préoccupation par demande. */
+const SIM_CONCERNS = {
+  wrinkle: 'wrinkle', radiance: 'radiance', acne: 'acne', eye_bags: 'eye_bags', dark_circle: 'dark_circle',
+  spots: 'spots', pores: 'pores', texture: 'texture', redness: 'redness'
+};
+const SIM_INTENSITY = 0.5;   // fixe, côté serveur : valeur prudente et provisoire (le navigateur ne la choisit pas)
+
+/* Verrou : sans DERMAI_SIMULATION_ENABLED, aucune simulation, aucun crédit. Même activé, seuls les comptes listés dans
+   DERMAI_SIMULATION_ALLOWED_USER_IDS (identifiants Supabase séparés par des virgules) peuvent l'utiliser : liste vide = personne. */
+const isSimulationEnabled = (env = process.env) => flag(env.DERMAI_SIMULATION_ENABLED);
+const simulationAllowList = (env = process.env) => new Set(String(env.DERMAI_SIMULATION_ALLOWED_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean));
+const isSimulationAllowed = (userId, env = process.env) => typeof userId === 'string' && !!userId && simulationAllowList(env).has(userId);
+/* Quota propre aux simulations (jamais celui des analyses). Défaut : une simulation par 24 h, jamais « illimité ». */
+const SIM_QUOTA_DEFAULTS = { limit: 1, hours: 24 };
+const simulationQuota = (env = process.env) => ({
+  limit: intIn(env.DERMAI_MAX_SIMULATIONS_PER_PERIOD, 0, 100, SIM_QUOTA_DEFAULTS.limit),
+  windowSeconds: intIn(env.DERMAI_SIMULATION_PERIOD_HOURS, 1, 8760, SIM_QUOTA_DEFAULTS.hours) * 3600
+});
+
+module.exports = {
+  analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET,
+  SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota
+};

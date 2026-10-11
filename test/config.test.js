@@ -52,7 +52,7 @@ test('/api/config-js : HEAD sans corps, POST refusé', () => {
 test('vercel.json : un seul rewrite (adresses de pages vers index.html, jamais /api), la configuration des fonctions est conservée', () => {
   const v = JSON.parse(fs.readFileSync(__dirname + '/../vercel.json', 'utf8'));
   assert.deepEqual(v.rewrites, [{ source: '/((?!api/).*)', destination: '/index.html' }]);
-  assert.deepEqual(v.functions, { 'api/skin-analysis.js': { maxDuration: 60 } });
+  assert.deepEqual(v.functions, { 'api/skin-analysis.js': { maxDuration: 60 }, 'api/skin-simulation.js': { maxDuration: 60 } });
 });
 
 test('index.html charge /api/config-js (directement) avant app.js, plus /js/config.js', () => {
