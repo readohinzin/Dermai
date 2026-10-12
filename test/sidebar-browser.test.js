@@ -56,7 +56,7 @@ test('SBB1 ordinateur : colonne latérale à gauche, contenu non recouvert, mêm
   assert.ok(m.x >= b.x + b.width - 1, 'le contenu commence après la barre latérale');
   assert.equal(await hOverflow(page), 0);
   assert.equal(await visible(page, '.sidebar__toggle'), false, 'pas de bouton de menu sur ordinateur'); assert.equal(await visible(page, '.sidebar__close'), false); assert.equal(await visible(page, '.sidebar__scrim'), false);
-  assert.equal(await visible(page, 'nav.c-bottomnav'), false, 'la barre du bas laisse la place à la colonne');
+  assert.equal(await visible(page, '.c-scanfab'), false, 'le bouton d\'analyse laisse la place à la colonne (qui porte « Analyser ma peau »)');
   assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), [...TARGETS.map(t => t[0]), 'Se déconnecter']);
   assert.ok(await visible(page, '#sidebar .brand'), 'logo en haut');
   const pos = await page.evaluate(() => [...document.querySelectorAll('#sidebar .sidebar__link')].map(e => Math.round(e.getBoundingClientRect().top)));
@@ -113,7 +113,7 @@ test('SBB3 mobile 420 px : panneau fermé par défaut, icône de menu, ouverture
   const tb = await tg.boundingBox(); assert.ok(tb.width >= 44 && tb.height >= 44 && tb.x >= 0, JSON.stringify(tb));
   assert.equal(await page.locator('#sidebar').isVisible(), false, 'fermé : invisible et hors de l\'ordre de tabulation');
   assert.equal(await hOverflow(page), 0);
-  const nav = await page.locator('nav.c-bottomnav .c-bottomnav__item').count(); assert.equal(nav, 5, 'la barre du bas reste disponible');
+  assert.equal(await page.locator('nav.c-bottomnav, .c-bottomnav__item').count(), 0, 'l\'ancienne barre à cinq onglets n\'existe plus'); assert.equal(await page.locator('.c-scanfab').count(), 1, 'un seul bouton d\'analyse');
   const before = env.stats.supabase.length;
   // ouverture
   await tg.click(); await wait(page);
@@ -236,12 +236,13 @@ test('SBB8 visiteur sans compte : l\'entrée « Analyser ma peau » garde la pro
   clean(env); await env.close();
 });
 
-test('SBB9 les écrans existants fonctionnent avec la nouvelle navigation : barre du bas, retour, bilan d\'évolution, programme', opts, async () => {
+test('SBB9 les écrans existants fonctionnent avec la nouvelle navigation : menu, retour, bilan d\'évolution, programme', opts, async () => {
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   seed(env); await boot(env);
   const { page } = env;
-  for (const [label, route] of [['Routine', 'routine'], ['Progression', 'progress'], ['Profil', 'profile'], ['Accueil', 'home']]) {
-    await page.locator('nav.c-bottomnav .c-bottomnav__item', { hasText: label }).click();
+  for (const [label, route] of [['Ma routine', 'routine'], ['DERMAI Évolution', 'progress'], ['Profil et paramètres', 'profile'], ['Tableau de bord', 'home']]) {
+    await page.click('.sidebar__toggle'); await wait(page);
+    await page.locator('#sidebar .sidebar__link', { hasText: label }).click();
     await page.waitForFunction(r => state.route === r, route);
   }
   await page.evaluate(() => go('progress'));
@@ -410,4 +411,36 @@ test('SBB14 mobile : bouton de menu à DROITE (logo centré), estompé quand le 
   await page.keyboard.press('Escape'); await wait(page); assert.equal(await page.locator('#sidebar').isVisible(), false); assert.deepEqual(await look(), closed, 'fermé : le bouton retrouve son aspect');
   assert.deepEqual(env.errors, []);
   await env.close();
+});
+
+test('SBB14 bouton d\'analyse (téléphone) : seul reste de la barre du bas, centré en bas, sans texte visible, nom accessible, une touche pour lancer l\'analyse ; absent des écrans sans menu et au-dessus de 920 px', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
+  seed(env); await boot(env);
+  const { page } = env;
+  for (const w of [320, 375, 420]) {
+    await page.setViewportSize({ width: w, height: 800 }); await page.waitForTimeout(100);
+    const fab = page.locator('.c-scanfab'); assert.equal(await fab.count(), 1, w + ' px');
+    const b = await fab.boundingBox(), vh = 800;
+    assert.ok(Math.abs(b.x + b.width / 2 - w / 2) <= 1, w + ' px : centré : ' + JSON.stringify(b));
+    assert.ok(b.width >= 44 && b.height >= 44 && Math.abs(b.width - b.height) < 1, 'cible tactile : ' + JSON.stringify(b));
+    assert.ok(vh - (b.y + b.height) >= 12 && vh - (b.y + b.height) <= 40, 'en bas, au-dessus du bord : ' + JSON.stringify(b));
+    assert.equal(await hOverflow(page), 0, w + ' px');
+  }
+  const fab = page.locator('.c-scanfab');
+  assert.equal(await fab.getAttribute('aria-label'), 'Analyser ma peau'); assert.equal((await fab.innerText()).trim(), '', 'aucun texte visible'); assert.equal(await fab.locator('svg').count(), 1, 'l\'icône du scan');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.c-scanfab')).borderRadius), '50%');
+  /* présent sur les écrans à menu, et il lance bien l'analyse */
+  for (const r of ['home', 'routine', 'profile', 'analyses', 'progress']) { await page.evaluate(x => go(x), r); await page.waitForTimeout(80); assert.equal(await page.locator('.c-scanfab').count(), 1, r); }
+  await page.evaluate(() => go('home')); await fab.click(); await page.waitForFunction(() => state.route === 'scan');
+  assert.equal(await page.locator('.c-scanfab').count(), 0, 'absent de l\'écran d\'analyse lui-même'); assert.deepEqual(env.stats.skin, [], 'toucher le bouton ne lance aucun appel : il ouvre seulement l\'écran');
+  /* le menu passe devant le bouton ; le bas de page reste atteignable */
+  await page.evaluate(() => go('home')); await page.click('.sidebar__toggle'); await wait(page);
+  const covered = await page.evaluate(() => { const r = document.querySelector('.c-scanfab').getBoundingClientRect(), e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !e.closest('.c-scanfab'); });
+  assert.ok(covered, 'menu ouvert : le bouton est recouvert (voile et panneau)');
+  await page.keyboard.press('Escape'); await wait(page);
+  assert.ok(await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('main.main')).paddingBottom) >= 100), 'le contenu garde de la place sous le bouton');
+  /* ordinateur : bouton absent, l'entrée du menu latéral reste */
+  await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(100);
+  assert.equal(await visible(page, '.c-scanfab'), false); assert.equal(await page.locator('#sidebar .sidebar__link', { hasText: 'Analyser ma peau' }).count(), 1);
+  clean(env); await env.close();
 });
