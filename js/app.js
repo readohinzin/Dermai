@@ -356,7 +356,7 @@ async function bootAccount(arrivedWithoutPage,redirect){
   if(u)await enterSession(u,false);else{state.account.status=`visitor`;if(state.route===`scan`||state.route===`analyzing`){askLogin();return}}
   /* Connecté, arrivé à la racine du site (aucune page dans l'adresse) : on ouvre directement son espace. Une page choisie (ex. #landing) est respectée. */
   if(u&&arrivedWithoutPage&&state.route===`landing`){go(`home`,null,{reset:true,replace:true});return}
-  if([`landing`,`profile`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`products`,`progress`,`analyses`,`privacy`].includes(state.route))render(true);
+  if([`landing`,`profile`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`products`,`progress`,`analyses`,`privacy`,`verif`].includes(state.route))render(true);
 }
 async function submitForgot(form){
   const email=(form.querySelector(`[name=email]`).value||``).trim(),btn=form.querySelector(`button[type=submit]`);
@@ -389,7 +389,7 @@ async function deleteMyAccount(){
   if(epoch!==authEpoch)return;
   if(!r.ok){if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}toast(r.error);return}
   authEpoch++;state.account.status=`visitor`;state.account.email=``;state.account.loading=false;state.account.recovery=false;
-  F.clear();CP.clear();resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
+  F.clear();CP.clear();VR.clear();resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
 }
 async function submitAuth(kind,form){
   const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=form.querySelector(`[name=password]`).value||``;
@@ -441,6 +441,7 @@ const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||
 const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc,evolution:()=>EVO.fromProgram()});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
 const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
 const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:()=>render(true),program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
+const VR=DermaiVerif.create({userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,status:()=>DEMO_MODE?`demo`:state.account.status,render:()=>render(true),ic,esc,catalog:()=>DEMO_MODE?[]:Engine.catalogData.PRODUCTS});VR.attach(document);   // js/verif-routine.js
 const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial(),signedIn:()=>signedIn(),simulation:()=>{SIM.probe();return SIM.state().avail===`yes`&&!noReal()}});SB.attach(document);   // js/sidebar.js
 const QL=DermaiQuickLogin.create({account:()=>ACCOUNT,state:()=>state.account,render:()=>render()});QL.attach(document);   // js/quick-login.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
@@ -908,6 +909,7 @@ V.routine=()=>{
 
 V.simulation=()=>noReal()?emptyScan(`Simulation`,EMPTY_MSG,{back:true,title:`Simulation`}):shell(SIM.page(SCANS[state.view]),{back:true,title:`Simulation`});
 V.program=()=>noReal()?emptyScan(`Programme`,EMPTY_MSG,{back:true,title:`Programme`}):shell(CP.page(engineFor(SCANS[state.latest]),SCANS[state.latest]),{back:true,title:`Programme`});
+V.verif=()=>shell(VR.page(),{title:`Vérif'Routine`});
 
 /* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DERMAI » = choisis par le moteur pour chaque étape ; « Autres produits » = le reste du
    catalogue, avec la raison du moteur. Aucun score. Prix, vendeur, lien : affichés seulement s'ils existent et sont sourcés, sinon « Données à venir ». Catalogue réel vide : aucun produit fictif. */
@@ -1138,7 +1140,7 @@ function go(route,param=null,{reset=false,replace=false,keepScan=false,noHash=fa
 /* ---------- Adresse = page ----------
    La page courante est dans l'adresse (/profile, /concern/acne…) ; Vercel renvoie toute adresse inconnue vers index.html. Accueil : /accueil ; « / » = aucune page choisie.
    Une page « en cours » (analyse) n'est jamais restaurée. Les anciens liens « /#scan » sont convertis. */
-const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`,`forgot`,`program`]);
+const RESTORABLE=new Set([`landing`,`login`,`signup`,`welcome`,`onb`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`progress`,`analyses`,`profile`,`privacy`,`products`,`scan`,`forgot`,`program`,`verif`]);
 const PATH_OF={landing:`accueil`};
 const ROUTE_OF=Object.fromEntries(Object.entries(PATH_OF).map(([k,v])=>[v,k]));
 const pathOf=(r,p)=>`/${PATH_OF[r]||r}${p!=null&&p!==``?`/${encodeURIComponent(p)}`:``}`;

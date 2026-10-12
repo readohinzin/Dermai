@@ -15,7 +15,7 @@ body.sb-lock{overflow:hidden}
 .sidebar__close:focus-visible,.sidebar__toggle:focus-visible,.sidebar__link:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 
 .sidebar__list{display:flex;flex-direction:column;gap:var(--s-1);margin:0;padding:0;list-style:none}
-.sidebar__link{display:flex;align-items:center;gap:var(--s-3);width:100%;min-height:48px;padding:var(--s-2) var(--s-3);border:0;border-radius:var(--r-sm);background:transparent;color:var(--ink-2);
+.sidebar__link{display:flex;align-items:center;gap:var(--s-3);width:100%;min-height:var(--tap);padding:var(--s-2) var(--s-3);border:0;border-radius:var(--r-sm);background:transparent;color:var(--ink-2);
   font:500 var(--fs-md,1rem)/1.2 var(--font-sans,inherit);text-align:left;cursor:pointer}
 .sidebar__link svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .sidebar__link:hover{background:var(--bg-soft);color:var(--ink)}
@@ -34,7 +34,7 @@ body.sb-lock{overflow:hidden}
 .sidebar__toggle{position:absolute;left:0;top:50%;transform:translateY(-50%)}
 
 @media (min-width:920px){
-  .sidebar{position:sticky;top:0;bottom:auto;left:auto;z-index:auto;width:auto;height:100vh;height:100svh;padding:var(--s-8) var(--s-4) var(--s-6);box-shadow:none;transform:none;visibility:visible;transition:none}
+  .sidebar{position:sticky;top:0;bottom:auto;left:auto;z-index:auto;width:auto;height:100vh;height:100svh;gap:var(--s-4);padding:var(--s-6) var(--s-4) var(--s-5);box-shadow:none;transform:none;visibility:visible;transition:none}
   .sidebar__close,.sidebar__toggle,.sidebar__scrim{display:none}
   body.sb-lock{overflow:auto}
 }

@@ -18,6 +18,7 @@
     { id: 'analyses', label: 'Mes analyses', icon: 'layers', go: 'analyses', routes: ['analyses'] },
     { id: 'progress', label: 'DERMAI Évolution', icon: 'chart', go: 'progress', routes: ['progress'], fresh: true },
     { id: 'program', label: 'Programme de soins', icon: 'calendar', go: 'program', routes: ['program'] },
+    { id: 'verif', label: 'Vérif\'Routine', icon: 'shield', go: 'verif', routes: ['verif'] },
     { id: 'simulation', label: 'Simulation cosmétique', icon: 'sparkle', go: 'simulation', routes: ['simulation'], when: 'simulation' },
     { id: 'routine', label: 'Ma routine', icon: 'routine', go: 'routine', routes: ['routine', 'actives', 'active', 'products'] }
   ];
