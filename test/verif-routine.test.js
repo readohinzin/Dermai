@@ -96,5 +96,5 @@ test('VR7 câblage : scripts chargés une fois dans le bon ordre, route restaura
 test('VR8 aucune table SQL ni migration ajoutée pour cette fonctionnalité', () => {
   const m = fs.readdirSync(path.join(ROOT, 'supabase/migrations')).concat(fs.readdirSync(path.join(ROOT, 'supabase/proposals')));
   assert.ok(!m.some(f => /verif|product|routine/i.test(f)), m.join(', '));
-  assert.equal(m.length, 14, 'dont six migrations et huit fichiers de proposition (quotas de simulation, de maquillage et capillaire, lecture agrégée de l\'administration, chacun avec son retour arrière ; non appliqués)');
+  assert.equal(m.length, 16, 'dont six migrations et dix fichiers de proposition (quotas de simulation, de maquillage et capillaire, lecture agrégée de l\'administration, comptes et présence, chacun avec son retour arrière ; non appliqués)');
 });

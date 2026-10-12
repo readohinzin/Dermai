@@ -70,7 +70,7 @@ test('AB2 fondateur : entrée « Administration » (ordinateur et mobile), page 
   assert.match(t, /150\s*unités API/); assert.match(t, /Historique non disponible/); assert.match(t, /Api Purchased/); assert.match(t, /Ce n'est pas la consommation réelle observée/);
   assert.match(t, /Analyse cutanée/); assert.match(t, /Non rapprochés d'une fonction DERMAI \(1\)/); assert.match(t, /3 analyses \/ 24 h/); assert.match(t, /Tous les comptes connectés/);
   assert.deepEqual(env.stats.adm.map(x => x.section).sort(), ['access', 'costs', 'credit', 'features', 'quotas', 'usage']); assert.ok(env.stats.adm.every(x => x.auth && x.method === 'GET'));
-  const inMain = await page.$$eval('.main [data-ad], .main form, .main input, .main select, .main textarea, .main [data-act], .main a[href]', els => els.length); assert.equal(inMain, 1, 'un seul contrôle dans la page : Actualiser');
+  const inMain = await page.$$eval('.main [data-ad], .main form, .main input, .main select, .main textarea, .main [data-act], .main a[href]', els => els.length); assert.equal(inMain, 2, 'deux contrôles seulement dans la page : Actualiser et le titre « Comptes » qui se déploie');
   assert.deepEqual(await page.$$eval('.c-ad-card', els => els.map(e => e.id)), ['ad-credit', 'ad-accounts', 'ad-usage', 'ad-costs', 'ad-features', 'ad-quotas']);
   // mobile : même entrée dans le panneau
   await page.evaluate(() => go('home')); await page.setViewportSize({ width: 420, height: 900 }); await page.waitForTimeout(150);

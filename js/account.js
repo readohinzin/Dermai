@@ -304,6 +304,14 @@
       return { ok: true, profile: row ? fromRow(row) : null, photos, pristine };
     }
 
+    /* Présence : un battement = la date de dernière activité du compte (fonction touch_presence, supabase/proposals/20261015120000_admin_accounts_presence.sql), rien d'autre. Jamais de message : un échec
+       est silencieux. `stop` : la fonction n'existe pas dans la base (proposition non appliquée, 404) : inutile de réessayer pendant cette session. */
+    async function touchPresence() {
+      const r = await authed('/rest/v1/rpc/touch_presence', { method: 'POST', body: '{}' });
+      if (r.noSession || r.status === 401 || r.network) return { ok: false, stop: false };
+      return { ok: !!r.ok, stop: r.status === 404 };
+    }
+
     /* Choix de conservation des photos : seule la colonne keep_photos est écrite (les préférences ne sont jamais réécrites ici). */
     async function savePhotoChoice(keep) {
       if (typeof keep !== 'boolean') return { ok: false, error: MSG.photoChoiceFailed };
@@ -510,7 +518,7 @@
       return session && gen === g0 ? session.access_token : null;               // jamais le jeton d'un autre compte que celui qui le demande
     }
 
-    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, requestMagicLink, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
+    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, touchPresence, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, requestMagicLink, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 

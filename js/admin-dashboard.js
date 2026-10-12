@@ -19,13 +19,14 @@
     timeout: 'Délai dépassé.',
     network: 'Connexion au fournisseur impossible.',
     malformed: 'La réponse du fournisseur a une forme inconnue : rien n\'est affiché plutôt qu\'une valeur inventée.',
-    not_applied: 'La fonction SQL de lecture n\'est pas appliquée dans la base (proposition 20261014120000_admin_overview.sql).',
+    not_applied: 'La fonction SQL de lecture n\'est pas appliquée dans la base (propositions 20261014120000_admin_overview.sql pour les chiffres, 20261015120000_admin_accounts_presence.sql pour les comptes).',
     not_authorized: 'La base refuse la lecture : ajoutez votre identifiant dans la table admin_users (voir la proposition SQL).',
     unavailable: 'Source indisponible.'
   };
   const MSG = { loadFail: 'Cette section n\'a pas pu être chargée.', network: 'Connexion impossible. Vérifiez votre réseau.', history: 'Historique non disponible : aucune source confirmée, et les réservations de quota ne sont pas une dépense confirmée.' };
   const STATE = { closed: ['Fermée', 'c-badge--outline'], blocked: ['Bloquée', 'c-badge--low'], configured: ['Configurée : disponibilité non vérifiée', 'c-badge--mid'] };
   const PRE = { ok: 'OK', missing: 'Manquant', unverifiable: 'Non vérifiable' };
+const POLL_MS = 10000;   // liste des comptes ouverte : relue toutes les 10 s tant que la page est affichée et visible
 
   function create(deps) {
     const d = deps || {};
@@ -35,9 +36,11 @@
     const uid = () => { const a = acc(); return a && a.user && a.user.id ? a.user.id : null; };
     const epoch = () => { try { return d.epoch ? d.epoch() : 0; } catch (e) { return 0; } };
     const redraw = () => { try { if (d.render) d.render(); } catch (e) { /* sans importance */ } };
-    const fresh = () => ({ who: undefined, access: 'unknown', loaded: false, busy: false, sec: {} });
-    let ui = fresh();
-    function sync() { const w = uid() || 'none'; if (ui.who !== w) { ui = fresh(); ui.who = w; } }
+    const fresh = () => ({ who: undefined, access: 'unknown', loaded: false, busy: false, sec: {}, acc: { open: false, stats: false, status: 'idle', data: null, busy: false, sig: '' } });
+    let ui = fresh(), timer = null;
+    const active = () => { try { return d.route ? d.route() === 'admin' : true; } catch (e) { return false; } };
+    const stopPoll = () => { if (timer === null) return; const clr = d.clearInterval || (typeof clearInterval === 'function' ? clearInterval : null); if (clr) clr(timer); timer = null; };
+    function sync() { const w = uid() || 'none'; if (ui.who !== w) { stopPoll(); ui = fresh(); ui.who = w; } }
 
     async function request(section) {
       const a = acc(), token = a && a.accessToken ? await a.accessToken() : null;
@@ -67,15 +70,52 @@
       if (ui.busy) return;
       ui.busy = true;
       for (const s of SECTIONS) ui.sec[s] = Object.assign({}, ui.sec[s], { status: 'loading' });
-      if (!silent) redraw();
+      if (!silent) redrawKeepFocus();
       const ep = epoch(), who = ui.who, results = await Promise.all(SECTIONS.map(s => request(s)));
       if (ep !== epoch() || who !== ui.who) return;
       SECTIONS.forEach((s, i) => { ui.sec[s] = results[i]; });
-      if (results.some(r => r.status === 'denied')) { ui.access = 'no'; ui.sec = {}; }   // droit retiré en cours de route : plus rien n'est montré
-      ui.busy = false; ui.loaded = true; redraw();
+      if (results.some(r => r.status === 'denied')) { stopPoll(); ui.access = 'no'; ui.sec = {}; ui.acc = fresh().acc; }   // droit retiré en cours de route : plus rien n'est montré
+      ui.busy = false; ui.loaded = true; redrawKeepFocus();
+    }
+
+    /* Comptes (adresses e-mail, présence) : lus SEULEMENT quand la liste est ouverte, relus toutes les 10 s tant que la page d'administration est affichée et visible, et OUBLIÉS dès qu'elle se referme
+       (aucune adresse n'est gardée en mémoire de la page). Un 404 retire tout, comme partout. Une relecture qui ne change rien de visible ne réaffiche pas la page (le clavier garde sa place). */
+    const accSig = a => JSON.stringify([a.status, a.reason || '', a.truncated, a.total, (a.accounts || []).map(x => [x.email, x.online, x.lastSeenAt ? agoText(x.lastSeenAt) : '', x.lastSignInAt ? agoText(x.lastSignInAt) : ''])]);
+    function redrawKeepFocus() {
+      const doc = root.document, cur = doc && doc.activeElement, key = cur && cur.getAttribute ? cur.getAttribute('data-ad') : null;
+      redraw();
+      if (key && doc && doc.querySelector) { const el = doc.querySelector('[data-ad="' + key + '"]'); if (el && el.focus) el.focus(); }
+    }
+    async function loadAccounts() {
+      if (ui.acc.busy || !ui.acc.open || ui.access !== 'yes') return;
+      ui.acc.busy = true;
+      const ep = epoch(), who = ui.who, r = await request('accounts');
+      if (ep !== epoch() || who !== ui.who) return;
+      ui.acc.busy = false;
+      if (!ui.acc.open) return;
+      if (r.status === 'denied') { stopPoll(); ui.access = 'no'; ui.sec = {}; ui.acc = fresh().acc; redraw(); return; }
+      const next = r.status === 'ok' ? r.data.accounts : { status: 'error', message: r.message };
+      const sig = accSig(next || {}), changed = sig !== ui.acc.sig || ui.acc.status === 'loading';
+      ui.acc.data = next; ui.acc.status = 'done'; ui.acc.sig = sig;
+      if (changed) redrawKeepFocus();
+    }
+    function ensurePoll() {
+      if (timer !== null || !ui.acc.open) return;
+      const set = d.setInterval || (root.setInterval && root.setInterval.bind(root));
+      if (!set) return;
+      timer = set(() => {
+        if (!ui.acc.open || !active()) { stopPoll(); return; }
+        if (root.document && root.document.hidden) return;
+        loadAccounts();
+      }, POLL_MS);
     }
 
     /* ---------- Affichage ---------- */
+    function agoText(iso) {
+      const t = Date.parse(iso); if (Number.isNaN(t)) return '';
+      const sec = Math.max(0, Math.round((Date.now() - t) / 1000)), m = Math.floor(sec / 60), h = Math.floor(m / 60), j = Math.floor(h / 24);
+      return sec < 60 ? 'il y a moins d\'une minute' : m < 60 ? `il y a ${m} min` : h < 48 ? `il y a ${h} h` : `il y a ${j} j`;
+    }
     const when = iso => { try { const t = new Date(iso); return Number.isNaN(t.getTime()) ? '' : t.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'medium' }); } catch (e) { return ''; } };
     const num = v => (typeof v === 'number' && Number.isFinite(v) ? new Intl.NumberFormat('fr-FR').format(v) : 'Indisponible');
     const note = (t, cls, role) => `<div class="c-notice${cls ? ' ' + cls : ''} u-my-5" role="${role || 'status'}"><div>${esc(t)}</div></div>`;
@@ -117,13 +157,13 @@
 
     /* Comptes et utilisation : NOMBRES agrégés lus en base par l'API (fonction SQL admin_overview). Une valeur absente ou invalide s'affiche « Indisponible », jamais 0. */
     const pair = (a, b) => `${esc(num(a))} <small>sur 7 j</small> · ${esc(num(b))} <small>sur 30 j</small>`;
-    function accountsBody(data) {
+    function statsBody(data) {
       const u = data.usage;
       if (!u || u.status !== 'ok') return unavailable(u || {});
       const a = u.accounts, row = (label, v) => `<li><span>${label}</span><b>${v}</b></li>`;
       return `<p class="c-ad-big">${esc(num(a.total))} <small>comptes</small></p>
         <ul class="c-ad-list">${row('Nouveaux comptes', pair(a.new_7d, a.new_30d))}${row('Connectés (dernière connexion)', pair(a.signed_in_7d, a.signed_in_30d))}${row('Actifs (au moins une demande)', pair(a.active_7d, a.active_30d))}${row('Retour à 7 jours', esc(num(a.returned_7d)))}${row('Inactifs depuis 30 jours', esc(num(a.inactive_30d)))}${row('Jamais utilisé une fonction', esc(num(a.never_used)))}</ul>
-        <p class="muted">Actif : au moins une demande (analyse, simulation, maquillage ou cheveux) sur la période. Retour à 7 jours : compte créé il y a plus de 7 jours et actif ces 7 derniers jours. Inactif : compte de plus de 30 jours sans aucune demande sur 30 jours. « Connectés » repose sur la dernière connexion enregistrée, une seule date par compte. Nombres seulement : aucun compte n'est identifié.</p>${stamp(u)}`;
+        <p class="muted">Actif : au moins une demande (analyse, simulation, maquillage ou cheveux) sur la période. Retour à 7 jours : compte créé il y a plus de 7 jours et actif ces 7 derniers jours. Inactif : compte de plus de 30 jours sans aucune demande sur 30 jours. « Connectés » repose sur la dernière connexion enregistrée, une seule date par compte. Ces statistiques sont des nombres seulement : aucun compte n'y est identifié.</p>${stamp(u)}`;
     }
     function usageBody(data) {
       const u = data.usage;
@@ -160,6 +200,35 @@
       return `<p class="muted">Limites CONFIGURÉES côté serveur, pas la consommation. Si une variable n'est pas définie, c'est la valeur par défaut du code qui s'applique : la valeur réelle de Vercel n'est connue que par ce biais.</p>${rows}`;
     }
 
+    /* Comptes : un titre qui se déploie. Ouvert, il liste les adresses e-mail des comptes créés, avec un point vert qui pulse pour un compte en ligne et un point rouge fixe pour un compte hors ligne
+       (le texte « En ligne » / « Hors ligne » double toujours la couleur ; l'animation s'arrête si l'appareil demande moins de mouvement). Les chiffres d'activité sont dans « Statistiques d'activité ». */
+    const CHEV = '<svg class="c-ad-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    function accountRow(x) {
+      const state = x.online ? '<span class="c-ad-on">En ligne</span>' : `Hors ligne · ${x.lastSeenAt ? 'vu ' + agoText(x.lastSeenAt) : x.lastSignInAt ? 'connecté ' + agoText(x.lastSignInAt) : 'jamais vu'}`;
+      return `<li class="c-ad-acc"><span class="c-ad-dot c-ad-dot--${x.online ? 'on' : 'off'}" aria-hidden="true"></span><span class="c-ad-acc__txt"><span class="c-ad-mail">${x.email ? esc(x.email).replace(/([@.])/g, '$1<wbr>') : '<i>sans adresse e-mail</i>'}</span><small>${state}</small></span></li>`;
+    }
+    function accountsList() {
+      const a = ui.acc, o = a.data;
+      if (a.status !== 'done' || !o) return wait();
+      if (o.status === 'error') return note(o.message || MSG.loadFail, 'c-notice--error', 'alert');
+      if (o.status !== 'ok') return unavailable(o);
+      const on = o.accounts.filter(x => x.online).length;
+      return `<p class="c-ad-onl"><b>${esc(num(o.total))}</b> compte${o.total > 1 ? 's' : ''} · <span class="c-ad-on"><b>${on}</b> en ligne</span></p>
+        ${o.accounts.length ? `<ul class="c-ad-accs">${o.accounts.map(accountRow).join('')}</ul>` : '<p class="muted">Aucun compte.</p>'}
+        ${o.truncated ? note(`Les ${o.accounts.length} comptes les plus récents sur ${num(o.total)}.`, 'c-notice--warning') : ''}
+        <p class="muted c-ad-stamp">Mise à jour automatique toutes les ${POLL_MS / 1000} s tant que cette liste est ouverte. « En ligne » : activité il y a moins de 75 s, page DERMAI ouverte et visible. Les adresses e-mail sont des données personnelles : elles ne sont affichées qu'ici, à vous seul, et oubliées dès que la liste se referme.</p>`;
+    }
+    function accountsCard() {
+      const a = ui.acc, u = ui.sec.usage, uo = u && u.status === 'ok' && u.data && u.data.usage && u.data.usage.status === 'ok' ? u.data.usage : null;
+      const loaded = a.data && a.status === 'done' && a.data.status === 'ok';
+      const total = loaded && typeof a.data.total === 'number' ? a.data.total : uo ? uo.accounts.total : null;
+      const count = (!u || u.status === 'loading') && !loaded ? '…' : esc(num(total)), on = loaded ? a.data.accounts.filter(x => x.online).length : null;
+      const sd = ui.sec.usage;
+      const stats = !sd || sd.status === 'loading' ? wait() : sd.status === 'error' || sd.status === 'denied' ? note(sd.message || MSG.loadFail, 'c-notice--error', 'alert') : statsBody(sd.data);
+      return `<section class="c-card c-ad-card" id="ad-accounts" aria-labelledby="ad-accounts-t"><h2 class="h3 c-ad-acc-h" id="ad-accounts-t"><button type="button" class="c-ad-disclosure" data-ad="accounts" aria-expanded="${a.open}" aria-controls="ad-accounts-panel"><span class="c-ad-disclosure__t">Comptes</span><span class="c-ad-disclosure__n">${count}${on !== null ? ` · <span class="c-ad-dot c-ad-dot--${on > 0 ? 'on' : 'off'}" aria-hidden="true"></span>${on} en ligne` : ''}</span>${CHEV}</button></h2>
+        ${a.open ? `<div class="c-ad-acc-panel" id="ad-accounts-panel">${accountsList()}<button type="button" class="c-ad-more" data-ad="stats" aria-expanded="${a.stats}" aria-controls="ad-stats-panel">Statistiques d'activité ${CHEV}</button>${a.stats ? `<div id="ad-stats-panel">${stats}</div>` : ''}</div>` : ''}</section>`;
+    }
+
     function page() {
       sync();
       const missing = `<div class="pagehead"><h1>Page introuvable</h1><p>Cette page n'existe pas.</p></div><div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button></div>`;
@@ -168,9 +237,10 @@
       if (ui.access === 'unknown' || ui.access === 'checking') return `<div class="pagehead"><h1>Chargement…</h1></div>`;
       if (ui.access !== 'yes') return missing;
       if (!ui.loaded && !ui.busy) loadAll(true);
+      if (ui.acc.open) ensurePoll();
       return `<div class="pagehead"><p class="kicker">Fondateur</p><h1>Administration</h1><p>Lecture seule : cette page ne modifie rien et ne lance aucune analyse.</p></div>
         <div class="c-ad-bar"><button type="button" class="c-btn c-btn--secondary" data-ad="refresh"${ui.busy ? ' disabled' : ''} aria-busy="${ui.busy}">${ui.busy ? 'Actualisation…' : 'Actualiser'}</button><span class="muted">Relit les mêmes sources, sans effet.</span></div>
-        <div class="c-ad-grid">${shell('credit', 'ad-credit', 'Solde Perfect Corp', creditBody)}${shell('usage', 'ad-accounts', 'Comptes', accountsBody)}${shell('usage', 'ad-usage', 'Utilisation par fonction', usageBody)}${shell('costs', 'ad-costs', 'Coûts officiels annoncés', costsBody)}${shell('features', 'ad-features', 'Fonctionnalités', featuresBody)}${shell('quotas', 'ad-quotas', 'Quotas configurés', quotasBody)}</div>`;
+        <div class="c-ad-grid">${shell('credit', 'ad-credit', 'Solde Perfect Corp', creditBody)}${accountsCard()}${shell('usage', 'ad-usage', 'Utilisation par fonction', usageBody)}${shell('costs', 'ad-costs', 'Coûts officiels annoncés', costsBody)}${shell('features', 'ad-features', 'Fonctionnalités', featuresBody)}${shell('quotas', 'ad-quotas', 'Quotas configurés', quotasBody)}</div>`;
     }
 
     function attach(x) {
@@ -179,10 +249,17 @@
         const el = ev.target && ev.target.closest ? ev.target.closest('[data-ad]') : null;
         if (!el || el.disabled) return;
         sync();
-        if (el.getAttribute('data-ad') === 'refresh' && ui.access === 'yes') { ui.loaded = false; loadAll(); }
+        const act = el.getAttribute('data-ad');
+        if (act === 'refresh' && ui.access === 'yes') { ui.loaded = false; loadAll(); }
+        if (act === 'accounts' && ui.access === 'yes') {
+          if (ui.acc.open) { stopPoll(); ui.acc = fresh().acc; }
+          else { ui.acc = Object.assign(fresh().acc, { open: true, status: 'loading' }); ensurePoll(); }
+          redrawKeepFocus(); loadAccounts();
+        }
+        if (act === 'stats' && ui.access === 'yes' && ui.acc.open) { ui.acc.stats = !ui.acc.stats; redrawKeepFocus(); }
       });
     }
-    function reset() { ui = fresh(); }
+    function reset() { stopPoll(); ui = fresh(); }
     return { page, attach, probe, ready, reset, state: () => ui };
   }
   return { create, ENDPOINT, SECTIONS, REASONS, MSG };

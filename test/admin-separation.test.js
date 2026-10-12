@@ -19,7 +19,7 @@ test('SEP1 câblage statique : vues V.studio et V.admin DISTINCTES (V.studio inc
   assert.ok(!/V\.studio\s*=\s*V\.admin|V\.admin\s*=\s*V\.studio|ST\.page\([^)]|AD\.page\([^)]|ST\.admin|ST\.ready\([^)]|\bgate\b/.test(app), 'ni affectation multiple, ni paramètre de vue, ni délégation, ni « gate » commune');
   const st = app.match(/^const ST=DermaiStudio\.create\(\{[^\n]*$/m)[0], ad = app.match(/^const AD=DermaiAdmin\.create\(\{[^\n]*$/m)[0];
   assert.ok(!/\bAD\b|Admin/.test(st) && !/\bST\b|Studio|toJpeg|inspect|photo/i.test(ad), 'chaque création ne référence que ses propres dépendances');
-  assert.equal(ad, 'const AD=DermaiAdmin.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR});AD.attach(document);', 'administration : compte, époque de session, réaffichage ; rien d\'autre');
+  assert.equal(ad, 'const AD=DermaiAdmin.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR,route:()=>state.route});AD.attach(document);', 'administration : compte, époque de session, réaffichage, route courante (pour arrêter la relecture hors de sa page) ; rien d\'autre');
   assert.match(app, /studio:\(\)=>ST\.ready\(\),admin:\(\)=>AD\.ready\(\)\}\);SB\.attach/, 'entrées de menu : une dépendance chacune');
   assert.ok(app.indexOf('const ST=') < app.indexOf('const AD=') && app.indexOf('const AD=') < app.indexOf('const SB='), 'créés avant la barre latérale qui les interroge');
   assert.ok(!/RESTORABLE=new Set\(\[[^\]]*`admin`/.test(app), 'adresse non restaurable : aucune page d\'administration rouverte à froid');
@@ -42,8 +42,9 @@ test('SEP3 ressources séparées : chargement, feuilles de style et fichiers pro
   assert.equal((read('css/styles.css').match(/components\/admin\.css/g) || []).length, 1);
   for (const f of ['js/makeup-studio.js', 'js/makeup-data.js', 'js/hair-studio.js', 'js/hair-data.js', 'css/components/makeup.css']) assert.ok(!/admin|c-ad-/i.test(read(f)), f + ' ne contient rien d\'administratif');
   for (const f of ['js/admin-dashboard.js', 'css/components/admin.css']) assert.ok(!/studio|makeup|hair|c-ms-|c-hs-/i.test(strip(read(f))), f + ' ne mentionne ni le Studio ni le style du Studio');
-  for (const f of ['api/admin-stats.js', 'server/admin.js', 'server/admin-usage.js', 'server/perfectcorp-billing.js']) assert.ok(!/makeup-vto|hair-vto|perfectcorp-makeup|perfectcorp-hair|api\/makeup|api\/hair/.test(strip(read(f)).replace(/MAKEUP_PATHS|makeupAllowList|isMakeupEnabled|makeupQuota|MAKEUP_QUOTA_DEFAULTS|hair\.(IDS|FEATURES|activeFeatures)|require\('\.\/hair'\)|hairQuota|hairAllowList|isHairEnabled|isHair\w+|HAIR_QUOTA_DEFAULTS/g, '')), f + ' : seulement la lecture de la configuration, jamais les endpoints du Studio');
+  for (const f of ['api/admin-stats.js', 'server/admin.js', 'server/admin-usage.js', 'server/admin-accounts.js', 'server/perfectcorp-billing.js']) assert.ok(!/makeup-vto|hair-vto|perfectcorp-makeup|perfectcorp-hair|api\/makeup|api\/hair/.test(strip(read(f)).replace(/MAKEUP_PATHS|makeupAllowList|isMakeupEnabled|makeupQuota|MAKEUP_QUOTA_DEFAULTS|hair\.(IDS|FEATURES|activeFeatures)|require\('\.\/hair'\)|hairQuota|hairAllowList|isHairEnabled|isHair\w+|HAIR_QUOTA_DEFAULTS/g, '')), f + ' : seulement la lecture de la configuration, jamais les endpoints du Studio');
   for (const f of ['api/makeup-vto.js', 'api/hair-vto.js']) assert.ok(!/admin/i.test(read(f)), f + ' : aucune administration');
+  assert.ok(!/admin|studio|makeup|hair/i.test(strip(read('js/presence.js'))), 'la présence ne connaît ni l\'administration ni le Studio : elle ne fait que battre');
 });
 
 /* ───────── Dans Chromium ───────── */

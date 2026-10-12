@@ -444,7 +444,8 @@ const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,
 const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:RR,program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:UID,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
 const VR=DermaiVerif.create({userId:UID,status:()=>DEMO_MODE?`demo`:state.account.status,render:RR,ic,esc,catalog:()=>DEMO_MODE?[]:Engine.catalogData.PRODUCTS});VR.attach(document);   // js/verif-routine.js
 const ST=DermaiStudio.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR,toJpeg:jpegFromFile,inspect:inspectPhoto});ST.attach(document);
-const AD=DermaiAdmin.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR});AD.attach(document);
+const AD=DermaiAdmin.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR,route:()=>state.route});AD.attach(document);
+const PR=DermaiPresence.create({account:()=>ACCOUNT,epoch:()=>authEpoch});PR.attach(document);
 const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial(),signedIn:()=>signedIn(),simulation:()=>{SIM.probe();return SIM.state().avail===`yes`&&!noReal()},studio:()=>ST.ready(),admin:()=>AD.ready()});SB.attach(document);   // js/sidebar.js
 const QL=DermaiQuickLogin.create({account:()=>ACCOUNT,state:()=>state.account,render:()=>render()});QL.attach(document);   // js/quick-login.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi

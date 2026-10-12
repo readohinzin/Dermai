@@ -1,8 +1,9 @@
 'use strict';
-/* Page d'administration PRIVÉE du fondateur : lecture seule. GET uniquement, par section (?section=access|features|quotas|credit|costs|usage).
+/* Page d'administration PRIVÉE du fondateur : lecture seule. GET uniquement, par section (?section=access|features|quotas|credit|costs|usage|accounts).
    Accès : session Supabase vérifiée (même mécanisme que les autres fonctions) PUIS identifiant du compte dans la liste fermée DERMAI_ADMIN_USER_IDS (« * » refusé, liste invalide refusée en entier).
    TOUT refus (jeton absent ou invalide, Supabase injoignable, compte non listé, liste absente) renvoie la MÊME réponse 404, sans aucun contenu : la route n'existe pas pour qui n'est pas autorisé.
-   Seul un fondateur authentifié peut obtenir un 405 (méthode autre que GET). Aucune écriture, aucun paramètre ne désigne un utilisateur, aucune donnée individuelle, aucun secret : seulement la
+   Seul un fondateur authentifié peut obtenir un 405 (méthode autre que GET). Aucune écriture, aucun paramètre ne désigne un utilisateur, aucun secret. Aucune donnée individuelle SAUF la section « accounts » (adresses e-mail et présence « en ligne » : données personnelles, fondateur authentifié seulement,
+   lues par admin_accounts avec son propre jeton, mémorisées 5 s en mémoire du serveur, jamais journalisées). Le reste : seulement la
    configuration serveur (modes et nombres, jamais d'identifiants), les quotas configurés, deux LECTURES gratuites chez Perfect Corp (solde, coûts officiels) et des NOMBRES agrégés lus par la fonction SQL admin_overview
    (server/admin-usage.js : appelée avec le jeton du fondateur, qui vérifie elle-même admin_users ; jamais de service_role).
    Réponses jamais mises en cache par un intermédiaire (private, no-store, Vary: Authorization). Les lectures fournisseur sont mémorisées EN MÉMOIRE du serveur (solde 60 s, coûts 10 min, erreurs 15 s)
@@ -13,11 +14,12 @@ const { isAdminAllowed } = require('../server/config');
 const admin = require('../server/admin');
 const billing = require('../server/perfectcorp-billing');
 const usage = require('../server/admin-usage');
+const accounts = require('../server/admin-accounts');
 const perfectcorp = require('../server/perfectcorp');
 const { createBudget } = require('../server/budget');
 
-const SECTIONS = ['access', 'features', 'quotas', 'credit', 'costs', 'usage'];
-const TTL = { credit: 60 * 1000, costs: 10 * 60 * 1000, usage: 60 * 1000, error: 15 * 1000 };
+const SECTIONS = ['access', 'features', 'quotas', 'credit', 'costs', 'usage', 'accounts'];
+const TTL = { credit: 60 * 1000, costs: 10 * 60 * 1000, usage: 60 * 1000, accounts: 5 * 1000, error: 15 * 1000 };
 const memo = new Map();
 const BUDGET_MS = 20000;
 
@@ -66,6 +68,7 @@ async function section(name, token) {
   if (name === 'access') return { ok: true, admin: true };
   if (name === 'features') return { ok: true, generatedAt: now, source: 'configuration lue par le serveur à chaque requête', features: admin.featureRows() };
   if (name === 'quotas') return { ok: true, generatedAt: now, source: 'configuration lue par le serveur à chaque requête', quotas: admin.quotaRows() };
+  if (name === 'accounts') return { ok: true, accounts: await remembered('accounts', () => accounts.getAccounts(token, process.env, { budget: createBudget({ totalMs: BUDGET_MS }) })) };
   if (name === 'usage') return { ok: true, usage: await remembered('usage', () => usage.getOverview(token, process.env, { budget: createBudget({ totalMs: BUDGET_MS }) })) };
   if (!perfectcorp.isConfigured()) return { ok: true, [name]: { status: 'unavailable', reason: 'key_missing', fetchedAt: now } };
   if (name === 'credit') return { ok: true, credit: await remembered('credit', () => billing.getBalance({ budget: createBudget({ totalMs: BUDGET_MS }) })) };
