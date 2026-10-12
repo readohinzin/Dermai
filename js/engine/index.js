@@ -45,7 +45,7 @@
     if (cur.length >= D.MAX_GOALS) return { goals: cur, limited: true };
     return { goals: [...cur, id], limited: false };
   }
-  const goalList = () => D.GOALS.map(g => ({ id: g.id, label: copy.GOAL_LABELS[g.id] }));
+  const goalList = () => D.GOALS.map(g => ({ id: g.id, label: copy.GOAL_LABELS[g.id], hint: copy.GOAL_HINTS[g.id] }));
 
   /* Chaîne complète : mesures → priorités → personnalisation → actifs → routine → produits. Le contexte effectif (confort demandé par
      l'analyse ou par l'utilisateur) est partagé par les actifs et la routine. */

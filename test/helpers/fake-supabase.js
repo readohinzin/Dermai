@@ -80,6 +80,11 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       if (state.rateLimit) return resp(429, { error_code: 'over_email_send_rate_limit', msg: 'email rate limit exceeded' });
       return resp(200, {});
     }
+    if (u.pathname === '/auth/v1/otp') {                                               // lien magique : toujours 200, que l'adresse existe ou non (comme GoTrue)
+      state.otpRequests = (state.otpRequests || []).concat(body && body.email);
+      if (state.rateLimit) return resp(429, { error_code: 'over_email_send_rate_limit', msg: 'email rate limit exceeded' });
+      return resp(200, {});
+    }
     if (u.pathname === '/auth/v1/resend') {
       state.resendRequests = (state.resendRequests || []).concat(body && body.email);
       if (state.rateLimit) return resp(429, { error_code: 'over_email_send_rate_limit', msg: 'email rate limit exceeded' });
@@ -207,7 +212,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
     const sess = mkSession(u);
     return `#access_token=${sess.access_token}&expires_in=3600&refresh_token=${sess.refresh_token}&token_type=bearer&type=${type}`;
   };
-  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), users, profiles, analyses, usage, simUsage, tokens, refresh, log, GOALS, METRICS,
+  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), magicLink: e => link(e, 'magiclink'), users, profiles, analyses, usage, simUsage, tokens, refresh, log, GOALS, METRICS,
     removeProfile: id => profiles.delete(id) };
 }
 

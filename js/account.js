@@ -42,6 +42,8 @@
     passwordSame: 'Choisissez un mot de passe différent de l\'ancien.',
     linkInvalid: 'Ce lien n\'est plus valide. Demandez-en un nouveau.',
     emailConfirmed: 'Votre adresse e-mail est confirmée. Bienvenue !',
+    magicDone: 'Vous êtes connecté. Bienvenue !',
+    magicLinkSent: 'Si cette adresse est valide, un lien de connexion vient d\'être envoyé. Ouvrez-le depuis votre messagerie.',
     deleteFailed: 'Votre compte n\'a pas pu être supprimé. Réessayez.',
     photoChoiceFailed: 'Votre choix pour les photos n\'a pas pu être enregistré. Réessayez.',
     photoSaveFailed: 'Votre analyse est enregistrée, mais sa photo n\'a pas pu être gardée dans votre compte.',
@@ -146,7 +148,8 @@
     const q = new URLSearchParams(h);
     if (q.get('access_token') && q.get('refresh_token')) {
       const type = q.get('type') || '';
-      return { kind: 'session', type: type === 'recovery' ? 'recovery' : 'signup', access_token: q.get('access_token'), refresh_token: q.get('refresh_token'), expires_in: Number(q.get('expires_in')) || 3600 };
+      /* Type « magiclink » (lien de connexion par e-mail) : simple connexion, pas une confirmation d'adresse. */
+      return { kind: 'session', type: type === 'recovery' ? 'recovery' : (type === 'magiclink' ? 'magic' : 'signup'), access_token: q.get('access_token'), refresh_token: q.get('refresh_token'), expires_in: Number(q.get('expires_in')) || 3600 };
     }
     return { kind: 'error' };
   }
@@ -402,6 +405,17 @@
       if (r.status >= 500) return { ok: false, error: MSG.generic };
       return { ok: true, message: MSG.recoverySent };               // même réponse que le compte existe ou non : aucune énumération d'adresses
     }
+    /* Lien de connexion par e-mail (« lien magique ») : Supabase envoie un e-mail ; ouvrir le lien ouvre la session (compte créé au premier passage).
+       Même réponse que l'adresse existe ou non : aucune énumération d'adresses. L'adresse de retour est celle de la « Site URL » de Supabase. */
+    async function requestMagicLink(email) {
+      if (!available) return { ok: false, error: MSG.unavailable };
+      if (!EMAIL_RE.test(String(email || '').trim())) return { ok: false, error: MSG.emailInvalid };
+      const r = await call('/auth/v1/otp', { method: 'POST', body: JSON.stringify({ email: String(email).trim(), create_user: true }) }, false);
+      if (r.network) return { ok: false, error: MSG.network };
+      if (r.status === 429) return { ok: false, error: MSG.rateLimited };
+      if (!r.ok) return { ok: false, error: MSG.generic };
+      return { ok: true, message: MSG.magicLinkSent };
+    }
     async function resendConfirmation(email) {
       if (!available) return { ok: false, error: MSG.unavailable };
       if (!EMAIL_RE.test(String(email || '').trim())) return { ok: false, error: MSG.emailInvalid };
@@ -421,7 +435,7 @@
       try { body = JSON.parse(await res.text()); } catch (e) { body = null; }
       if (!res.ok || !body || !body.id) return { ok: false, error: MSG.linkInvalid };
       if (!setSession({ access_token: parsed.access_token, refresh_token: parsed.refresh_token, expires_in: parsed.expires_in, user: { id: body.id, email: body.email } })) return { ok: false, error: MSG.linkInvalid };
-      return { ok: true, type: parsed.type, user: { id: session.user.id, email: session.user.email } };
+      return { ok: true, type: parsed.type, message: parsed.type === 'magic' ? MSG.magicDone : MSG.emailConfirmed, user: { id: session.user.id, email: session.user.email } };
     }
     async function updatePassword(password) {
       if (typeof password !== 'string' || password.length < 8) return { ok: false, error: MSG.passwordShort };
@@ -493,7 +507,7 @@
       return session && gen === g0 ? session.access_token : null;               // jamais le jeton d'un autre compte que celui qui le demande
     }
 
-    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
+    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, requestMagicLink, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 

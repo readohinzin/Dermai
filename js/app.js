@@ -347,7 +347,7 @@ async function handleAuthRedirect(redirect){
   await enterSession(r.user,false);
   if(!signedIn())return;
   if(r.type===`recovery`){state.account.recovery=true;go(`reset`,null,{reset:true,replace:true});return}
-  toast(DermaiAccount.MSG.emailConfirmed);afterAuth({reset:true,replace:true});
+  toast(r.message);afterAuth({reset:true,replace:true});
 }
 async function bootAccount(arrivedWithoutPage,redirect){
   if(!ACCOUNT||!ACCOUNT.available)return;
@@ -442,6 +442,7 @@ const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&
 const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
 const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:()=>render(true),program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
 const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial(),simulation:()=>{SIM.probe();return SIM.state().avail===`yes`&&!noReal()}});SB.attach(document);   // js/sidebar.js
+const QL=DermaiQuickLogin.create({account:()=>ACCOUNT,state:()=>state.account,render:()=>render()});QL.attach(document);   // js/quick-login.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
@@ -641,9 +642,6 @@ const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="icon
     <div class="c-field"><label class="c-field__label" for="f-mail">Email</label><input class="c-input" id="f-mail" type="email" autocomplete="email" value="${DEMO_MODE?`amina@exemple.com`:``}"></div>
     <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" type="password" autocomplete="new-password" value="${DEMO_MODE?`motdepasse`:``}"></div>
     <button class="c-btn c-btn--primary c-btn--block" data-act="signup" style="margin-top:6px">Créer mon compte</button>
-    <div class="or">ou</div>
-    <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Google</button>
-    <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Apple</button>
   </div><p class="muted" style="margin-top:22px">Mode démonstration : aucun compte réel n'est créé.</p></div></div>`;
 const authForm=kind=>{
   const signup=kind===`signup`,A=state.account;
@@ -656,7 +654,7 @@ const authForm=kind=>{
     <div class="c-field"><label class="c-field__label" for="f-mail">Adresse e-mail</label><input class="c-input" id="f-mail" name="email" type="email" inputmode="email" enterkeyhint="next" autocomplete="email" autocapitalize="none" spellcheck="false" value="${esc(A.formEmail)}" required></div>
     <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" name="password" type="password" enterkeyhint="go" autocomplete="${signup?`new-password`:`current-password`}" required>${signup?`<p class="c-field__hint">8 caractères au minimum.</p>`:`<p style="margin-top:8px"><button class="link" type="button" data-go="forgot">Mot de passe oublié ?</button></p>`}</div>
     <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">${signup?`Créer mon compte`:`Se connecter`}</button>
-  </form>
+  </form>${QL.magicHtml()}
   <p style="margin-top:20px;text-align:center">${signup?`Déjà un compte ? <button class="link" data-go="login">Se connecter</button>`:`Pas encore de compte ? <button class="link" data-go="signup">Créer mon compte</button>`}</p>
   ${signup?`<p style="text-align:center"><button class="link" data-go="welcome">Continuer sans compte</button></p>`:``}
   <p class="muted" style="margin-top:14px">Seules vos préférences de personnalisation sont associées à votre compte. Vos photos ne sont pas enregistrées dans votre profil.</p></div></div>`;
@@ -695,7 +693,7 @@ V.onb=n=>{
   n=Number(n)||1;
   const top=`<div class="flowtop"><button class="iconbtn c-icon-btn" data-go="${n===1?`home`:`onb:`+(n-1)}" aria-label="Retour">${ic(`back`)}</button><div class="dots" aria-label="Question ${n} sur 3">${[1,2,3].map(i=>`<i class="${i<=n?`on`:``}"></i>`).join(``)}</div></div>`;
   let body=``;
-  if(n===1) body=`<h1>Quels sont vos objectifs ?</h1><p style="margin:10px 0 8px">Facultatif. Vous pouvez en choisir jusqu'à 3. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><p class="muted" role="status" aria-live="polite" style="margin:0 0 16px"><b>${goalCount()}</b></p><div class="stack" style="gap:10px">${Engine.goalList().map(g=>`<button class="opt" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}"><span class="grow"><b>${g.label}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}<button class="opt" data-act="goal" data-v="none" aria-pressed="${state.noGoal}"><span class="grow"><b>${Engine.copy.NO_GOAL}</b></span><span class="tick">${ic(`check`)}</span></button></div>`;
+  if(n===1) body=`<h1>Quels sont vos objectifs ?</h1><p style="margin:10px 0 8px">Facultatif. Vous pouvez en choisir jusqu'à 3. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><p class="muted" role="status" aria-live="polite" style="margin:0 0 16px"><b>${goalCount()}</b></p><div class="stack" style="gap:10px">${Engine.goalList().map(g=>`<button class="opt" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}"><span class="grow"><b>${g.label}</b><span class="s">${g.hint}</span></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}<button class="opt" data-act="goal" data-v="none" aria-pressed="${state.noGoal}"><span class="grow"><b>${Engine.copy.NO_GOAL}</b></span><span class="tick">${ic(`check`)}</span></button></div>`;
   if(n===2) body=`<h1>Quelle est votre routine actuelle ?</h1><p style="margin:10px 0 22px">Pas de mauvaise réponse.</p><div class="stack" style="gap:10px">${[[`none`,`Aucune routine`,`Je n'ai pas de soins réguliers.`],[`simple`,`Routine simple`,`Je nettoie et j'hydrate.`],[`full`,`Routine complète`,`J'utilise plusieurs soins, dont des sérums.`]].map(o=>`<button class="opt" data-act="level" data-v="${o[0]}" aria-pressed="${state.level===o[0]}"><span class="grow"><b>${o[1]}</b><span class="s">${o[2]}</span></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}</div>`;
   if(n===3) body=`<h1>Quels produits utilisez-vous ?</h1><p style="margin:10px 0 22px">Choisissez les catégories que vous utilisez déjà.</p><div class="stack" style="gap:10px">${CATS.map(c=>`<button class="opt" data-act="cat" data-v="${c[0]}" aria-pressed="${state.cats.includes(c[0])}"><span class="grow"><b>${c[1]}</b></span><span class="tick">${ic(`check`)}</span></button>`).join(``)}<button class="opt" data-act="cat" data-v="none" aria-pressed="${state.cats.includes(`none`)}"><span class="grow"><b>Aucun produit pour l'instant</b></span><span class="tick">${ic(`check`)}</span></button></div>`;
   const next=n<3?`<button class="c-btn c-btn--primary c-btn--block" data-go="onb:${n+1}">Continuer</button>`:`<button class="c-btn c-btn--primary c-btn--block" data-act="finish-onb">Terminer</button>`;
@@ -1096,7 +1094,7 @@ V.profile=()=>{
    ${accountSection()}
    <section class="sand"><p class="kicker">Profil cutané</p>${none?`<p class="muted" style="margin-top:8px">Disponible après votre première analyse.</p>`:`<p class="big" style="font-size:${skinLabel(r).length>16?`1.8rem`:`2.6rem`};margin:6px 0 14px">${skinLabel(r)}</p>${(pi=>pi.length?`<p class="c-disclaimer" style="margin-bottom:6px">Priorités</p><div class="chips">${pi.map(m=>`<span class="c-badge">${m.label} ${m.score}/100</span>`).join(``)}</div>`:``)(engineFor(SCANS[state.latest]).priorities.items)}`}</section>
    <section><div class="hd"><h2 class="h3">Mes objectifs</h2><span class="muted">${goalCount()}</span></div><p class="muted" style="margin-bottom:10px">Facultatif, trois au maximum. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p>
-     <div class="chips">${Engine.goalList().map(g=>`<button class="c-chip" data-act="goal" data-v="${g.id}" aria-pressed="${state.goals.includes(g.id)}">${g.label}</button>`).join(``)}<button class="c-chip" data-act="goal" data-v="none" aria-pressed="${state.noGoal}">${Engine.copy.NO_GOAL}</button></div></section>
+     <div class="chips">${Engine.goalList().map(g=>`<button class="c-chip" data-act="goal" data-v="${g.id}" title="${g.hint}" aria-pressed="${state.goals.includes(g.id)}">${g.label}</button>`).join(``)}<button class="c-chip" data-act="goal" data-v="none" aria-pressed="${state.noGoal}">${Engine.copy.NO_GOAL}</button></div></section>
    <section><div class="hd"><h2 class="h3">Mon niveau de routine</h2></div><p class="muted" style="margin-bottom:10px">Ce n'est pas un niveau de gravité : cela règle seulement le nombre de soins proposés.${state.level?``:` Par défaut : simple.`}</p>
      <div class="chips">${[`none`,`simple`,`full`].map(l=>`<button class="c-chip" data-act="level" data-v="${l}" aria-pressed="${state.level===l}">${Engine.copy.LEVEL_SHORT[l]}</button>`).join(``)}</div></section>
    <section><div class="hd"><h2 class="h3">Mon approche</h2></div>
@@ -1390,7 +1388,7 @@ document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
 window.addEventListener(`online`,()=>F.resume());document.addEventListener(`visibilitychange`,()=>{if(!document.hidden)F.resume()});
 window.addEventListener(`popstate`,()=>{const h=readLocation();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
 const authRedirect=(!DEMO_MODE&&window.DermaiAccount)?DermaiAccount.readAuthRedirect(location.hash):null;
-if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}                                    // les jetons ne restent pas dans la barre d'adresse
+if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}   // jetons hors de la barre d'adresse
 const initialRoute=readLocation();
 if(initialRoute&&location.hash)try{history.replaceState(null,``,pathOf(initialRoute.route,initialRoute.param))}catch(e){}
 if(initialRoute){state.route=initialRoute.route;state.param=initialRoute.param}

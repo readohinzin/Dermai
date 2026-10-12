@@ -82,6 +82,8 @@ test('RUN6 objectifs : « Aucun » efface, 3 au maximum, retrait possible, valeu
   const list = Engine.goalList();
   assert.deepEqual(list.map(x => x.id), ['hydration', 'oil_pores', 'blemishes', 'tone', 'redness_comfort', 'texture', 'aging', 'maintenance']);
   assert.ok(list.every(x => x.label.length > 0));
+  assert.ok(list.every(x => typeof x.hint === 'string' && x.hint.length > 10 && x.hint.length < 90 && /\.$/.test(x.hint)), 'une ligne simple sous chaque choix');
+  assert.match(list.find(x => x.id === 'blemishes').hint, /boutons/i);
 });
 
 test('RUN7 aucun objectif pré-coché : le profil vide est valide et n\'altère pas le résultat', () => {

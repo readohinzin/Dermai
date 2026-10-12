@@ -17,8 +17,8 @@
   'use strict';
   /* Même liste blanche que server/config.js (SIM_CONCERNS) : un test vérifie l'égalité. */
   const CONCERNS = [
-    ['wrinkle', 'Rides et ridules'], ['radiance', 'Éclat'], ['acne', 'Imperfections'], ['eye_bags', 'Poches sous les yeux'], ['dark_circle', 'Cernes'],
-    ['spots', 'Taches'], ['pores', 'Pores'], ['texture', 'Grain de peau'], ['redness', 'Rougeurs']
+    ['wrinkle', 'Rides'], ['radiance', 'Radiance'], ['acne', 'Acné'], ['eye_bags', 'Poches'], ['dark_circle', 'Cernes'],
+    ['spots', 'Taches'], ['pores', 'Pores'], ['texture', 'Texture'], ['redness', 'Rougeurs']
   ];
   const MSG = {
     sessionExpired: 'Votre session a expiré. Reconnectez-vous pour utiliser la simulation.',
@@ -26,11 +26,22 @@
     unsure: 'Nous n\'avons pas reçu de réponse. Cette simulation a peut-être été comptée dans votre quota.',
     generic: 'La simulation n\'a pas pu être terminée.',
     badImage: 'L\'image reçue n\'est pas utilisable. Cette simulation a peut-être été comptée dans votre quota.',
+    imageLoad: 'L\'image simulée n\'a pas pu être chargée. Cette simulation est comptée dans votre quota.',
     gone: 'La photo de cette analyse n\'est plus disponible dans DERMAI.'
   };
   const PENDING = 'dermai.sim.pending.';
   const TIMEOUT_MS = 65000;
   const DATA_IMG = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+  /* Image simulée : l'URL https temporaire du fournisseur (cas normal), ou une image data: (jamais d'autre schéma). Rien n'est exécuté : c'est une balise <img>. */
+  const okImage = u => {
+    if (typeof u !== 'string') return false;
+    if (DATA_IMG.test(u)) return u.length < 5 * 1024 * 1024;
+    if (u.length > 4096) return false;
+    try {
+      const p = new URL(u), h = p.hostname.toLowerCase();
+      return p.protocol === 'https:' && !p.username && !p.password && !p.port && h.includes('.') && !h.endsWith('.local') && !h.endsWith('.internal') && !/^\d+\.\d+\.\d+\.\d+$/.test(h) && !h.includes(':');
+    } catch (e) { return false; }
+  };
   const isJpeg = u8 => u8.length > 3 && u8[0] === 0xff && u8[1] === 0xd8 && u8[2] === 0xff;
 
   /* deps : token() → Promise<jeton|null> · userId() · epoch() → numéro de session · render() · go(route) · ic(nom) · esc(texte)
@@ -125,7 +136,7 @@
       const disclaimer = `<div class="c-notice u-my-5">${ic('info')}<div><span class="c-notice__title">Une illustration, pas une prédiction</span>Cette image est générée par ordinateur sur une seule zone. Elle ne prédit pas l'effet de vos soins, ne promet aucun résultat et n'a aucune valeur médicale. Vos vrais résultats dépendent de nombreux facteurs.</div></div>`;
       const ready = !!ui.concern && !busy && !mustAsk && (!pending || ui.acked);
       const result = ui.status === 'done' && ui.image ? beforeAfter(scan) : '';
-      return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone : DERMAI génère une image illustrative de cette zone un peu améliorée, à comparer avec votre photo.</p></div>
+      return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone : DERMAI génère une image illustrative de cette zone améliorée, à comparer avec votre photo.</p></div>
         ${disclaimer}
         <section><div class="hd"><h2 class="h3">Quelle zone ?</h2></div><div class="chips" style="margin-bottom:14px">${chips}</div></section>
         ${askPhoto}${ack}${notice}
@@ -191,7 +202,7 @@
       if (!verdict) { ui.status = 'error'; ui.unsure = true; ui.error = MSG.unsure; redraw(); return; }
       if (out.ok === true) {
         const s = out.simulation;
-        if (s && s.concern === concern && typeof s.image === 'string' && s.image.length < 5 * 1024 * 1024 && DATA_IMG.test(s.image)) {
+        if (s && s.concern === concern && okImage(s.image)) {
           revoke(); ui.beforeUrl = URL.createObjectURL(blob); ui.image = s.image; ui.pos = 50; ui.status = 'done';
         } else { ui.status = 'error'; ui.error = MSG.badImage; }
       } else if (status === 401) { ui.status = 'error'; ui.error = MSG.sessionExpired; }
@@ -225,6 +236,11 @@
         else if (act === 'ack') { ui.acked = true; redraw(); }
         else if (act === 'run') run(cur());
       });
+      /* Image simulée illisible (lien expiré, réseau) : message clair plutôt qu'un cadre vide. L'événement « error » ne remonte pas : écoute en capture. */
+      doc.addEventListener('error', ev => {
+        const el = ev.target;
+        if (el && el.getAttribute && el.getAttribute('data-sim') === 'after' && ui.status === 'done') { ui.status = 'error'; ui.image = ''; ui.error = MSG.imageLoad; revoke(); redraw(); }
+      }, true);
       doc.addEventListener('change', ev => { const el = ev.target; if (el && el.getAttribute && el.getAttribute('data-sim') === 'file') chosen(el, cur()); });
       doc.addEventListener('input', ev => {
         const el = ev.target;

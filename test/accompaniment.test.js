@@ -449,7 +449,7 @@ test('ACC33 objectifs : statut « accompanied » quand un indicateur du domaine 
   const r = go({ acne: 76 }, { goals: ['blemishes'] }), g = r.personalization.goals[0];
   assert.equal(g.status, 'accompanied');
   assert.equal(g.text, 'Un indicateur lié à cet objectif peut être accompagné par un soin doux, sans être une priorité de cette analyse.');
-  assert.match(r.synthesis.goals.items[0].text, /^Imperfections : acné \(84\) n'est pas une priorité, mais peut être accompagné par un soin doux\.$/);
+  assert.match(r.synthesis.goals.items[0].text, /^Acné et imperfections : acné \(84\) n'est pas une priorité, mais peut être accompagné par un soin doux\.$/);
   assert.match(r.synthesis.indicators.acne.text, /^Cet axe correspond à votre objectif et peut être accompagné par un soin doux\. Un soin doux \(niacinamide\) est ajouté à votre routine\.$/);
   assert.equal(go({}, { goals: ['hydration'] }).personalization.goals[0].status, 'no_signal', 'hydratation : aucun actif doux, ancien statut');
   assert.equal(go({ acne: 40 }, { goals: ['blemishes'] }).personalization.goals[0].status, 'priority', 'une priorité reste « priority »');

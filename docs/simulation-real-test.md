@@ -72,7 +72,7 @@ Tant que la fonction est absente, le serveur répond « indisponible » et n'app
 
 ## 6. Une seule simulation
 1. Ouvrir l'application Preview avec le compte de test, ouvrir l'analyse la plus récente, cliquer « Simuler une amélioration ».
-2. Choisir UNE zone (par exemple « Éclat »). Si l'écran demande une photo, choisir la photo autorisée.
+2. Choisir UNE zone (par exemple « Radiance »). Si l'écran demande une photo, choisir la photo autorisée.
 3. Cliquer UNE fois sur « Lancer la simulation ». Ne pas recharger la page, ne pas cliquer à nouveau, ne pas changer d'onglet pour « réessayer ».
 4. Attendre la fin (jusqu'à environ une minute). Noter l'heure de début et de fin.
 5. Alternative en ligne de commande, équivalente et à n'utiliser qu'UNE fois : `curl -X POST "https://<preview>/api/skin-simulation?concern=radiance" -H "Authorization: Bearer <jeton du compte de test>" -H "Content-Type: image/jpeg" --data-binary @photo.jpg`. Le jeton ne doit pas rester dans l'historique du terminal.
@@ -80,9 +80,9 @@ Tant que la fonction est absente, le serveur répond « indisponible » et n'app
 Le quota (1 par 24 h) refuse toute seconde demande. Ne pas le relever pour contourner ce refus.
 
 ## 6bis. Statut du contrat API (résumé ; détail dans le README, « Contrat de l'API »)
-- **Confirmé** (dépôt officiel MCP, lu directement) : Bearer, `src_file_id`, corps de l'outil MCP avec intensités 0 à 1, fonctionnement asynchrone.
-- **Rapporté** (résumés de recherche, pages officielles non ouvertes) : création `POST /s2s/v2.0/task/skin-simulation`, statut `GET /s2s/v2.0/task/skin-simulation/{task_id}`, existence de points d'accès au solde et à l'historique des unités.
-- **Non vérifié** : champ de l'image finale, structure du corps REST, facturation d'un échec, coût par simulation, chemins et gratuité des points d'accès au solde et à l'historique. L'essai réel unique est le seul moyen de les établir si la documentation reste inaccessible ; la console Perfect Corp reste la référence pour le solde.
+- **Confirmé** : par le dépôt officiel MCP (Bearer, `src_file_id`, intensités 0 à 1, asynchrone) ET par le premier essai réel du 11/10/2026 : création `POST /s2s/v2.0/task/skin-simulation`, statut `GET …/task/skin-simulation/{task_id}`, corps `{ src_file_id, <zone>: 0.5 }`, image dans `data.results.url`, tâche terminée en environ 4,4 s, **4 unités débitées** pour cette simulation (zone acné, un seul relevé).
+- **Rapporté** (résumés de recherche, pages officielles non ouvertes) : existence de points d'accès au solde et à l'historique des unités (chemins non connus).
+- **Non vérifié** : facturation d'une tâche en erreur, tarif ferme par zone ou résolution (un seul relevé), durée de validité de l'URL du résultat, chemins et gratuité des points d'accès au solde et à l'historique. La console Perfect Corp reste la référence pour le solde.
 - Ne pas appeler les points d'accès au solde ou à l'historique des unités tant que leur chemin et leurs conditions n'ont pas été lus dans la documentation officielle : leur gratuité n'est pas vérifiée.
 
 ## 7. Mesures
@@ -90,7 +90,7 @@ Le quota (1 par 24 h) refuse toute seconde demande. Ne pas le relever pour conto
 2. **Consommation réelle** = solde avant − solde après (unités). Avec 24 € pour 500 unités : **0,048 € par unité**, soit **31,486 FCFA par unité** (1 € = 655,957 FCFA). Coût = unités × 0,048 € = unités × 31,486 FCFA. Repères pour 9, 12, 16, 22 unités : 283, 378, 504 (le coût d'un scan), 693 FCFA.
 3. **Côté base** : `select count(*) from public.simulation_usage where user_id = '<UUID>';` doit renvoyer 1.
 4. **Côté journaux** (aucune valeur sensible, seulement des étapes) : `Simulation started`, `Simulation quota reserved`, `Simulation task created`, `Simulation task completed`, `Simulation result structure [...]`. Noter la durée entre la création et la fin de la tâche.
-5. **Résultat visuel** : image reçue ? même cadrage que la photo ? effet visible à l'intensité 0,5 ? artefacts ? Noter le jugement honnêtement.
+5. **Résultat visuel** : image reçue ? même cadrage que la photo ? effet visible à l'intensité réglée (0,8 par défaut, `DERMAI_SIMULATION_INTENSITY`) ? Le premier essai à 0,5 (acné) n'a montré aucune différence. artefacts ? Noter le jugement honnêtement.
 6. **Contrat** : avec `DERMAI_DEBUG_RAW`, la réponse brute (dans l'onglet réseau du navigateur) montre où se trouve l'URL du résultat. S'il diffère de `extractResultUrl`, ou si les journaux contiennent la structure de la réponse parce que l'image a été refusée, corriger la fonction concernée (un changement de quelques lignes) SANS refaire d'essai payant. Si le chemin REST ou le corps de création ont été refusés par le fournisseur, noter le code HTTP des journaux.
 7. Consigner dans un seul compte rendu : solde avant et après, unités, FCFA, durée, erreurs, structure de la réponse. Si le solde ne permet pas de conclure (arrondi, différé, partagé), le dire tel quel et ne lancer aucune autre requête pour « mesurer ».
 

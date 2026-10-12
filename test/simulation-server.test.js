@@ -21,7 +21,6 @@ const KEY = 'TEST_ONLY_KEY_NOT_REAL_9f3a';
 const USER = '11111111-1111-4111-8111-111111111111', OTHER = '22222222-2222-4222-8222-222222222222';
 const TOKEN = 'aaaaaaaa.bbbbbbbb.cccccccc', TOKEN2 = 'dddddddd.eeeeeeee.ffffffff';
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
-const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(40, 7)]);
 const SB = createFake();
 auth.api.fetchImpl = SB.fetch; quota.api.fetchImpl = SB.fetch;
 SB.users.set('a@exemple.com', { id: USER, email: 'a@exemple.com', password: 'x', confirmed: true });
@@ -37,8 +36,8 @@ const handler = require('../api/skin-simulation.js');
 /* ───── Faux Perfect Corp : enregistre tout, refuse le reste ───── */
 const BASE = config.PERFECT_CORP_BASE_URL;
 const rec = { calls: [], unexpected: [], real: 0 };
-const mock = { status: [{ data: { task_status: 'success', results: { url: 'https://cdn.example-pc.com/out/sim1.png' } } }], fileFail: false, taskBody: null, resultBytes: PNG, resultStatus: 200, taskId: 't-sim-1', taskStatus: 200, noTaskId: false, resultHeaders: {} };
-const reset = () => { rec.calls = []; rec.unexpected = []; mock.status = [{ data: { task_status: 'success', results: { url: 'https://cdn.example-pc.com/out/sim1.png' } } }]; mock.fileFail = false; mock.resultBytes = PNG; mock.resultStatus = 200; mock.taskId = 't-sim-1'; mock.taskStatus = 200; mock.noTaskId = false; mock.resultHeaders = {}; };
+const mock = { status: [{ data: { task_status: 'success', results: { url: 'https://cdn.example-pc.com/out/sim1.png' } } }], fileFail: false, taskBody: null, taskId: 't-sim-1', taskStatus: 200, noTaskId: false };
+const reset = () => { rec.calls = []; rec.unexpected = []; mock.status = [{ data: { task_status: 'success', results: { url: 'https://cdn.example-pc.com/out/sim1.png' } } }]; mock.fileFail = false; mock.taskId = 't-sim-1'; mock.taskStatus = 200; mock.noTaskId = false; };
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 let polls = 0;
 globalThis.fetch = async (url, init = {}) => {
@@ -50,14 +49,10 @@ globalThis.fetch = async (url, init = {}) => {
     return json(200, { data: { files: [{ file_id: 'file-1', requests: [{ url: 'https://upload.example-pc.com/put/abc', method: 'PUT', headers: {} }] }] } });
   }
   if (u === 'https://upload.example-pc.com/put/abc') return new Response('', { status: 200 });
+  if (/cdn\.example-pc\.com/.test(u)) { rec.unexpected.push('TÉLÉCHARGEMENT du résultat par le serveur ' + u); throw new Error('le serveur ne télécharge pas l\'image (elle dépasse la limite de réponse)'); }
   if (u === BASE + config.SIM_PATHS.task && method === 'POST') { mock.taskBody = JSON.parse(init.body); return mock.noTaskId ? json(200, { data: {} }) : json(mock.taskStatus, { data: { task_id: mock.taskId } }); }
   if (u === BASE + config.SIM_PATHS.taskStatus(mock.taskId) && method === 'GET') { const r = mock.status[Math.min(polls++, mock.status.length - 1)]; return json(200, r); }
   rec.unexpected.push(method + ' ' + u); rec.real++; throw new Error('hôte ou chemin inattendu : ' + u);
-};
-sim.api.fetchImpl = async url => {
-  rec.calls.push({ url: String(url), method: 'GET', result: true });
-  if (/skin-analysis/.test(String(url))) { rec.unexpected.push('ANALYSE ' + url); throw new Error('interdit'); }
-  return new Response(mock.resultBytes, { status: mock.resultStatus, headers: mock.resultHeaders });
 };
 
 /* ───── Appel du handler ───── */
@@ -173,11 +168,13 @@ test('SIM-S9 succès : image + zone + intensité seulement ; ni clé, ni task_id
   assert.equal(r.status, 200); assert.equal(r.body.ok, true);
   assert.deepEqual(Object.keys(r.body), ['ok', 'simulation']); assert.deepEqual(Object.keys(r.body.simulation), ['concern', 'intensity', 'image']);
   assert.equal(r.body.simulation.concern, 'radiance'); assert.equal(r.body.simulation.intensity, config.SIM_INTENSITY);
-  assert.match(r.body.simulation.image, /^data:image\/png;base64,[A-Za-z0-9+/=]+$/);
-  assert.ok(!r.raw.includes(KEY) && !/t-sim-1|file-1|example-pc|Bearer|task_id|cdn\./.test(r.raw), 'aucune fuite');
+  assert.equal(r.body.simulation.image, 'https://cdn.example-pc.com/out/sim1.png', 'l\'URL temporaire du résultat (champ data.results.url, confirmé par le premier essai réel) est renvoyée telle quelle');
+  assert.ok(!r.raw.includes(KEY) && !/t-sim-1|file-1|upload\.example-pc|Bearer|task_id/.test(r.raw), 'aucune fuite');
+  assert.equal(r.raw.split('example-pc').length - 1, 1, 'la seule URL du fournisseur est celle de l\'image');
+  assert.deepEqual(rec.unexpected, [], 'le serveur ne télécharge pas l\'image');
   const withKey = rec.calls.filter(c => c.auth); assert.ok(withKey.length >= 3);
   assert.ok(withKey.every(c => c.url.startsWith(BASE + '/')), 'la clé ne va qu\'à l\'hôte Perfect Corp');
-  assert.ok(rec.calls.filter(c => !c.auth).every(c => /upload\.example-pc|cdn\.example-pc|cdn\./.test(c.url) || c.result), 'URL présignée et résultat : sans clé');
+  assert.ok(rec.calls.filter(c => !c.auth).every(c => /upload\.example-pc/.test(c.url)), 'URL présignée : sans clé');
   assert.deepEqual(rpc(), ['reserve_simulation']);
   assert.equal(SB.simUsage.get(USER).length, 1); assert.equal(SB.usage.size, 0, 'le quota d\'analyses n\'est pas touché');
 });
@@ -192,6 +189,17 @@ test('SIM-S10 requête fournisseur : API fichier, UNE tâche de simulation avec 
     assert.deepEqual(rec.unexpected, []); assert.equal(rec.real, 0);
   }
   assert.ok(config.SIM_INTENSITY > 0 && config.SIM_INTENSITY <= 1);
+});
+
+test('SIM-S10b intensité : défaut 0,8 ; réglable par DERMAI_SIMULATION_INTENSITY (0,1 à 1) ; valeur invalide = défaut ; envoyée au fournisseur et renvoyée', async () => {
+  assert.equal(config.SIM_INTENSITY, 0.8);
+  for (const [v, want] of [[undefined, 0.8], ['', 0.8], ['abc', 0.8], ['0', 0.8], ['0.05', 0.8], ['1.5', 0.8], ['-1', 0.8], ['0.8; drop', 0.8], ['0.3', 0.3], ['1', 1], ['1.0', 1], ['0.55', 0.55], ['.7', 0.7], [' 0.9 ', 0.9]]) {
+    assert.equal(config.simulationIntensity({ DERMAI_SIMULATION_INTENSITY: v }), want, String(v));
+  }
+  const r = await run({ DERMAI_SIMULATION_INTENSITY: '0.95' }, () => call('POST', { query: 'concern=acne' }));
+  assert.equal(r.status, 200); assert.equal(r.body.simulation.intensity, 0.95); assert.deepEqual(mock.taskBody, { src_file_id: 'file-1', acne: 0.95 });
+  const d = await run({ DERMAI_SIMULATION_INTENSITY: 'n\'importe quoi' }, () => call('POST', { query: 'concern=acne' }));
+  assert.equal(d.body.simulation.intensity, 0.8); assert.deepEqual(mock.taskBody, { src_file_id: 'file-1', acne: 0.8 });
 });
 
 test('SIM-S11 quota PROPRE : le second appel est refusé (429, Retry-After), un seul crédit chez le fournisseur ; les analyses n\'y comptent pas', async () => {
@@ -233,7 +241,7 @@ test('SIM-S14 erreurs du fournisseur : messages de simulation, sans détail, ét
   assert.equal(rec.real, 0);
 });
 
-test('SIM-S15 résultat incomplet ou hostile : jamais une image devinée', async () => {
+test('SIM-S15 résultat incomplet ou hostile : jamais une URL devinée ou dangereuse', async () => {
   const bad = [
     { data: { task_status: 'success' } },
     { data: { task_status: 'success', results: {} } },
@@ -248,16 +256,10 @@ test('SIM-S15 résultat incomplet ou hostile : jamais une image devinée', async
   for (const s of bad) {
     const r = await run({}, async () => { mock.status = [s]; return call('POST'); });
     assert.equal(r.status, 502, JSON.stringify(s)); assert.equal(r.body.error, errors.MESSAGES.SIM_RESULT_INVALID);
-    assert.ok(!providerCalls().some(c => c.result), 'rien n\'est téléchargé');
-  }
-  // l'URL est valide mais le contenu ne l'est pas
-  for (const [bytes, status, headers] of [[Buffer.from('<html>pas une image</html>'), 200, {}], [Buffer.alloc(0), 200, {}], [PNG, 404, {}], [PNG, 200, { 'content-length': String(9 * 1024 * 1024) }], [Buffer.concat([PNG, Buffer.alloc(3 * 1024 * 1024)]), 200, {}]]) {
-    const r = await run({}, async () => { mock.resultBytes = bytes; mock.resultStatus = status; mock.resultHeaders = headers; return call('POST'); });
-    assert.equal(r.status, 502); assert.equal(r.body.error, errors.MESSAGES.SIM_RESULT_INVALID);
   }
   // chemins de résultat connus (liste fermée) : tableau results[0].url accepté
-  const ok = await run({}, async () => { mock.status = [{ data: { task_status: 'success', results: [{ url: 'https://cdn.example-pc.com/x.jpg' }] } }]; mock.resultBytes = JPEG; return call('POST'); });
-  assert.equal(ok.status, 200); assert.match(ok.body.simulation.image, /^data:image\/jpeg;base64,/);
+  const ok = await run({}, async () => { mock.status = [{ data: { task_status: 'success', results: [{ url: 'https://cdn.example-pc.com/x.jpg' }] } }]; return call('POST'); });
+  assert.equal(ok.status, 200); assert.equal(ok.body.simulation.image, 'https://cdn.example-pc.com/x.jpg');
 });
 
 test('SIM-S16 délais : polling borné → 504 (message de simulation) ; budget épuisé → 504 sans nouvelle opération ; la tâche n\'est jamais recréée', async () => {

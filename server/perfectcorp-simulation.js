@@ -12,26 +12,22 @@ const masks = require('./masks');
 const { describeStructure } = require('./structure');
 const { call, readJson, authHeaders, requireKey, budgetExhausted } = pc.shared;
 
-const RESULT_LIMITS = { maxBytes: 2.5 * 1024 * 1024, timeoutMs: 8000 };   // la réponse d'une fonction Vercel est limitée à ~4,5 Mo (base64 ≈ ×1,34)
-/* Hôte fournisseur : l'URL du résultat doit être en https et publique (même règle que les masques). */
-const api = { fetchImpl: (...a) => globalThis.fetch(...a) };
-
 /* Une seule préoccupation, dans la liste blanche. Renvoie le paramètre Perfect Corp, ou null. */
 const concernParam = key => (typeof key === 'string' && Object.prototype.hasOwnProperty.call(SIM_CONCERNS, key) ? SIM_CONCERNS[key] : null);
 
 /* NON CONFIRMÉ — forme du corps de création. D'après le schéma de l'outil officiel : l'image (src_file_id) et UNE intensité 0..1 sous le nom du
    paramètre de la préoccupation ; les autres intensités restent absentes (valeur par défaut du fournisseur = pas d'effet demandé). */
-function buildTaskBody(fileId, param) {
-  return { src_file_id: fileId, [param]: SIM_INTENSITY };
+function buildTaskBody(fileId, param, intensity = SIM_INTENSITY) {
+  return { src_file_id: fileId, [param]: intensity };
 }
 
 /* NON CONFIRMÉ — création de la tâche. Le seuil de temps est celui de l'analyse (crédit engagé : de quoi interroger au moins une fois). */
-async function createSimulationTask({ fileId, param }, env) {
+async function createSimulationTask({ fileId, param, intensity }, env) {
   requireKey(env);
   const json = await call(env, 'task', env.baseUrl + SIM_PATHS.task, {
     method: 'POST',
     headers: { ...authHeaders(env), 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildTaskBody(fileId, param))
+    body: JSON.stringify(buildTaskBody(fileId, param, intensity))
   }, readJson, env.budget.minTaskMs);
   const taskId = json && json.data && json.data.task_id;
   if (!taskId) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: 'simulation task : task_id absent de la réponse' });
@@ -66,9 +62,12 @@ async function pollSimulationTask(taskId, env) {
   throw new AnalysisError('TIMEOUT', { status: 504, detail: 'simulation : polling abandonné (délai dépassé)' });
 }
 
-/* NON CONFIRMÉ — emplacement de l'image résultat. On n'accepte QUE ces chemins précis (jamais une recherche récursive d'une chaîne qui ressemble
-   à une URL) ; si aucun ne donne une URL https publique, la simulation est refusée (SIM_RESULT_INVALID) et la réponse brute reste côté serveur.
-   Le premier essai contrôlé (README, « Procédure du test réel ») permet de fixer le bon chemin avec DERMAI_DEBUG_RAW. */
+/* Emplacement de l'image résultat : `data.results.url`, CONFIRMÉ par le premier essai réel (structure relevée dans les journaux : data.results.url,
+   data.task_status, data.error). Les autres chemins ci-dessous ne sont que des repli prudents d'une liste FERMÉE (jamais une recherche récursive d'une
+   chaîne qui ressemble à une URL) ; si aucun ne donne une URL https publique, la simulation est refusée (SIM_RESULT_INVALID) et la structure de la réponse
+   est journalisée (chemins et types, jamais de valeur).
+   L'URL est présignée, temporaire et propre à l'image : elle est renvoyée telle quelle au navigateur de l'utilisatrice connectée, qui l'affiche. Le
+   serveur ne télécharge PAS l'image : le premier essai a montré qu'elle dépasse la limite de réponse d'une fonction Vercel (~4,5 Mo) une fois en base64. */
 function extractResultUrl(envelope) {
   const d = envelope && envelope.data;
   const r = d && d.results;
@@ -84,38 +83,16 @@ function extractResultUrl(envelope) {
   return null;
 }
 
-/* Télécharge l'image résultat CÔTÉ SERVEUR (sans clé API : URL présignée), vérifie la signature réelle des octets (JPEG, PNG ou WebP), plafonne la
-   taille, et la renvoie en data URL : l'URL d'origine ne quitte jamais le serveur. */
-async function fetchResultImage(url, budget) {
-  if (budget && !budget.canStart(budget.minStepMs)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: 'simulation : budget épuisé avant le téléchargement du résultat' });
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), budget ? Math.min(RESULT_LIMITS.timeoutMs, budget.remaining()) : RESULT_LIMITS.timeoutMs);
-  try {
-    const res = await api.fetchImpl(url, { method: 'GET', redirect: 'follow', signal: ctl.signal });
-    if (!res || !res.ok) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: `simulation : téléchargement du résultat HTTP ${res && res.status}` });
-    if (res.url && !masks.safeUrl(res.url)) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: 'simulation : redirection refusée' });
-    const declared = Number(res.headers && res.headers.get && res.headers.get('content-length'));
-    if (Number.isFinite(declared) && declared > RESULT_LIMITS.maxBytes) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: 'simulation : image trop volumineuse' });
-    const buf = Buffer.from(await res.arrayBuffer());
-    const mime = buf.length && buf.length <= RESULT_LIMITS.maxBytes ? masks.sniff(buf) : null;
-    if (!mime) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: `simulation : image illisible ou hors limites (${buf.length} octets)` });
-    return { mime, dataUrl: `data:${mime};base64,${buf.toString('base64')}` };
-  } catch (e) {
-    if (e instanceof AnalysisError) throw e;
-    throw new AnalysisError(ctl.signal.aborted ? 'TIME_BUDGET' : 'SIM_RESULT_INVALID', { status: ctl.signal.aborted ? 504 : 502, cause: e, detail: 'simulation : téléchargement du résultat impossible' });
-  } finally { clearTimeout(timer); }
-}
-
-/* Orchestration : fichier → tâche de simulation → polling → image. Une seule tâche par appel. Renvoie { image (data URL), envelope }.
+/* Orchestration : fichier → tâche de simulation → polling → URL de l'image. Une seule tâche par appel. Renvoie { image (URL https), envelope }.
    `concern` : clé DERMAI déjà validée par le handler (revérifiée ici). */
-async function simulate({ buffer, mime, concern }, opts = {}) {
+async function simulate({ buffer, mime, concern, intensity = SIM_INTENSITY }, opts = {}) {
   const param = concernParam(concern);
   if (!param) throw new AnalysisError('SIM_INVALID_CONCERN', { status: 400 });
   const env = pc.makeEnv(opts);
   requireKey(env);
   const up = await pc.requestUploadUrl({ size: buffer.length, mime }, env);       // API fichier, la même que pour l'analyse
   await pc.uploadFile({ url: up.url, method: up.method, headers: up.headers, buffer, mime }, env);
-  const taskId = await createSimulationTask({ fileId: up.fileId, param }, env);
+  const taskId = await createSimulationTask({ fileId: up.fileId, param, intensity }, env);
   const envelope = await pollSimulationTask(taskId, env);
   /* Structure seulement (chemins et types, jamais de valeur ni d'URL) : si le chemin du résultat n'est pas celui attendu, ce journal est la seule
      trace exploitable de l'essai réel, qui ne doit pas être répété pour la retrouver. */
@@ -123,8 +100,7 @@ async function simulate({ buffer, mime, concern }, opts = {}) {
   console.log('[DERMAI] Simulation result structure', structure);
   const url = extractResultUrl(envelope);
   if (!url) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: 'simulation : aucune URL de résultat reconnue dans la réponse ; structure ' + structure });
-  const img = await fetchResultImage(url, env.budget);
-  return { image: img.dataUrl, envelope };
+  return { image: url, envelope };
 }
 
-module.exports = { simulate, concernParam, buildTaskBody, extractResultUrl, fetchResultImage, createSimulationTask, pollSimulationTask, api, RESULT_LIMITS };
+module.exports = { simulate, concernParam, buildTaskBody, extractResultUrl, createSimulationTask, pollSimulationTask };
