@@ -543,15 +543,11 @@ const stepName=st=>st.kind===`treatment`?st.activeLabel:{cleanse:`Nettoyant doux
 const stepSub=st=>st.kind===`moisturize`?st.texture:{cleanse:`Matin et soir`,spf:`Chaque matin`,treatment:Engine.copy.STEP_LABELS.treatment}[st.kind];
 
 /* ---------- 4. ÉCRANS ---------- */
-const NAV=[[`home`,`Accueil`,`home`],[`scan`,`Analyser`,`scan`],[`routine`,`Routine`,`routine`],[`progress`,`Progression`,`chart`],[`profile`,`Profil`,`user`]];
-const TAB_OF={home:`home`,result:`home`,concern:`home`,scan:`scan`,routine:`routine`,actives:`routine`,active:`routine`,products:`routine`,progress:`progress`,profile:`profile`,analyses:`profile`,privacy:`profile`};
 function shell(inner,{title=``,back=false}={}){
-  const tab=TAB_OF[state.route];
-  const navBtns=cls=>NAV.map(n=>`<button ${cls?`class="${cls}" `:``}data-go="${n[0]}" data-reset="1" ${tab===n[0]?`aria-current="page"`:``}>${ic(n[2])}<span>${n[1]}</span></button>`).join(``);
   return `<div class="app">
     ${SB.html()}
     <main class="main"><div class="m-brand">${SB.toggle()}${brandBtn(44)}</div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
-    <nav class="nav c-bottomnav" aria-label="Navigation principale">${navBtns(`c-bottomnav__item`)}</nav>
+    <button class="c-scanfab" data-go="scan" data-reset="1" aria-label="Analyser ma peau">${ic(`scan`)}</button>
   </div>`;
 }
 const V={};

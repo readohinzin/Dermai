@@ -25,17 +25,14 @@ test('LF2 mode réel : sans photo (analyse retrouvée, la photo n\'étant jamais
   assert.match(app, /state\.route===`scan`\|\|state\.route===`analyzing`\?state\.realPreview/);
 });
 
-test('LF3 barre du bas (téléphone) : le libellé « Progression » ne déborde plus de sa pastille ; la police suit la largeur, les onglets restent ≥ 44 px', () => {
-  const nav = read('css/components/nav.css');
-  const block = nav.slice(nav.indexOf('@media (max-width:480px){\n  .nav.c-bottomnav'));
-  assert.match(block, /\.nav\.c-bottomnav\{left:8px;right:8px;padding:4px;gap:2px\}/);
-  assert.match(block, /\.c-bottomnav__item\{padding-inline:0;font-size:clamp\(9\.2px,calc\(\(100vw - 82px\) \/ 29\.5\),12px\)\}/);
-  // la règle suit la définition de base de l'onglet (même spécificité : la dernière l'emporte) et garde sa hauteur tactile
-  assert.ok(nav.indexOf('.c-bottomnav__item{display:flex') < nav.indexOf('clamp(9.2px'));
-  assert.match(nav, /\.c-bottomnav__item\{[^}]*min-height:52px;min-width:var\(--tap\)/);
-  // calcul : pour chaque largeur de téléphone, le libellé actif (≈ 5,9 × taille, Manrope 700) tient dans l'onglet avec une marge
-  for (const w of [320, 360, 375, 390, 414, 430, 480]) {
-    const f = Math.min(12, Math.max(9.2, (w - 82) / 29.5)), item = (w - 16 - 8 - 8) / 5, label = 5.86 * f;
-    assert.ok(item - label >= (w <= 320 ? 3 : 8), w + ' px : onglet ' + item.toFixed(1) + ' px pour un libellé de ' + label.toFixed(1) + ' px');
-  }
+test('LF3 bouton d\'analyse (téléphone) : cercle de 60 px centré en bas au-dessus de la zone sûre, icône sans texte, absent dès 920 px ; plus aucune règle de l\'ancienne barre à cinq onglets', () => {
+  const nav = read('css/components/nav.css'), legacy = read('css/legacy.css');
+  const rule = nav.match(/\.c-scanfab\{[^}]*\}/)[0];
+  assert.match(rule, /position:fixed;left:50%;bottom:calc\(16px \+ env\(safe-area-inset-bottom,0px\)\)/); assert.match(rule, /width:60px;height:60px/); assert.match(rule, /border-radius:50%/); assert.match(rule, /transform:translateX\(-50%\)/);
+  assert.match(rule, /z-index:var\(--z-nav\)/, 'sous le menu (z-sheet) et le message (z-toast)');
+  assert.match(nav, /@media \(min-width:920px\)\{\.c-scanfab\{display:none\}\}/);
+  assert.match(nav, /\.c-scanfab:focus-visible\{outline:none;box-shadow:var\(--focus-ring\)\}/, 'anneau de focus conservé');
+  assert.ok(!/bottomnav/.test(nav) && !/\.nav\b/.test(nav + legacy), 'aucune règle .nav / .c-bottomnav restante');
+  assert.match(legacy, /@media \(max-width:919px\)\{\n  \.main\{padding-bottom:136px\}/, 'le contenu garde la place sous le bouton');
+  assert.match(legacy, /#toast\{position:fixed;left:50%;bottom:calc\(96px \+ env\(safe-area-inset-bottom,0px\)\)/, 'le message s\'affiche au-dessus du bouton (60 + 16 < 96)');
 });

@@ -42,9 +42,6 @@ svg.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;str
 .app{display:block}
 .rail{display:none}
 .main{padding:20px 20px 120px;max-width:600px;margin:0 auto}
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:space-around;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
-.nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;color:var(--ink-3);min-width:62px;min-height:50px;text-align:center;border-radius:14px}
-.nav button[aria-current="page"]{color:var(--ink);font-weight:600}
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;display:flex;align-items:center;gap:8px;margin:-20px -20px 12px;padding:10px 12px;background:color-mix(in srgb,var(--bg) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .top .iconbtn{width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
 .top b{font-weight:600;font-size:16px}
@@ -64,7 +61,6 @@ section+section{margin-top:0}
   .rail nav button{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;font-weight:500;color:var(--ink-2);min-height:48px}
   .rail nav button[aria-current="page"]{background:var(--surface-2);color:var(--ink);font-weight:600}
   .rail small{margin-top:auto;color:var(--ink-3);font-size:13px;line-height:1.5}
-  .nav{display:none}
   .main{max-width:1120px;width:100%;padding:56px 64px 80px;margin:0}
   .top{position:static;margin:0 0 14px;padding:0;background:none;backdrop-filter:none}
   .grid2{grid-template-columns:1fr 1fr;gap:56px}
@@ -416,11 +412,9 @@ h2{font-size:clamp(1.8rem,6vw,2.4rem);line-height:1.1}
 .cmp .tagl{background:var(--btn);color:var(--on-btn)}
 .cmp .handle{background:var(--surface)}.cmp .handle::after{background:var(--btn);border-color:var(--surface)}
 
-/* navigation flottante (mobile) */
+/* bouton d'analyse flottant (mobile) : le contenu garde de la place sous lui */
 @media (max-width:919px){
   .main{padding-bottom:136px}
-  .nav{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));border:1px solid var(--line);border-radius:28px;background:color-mix(in srgb,var(--surface) 92%,transparent);box-shadow:0 18px 40px -20px rgba(84,47,59,.45);padding:6px}
-  .nav button[aria-current="page"]{color:var(--accent);background:var(--surface-3)}
 }
 .rail nav button[aria-current="page"]{background:var(--surface-3);color:var(--accent)}
 
