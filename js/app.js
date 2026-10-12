@@ -441,7 +441,7 @@ const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||
 const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc,evolution:()=>EVO.fromProgram()});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
 const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
 const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:()=>render(true),program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
-const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial()});SB.attach(document);   // js/sidebar.js
+const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial(),simulation:()=>{SIM.probe();return SIM.state().avail===`yes`&&!noReal()}});SB.attach(document);   // js/sidebar.js
 const QL=DermaiQuickLogin.create({account:()=>ACCOUNT,state:()=>state.account,render:()=>render()});QL.attach(document);   // js/quick-login.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;

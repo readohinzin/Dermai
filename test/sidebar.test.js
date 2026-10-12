@@ -18,16 +18,23 @@ const decode = s => s.replace(/&#39;/g, '\'').replace(/&amp;/g, '&');
 
 test('SB1 entrées : uniquement des écrans qui existent, restaurables par l\'adresse, sans doublon ni lien inventé', () => {
   const all = SB.ITEMS.concat(SB.OTHERS);
-  assert.deepEqual(all.map(i => i.label), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Ma routine', 'Profil et paramètres']);
+  assert.deepEqual(all.map(i => i.label), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres']);
   for (const i of all) {
     assert.ok(SCREENS.has(i.go), `${i.label} : l'écran « ${i.go} » existe dans app.js`);
-    assert.ok(RESTORABLE.has(i.go) || i.go === 'scan', `${i.label} : l'adresse de « ${i.go} » est restaurable`);
+    assert.ok(RESTORABLE.has(i.go) || i.go === 'scan' || i.when, `${i.label} : l'adresse de « ${i.go} » est restaurable (sauf la simulation, qui exige le contexte d'une analyse)`);
     i.routes.forEach(r => assert.ok(SCREENS.has(r), `route ${r} connue`));
     assert.ok(i.routes.includes(i.go), `${i.label} : son écran fait partie de ses routes`);
     assert.ok(i.label.length <= 22, `libellé court : ${i.label}`);
   }
   assert.equal(new Set(all.map(i => i.id)).size, all.length); assert.equal(new Set(all.map(i => i.go)).size, all.length);
-  assert.ok(!all.some(i => /simulation/i.test(i.go + i.label)), 'aucune entrée vers la simulation : son accès est ouvert par le serveur, compte par compte, depuis le résultat');
+  assert.deepEqual(all.filter(i => i.when).map(i => i.id), ['simulation'], 'seule la simulation est conditionnelle');
+  assert.ok(!/simulation/i.test(mk().html()), 'simulation fermée ou inconnue : aucune entrée');
+  assert.ok(!/simulation/i.test(mk('home', { simulation: () => false }).html()));
+  assert.ok(!/simulation/i.test(mk('home', { simulation: () => { throw new Error('x'); } }).html()), 'une erreur de vérification n\'ouvre jamais l\'entrée');
+  const open = mk('home', { simulation: () => true }).html();
+  assert.match(open, /data-go="simulation" data-reset="1"[^>]*>(?:(?!<\/button>).)*Simulation cosmétique/s);
+  assert.deepEqual(labels(open).map(decode).slice(4, 7), ['Programme de soins', 'Simulation cosmétique', 'Ma routine']);
+  assert.equal((open.match(/Nouveau/g) || []).length, 1, 'le badge reste réservé à Évolution');
   assert.deepEqual(SB.OTHERS.map(i => i.id), ['profile']);
 });
 
@@ -42,7 +49,7 @@ test('SB2 DERMAI Évolution et le programme de soins sont dans les cinq premièr
 
 test('SB3 page active : exactement une entrée aria-current pour chaque écran connu, aucune pour un écran inconnu', () => {
   for (const i of SB.ITEMS.concat(SB.OTHERS)) for (const r of i.routes) {
-    const h = mk(r).html(), cur = [...h.matchAll(/data-go="([a-z]+)"[^>]*aria-current="page"/g)].map(m => m[1]);
+    const h = mk(r, { simulation: () => true }).html(), cur = [...h.matchAll(/data-go="([a-z]+)"[^>]*aria-current="page"/g)].map(m => m[1]);
     assert.deepEqual(cur, [i.go], `écran ${r}`);
   }
   assert.ok(!/aria-current/.test(mk('landing').html())); assert.ok(!/aria-current/.test(mk('').html()));
@@ -86,7 +93,7 @@ test('SB7 câblage : module et feuille chargés une fois, avant l\'application ;
   const html = read('index.html'), at = f => html.indexOf(`<script src="${f}"></script>`);
   assert.equal((html.match(/js\/sidebar\.js/g) || []).length, 1); assert.ok(at('js/sidebar.js') > 0 && at('js/sidebar.js') < at('js/app.js'));
   assert.match(read('css/styles.css'), /@import url\("components\/sidebar\.css"\) layer\(components\);/);
-  assert.match(app, /const SB=DermaiSidebar\.create\(\{ic,brand:h=>brandBtn\(h\),route:\(\)=>state\.route,initial:\(\)=>initial\(\)\}\);SB\.attach\(document\);/);
+  assert.match(app, /const SB=DermaiSidebar\.create\(\{ic,brand:h=>brandBtn\(h\),route:\(\)=>state\.route,initial:\(\)=>initial\(\),simulation:\(\)=>\{SIM\.probe\(\);return SIM\.state\(\)\.avail===`yes`&&!noReal\(\)\}\}\);SB\.attach\(document\);/);
   const shell = app.slice(app.indexOf('function shell('), app.indexOf('const V={}'));
   assert.match(shell, /\$\{SB\.html\(\)\}/); assert.match(shell, /<div class="m-brand">\$\{SB\.toggle\(\)\}\$\{brandBtn\(44\)\}<\/div>/);
   assert.doesNotMatch(shell, /<aside class="rail">/, 'l\'ancien rail à cinq entrées est remplacé');
