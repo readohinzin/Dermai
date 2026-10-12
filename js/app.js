@@ -347,7 +347,7 @@ async function handleAuthRedirect(redirect){
   await enterSession(r.user,false);
   if(!signedIn())return;
   if(r.type===`recovery`){state.account.recovery=true;go(`reset`,null,{reset:true,replace:true});return}
-  toast(DermaiAccount.MSG.emailConfirmed);afterAuth({reset:true,replace:true});
+  toast(r.message);afterAuth({reset:true,replace:true});
 }
 async function bootAccount(arrivedWithoutPage,redirect){
   if(!ACCOUNT||!ACCOUNT.available)return;
@@ -440,6 +440,7 @@ const ICONS={
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||``}</svg>`;
 const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
 const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
+const QL=DermaiQuickLogin.create({account:()=>ACCOUNT,state:()=>state.account,render:()=>render()});QL.attach(document);   // js/quick-login.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
@@ -651,7 +652,7 @@ const authForm=kind=>{
     <div class="c-field"><label class="c-field__label" for="f-mail">Adresse e-mail</label><input class="c-input" id="f-mail" name="email" type="email" inputmode="email" enterkeyhint="next" autocomplete="email" autocapitalize="none" spellcheck="false" value="${esc(A.formEmail)}" required></div>
     <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" name="password" type="password" enterkeyhint="go" autocomplete="${signup?`new-password`:`current-password`}" required>${signup?`<p class="c-field__hint">8 caractères au minimum.</p>`:`<p style="margin-top:8px"><button class="link" type="button" data-go="forgot">Mot de passe oublié ?</button></p>`}</div>
     <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">${signup?`Créer mon compte`:`Se connecter`}</button>
-  </form>
+  </form>${QL.magicHtml()}
   <p style="margin-top:20px;text-align:center">${signup?`Déjà un compte ? <button class="link" data-go="login">Se connecter</button>`:`Pas encore de compte ? <button class="link" data-go="signup">Créer mon compte</button>`}</p>
   ${signup?`<p style="text-align:center"><button class="link" data-go="welcome">Continuer sans compte</button></p>`:``}
   <p class="muted" style="margin-top:14px">Seules vos préférences de personnalisation sont associées à votre compte. Vos photos ne sont pas enregistrées dans votre profil.</p></div></div>`;
@@ -1385,7 +1386,7 @@ document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
 window.addEventListener(`online`,()=>F.resume());document.addEventListener(`visibilitychange`,()=>{if(!document.hidden)F.resume()});
 window.addEventListener(`popstate`,()=>{const h=readLocation();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
 const authRedirect=(!DEMO_MODE&&window.DermaiAccount)?DermaiAccount.readAuthRedirect(location.hash):null;
-if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}                                    // les jetons ne restent pas dans la barre d'adresse
+if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}   // jetons hors de la barre d'adresse
 const initialRoute=readLocation();
 if(initialRoute&&location.hash)try{history.replaceState(null,``,pathOf(initialRoute.route,initialRoute.param))}catch(e){}
 if(initialRoute){state.route=initialRoute.route;state.param=initialRoute.param}

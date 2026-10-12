@@ -84,7 +84,8 @@ test('R6 lecture d\'un lien : seuls les retours de Supabase sont reconnus, jamai
   assert.equal(Account.readAuthRedirect(''), null); assert.equal(Account.readAuthRedirect('#scan'), null); assert.equal(Account.readAuthRedirect('#profile'), null);
   assert.deepEqual(Account.readAuthRedirect('#access_token=aaaa.bbbb.cccc&refresh_token=r&expires_in=60&type=recovery'), { kind: 'session', type: 'recovery', access_token: 'aaaa.bbbb.cccc', refresh_token: 'r', expires_in: 60 });
   assert.equal(Account.readAuthRedirect('#access_token=aaaa.bbbb.cccc&refresh_token=r&type=signup').type, 'signup');
-  assert.equal(Account.readAuthRedirect('#access_token=aaaa.bbbb.cccc&refresh_token=r&type=magiclink').type, 'signup', 'tout type inconnu est traité comme une simple ouverture de session');
+  assert.equal(Account.readAuthRedirect('#access_token=aaaa.bbbb.cccc&refresh_token=r&type=invite').type, 'signup', 'tout autre type inconnu est traité comme une simple ouverture de session');
+  assert.equal(Account.readAuthRedirect('#access_token=aaaa.bbbb.cccc&refresh_token=r&type=magiclink').type, 'magic', 'lien magique : simple connexion, pas une confirmation d\'adresse');
   assert.deepEqual(Account.readAuthRedirect('#error=access_denied&error_code=otp_expired'), { kind: 'error' });
   assert.deepEqual(Account.readAuthRedirect('#access_token=sansrefresh'), { kind: 'error' });
 });
