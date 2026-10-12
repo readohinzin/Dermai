@@ -22,7 +22,7 @@ test('A1 inscription : compte créé, session ouverte, profil créé avec des va
   assert.equal(r.ok, true);
   assert.equal(acc.user.email, 'a@exemple.com');
   const p = await acc.loadProfile();
-  assert.deepEqual(p, { ok: true, profile: { goals: [], level: '', comfort: { preferGentle: false }, exclusions: [] }, photos: null }, 'photos : null = pas encore demandé');
+  assert.deepEqual(p, { ok: true, profile: { goals: [], level: '', comfort: { preferGentle: false }, exclusions: [] }, photos: null, pristine: true }, 'photos : null = pas encore demandé ; pristine : aucune préférence enregistrée');
   assert.equal(fake.profiles.size, 1);
 });
 

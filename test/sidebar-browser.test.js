@@ -304,6 +304,7 @@ test('SBB12 simulation : l\'entrée disparaît à la déconnexion et ne passe ja
   assert.equal(env.stats.simProbe.length, 1);
   // un autre compte se connecte : sa propre vérification est faite, rien n'est repris du compte précédent
   await fake.fetch(`${H.SB}/auth/v1/signup`, { method: 'POST', headers: { apikey: 'anon-key-for-tests' }, body: JSON.stringify({ email: 'b@exemple.com', password: 'motdepasse1' }) });
+  fake.profiles.get(fake.users.get('b@exemple.com').id).goals = ['hydration'];   // compte B avec des préférences : sa connexion ouvre l'accueil (un compte resté neutre ouvre les questions)
   await page.evaluate(() => go('login'));
   await page.fill('form[data-form=login] [name=email]', 'b@exemple.com'); await page.fill('form[data-form=login] [name=password]', 'motdepasse1');
   await page.click('form[data-form=login] button[type=submit]');
