@@ -58,7 +58,7 @@ test('PB2 parcours : routine → programme → commencer → cocher → recharge
   const uid = await uidOf(page);
   await page.evaluate(() => go('routine'));
   assert.match(await text(page), /Programme de 30 jours/); assert.match(await text(page), /sans nouvelle analyse/);
-  await page.click('[data-go=program]');
+  await page.click('main [data-go=program]');
   await page.waitForFunction(() => state.route === 'program');
   let t = await text(page);
   assert.match(t, /Mon programme de 30 jours/); assert.match(t, /aucune nouvelle analyse n'est lancée, jamais automatiquement/); assert.match(t, /Quand demander un avis professionnel/); assert.match(t, /Rester raisonnable côté budget/);
