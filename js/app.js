@@ -438,8 +438,9 @@ const ICONS={
   image:`<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>`
 };
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||``}</svg>`;
-const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
+const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc,evolution:()=>EVO.fromProgram()});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
 const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
+const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:()=>render(true),program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
@@ -1041,17 +1042,17 @@ const cmpRow=(m,label)=>m.available
 V.progress=()=>{
   if(noReal())return emptyScan(`Votre évolution`,[`Aucune analyse pour le moment`,`Faites votre première analyse : vous pourrez ensuite suivre votre évolution.`]);
   if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre évolution`,SCANS[0].saved||state.account.status===`off`?[`Votre première analyse est enregistrée.`,`Faites une nouvelle analyse plus tard pour suivre votre évolution.`]:[`Votre première analyse n'est pas enregistrée.`,`Connectez-vous avant votre prochaine analyse : vous pourrez ensuite suivre votre évolution.`]);
-  const lastIdx=SCANS.length-1,A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)];
+  EVO.settle();const lastIdx=SCANS.length-1,A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)];
   const opt=(sel)=>SCANS.map(s=>`<option value="${s.id}" ${s.id===sel?`selected`:``}>${dateLabel(s)}</option>`).join(``);
   const pts=globalPoints(),cmp=SkinModel.compareScans(A.normalized,B.normalized);
   return shell(`<div class="pagehead"><h1>Votre évolution</h1><p>Vos scores sont comparés d'une analyse à l'autre. 100 correspond au meilleur état. Ce sont des indicateurs de suivi cosmétique.</p></div>
-  ${(ev=>ev.available&&ev.indicators.length?`<section class="sand" style="margin-bottom:24px"><div class="hd"><h2 class="h3">Vos priorités actuelles, depuis l'analyse précédente</h2></div><ul class="c-indicators">${ev.indicators.map(i=>`<li class="c-indicator"><span class="c-indicator__name">${i.label}</span><span class="c-indicator__value">${i.delta===null?`<span class="muted">Comparaison indisponible</span>`:`<span class="c-indicator__score">${i.previous} → ${i.current}<small>/100</small></span><span class="c-delta c-delta--${i.trend===`up`?`up`:i.trend===`down`?`down`:`flat`}">${Engine.copy.PERSONAL.trend[i.trend]}</span>`}</span></li>`).join(``)}</ul><p class="muted" style="margin-top:10px">${ev.note}</p></section>`:``)(engineFor(SCANS[SCANS.length-1]).personalization.evolution)}
+  ${EVO.card(A,B)}${EVO.priorities(engineFor(SCANS[SCANS.length-1]).personalization.evolution)}
   ${pts.length>=2?`<div class="c-card" style="margin-bottom:14px"><p class="kicker">Score global</p>${gchart(pts)}</div>`:`<div class="c-notice u-my-5">${ic(`info`)}<div>Pas assez de scores globaux valides pour tracer une courbe.</div></div>`}
   <div class="grid2" style="margin-top:30px"><section><div class="hd"><h2 class="h3">Avant, maintenant</h2></div>
-   ${!DEMO_MODE&&!(A.photo&&B.photo)?`<div class="c-notice">${ic(`info`)}<div>Vos photos ne sont pas conservées avec vos analyses : la comparaison porte sur vos scores.</div></div>`:`<div class="cmp" id="cmpbox"><span class="tagl" style="left:14px">Avant</span><span class="tagl" style="right:14px">Maintenant</span>
+   ${!DEMO_MODE&&!(A.photo&&B.photo)?``:`<div class="cmp" id="cmpbox"><span class="tagl" style="left:14px">Avant</span><span class="tagl" style="right:14px">Maintenant</span>
     <div class="layer">${portrait({photo:B.photo})}</div>
     <div class="layer top" id="cmpTop">${portrait({photo:A.photo})}</div>
-    <div class="handle" id="cmpH"></div><input type="range" id="cmp" min="0" max="100" value="50" aria-label="Faire glisser pour comparer avant et maintenant"></div>`}
+    <div class="handle" id="cmpH"></div><input type="range" id="cmp" min="0" max="100" value="50" aria-label="Faire glisser pour comparer avant et maintenant"></div>`}${EVO.photos(A,B)}
    ${DEMO_MODE?`<p class="muted" style="margin-top:10px">Démonstration : les deux côtés montrent la même photo tant qu'il n'y a qu'une seule image. Vos vraies photos apparaîtront ici.</p>`:``}</section>
    <section><div class="hd"><h2 class="h3">Comparer deux analyses</h2></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px"><label class="sr" for="sa">Avant</label><select class="sel" id="sa" data-change="cmpA">${opt(state.cmpA)}</select><label class="sr" for="sb">Maintenant</label><select class="sel" id="sb" data-change="cmpB">${opt(state.cmpB)}</select></div>
@@ -1381,7 +1382,7 @@ document.addEventListener(`change`,e=>{
   if(e.target.id===`photoInput`){loadPhoto(e.target.files&&e.target.files[0]);e.target.value=``;return}
   if(e.target.dataset&&e.target.dataset.market!==undefined){setMarket(e.target.value,e.target.id);return}
   const k=e.target.dataset&&e.target.dataset.change;if(!k)return;
-  state[k]=Number(e.target.value);render(true);
+  state[k]=Number(e.target.value);if(k===`cmpA`||k===`cmpB`)EVO.pick();render(true);
 });
 document.addEventListener(`submit`,e=>{const f=e.target&&e.target.dataset&&e.target.dataset.form;if(!f||!ACCOUNT)return;e.preventDefault();if(f===`forgot`)submitForgot(e.target);else if(f===`reset`)submitReset(e.target);else submitAuth(f,e.target)});
 document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
