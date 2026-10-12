@@ -298,7 +298,10 @@
       if (r.network || !r.ok) return { ok: false, error: MSG.loadFailed };
       const row = Array.isArray(r.body) ? r.body[0] : null;
       const photos = !photosColumn ? undefined : row && typeof row.keep_photos === 'boolean' ? row.keep_photos : null;
-      return { ok: true, profile: row ? fromRow(row) : null, photos };
+      /* `pristine` : aucune préférence enregistrée. Le déclencheur de la base crée une ligne NEUTRE à l'inscription (objectifs vides, niveau non choisi) : sa seule existence ne prouve pas que
+         les questions ont été posées. Vrai pour une ligne absente ou restée neutre ; faux dès qu'un objectif, un niveau, l'approche douce ou une exclusion est enregistré. */
+      const pristine = !row || (Array.isArray(row.goals) ? row.goals.length === 0 : true) && !row.routine_level && row.prefer_gentle !== true && (Array.isArray(row.exclusions) ? row.exclusions.length === 0 : true);
+      return { ok: true, profile: row ? fromRow(row) : null, photos, pristine };
     }
 
     /* Choix de conservation des photos : seule la colonne keep_photos est écrite (les préférences ne sont jamais réécrites ici). */

@@ -218,7 +218,7 @@ async function enterSession(user,fresh){
   const epoch=authEpoch,r=await ACCOUNT.loadProfile();
   if(epoch!==authEpoch)return;
   state.account.loading=false;
-  if(r.ok){state.noProfile=!r.profile;if(r.profile)applyProfile(r.profile);else applyProfile({});state.photos=r.photos;state.save={status:`idle`,message:``}}
+  if(r.ok){state.noProfile=!r.profile||r.pristine;if(r.profile)applyProfile(r.profile);else applyProfile({});state.photos=r.photos;state.save={status:`idle`,message:``}}
   else if(r.error===DermaiAccount.MSG.sessionExpired){expireSession();return}
   else{state.save={status:`error`,message:r.error}}
   if(fresh)state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};   // compte tout juste créé : aucun historique à charger
