@@ -1,5 +1,5 @@
 'use strict';
-/* Connexion Google dans le VRAI js/app.js, dans Chromium, réseau simulé (aucun Google, aucun Apple, Supabase factice). Ignoré si Playwright / Chromium sont absents. */
+/* Connexion Google dans le VRAI js/app.js, dans Chromium, réseau simulé (aucun Google, Supabase factice). Ignoré si Playwright / Chromium sont absents. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const H = require('./helpers/browser-harness.js');
@@ -16,7 +16,7 @@ test.before(async () => {
 test.after(async () => { if (browser) await browser.close(); if (server) server.close(); });
 const text = page => page.evaluate(() => document.body.innerText);
 
-test('SLB1 par défaut : aucun bouton Google ni Apple sur la connexion et l\'inscription', opts, async () => {
+test('SLB1 par défaut : aucun bouton Google sur la connexion et l\'inscription', opts, async () => {
   server.stats.social = undefined;
   const env = await H.open(browser, server);
   const { page } = env;
@@ -24,7 +24,7 @@ test('SLB1 par défaut : aucun bouton Google ni Apple sur la connexion et l\'ins
     await page.goto('/'); await page.waitForFunction(() => typeof go === 'function' && state.account.status === 'visitor');
     await page.evaluate(r => go(r), route);
     assert.equal(await page.locator('[data-social]').count(), 0, route);
-    assert.doesNotMatch(await text(page), /Continuer avec (Google|Apple)|ou avec votre adresse e-mail/);
+    assert.doesNotMatch(await text(page), /Continuer avec Google|ou avec votre adresse e-mail/);
   }
   assert.deepEqual(env.errors, []); await env.close();
 });
@@ -36,7 +36,7 @@ test('SLB2 « google » ouvert : bouton Google seul, sur les deux écrans ; un c
   await page.goto('/'); await page.waitForFunction(() => typeof go === 'function' && state.account.status === 'visitor');
   for (const route of ['signup', 'login']) {
     await page.evaluate(r => go(r), route);
-    assert.equal(await page.locator('[data-social=google]').count(), 1, route); assert.equal(await page.locator('[data-social=apple]').count(), 0, 'Apple non ouvert');
+    assert.equal(await page.locator('[data-social=google]').count(), 1, route); assert.equal(await page.locator('[data-social=apple]').count(), 0, 'pas de bouton Apple');
     assert.match(await text(page), /Continuer avec Google/); assert.match(await text(page), /ou avec votre adresse e-mail/);
     assert.equal(await page.locator('form[data-form] input[name=email]').count(), 1, 'le formulaire e-mail reste');
   }

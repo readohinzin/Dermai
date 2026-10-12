@@ -1,4 +1,4 @@
-# Connexion avec Google (puis Apple) : mise en place
+# Connexion avec Google : mise en place
 
 Statut : le code est prêt et **fermé par défaut**. Aucun bouton n'apparaît tant que `DERMAI_SOCIAL_PROVIDERS` n'est pas défini sur Vercel ET que le fournisseur n'est pas activé dans Supabase.
 
@@ -26,7 +26,7 @@ Aucun mot de passe, aucun jeton Google ni secret n'est lu ou gardé par le code 
 2. **Authentication**, **URL Configuration** : **Site URL** `https://dermai-afric.vercel.app` ; **Redirect URLs** contient `https://dermai-afric.vercel.app/**` (et, pour tester sur une Preview, l'adresse de la Preview).
 
 ## 3. Vercel
-Ajoutez en **Production** : `DERMAI_SOCIAL_PROVIDERS` = `google` (plus tard `google,apple`), puis redéployez. Valeur publique : ce sont seulement les noms des boutons à afficher.
+Ajoutez en **Production** : `DERMAI_SOCIAL_PROVIDERS` = `google` , puis redéployez. Valeur publique : ce sont seulement les noms des boutons à afficher.
 
 ## 4. Test
 1. Ouvrez le site en navigation privée, page de connexion : le bouton « Continuer avec Google » est au-dessus du formulaire.
@@ -39,6 +39,3 @@ Ajoutez en **Production** : `DERMAI_SOCIAL_PROVIDERS` = `google` (plus tard `goo
 - **Navigateurs intégrés** (Instagram, Facebook, TikTok…) : Google refuse la connexion (erreur `disallowed_useragent`). Il faut ouvrir le lien dans Safari ou Chrome.
 - **Confidentialité** : la page de confidentialité de l'app devra mentionner ces modes de connexion.
 - **Retour en arrière** : retirer `DERMAI_SOCIAL_PROVIDERS` sur Vercel (et redéployer) fait disparaître les boutons ; les comptes déjà créés restent.
-
-## Apple (plus tard)
-Il faut un compte **Apple Developer** payant, un « Services ID » et une clé, à renseigner dans Supabase (Authentication, Sign In / Providers, Apple). Apple impose de renouveler la clé secrète environ tous les 6 mois. Le bouton existe déjà dans le code : il apparaît quand `DERMAI_SOCIAL_PROVIDERS` contient `apple`.

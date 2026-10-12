@@ -1,5 +1,5 @@
 'use strict';
-/* Connexion Google / Apple : js/account.js (adresse de départ, retour du fournisseur), js/social-auth.js (boutons), api/config-js.js (fournisseurs ouverts).
+/* Connexion Google : js/account.js (adresse de départ, retour du fournisseur), js/social-auth.js (boutons), api/config-js.js (fournisseurs ouverts).
    Aucun réseau réel : aucun fournisseur n'est contacté, la navigation est simulée. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -19,7 +19,7 @@ test('SL1 adresse de départ : Supabase /authorize, fournisseur de la liste, ret
   const { acc } = mk();
   const u = new URL(acc.oauthUrl('google'));
   assert.equal(u.origin + u.pathname, SB + '/auth/v1/authorize'); assert.equal(u.searchParams.get('provider'), 'google'); assert.equal(u.searchParams.get('redirect_to'), 'https://dermai-afric.vercel.app/');
-  assert.equal(new URL(acc.oauthUrl('apple')).searchParams.get('provider'), 'apple');
+  assert.equal(acc.oauthUrl('apple'), '', 'Apple n\'est pas pris en charge');
   for (const bad of ['facebook', 'GOOGLE', 'google&x=1', '', undefined, null, '../x', 'github']) assert.equal(acc.oauthUrl(bad), '', String(bad));
   assert.equal(mk({ origin: '' }).acc.oauthUrl('google'), '', 'site sans adresse : rien');
   assert.equal(mk({ origin: 'javascript:alert(1)' }).acc.oauthUrl('google'), '');
@@ -60,10 +60,10 @@ test('SL4 boutons : aucun par défaut ; seulement les fournisseurs du serveur ET
   assert.equal(Social.create({ url, providers: () => [] }).html(), ''); assert.equal(Social.create({ url, providers: () => undefined }).html(), '');
   assert.equal(Social.create({ url }).html(), '', 'sans configuration : aucun bouton');
   const g = Social.create({ url, providers: () => ['google'] }).html();
-  assert.match(g, /data-social="google"[^>]*>[\s\S]*Continuer avec Google/); assert.doesNotMatch(g, /Apple/); assert.match(g, /ou avec votre adresse e-mail/);
-  const both = Social.create({ url, providers: () => ['apple', 'google', 'facebook', '<img>'] }).html();
-  assert.match(both, /Continuer avec Google/); assert.match(both, /Continuer avec Apple/); assert.doesNotMatch(both, /facebook|<img>/i);
-  assert.ok(both.indexOf('data-social="google"') < both.indexOf('data-social="apple"'), 'ordre fixe : Google puis Apple');
+  assert.match(g, /data-social="google"[^>]*>[\s\S]*Continuer avec Google/); assert.doesNotMatch(g, /Apple/i); assert.match(g, /ou avec votre adresse e-mail/);
+  const only = Social.create({ url, providers: () => ['apple', 'google', 'facebook', '<img>'] }).html();
+  assert.match(only, /Continuer avec Google/); assert.doesNotMatch(only, /apple|facebook|<img>/i, 'tout autre fournisseur est ignoré, même s\'il est listé');
+  assert.equal(Social.create({ url, providers: () => ['apple'] }).html(), '', 'Apple seul : aucun bouton');
   assert.equal(Social.create({ url: () => '', providers: () => ['google'] }).html(), '', 'comptes indisponibles : pas de bouton qui ne mènerait nulle part');
 });
 
@@ -86,13 +86,14 @@ test('SL5 départ : une seule navigation, vers l\'adresse de Supabase ; fourniss
 test('SL6 /api/config-js : fournisseurs ouverts seulement si DERMAI_SOCIAL_PROVIDERS ; valeurs inconnues écartées ; aucun secret', () => {
   assert.deepEqual(config.socialProviders({}), []); assert.deepEqual(config.socialProviders({ DERMAI_SOCIAL_PROVIDERS: '' }), []);
   assert.deepEqual(config.socialProviders({ DERMAI_SOCIAL_PROVIDERS: 'google' }), ['google']);
-  assert.deepEqual(config.socialProviders({ DERMAI_SOCIAL_PROVIDERS: ' Google , APPLE,google,facebook,github, ' }), ['google', 'apple']);
+  assert.deepEqual(config.socialProviders({ DERMAI_SOCIAL_PROVIDERS: ' Google , APPLE,google,facebook,github, ' }), ['google']);
+  assert.deepEqual(config.socialProviders({ DERMAI_SOCIAL_PROVIDERS: 'apple' }), [], 'Apple n\'est pas pris en charge');
   assert.deepEqual(config.socialProviders({ DERMAI_SOCIAL_PROVIDERS: '*' }), [], 'pas de joker');
   const handler = require('../api/config-js.js');
   const run = env => { const saved = process.env.DERMAI_SOCIAL_PROVIDERS; if (env === undefined) delete process.env.DERMAI_SOCIAL_PROVIDERS; else process.env.DERMAI_SOCIAL_PROVIDERS = env; let out; try { handler({ method: 'GET' }, { setHeader() {}, end(b) { out = b; }, statusCode: 0 }); } finally { if (saved === undefined) delete process.env.DERMAI_SOCIAL_PROVIDERS; else process.env.DERMAI_SOCIAL_PROVIDERS = saved; } return out; };
   assert.ok(!/socialProviders/.test(run(undefined)), 'par défaut : la clé n\'existe pas (sortie identique à avant)');
   assert.match(run('google'), /"socialProviders":\["google"\]/);
-  assert.ok(!/KEY|SECRET|CLIENT/i.test(run('google,apple').replace(/supabaseAnonKey/g, '')));
+  assert.ok(!/KEY|SECRET|CLIENT/i.test(run('google').replace(/supabaseAnonKey/g, '')));
 });
 
 test('SL7 source : le client ne contient ni secret fournisseur, ni identifiant client ; app.js reste sous la limite', () => {

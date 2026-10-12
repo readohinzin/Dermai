@@ -148,10 +148,10 @@
     const q = new URLSearchParams(h);
     if (q.get('access_token') && q.get('refresh_token')) {
       const type = q.get('type') || '';
-      /* Sans `type` : retour d'une connexion Google ou Apple (jetons dans le fragment, sans type). */
+      /* Sans `type` : retour d'une connexion Google (jetons dans le fragment, sans type). */
       return { kind: 'session', type: type === 'recovery' ? 'recovery' : (type ? 'signup' : 'oauth'), access_token: q.get('access_token'), refresh_token: q.get('refresh_token'), expires_in: Number(q.get('expires_in')) || 3600 };
     }
-    /* Refus ou abandon chez Google ou Apple (#error=access_denied…) : message propre, sans le texte du fournisseur. */
+    /* Refus ou abandon chez Google (#error=access_denied…) : message propre, sans le texte du fournisseur. */
     /* Un lien d'e-mail expiré arrive aussi avec error=access_denied (error_code=otp_expired) : ce n'est pas un refus de l'utilisatrice. */
     return /(^|&)error=access_denied/.test(h) && !/(^|&)error_code=otp_/.test(h) ? { kind: 'error', denied: true } : { kind: 'error' };
   }
@@ -428,11 +428,11 @@
       if (!setSession({ access_token: parsed.access_token, refresh_token: parsed.refresh_token, expires_in: parsed.expires_in, user: { id: body.id, email: body.email } })) return { ok: false, error: MSG.linkInvalid };
       return { ok: true, type: parsed.type, message: parsed.type === 'oauth' ? MSG.oauthDone : MSG.emailConfirmed, user: { id: session.user.id, email: session.user.email } };
     }
-    /* Adresse de départ d'une connexion Google ou Apple : Supabase fait le tour chez le fournisseur puis revient sur ce site (adresse à autoriser dans
+    /* Adresse de départ d'une connexion Google : Supabase fait le tour chez le fournisseur puis revient sur ce site (adresse à autoriser dans
        « Redirect URLs »). Aucune requête ici : c'est le navigateur qui s'y rend. Fournisseur hors liste ou site sans adresse https : chaîne vide. */
     function oauthUrl(provider) {
       const origin = o.origin !== undefined ? o.origin : (typeof location === 'object' && location ? location.origin : '');
-      if (!available || !['google', 'apple'].includes(provider) || !/^https?:\/\/[^/\s]+$/.test(String(origin))) return '';
+      if (!available || provider !== 'google' || !/^https?:\/\/[^/\s]+$/.test(String(origin))) return '';
       return base + '/auth/v1/authorize?provider=' + provider + '&redirect_to=' + encodeURIComponent(origin + '/');
     }
     async function updatePassword(password) {

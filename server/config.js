@@ -115,9 +115,9 @@ const simulationQuota = (env = process.env) => ({
   windowSeconds: intIn(env.DERMAI_SIMULATION_PERIOD_HOURS, 1, 8760, SIM_QUOTA_DEFAULTS.hours) * 3600
 });
 
-/* Connexion Google / Apple : fournisseurs dont le bouton est affiché (DERMAI_SOCIAL_PROVIDERS, par exemple « google » ou « google,apple »). Valeur PUBLIQUE
+/* Connexion Google : fournisseurs dont le bouton est affiché (DERMAI_SOCIAL_PROVIDERS, par exemple « google »). Valeur PUBLIQUE
    (noms de fournisseurs). Vide ou absente : aucun bouton. Le fournisseur doit aussi être activé dans Supabase (Authentication, Providers). */
-const socialProviders = (env = process.env) => [...new Set(String(env.DERMAI_SOCIAL_PROVIDERS || '').split(',').map(s => s.trim().toLowerCase()).filter(s => ['google', 'apple'].includes(s)))];
+const socialProviders = (env = process.env) => [...new Set(String(env.DERMAI_SOCIAL_PROVIDERS || '').split(',').map(s => s.trim().toLowerCase()).filter(s => s === 'google'))];
 
 module.exports = {
   socialProviders,
