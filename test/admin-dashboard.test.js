@@ -19,6 +19,9 @@ const BODY = {
   features: { ok: true, generatedAt: NOW, features: A.featureRows(ENV) },
   quotas: { ok: true, generatedAt: NOW, quotas: A.quotaRows({ DERMAI_MAX_HAIR_UNITS_PER_PERIOD: '12' }) },
   credit: { ok: true, credit: { status: 'ok', fetchedAt: NOW, cached: false, spendable: 150, categories: [{ type: 'Api Purchased', amount: 120, spendable: true }, { type: 'Api Gift', amount: 30, spendable: true }, { type: 'Web Trial', amount: 5, spendable: false }] } },
+  usage: { ok: true, usage: { status: 'ok', fetchedAt: NOW, cached: false, accounts: { total: 42, new_7d: 5, new_30d: 17, signed_in_7d: 20, signed_in_30d: 31, active_7d: 12, active_30d: 25, returned_7d: 7, never_used: 9, inactive_30d: 11 },
+    functions: [{ key: 'analysis', name: 'Analyse de la peau', available: true, runs_7d: 30, runs_30d: 90, users_30d: 25 }, { key: 'simulation', name: 'Simulation cosmétique', available: true, runs_7d: 4, runs_30d: 10, users_30d: 6 }, { key: 'makeup', name: 'Studio Beauté : maquillage', available: false }, { key: 'hair', name: 'Studio Beauté : cheveux', available: true, runs_7d: 3, runs_30d: 8, users_30d: 4, units_7d: 5, units_30d: 14 }],
+    savedAnalyses: { total: 120, last_30d: 40, users: 30 } } },
   costs: { ok: true, costs: Object.assign({ status: 'ok', fetchedAt: NOW, cached: true, total: 3, pages: 1, truncated: false }, A.matchCosts([{ description: 'Skin <b>analysis</b>', amount: 4, unit: 'unit', procUnit: 'task', slug: 'skin-analysis' }, { description: 'Hair color', amount: null, unit: 'unit', procUnit: null, slug: 'hair-color' }, { description: 'Autre', amount: 3, unit: 'unit', procUnit: null, slug: 'face-attr-analysis' }])) }
 };
 function setup(o = {}) {
@@ -56,13 +59,13 @@ test('AU2 compte changé ou session périmée : l\'accès et les données ne pas
   const out = setup(); await open(out); out.uid = null; assert.match(out.ad.page(), /Page introuvable/); assert.deepEqual(Object.keys(out.ad.state().sec), [], 'déconnexion : plus aucune donnée');
 });
 
-test('AU3 page du fondateur : quatre sections demandées en lecture (GET, jeton), aucune autre route ; chargement visible puis les quatre blocs ; aucune action de modification', async () => {
+test('AU3 page du fondateur : cinq sections demandées en lecture (GET, jeton), aucune autre route ; chargement visible puis les six blocs ; aucune action de modification', async () => {
   const c = setup(); c.ad.ready(); await tick();
   const first = c.ad.page(); assert.match(first, /Chargement…/); assert.match(first, /Lecture seule/); await tick(15);
-  assert.deepEqual(sections(c).map(x => x.url).sort(), ['/api/admin-stats?section=costs', '/api/admin-stats?section=credit', '/api/admin-stats?section=features', '/api/admin-stats?section=quotas']);
+  assert.deepEqual(sections(c).map(x => x.url).sort(), ['/api/admin-stats?section=costs', '/api/admin-stats?section=credit', '/api/admin-stats?section=features', '/api/admin-stats?section=quotas', '/api/admin-stats?section=usage']);
   assert.ok(c.calls.every(x => x.method === 'GET' && x.headers.Authorization === 'Bearer tok-1'));
   const h = txt(c.ad.page());
-  for (const l of ['Solde Perfect Corp', 'Coûts officiels annoncés', 'Fonctionnalités', 'Quotas configurés', 'Administration', 'Lecture seule']) assert.match(h, new RegExp(l));
+  for (const l of ['Solde Perfect Corp', 'Comptes', 'Utilisation par fonction', 'Coûts officiels annoncés', 'Fonctionnalités', 'Quotas configurés', 'Administration', 'Lecture seule']) assert.match(h, new RegExp(l));
   assert.equal((h.match(/<button/g) || []).length, 1, 'un seul bouton : Actualiser'); assert.match(h, /data-ad="refresh"/); assert.ok(!/<form|<input|<select|<textarea|href=|data-act=|data-go="(?!home)|supprimer|désactiver|activer |modifier|lancer/i.test(h.replace(/data-ad="refresh"/, '')), 'aucune commande de modification');
   assert.equal(c.renders > 0, true);
 });
@@ -75,7 +78,7 @@ test('AU4 solde : total « Api » annoncé avec sa source, catégories telles qu
   assert.match(n, /Indisponible/); assert.match(n, /ce n'est pas zéro/); assert.ok(!/<p class="c-ad-big">0/.test(n));
   for (const reason of Object.keys(AD.REASONS)) {
     const u = setup({ overrides: { credit: json(200, { ok: true, credit: { status: 'unavailable', reason, fetchedAt: NOW } }) } }); const hu = txt(await open(u));
-    assert.match(hu, /<b>Indisponible<\/b>/, reason); assert.ok(hu.includes(AD.REASONS[reason].replace(/&/g, '&amp;')) || hu.includes(txt(AD.REASONS[reason])), reason); assert.ok(!/c-ad-big">/.test(hu.split('Coûts officiels')[0]), reason + ' : aucun chiffre de solde');
+    assert.match(hu, /<b>Indisponible<\/b>/, reason); assert.ok(hu.includes(AD.REASONS[reason].replace(/&/g, '&amp;')) || hu.includes(txt(AD.REASONS[reason])), reason); assert.ok(!/c-ad-big">/.test(hu.split('id="ad-accounts"')[0]), reason + ' : aucun chiffre de solde');
   }
   const odd = setup({ overrides: { credit: json(200, { ok: true, credit: { status: 'unavailable', reason: '<script>x</script>', fetchedAt: NOW } }) } }); assert.match(txt(await open(odd)), new RegExp(AD.REASONS.unavailable), 'cause inconnue : message générique, rien d\'injecté');
 });
@@ -107,7 +110,7 @@ test('AU7 une section en échec n\'efface pas les autres ; message d\'erreur cla
   const d = setup({ overrides: { credit: json(404, 'Not found') } }); const hd = txt(await open(d)); assert.match(hd, /Page introuvable/); assert.ok(!/150|Solde|Quotas|Fonctionnalités/.test(hd), 'droit retiré : plus rien n\'est montré'); assert.equal(d.ad.ready(), false);
   const r = setup(); await open(r); const before = sections(r).length; const doc = { addEventListener: (t, fn) => { doc.fn = fn; } }; r.ad.attach(doc);
   const btn = { disabled: false, getAttribute: k => (k === 'data-ad' ? 'refresh' : null), closest: () => btn };
-  doc.fn({ target: btn }); doc.fn({ target: btn }); await tick(25); assert.equal(sections(r).length, before + 4, 'un seul rechargement malgré le double clic');
+  doc.fn({ target: btn }); doc.fn({ target: btn }); await tick(25); assert.equal(sections(r).length, before + 5, 'un seul rechargement malgré le double clic');
   const busyHtml = (() => { const x = setup({ overrides: { credit: () => new Promise(res => setTimeout(() => res(json(200, BODY.credit)), 30)) } }); return x; })(); await open(busyHtml); busyHtml.ad.attach(doc); doc.fn({ target: btn }); assert.match(busyHtml.ad.page(), /data-ad="refresh" disabled/); await tick(60);
 });
 
@@ -115,7 +118,7 @@ test('AU8 module AUTONOME : lecture seule, une seule route, aucun stockage, aucu
   const src = read('js/admin-dashboard.js').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.deepEqual([...new Set(src.match(/\/api\/[a-z-]+/g))], ['/api/admin-stats']); assert.ok(!/localStorage|sessionStorage|indexedDB|innerHTML|outerHTML|insertAdjacentHTML|eval\(|new Function|document\.write|XMLHttpRequest|sendBeacon|perfectcorp|makeupar|supabase|PERFECT_CORP|method:\s*['"](POST|PUT|PATCH|DELETE)/i.test(src));
   assert.ok(!/studio|makeup|hair|DermaiStudio|DermaiHair|DermaiMakeup|require\(['"]\.\/(makeup|hair)/i.test(src), 'le module d\'administration ne mentionne pas le Studio Beauté');
-  assert.deepEqual(AD.SECTIONS, ['features', 'quotas', 'credit', 'costs']);
+  assert.deepEqual(AD.SECTIONS, ['features', 'quotas', 'credit', 'costs', 'usage']);
   for (const f of ['js/makeup-studio.js', 'js/makeup-data.js', 'js/hair-studio.js', 'js/hair-data.js']) assert.ok(!/admin|DermaiAdmin/i.test(read(f)), f + ' ne contient plus rien d\'administratif');
   /* deux instances côte à côte : états et requêtes indépendants */
   const a = setup(), st = S.create({ account: () => ({ user: { id: 'u1' }, accessToken: async () => 'tok' }), epoch: () => 0, render: () => {}, session: () => null, storage: () => null, fetchImpl: async () => json(200, { ok: true, available: false, features: [] }) });
@@ -125,4 +128,24 @@ test('AU8 module AUTONOME : lecture seule, une seule route, aucun stockage, aucu
   st.reset(); st.clear(); assert.equal(a.ad.state().access, 'yes', 'réinitialiser le Studio ne touche pas l\'administration'); assert.ok(a.ad.state().loaded);
   assert.match(txt(a.ad.page()), /Solde Perfect Corp/); assert.ok(!/Administration/.test(st.page()), 'la page du Studio ne parle jamais de l\'administration');
   assert.ok(!a.calls.some(c => c.method !== 'GET'), 'aucune requête autre que GET');
+});
+
+test('AU9 comptes et utilisation : nombres lus tels que reçus, fonction sans compteur = « Non mesurée » (jamais zéro), valeur invalide = « Indisponible », causes lisibles, aucun compte identifié', async () => {
+  const c = setup(); const h = txt(await open(c));
+  assert.match(h, /<p class="c-ad-big">42 <small>comptes/); assert.match(h, /Nouveaux comptes<\/span><b>5 <small>sur 7 j<\/small> · 17 <small>sur 30 j/); assert.match(h, /Actifs \(au moins une demande\)<\/span><b>12 <small>sur 7 j<\/small> · 25/);
+  assert.match(h, /Retour à 7 jours<\/span><b>7</); assert.match(h, /Inactifs depuis 30 jours<\/span><b>11</); assert.match(h, /Jamais utilisé une fonction<\/span><b>9</);
+  assert.match(h, /Analyse de la peau/); assert.match(h, /Demandes<\/dt><dd>30 <small>sur 7 j<\/small> · 90 <small>sur 30 j/); assert.match(h, /Unités<\/dt><dd>5 <small>sur 7 j<\/small> · 14/);
+  assert.equal((h.match(/Unités<\/dt>/g) || []).length, 1, 'les unités ne concernent que les cheveux');
+  assert.match(h, /Studio Beauté : maquillage<\/h3><span class="c-badge c-badge--outline">Non mesurée/); assert.match(h, /rien n'est affiché plutôt qu'un zéro/);
+  assert.match(h, /Analyses enregistrées dans l'historique/); assert.match(h, /Total<\/dt><dd>120</); assert.match(h, /ce n'est pas un coût confirmé|Ce n'est pas un coût confirmé/);
+  assert.match(h, /Nombres seulement : aucun compte n'est identifié/); assert.ok(!/@|[0-9a-f]{8}-[0-9a-f]{4}-/.test(h.replace(/<[^>]+>/g, ' ').replace(/20261014120000/g, '')), 'ni e-mail ni identifiant');
+  const bad = JSON.parse(JSON.stringify(BODY.usage)); bad.usage.accounts.total = null; bad.usage.accounts.active_7d = null; bad.usage.functions[0].runs_30d = null; bad.usage.savedAnalyses.total = null;
+  const n = txt(await open(setup({ overrides: { usage: json(200, bad) } })));
+  assert.match(n, /<p class="c-ad-big">Indisponible <small>comptes/); assert.match(n, /Actifs \(au moins une demande\)<\/span><b>Indisponible <small>sur 7 j/); assert.match(n, /Total<\/dt><dd>Indisponible</); assert.ok(!/<p class="c-ad-big">0 /.test(n));
+  for (const [reason, re] of [['not_applied', /fonction SQL de lecture n'est pas appliquée/], ['not_authorized', /table admin_users/], ['timeout', /Délai dépassé/], ['malformed', /forme inconnue/]]) {
+    const u = txt(await open(setup({ overrides: { usage: json(200, { ok: true, usage: { status: 'unavailable', reason, fetchedAt: NOW } }) } })));
+    assert.match(u, re, reason); assert.equal((u.match(/c-ad-unavail/g) || []).length, 2, 'les deux blocs disent « Indisponible » avec la cause'); assert.ok(!/<p class="c-ad-big">0/.test(u));
+    assert.match(u, /Solde Perfect Corp/); assert.match(u, /150 <small>unités API/, 'le solde reste affiché');
+  }
+  const evil = JSON.parse(JSON.stringify(BODY.usage)); evil.usage.functions[0].name = '<img src=x onerror=alert(1)>'; const e = await open(setup({ overrides: { usage: json(200, evil) } })); assert.ok(!/<img src=x/.test(e), 'noms échappés');
 });

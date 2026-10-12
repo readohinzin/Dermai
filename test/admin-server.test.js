@@ -227,5 +227,5 @@ test('AD-S11 source : lecture seule, aucune clé de service, aucune écriture ; 
   const v = JSON.parse(read('vercel.json')); assert.equal(v.functions['api/admin-stats.js'].maxDuration, 30);
   const envs = read('.env.example'); assert.match(envs, /DERMAI_ADMIN_USER_IDS=\s*(#.*)?$/m, 'documentée et VIDE'); assert.ok(!new RegExp(FOUNDER + '|' + OTHER).test(envs));
   for (const f of ['js/app.js', 'js/admin-dashboard.js', 'index.html']) assert.ok(!/PERFECT_CORP_API_KEY|yce-api|makeupar|s2s\/v\d/i.test(read(f).replace(/\/\*[\s\S]*?\*\//g, '')), f + ' : ni clé ni hôte du fournisseur');
-  assert.deepEqual(fs.readdirSync(path.join(ROOT, 'supabase/migrations')).filter(f => /admin/i.test(f)), [], 'aucune migration'); assert.deepEqual(fs.readdirSync(path.join(ROOT, 'supabase/proposals')).filter(f => /admin/i.test(f)), [], 'aucune proposition SQL pour cette V1');
+  assert.deepEqual(fs.readdirSync(path.join(ROOT, 'supabase/migrations')).filter(f => /admin/i.test(f)), [], 'aucune migration'); assert.deepEqual(fs.readdirSync(path.join(ROOT, 'supabase/proposals')).filter(f => /admin/i.test(f)).sort(), ['20261014120000_admin_overview.rollback.sql', '20261014120000_admin_overview.sql'], 'seule proposition SQL d\'administration : la lecture agrégée (comptes et utilisation), avec son retour arrière, jamais appliquée par ce dépôt');
 });
