@@ -33,8 +33,7 @@ body.sb-lock{overflow:hidden}
 .sidebar small{margin:var(--s-2) var(--s-3) 0;color:var(--ink-3);font-size:13px;line-height:1.5}
 
 /* Bouton de menu : dans l'en-tête mobile, à DROITE du logo (le logo reste centré). Panneau ouvert, le bouton s'estompe (contour et icône à demi-teinte, fond teinté). */
-.m-brand{position:relative}
-.sidebar__toggle{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.sidebar__toggle{position:absolute;right:20px;top:50%;transform:translateY(-50%)}   /* l'en-tête .m-brand (nav.css) est l'ancre de position ; 20 px = remplissage de la page */
 .sidebar__toggle[aria-expanded="true"]{border-color:color-mix(in srgb,var(--accent) 28%,transparent);color:color-mix(in srgb,var(--accent) 55%,transparent);background:var(--tint)}
 
 /* Panneau ouvert (mobile) : en-tête logo + croix nue, entrées aérées avec icône d'accent, filet puis « Se déconnecter » en couleur d'alerte, signature discrète en bas. */
