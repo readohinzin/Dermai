@@ -32,7 +32,8 @@
 
   /* Icônes absentes du jeu de l'application (menu, fermer, calendrier) : même gabarit (24 px, trait 1,7). Les autres viennent de ic() de l'application. */
   const OWN = {
-    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+    /* Icône « panneau latéral » : cadre arrondi dont la partie gauche est pleine (la colonne). */
+    panel: '<rect x="3" y="5" width="18" height="14" rx="3.5"/><path d="M3 8.5A3.5 3.5 0 0 1 6.5 5H11v14H6.5A3.5 3.5 0 0 1 3 15.5z" fill="currentColor" stroke="none"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     calendar: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>'
   };
@@ -75,7 +76,7 @@
     }
     /* Icône de menu (mobile), placée dans l'en-tête de page. */
     function toggle() {
-      return `<button type="button" class="sidebar__toggle" data-sb="open" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="${open ? 'true' : 'false'}">${ic('menu')}</button>`;
+      return `<button type="button" class="sidebar__toggle" data-sb="open" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="${open ? 'true' : 'false'}">${ic('panel')}</button>`;
     }
 
     const lock = () => { const b = doc() && doc().body; if (b) b.classList.toggle('sb-lock', open); };

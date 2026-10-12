@@ -12,6 +12,9 @@ body.sb-lock{overflow:hidden}
 .sidebar .brand{align-self:flex-start;justify-content:flex-start;padding-left:var(--s-2);margin:0}
 .sidebar__close,.sidebar__toggle{display:grid;place-items:center;flex:none;width:var(--tap);height:var(--tap);padding:0;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--ink);cursor:pointer}
 .sidebar__close svg,.sidebar__toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* Bouton d'ouverture : carré aux coins arrondis, contour et icône à la couleur d'accent (même forme que l'icône « panneau latéral » des applications modernes). */
+.sidebar__toggle{border:1.5px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:var(--r-sm);color:var(--accent)}
+.sidebar__toggle svg{width:26px;height:26px}
 .sidebar__close:focus-visible,.sidebar__toggle:focus-visible,.sidebar__link:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 
 .sidebar__list{display:flex;flex-direction:column;gap:var(--s-1);margin:0;padding:0;list-style:none}

@@ -130,3 +130,12 @@ test('SB9 « Se déconnecter » : sous « Autres accès », après le profil, po
   const src = read('js/sidebar.js'); assert.match(src, /#sidebar \[data-act\]/, 'le panneau mobile se referme aussi après cette action');
   assert.match(app, /case `logout`:logout\(\);break;/, 'l\'action existe dans l\'application');
 });
+
+test('SB9 bouton d\'ouverture : icône « panneau latéral » (cadre arrondi dont la partie gauche est pleine) dans un carré aux coins arrondis, à la couleur d\'accent ; plus les trois traits', () => {
+  const t = mk('home').toggle();
+  assert.match(t, /<rect x="3" y="5" width="18" height="14" rx="3.5"\/>/); assert.match(t, /<path d="M3 8\.5A3\.5 3\.5 0 0 1 6\.5 5H11v14H6\.5A3\.5 3\.5 0 0 1 3 15\.5z" fill="currentColor" stroke="none"\/>/);
+  assert.ok(!/M4 7h16M4 12h16M4 17h16/.test(t), 'plus de menu à trois traits');
+  assert.match(t, /aria-label="Ouvrir le menu"/); assert.match(t, /aria-controls="sidebar"/); assert.match(t, /data-sb="open"/);
+  const css = read('css/components/sidebar.css');
+  assert.match(css, /\.sidebar__toggle\{border:1\.5px solid color-mix\(in srgb,var\(--accent\) 45%,transparent\);border-radius:var\(--r-sm\);color:var\(--accent\)\}/);
+});
