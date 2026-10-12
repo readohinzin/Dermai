@@ -584,7 +584,7 @@ test('W9 expiration de session : l\'analyse non enregistrée est conservée (pas
   assert.match(expire, /DermaiAccount\.MSG\.sessionExpired\+F\.note\(\)/);
   assert.match(between('async function logout', 'const esc='), /if\(!F\.leave\(\)\)return;/);
   assert.match(between('async function deleteHistory', '/* Photos de scan'), /state\.cmpB=1;F\.clear\(\);/);
-  assert.match(between('async function deleteMyAccount', 'async function submitAuth'), /F\.clear\(\);CP\.clear\(\);VR\.clear\(\);resetPrivateState\(\)/);
+  assert.match(between('async function deleteMyAccount', 'async function submitAuth'), /F\.clear\(\);CP\.clear\(\);VR\.clear\(\);ST\.clear\(\);resetPrivateState\(\)/);
   assert.match(app, /onExpired:\(\)=>expireSession\(\)/);
 });
 

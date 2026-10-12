@@ -258,7 +258,7 @@ Illustration visuelle d'une zone « un peu améliorée » à partir de la photo 
 - **Zones proposées** (une par demande) : rides, radiance, acné, poches, cernes, taches, pores, texture, rougeurs. `oiliness` est exclue : son intensité AJOUTE de la brillance (sens inverse), ce ne serait pas une amélioration. Intensité choisie côté serveur (jamais par le navigateur) : 0,8 par défaut, réglable par `DERMAI_SIMULATION_INTENSITY` (0,1 à 1). Le premier essai à 0,5 (zone acné) n'a donné aucune différence visible ; 0,8 est un nouvel essai, valeur provisoire à ajuster.
 - **Navigateur** (`js/simulation.js`, chargé avant `app.js`) : bouton « Simuler une amélioration » dans le résultat de l'analyse la plus récente, uniquement si le serveur répond « disponible » pour ce compte. Écran : avertissement « une illustration, pas une prédiction », choix de la zone, mention du quota, curseur avant/après. Une seule demande à la fois, clic explicite ; une demande restée sans réponse laisse une trace de session et la relance exige une confirmation (elle a peut-être été comptée). L'image simulée reste en mémoire de la page (jamais dans `localStorage`).
 - **Photo** : la photo de l'analyse en cours si elle est encore en mémoire ; sinon celle que l'utilisatrice a choisi de garder dans son compte (lien temporaire, JPEG vérifié) ; sinon l'écran explique que la photo n'est plus disponible et demande une photo de face, **sans lancer d'analyse**. Le fournisseur n'a pas de `file_id` réutilisable : la photo est renvoyée à chaque simulation.
-- `js/app.js` : 3 lignes de branchement (149 723 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
+- `js/app.js` : 3 lignes de branchement (149 980 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
 
 ### Contrat de l'API : ce qui est confirmé, rapporté ou non vérifié
 Trois statuts, à ne pas confondre :
@@ -294,3 +294,40 @@ Procédure complète, À NE PAS EXÉCUTER sans autorisation explicite : `docs/si
 ### Précautions contre une consommation involontaire
 Verrou fermé et liste vide par défaut ; une zone, une photo, un clic ; quota propre limité à 1 par 24 h ; quota fail-closed (migration absente = refus) ; aucune relance automatique, nulle part ; une demande sans réponse exige une confirmation avant la suivante ; le polling est borné (25 interrogations, budget global 52 s) et ne recrée jamais de tâche ; les tests n'ont aucun accès réseau réel (`globalThis.fetch` remplacé, hôte inconnu = échec du test) ; `/task/skin-analysis` n'est jamais appelé.
 Tests : `test/simulation-server.test.js` (authentification, autorisation, zones, photo, quota, simultanéité, fuites, erreurs, délais, résultats hostiles), `test/simulation-ui.test.js` (module client), `test/simulation-browser.test.js` (vrai `app.js` dans Chromium, réseau simulé), `test/simulation-quota-db.test.js` (PostgreSQL jetable).
+
+## Studio Beauté : essayage virtuel de maquillage (développé, FERMÉ, jamais testé en réel)
+
+Essayage de maquillage sur la photo de l'utilisatrice, via l'outil officiel Perfect Corp *AI Makeup Virtual Try-On* (V1.0). L'image obtenue est une **illustration générée par ordinateur** : le rendu réel d'un produit peut différer. Aucun appel réel n'a été fait, aucune unité consommée, aucune migration appliquée, aucune variable d'environnement modifiée.
+
+### Verrous (tout est fermé par défaut)
+- `DERMAI_MAKEUP_ENABLED` : interrupteur de `/api/makeup-vto` (fermé si absent, vide, `0`, `false`…). Fermé : la photo n'est pas lue, rien n'est appelé ni réservé.
+- `DERMAI_MAKEUP_ALLOWED_USER_IDS` : identifiants Supabase autorisés, séparés par des virgules ; vide = personne ; `*` seul = tout compte connecté (choix explicite, pas de plafond global de dépense).
+- `DERMAI_MAX_MAKEUP_PER_PERIOD` (défaut 3) et `DERMAI_MAKEUP_PERIOD_HOURS` (défaut 24) : quota PROPRE au maquillage, distinct de l'analyse et de la simulation. Valeurs invalides : défaut prudent.
+- Quota en base : fonction `reserve_makeup` **proposée, non appliquée** (`supabase/proposals/20261012120000_makeup_quota.sql` + `.rollback.sql`, testée sur PostgreSQL jetable par `test/makeup-quota-db.test.js`). Tant qu'elle est absente, le serveur refuse (503) : jamais d'essayage sans quota.
+- `vercel.json` : `api/makeup-vto.js` reçoit `maxDuration: 60`.
+
+### Fonctionnement
+- **Serveur** (`api/makeup-vto.js`, `server/makeup.js`, `server/perfectcorp-makeup.js`). `GET` : « ouvert pour ce compte ? » (aucun fournisseur, aucun quota). `POST ?cfg=<sélection>` avec la photo JPEG brute. Ordre des garde-fous : méthode, session, interrupteur, compte autorisé, sélection, temps restant, photo (JPEG réel, < 4 Mo reçus, grand côté < 1 920 px, petit côté ≥ 256 px), clé configurée, quota, puis Perfect Corp. Une seule tâche par essayage, **tous les effets dans un seul tableau `effects`**, aucune relance automatique (un résultat incertain n'est jamais retenté).
+- **Le navigateur n'envoie jamais de corps Perfect Corp ni d'URL** : seulement `{v:1, foundation?, lips?, blush?, eyes?}` avec couleur `#RRGGBB`, texture et intensités 0 à 100, validé strictement (clé inconnue = refus). La photo vient des octets reçus, envoyés par `file_id` (jamais `src_file_url`). Le serveur ne télécharge pas l'image résultat : il renvoie l'URL https publique et temporaire du fournisseur (`{ok, makeup:{image}}`), jamais `task_id`, enveloppe ni clé.
+- **Retouche cutanée** : `skin_smooth` est envoyé en premier avec `skinSmoothStrength: 0` et `skinSmoothColorIntensity: 0`, non modifiable par le navigateur, pour éviter un lissage involontaire.
+- **Paramètres officiels utilisés** (schéma `AI-Makeup-Virtual-Try-On`, dépôt `YouCam-API/beauty-skin-care-MCP`) : `foundation` (`color`, `colorIntensity`, `glowIntensity`, `coverageIntensity`), `eye_shadow`, `blush`, `lip_color` (`color`, `texture`, `colorIntensity` + champs propres à la texture : `gloss`, `transparencyIntensity`, `shimmerColor`, `shimmerIntensity`, `shimmerDensity`, `shimmerSize`, `glowStrength`, `metallicIntensity`). Textures : lèvres matte, gloss, holographic, metallic, satin, sheer, shimmer ; blush matte, satin, shimmer ; yeux matte, shimmer, metallic.
+- **Navigateur** (`js/makeup-data.js`, `js/makeup-studio.js`, chargés avant `app.js`) : entrée « Studio Beauté » du menu seulement si le serveur répond « disponible » pour le compte. Catégories Teint, Lèvres, Blush, Yeux ; palettes de la porcelaine à l'ébène (15 teintes de fond de teint dont 6 profondes), nudes chocolat et bordeaux aux lèvres, blush terracotta et brique ; looks Naturel, Élégant, Glamour, Soirée en trois versions selon la carnation (Claire, Médium, Foncée), construits uniquement avec couleur, texture et intensité, sans fond de teint imposé, la version foncée du look Naturel étant déjà riche (pas réservée à la soirée). **Aucune requête payante** à l'ouverture, ni au choix d'un look, d'une couleur, d'une texture ou d'une intensité : seul le bouton « Essayer ce maquillage » envoie.
+- **Photo** : choisie sur l'appareil (galerie ou selfie), JPEG ou PNG de moins de 10 Mo, réduite et convertie en JPEG par le navigateur, contrôlée localement (`js/photo-check.js`), gardée en mémoire de la page seulement. Résultats : quatre au plus, en mémoire. Comparaison avant / avec maquillage, nouvel essai, téléchargement (ouverture dans un onglet si le navigateur refuse).
+- **Stockage** : ni photo ni résultat dans `localStorage`. Seuls les **favoris** (couleurs, textures, intensités, nom ; 12 au plus) sont gardés par compte (`dermai.studio.<id>`), effacés avec le compte. Une demande sans réponse laisse un horodatage dans `sessionStorage` : la relance demande une confirmation explicite.
+- **Journaux** : étapes sans donnée (« Makeup started », « quota reserved »…), jamais photo, clé, jeton, URL signée ni couleurs ; en cas de forme de réponse inconnue, seule la STRUCTURE (chemins et types) est journalisée.
+- `js/app.js` : branchement minimal (149 980 octets, plafond 150 000) ; l'écran n'est pas restaurable après rechargement (la photo n'est qu'en mémoire).
+
+### Consommation
+Annoncée par le fournisseur : 1 unité par tâche, aucune unité en cas d'erreur de requête ou de traitement. **Aucun relevé réel** : à mesurer au premier essai en Preview.
+
+### Non vérifié (à confirmer avant tout essai réel)
+- `docs.perfectcorp.com` était **refusé par la politique réseau** de l'environnement de développement : le schéma vient du dépôt officiel seulement.
+- Liste complète des noms de motifs (`pattern.name`, `shape.name`) : seuls les exemples du schéma sont utilisés (`1color1`, `original`).
+- `skinSmoothStrength = 0` supprime-t-il tout lissage ? Non vérifié par un essai.
+- Forme exacte de `results` : les deux formes décrites sont lues (`[{download_url}]` et `{url}`), rien d'autre ; toute autre forme est refusée.
+- Libellés d'erreur de crédits épuisés : repérage par motifs, sans relevé réel.
+- Valeurs des champs propres aux textures (brillance, paillettes) : choix de conception DERMAI dans la plage documentée, à juger sur le rendu réel.
+- Taille minimale du visage : jugée seulement dans le navigateur (si `FaceDetector` existe) puis par le fournisseur.
+
+### Tests
+`test/makeup-server.test.js` (14), `test/makeup-data.test.js` (6), `test/makeup-studio.test.js` (11), `test/makeup-studio-browser.test.js` (8, vrai `app.js` dans Chromium, réseau simulé), `test/makeup-quota-db.test.js` (8, PostgreSQL jetable).

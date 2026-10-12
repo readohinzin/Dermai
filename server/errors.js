@@ -43,6 +43,17 @@ const MESSAGES = {
   SIM_AUTH_REQUIRED: 'Connectez-vous pour utiliser la simulation.',
   SIM_INVALID_IMAGE: 'Cette photo ne peut pas être utilisée pour la simulation.',
   SIM_UNAVAILABLE: 'La simulation n\'est pas disponible pour le moment. Réessayez plus tard.',
+  MK_DISABLED: 'Le Studio Beauté n\'est pas disponible pour le moment.',
+  MK_INVALID_REQUEST: 'Ces réglages de maquillage ne sont pas valides. Modifiez votre sélection et réessayez.',
+  MK_INVALID_IMAGE: 'Cette photo ne peut pas être utilisée. Choisissez une photo de face, bien éclairée, JPEG ou PNG, de moins de 10 Mo.',
+  MK_QUOTA_EXCEEDED: 'Le nombre d\'essayages disponibles est atteint pour le moment. Réessayez plus tard.',
+  MK_QUOTA_UNAVAILABLE: 'Le Studio Beauté n\'est pas disponible pour le moment. Réessayez plus tard.',
+  MK_RESULT_INVALID: 'L\'essayage n\'a pas pu être terminé.',
+  MK_TASK_ERROR: 'L\'essayage n\'a pas pu être terminé. Essayez une autre photo.',
+  MK_TIMEOUT: 'L\'essayage prend plus de temps que prévu et n\'a pas pu être terminé. Réessayez dans quelques minutes.',
+  MK_AUTH_REQUIRED: 'Connectez-vous pour utiliser le Studio Beauté.',
+  MK_UNAVAILABLE: 'Le Studio Beauté n\'est pas disponible pour le moment. Réessayez plus tard.',
+  MK_PROVIDER_CREDIT: 'Le Studio Beauté n\'est pas disponible pour le moment. Réessayez plus tard.',
   METHOD_NOT_ALLOWED: 'Requête non autorisée.',
   NOT_IMPLEMENTED: 'Le service d\'analyse est momentanément indisponible.',
   UNKNOWN: 'Nous n\'avons pas pu analyser cette photo. Veuillez réessayer.'
@@ -57,6 +68,11 @@ function toUserMessage(code) {
 const SIM_REWRITE = { AUTH_REQUIRED: 'SIM_AUTH_REQUIRED', TIMEOUT: 'SIM_TIMEOUT', TIME_BUDGET: 'SIM_TIMEOUT', TASK_ERROR: 'SIM_RESULT_INVALID', SERVICE_UNAVAILABLE: 'SIM_UNAVAILABLE',
   INVALID_IMAGE: 'SIM_INVALID_IMAGE', UNKNOWN: 'SIM_RESULT_INVALID', NOT_IMPLEMENTED: 'SIM_UNAVAILABLE' };
 const toSimulationMessage = code => toUserMessage(SIM_REWRITE[code] || code);
+
+/* Messages du Studio Beauté : même principe, aucun message ne parle d'« analyse » ni ne révèle le fournisseur. */
+const MK_REWRITE = { AUTH_REQUIRED: 'MK_AUTH_REQUIRED', TIMEOUT: 'MK_TIMEOUT', TIME_BUDGET: 'MK_TIMEOUT', TASK_ERROR: 'MK_TASK_ERROR', SERVICE_UNAVAILABLE: 'MK_UNAVAILABLE',
+  INVALID_IMAGE: 'MK_INVALID_IMAGE', UNKNOWN: 'MK_RESULT_INVALID', NOT_IMPLEMENTED: 'MK_UNAVAILABLE', BAD_MIME: 'MK_INVALID_IMAGE', TOO_LARGE: 'MK_INVALID_IMAGE' };
+const toMakeupMessage = code => toUserMessage(MK_REWRITE[code] || code);
 
 /* Reconnaissance prudente d'un code d'erreur Perfect Corp dans un texte (corps HTTP ou erreur de tâche).
    Les libellés ci-dessous sont des motifs de repérage, pas une liste officielle : à confirmer avec les
@@ -74,4 +90,8 @@ function fromPerfectCorpError(text) {
   return null;
 }
 
-module.exports = { AnalysisError, toUserMessage, toSimulationMessage, fromPerfectCorpError, MESSAGES };
+/* Crédits ou unités épuisés chez le fournisseur : motif de repérage prudent (libellés NON confirmés par un relevé réel), jamais montré au navigateur. */
+const CREDIT_PATTERN = /insufficient[_ ]?(credit|unit|balance)|not[_ ]?enough[_ ]?(credit|unit)|out[_ ]?of[_ ]?(credit|unit)|(credit|unit)s?[_ ]?(exhausted|depleted)|exceed(ed)?[_ ]?(quota|limit)/i;
+const isProviderCreditError = text => CREDIT_PATTERN.test(String(text || ''));
+
+module.exports = { AnalysisError, toUserMessage, toSimulationMessage, toMakeupMessage, fromPerfectCorpError, isProviderCreditError, MESSAGES };

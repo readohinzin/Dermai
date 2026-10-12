@@ -3,7 +3,7 @@
    de navigation déjà en place : attributs data-go, traités par app.js) et gère l'ouverture du panneau mobile (bouton, fond, Échap, clavier). Aucune entrée ne contourne
    l'authentification : un clic appelle go(), comme la barre du bas, et chaque écran applique ses propres protections.
    Entrées : uniquement des écrans qui existent. La simulation cosmétique n'est ouverte que pour certains comptes (décision du serveur) : son entrée n'apparaît que lorsque
-   l'application confirme qu'elle est disponible pour le compte connecté et qu'une analyse existe (deps.simulation), jamais pour un écran qui répondrait « indisponible ». */
+   l'application confirme qu'elle est disponible pour le compte connecté et qu'une analyse existe (deps.simulation), jamais pour un écran qui répondrait « indisponible ». Même principe pour « Studio Beauté » (deps.studio : ouvert pour ce compte par le serveur). */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -20,6 +20,7 @@
     { id: 'program', label: 'Programme de soins', icon: 'calendar', go: 'program', routes: ['program'] },
     { id: 'verif', label: 'Vérif\'Routine', icon: 'shield', go: 'verif', routes: ['verif'] },
     { id: 'simulation', label: 'Simulation cosmétique', icon: 'sparkle', go: 'simulation', routes: ['simulation'], when: 'simulation' },
+    { id: 'studio', label: 'Studio Beauté', icon: 'sparkle', go: 'studio', routes: ['studio'], when: 'studio' },
     { id: 'routine', label: 'Ma routine', icon: 'routine', go: 'routine', routes: ['routine', 'actives', 'active', 'products'] }
   ];
   const OTHERS = [
@@ -46,7 +47,7 @@
     const now = () => { try { return d.now ? d.now() : Date.now(); } catch (e) { return Date.now(); } };
     let open = false, openRoute = null, opener = null;
     /* Entrées conditionnelles : `when` nomme la condition, évaluée par l'application (jamais déduite ici). */
-    const allowed = i => { if (!i.when) return true; try { return !!(d.simulation && i.when === 'simulation' && d.simulation()); } catch (e) { return false; } };
+    const allowed = i => { if (!i.when) return true; try { return !!(d[i.when] && ['simulation', 'studio'].includes(i.when) && d[i.when]()); } catch (e) { return false; } };
 
     const currentId = r => { const all = ITEMS.concat(OTHERS), hit = all.find(i => i.routes.includes(r)); return hit ? hit.id : null; };
     const wide = () => { try { return typeof matchMedia === 'function' && matchMedia(WIDE).matches; } catch (e) { return false; } };

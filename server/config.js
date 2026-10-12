@@ -115,7 +115,34 @@ const simulationQuota = (env = process.env) => ({
   windowSeconds: intIn(env.DERMAI_SIMULATION_PERIOD_HOURS, 1, 8760, SIM_QUOTA_DEFAULTS.hours) * 3600
 });
 
+
+/* ───── Studio Beauté (AI Makeup Virtual Try-On V1.0, Perfect Corp) ─────
+   Fonction DISTINCTE de l'analyse et de la simulation : verrou, liste d'utilisateurs autorisés et quota propres. Fermée par défaut, pour tout le monde.
+   Chemins : ceux du contrat annoncé pour AI Makeup Virtual Try-On V1.0 (création POST, statut GET). La documentation officielle n'a PAS pu être ouverte depuis
+   l'environnement de développement ; le schéma des effets vient de l'outil « AI-Makeup-Virtual-Try-On » du dépôt officiel YouCam-API/beauty-skin-care-MCP
+   (voir server/makeup.js). Aucun appel réel n'a été fait : les éléments non vérifiés sont signalés dans le README (« Studio Beauté »). */
+const MAKEUP_PATHS = {
+  task: '/s2s/v2.0/task/makeup-vto',                                                    // POST : création
+  taskStatus: id => `/s2s/v2.0/task/makeup-vto/${encodeURIComponent(id)}`               // GET : statut
+};
+/* Verrou : sans DERMAI_MAKEUP_ENABLED, aucun essayage, aucun crédit. Même activé, seuls les comptes listés dans DERMAI_MAKEUP_ALLOWED_USER_IDS (identifiants Supabase
+   séparés par des virgules) peuvent l'utiliser : liste vide = personne ; « * » = tout compte connecté (choix explicite, jamais un défaut). */
+const isMakeupEnabled = (env = process.env) => flag(env.DERMAI_MAKEUP_ENABLED);
+const makeupAllowList = (env = process.env) => new Set(String(env.DERMAI_MAKEUP_ALLOWED_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean));
+const isMakeupAllowed = (userId, env = process.env) => {
+  if (typeof userId !== 'string' || !userId) return false;
+  const list = makeupAllowList(env);
+  return list.has('*') || list.has(userId);
+};
+/* Quota propre au maquillage (jamais celui des analyses ni des simulations) : réglable sans toucher au code d'affichage. Défaut prudent : 3 essayages par 24 h. */
+const MAKEUP_QUOTA_DEFAULTS = { limit: 3, hours: 24 };
+const makeupQuota = (env = process.env) => ({
+  limit: intIn(env.DERMAI_MAX_MAKEUP_PER_PERIOD, 0, 100, MAKEUP_QUOTA_DEFAULTS.limit),
+  windowSeconds: intIn(env.DERMAI_MAKEUP_PERIOD_HOURS, 1, 8760, MAKEUP_QUOTA_DEFAULTS.hours) * 3600
+});
+
 module.exports = {
   analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET,
-  SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, simulationIntensity, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota
+  SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, simulationIntensity, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota,
+  MAKEUP_PATHS, MAKEUP_QUOTA_DEFAULTS, isMakeupEnabled, makeupAllowList, isMakeupAllowed, makeupQuota
 };

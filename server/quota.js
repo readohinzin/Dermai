@@ -5,7 +5,7 @@
    Appelée APRÈS la validation de la photo et AVANT Perfect Corp : un refus (quota atteint, base injoignable, fonction absente) arrête tout.
    Une réservation n'est jamais remboursée : tout ce qui atteint l'étape fournisseur compte, quel que soit son résultat (la facturation exacte
    du fournisseur n'est pas vérifiée ; c'est l'hypothèse la plus sûre pour le coût). Ni la photo ni aucun résultat ne sont envoyés ici. */
-const { publicSupabase, analysisQuota, simulationQuota } = require('./config');
+const { publicSupabase, analysisQuota, simulationQuota, makeupQuota } = require('./config');
 const { AnalysisError } = require('./errors');
 const { startDeadline } = require('./budget');
 
@@ -22,6 +22,11 @@ async function reserve(token, env = process.env, { budget } = {}) {
    jamais remboursé. Tant que la migration n'est pas appliquée, la fonction est absente (404) → SIM_QUOTA_UNAVAILABLE : aucune simulation possible. */
 async function reserveSimulation(token, env = process.env, { budget } = {}) {
   return reserveVia({ path: '/rest/v1/rpc/reserve_simulation', limits: simulationQuota, exceeded: 'SIM_QUOTA_EXCEEDED', unavailable: 'SIM_QUOTA_UNAVAILABLE' }, token, env, { budget });
+}
+/* Quota du Studio Beauté : fonction et compteur DISTINCTS (reserve_makeup, voir supabase/proposals/20261012120000_makeup_quota.sql, NON appliquée). Mêmes règles :
+   échec fermé, aucune nouvelle tentative, jamais remboursé. Tant que la proposition n'est pas appliquée, la fonction est absente (404) → MK_QUOTA_UNAVAILABLE. */
+async function reserveMakeup(token, env = process.env, { budget } = {}) {
+  return reserveVia({ path: '/rest/v1/rpc/reserve_makeup', limits: makeupQuota, exceeded: 'MK_QUOTA_EXCEEDED', unavailable: 'MK_QUOTA_UNAVAILABLE' }, token, env, { budget });
 }
 async function reserveVia(kind, token, env, { budget } = {}) {
   const cfg = publicSupabase(env);
@@ -63,3 +68,4 @@ async function reserveVia(kind, token, env, { budget } = {}) {
 
 module.exports = { reserve, api, TIMEOUT_MS };   // TIMEOUT_MS : délai maximal de la requête de réservation, lu par le handler pour son budget de temps
 module.exports.reserveSimulation = reserveSimulation;
+module.exports.reserveMakeup = reserveMakeup;

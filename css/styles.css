@@ -17,6 +17,7 @@
 @import url("components/nav.css") layer(components);
 @import url("components/sidebar.css") layer(components);
 @import url("components/verif.css") layer(components);
+@import url("components/makeup.css") layer(components);
 @import url("components/media.css") layer(components);
 @import url("components/list.css") layer(components);
 @import url("components/result.css") layer(components);
