@@ -8,8 +8,9 @@
 .c-ms-editor{margin-top:var(--s-3);min-width:0}
 .c-ms-block{margin:var(--s-3) 0}
 .c-ms-swatches{display:flex;flex-wrap:wrap;gap:var(--s-2)}
-.c-ms-swatch{width:var(--tap);height:var(--tap);padding:5px;border:2px solid transparent;border-radius:50%;background:var(--surface);cursor:pointer;display:inline-flex}
-.c-ms-swatch span{flex:1;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+/* La pastille intérieure est POSITIONNÉE (jamais étirée par flex) : Safari n'étire pas le contenu d'un <button>, la pastille y restait invisible. */
+.c-ms-swatch{position:relative;display:block;box-sizing:border-box;width:var(--tap);height:var(--tap);padding:0;border:2px solid transparent;border-radius:50%;background:var(--surface);cursor:pointer}
+.c-ms-swatch span{position:absolute;inset:3px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
 .c-ms-swatch[aria-pressed="true"]{border-color:var(--ink)}
 .c-ms-swatch:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 .c-ms-custom{display:inline-flex;align-items:center;gap:var(--s-2);margin-top:var(--s-3);font-weight:600}
@@ -28,9 +29,13 @@
 .c-ms-tag--r{right:var(--s-2)}
 .c-ms-modes{margin:var(--s-4) 0 var(--s-2)}
 .c-hs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:var(--s-2);margin:var(--s-3) 0}
-.c-hs-card{display:flex;flex-direction:column;align-items:stretch;gap:var(--s-1);padding:var(--s-2);min-height:var(--tap);border:2px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--ink);cursor:pointer;text-align:center;min-width:0}
+.c-hs-card{display:block;padding:var(--s-2);min-height:var(--tap);border:2px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--ink);cursor:pointer;text-align:center;min-width:0}
 .c-hs-card:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 .c-hs-card[aria-pressed="true"]{border-color:var(--accent);background:var(--tint)}
 .c-hs-card img,.c-hs-card__ph{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:var(--r-sm);background:var(--tint)}
 .c-hs-card__sw{display:block;width:100%;height:44px;border-radius:var(--r-sm);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
-.c-hs-card__t{font:600 var(--fs-xs)/1.3 var(--font-sans);overflow-wrap:anywhere}
+.c-hs-card__t{display:block;margin-top:var(--s-1);font:600 var(--fs-xs)/1.3 var(--font-sans);overflow-wrap:anywhere}
+/* Rangées de boutons : jamais collées entre elles ni au texte qui les suit. */
+.c-ms-photo .chips,.c-ms-looks .chips,.c-ms-custom-box .chips,.c-ms-go .chips,.c-ms-result .chips{margin:var(--s-2) 0 var(--s-3)}
+.c-ms-looks .chips+.muted,.c-ms-custom-box .chips+.muted,.c-ms-looks .chips+p{margin-top:var(--s-3)}
+.c-ms-label+.chips,.c-ms-label+.c-ms-swatches{margin-top:var(--s-2)}

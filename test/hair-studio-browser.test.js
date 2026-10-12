@@ -237,3 +237,25 @@ test('HB10 favoris et déconnexion : favori de réglages enregistré, restauré 
   await page.evaluate(() => go('studio')).catch(() => {}); assert.equal(await page.locator('[data-hs=after]').count(), 0); assert.ok(!/blob:/.test(await page.content()));
   clean(env); await env.close();
 });
+
+test('HB11 pastilles de couleur visibles et rangées de boutons espacées (régression iPhone : pastilles blanches, boutons collés)', opts, async () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/components/makeup.css'), 'utf8');
+  assert.match(css, /\.c-ms-swatch span\{position:absolute;inset:/, 'la pastille est positionnée : Safari n\'étire pas le contenu d\'un bouton');
+  assert.ok(!/\.c-ms-swatch\{[^}]*display:(inline-)?flex/.test(css) && !/\.c-ms-swatch span\{[^}]*flex:/.test(css), 'plus de pastille dépendant de flex');
+  assert.ok(!/\.c-hs-card\{[^}]*display:flex/.test(css), 'cartes de modèles sans flex dans un bouton');
+  const mk = { available: true, behaviors: [{ status: 200, body: { ok: true, makeup: { image: IMG } } }] };
+  const env = await H.open(browser, server, hairOpts({ makeup: mk }));
+  await boot(env); const { page } = env;
+  await openStudio(env); await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(200); await addPhoto(env);
+  const gaps = () => page.evaluate(() => { const g = [...document.querySelectorAll('.chips')].filter(e => e.offsetParent), out = []; for (let i = 1; i < g.length; i++) { const a = g[i - 1].getBoundingClientRect(), b = g[i].getBoundingClientRect(); if (b.top >= a.bottom - 1 && b.top - a.bottom < 800) out.push(Math.round(b.top - a.bottom)); } return out; });
+  /* maquillage : onglets Blush, couleurs visibles et espacées */
+  await page.click('[data-ms=look][data-id=natural]'); await page.click('[data-ms=tab][data-cat=blush]');
+  const sw = await page.$$eval('.c-ms-swatch', els => els.map(e => { const s = e.querySelector('span').getBoundingClientRect(), bg = getComputedStyle(e.querySelector('span')).backgroundColor; return [Math.round(s.width), Math.round(s.height), bg]; }));
+  assert.ok(sw.length >= 8); for (const [w, h, bg] of sw) { assert.ok(w >= 30 && h >= 30, `pastille ${w}x${h}`); assert.notEqual(bg, 'rgba(0, 0, 0, 0)'); assert.notEqual(bg, 'rgb(255, 255, 255)'); }
+  assert.ok((await gaps()).every(g => g >= 8), 'maquillage : rangées de boutons espacées d\'au moins 8 px : ' + JSON.stringify(await gaps()));
+  /* capillaire : modèles puis catégories, couleurs */
+  for (const tab of ['hairstyle', 'haircolor']) { await page.click(`[data-ms=mode][data-v=${tab}]`); await page.waitForSelector('[data-hs=run]'); await page.waitForTimeout(150); assert.ok((await gaps()).every(g => g >= 8), tab + ' : rangées espacées : ' + JSON.stringify(await gaps())); }
+  await page.click('[data-hs=mode][data-v=full]'); const hs = await page.$$eval('.c-ms-swatch span', els => els.map(e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); })); assert.ok(hs.length >= 10 && hs.every(v => v >= 30));
+  clean(env); await env.close();
+});
