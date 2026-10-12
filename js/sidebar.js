@@ -2,8 +2,8 @@
    Chargé avant app.js. Le module ne connaît ni le réseau, ni le stockage, ni les analyses : il écrit du HTML (liste d'entrées vers les écrans EXISTANTS, via le mécanisme
    de navigation déjà en place : attributs data-go, traités par app.js) et gère l'ouverture du panneau mobile (bouton, fond, Échap, clavier). Aucune entrée ne contourne
    l'authentification : un clic appelle go(), comme la barre du bas, et chaque écran applique ses propres protections.
-   Entrées : uniquement des écrans qui existent. La simulation avant/après n'a pas d'écran propre (bouton dans le résultat, ouvert par le serveur seulement pour certains comptes) :
-   elle n'a donc pas d'entrée ici. */
+   Entrées : uniquement des écrans qui existent. La simulation cosmétique n'est ouverte que pour certains comptes (décision du serveur) : son entrée n'apparaît que lorsque
+   l'application confirme qu'elle est disponible pour le compte connecté et qu'une analyse existe (deps.simulation), jamais pour un écran qui répondrait « indisponible ». */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -18,6 +18,7 @@
     { id: 'analyses', label: 'Mes analyses', icon: 'layers', go: 'analyses', routes: ['analyses'] },
     { id: 'progress', label: 'DERMAI Évolution', icon: 'chart', go: 'progress', routes: ['progress'], fresh: true },
     { id: 'program', label: 'Programme de soins', icon: 'calendar', go: 'program', routes: ['program'] },
+    { id: 'simulation', label: 'Simulation cosmétique', icon: 'sparkle', go: 'simulation', routes: ['simulation'], when: 'simulation' },
     { id: 'routine', label: 'Ma routine', icon: 'routine', go: 'routine', routes: ['routine', 'actives', 'active', 'products'] }
   ];
   const OTHERS = [
@@ -43,6 +44,8 @@
     const route = () => { try { return d.route ? d.route() : ''; } catch (e) { return ''; } };
     const now = () => { try { return d.now ? d.now() : Date.now(); } catch (e) { return Date.now(); } };
     let open = false, openRoute = null, opener = null;
+    /* Entrées conditionnelles : `when` nomme la condition, évaluée par l'application (jamais déduite ici). */
+    const allowed = i => { if (!i.when) return true; try { return !!(d.simulation && i.when === 'simulation' && d.simulation()); } catch (e) { return false; } };
 
     const currentId = r => { const all = ITEMS.concat(OTHERS), hit = all.find(i => i.routes.includes(r)); return hit ? hit.id : null; };
     const wide = () => { try { return typeof matchMedia === 'function' && matchMedia(WIDE).matches; } catch (e) { return false; } };
@@ -60,7 +63,7 @@
       lock();
       return `<aside class="rail sidebar" id="sidebar" aria-label="Barre latérale"${open ? ' role="dialog" aria-modal="true"' : ''}${open ? ' data-open="1"' : ''}>
       <div class="sidebar__head">${d.brand ? d.brand(52) : ''}<button type="button" class="sidebar__close" data-sb="close" aria-label="Fermer le menu">${ic('close')}</button></div>
-      <nav aria-label="Menu principal"><ul class="sidebar__list">${ITEMS.map(i => link(i, cur)).join('')}</ul></nav>
+      <nav aria-label="Menu principal"><ul class="sidebar__list">${ITEMS.filter(allowed).map(i => link(i, cur)).join('')}</ul></nav>
       <div class="sidebar__foot"><p class="sidebar__label">Autres accès</p><nav aria-label="Compte"><ul class="sidebar__list">${OTHERS.map(i => link(i, cur)).join('')}</ul></nav>
       <small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></div></aside>
       <div class="sidebar__scrim" data-sb="close"${open ? ' data-open="1"' : ''} aria-hidden="true"></div>`;

@@ -25,7 +25,7 @@ const row = (id, day, g = 60) => {
   const metrics = {}; SkinModel.METRIC_KEYS.forEach(k => { metrics[k] = 50 + day; });
   return { id, analyzed_at: `2026-10-${String(day).padStart(2, '0')}T08:00:00.000Z`, global_score: g, skin_type: 'combination', skin_age: 30, metrics, raw_metrics: {}, priorities: [], goals_snapshot: [], engine_version: 'test' };
 };
-const seed = env => { const uid = env.stats.session.user.id; env.fake.analyses.set(uid, [row(ID(1), 1), row(ID(2), 5)].map(r => Object.assign({ user_id: uid }, r))); };
+const seed = (env, uid = env.stats.session.user.id) => env.fake.analyses.set(uid, [row(ID(1), 1), row(ID(2), 5)].map(r => Object.assign({ user_id: uid }, r)));
 async function boot(env, route = 'home') {
   const { page } = env;
   await page.clock.setFixedTime(NOW);
@@ -251,5 +251,67 @@ test('SBB9 les écrans existants fonctionnent avec la nouvelle navigation : barr
   await page.waitForFunction(() => state.route === 'result');
   assert.ok((await page.locator('#sidebar').count()) === 1);
   assert.equal(await hOverflow(page), 0);
+  clean(env); await env.close();
+});
+
+test('SBB10 simulation fermée : aucune entrée ; vérification de disponibilité unique, sans effet (GET), aucune simulation lancée', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });          // simulation fermée par défaut
+  seed(env); await boot(env);
+  const { page } = env;
+  for (const w of [1280, 420]) {
+    await page.setViewportSize({ width: w, height: 900 }); await page.waitForTimeout(150);
+    assert.equal(await page.locator('#sidebar [data-go=simulation]').count(), 0, `${w} px : pas d'entrée vers un écran indisponible`);
+  }
+  await page.evaluate(() => go('analyses')); await page.evaluate(() => go('progress'));
+  assert.equal(env.stats.simProbe.length, 1, 'une seule vérification pour la session'); assert.equal(env.stats.sim.length, 0);
+  clean(env); await env.close();
+});
+
+test('SBB11 simulation ouverte pour le compte : l\'entrée apparaît (ordinateur et mobile), ouvre le vrai écran, page active, panneau refermé ; aucune simulation lancée', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true } });
+  seed(env); await boot(env);
+  const { page } = env;
+  await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(150);
+  const entry = page.locator('#sidebar .sidebar__link', { hasText: 'Simulation cosmétique' });
+  await entry.waitFor({ state: 'visible', timeout: 10000 });
+  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres']);
+  assert.equal(await page.locator('.sidebar__badge').count(), 1, 'le badge reste réservé à Évolution');
+  await entry.click();
+  await page.waitForFunction(() => state.route === 'simulation');
+  assert.match(await page.locator('main.main').innerText(), /Simulation cosmétique/); assert.match(await page.locator('main.main').innerText(), /illustration|prédiction/i);
+  assert.ok((await page.locator('#sidebar [aria-current="page"]').innerText()).startsWith('Simulation cosmétique'));
+  // mobile : même entrée dans le panneau, qui se referme après le choix
+  await page.evaluate(() => go('home'));
+  await page.setViewportSize({ width: 420, height: 900 }); await page.waitForTimeout(150);
+  await page.click('.sidebar__toggle'); await wait(page);
+  await page.locator('#sidebar .sidebar__link', { hasText: 'Simulation cosmétique' }).click();
+  await page.waitForFunction(() => state.route === 'simulation'); await wait(page);
+  assert.equal(await page.locator('#sidebar').isVisible(), false); assert.equal(await hOverflow(page), 0);
+  assert.equal(env.stats.sim.length, 0, 'ouvrir l\'écran ne lance aucune simulation (aucun crédit)'); assert.equal(env.stats.simProbe.length, 1);
+  clean(env); await env.close();
+});
+
+test('SBB12 simulation : l\'entrée disparaît à la déconnexion et ne passe jamais d\'un compte à l\'autre', opts, async () => {
+  const fake = H.createFake();
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, fake, sim: { available: true } });
+  seed(env); await boot(env);
+  const { page } = env;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator('#sidebar [data-go=simulation]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.evaluate(() => logout());
+  await page.waitForFunction(() => state.account.status !== 'signedIn');
+  assert.equal(await page.locator('#sidebar [data-go=simulation]').count(), 0);
+  assert.equal(env.stats.simProbe.length, 1);
+  // un autre compte se connecte : sa propre vérification est faite, rien n'est repris du compte précédent
+  await fake.fetch(`${H.SB}/auth/v1/signup`, { method: 'POST', headers: { apikey: 'anon-key-for-tests' }, body: JSON.stringify({ email: 'b@exemple.com', password: 'motdepasse1' }) });
+  await page.evaluate(() => go('login'));
+  await page.fill('form[data-form=login] [name=email]', 'b@exemple.com'); await page.fill('form[data-form=login] [name=password]', 'motdepasse1');
+  await page.click('form[data-form=login] button[type=submit]');
+  await page.waitForFunction(() => state.account.email === 'b@exemple.com' && state.history.status === 'ready');
+  const b = await page.evaluate(() => ACCOUNT.user.id); seed(env, b);
+  await page.reload(); await page.waitForFunction(() => state.account.email === 'b@exemple.com' && state.history.status === 'ready');
+  await page.evaluate(() => go('progress'));
+  await page.locator('#sidebar [data-go=simulation]').waitFor({ state: 'visible', timeout: 10000 });
+  assert.equal(env.stats.simProbe.length, 3, 'une vérification par compte et par chargement de page, jamais reprise de l\'autre compte');
   clean(env); await env.close();
 });

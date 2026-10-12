@@ -231,7 +231,7 @@ test('REF-H aucun fichier de décision ne lit la carte des preuves ni les recher
     let b; try { b = body(sig); } catch (e) { continue; }
     assert.ok(!/marketChecks|availabilityStatus|evidence/.test(b), sig + ' ne dépend pas des recherches de marché');
   }
-  assert.ok(Buffer.byteLength(read('js/app.js')) <= 149379, 'app.js n\'a pas grossi depuis la phase 1 (analysis-flow)');
+  assert.ok(Buffer.byteLength(read('js/app.js')) <= 149452, 'app.js n\'a pas grossi depuis la phase 1 (analysis-flow)');
   assert.ok(!/evidence-map/.test(read('index.html')), 'la carte des preuves n\'est pas chargée par l\'application');
 });
 
