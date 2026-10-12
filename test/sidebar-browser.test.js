@@ -388,3 +388,25 @@ test('SBB16 depuis le profil : le bouton « Se déconnecter » existant fonction
   await page.waitForFunction(() => state.account.status === 'visitor' && state.route === 'landing');
   clean(env); await env.close();
 });
+
+test('SBB14 mobile : bouton de menu à DROITE (logo centré), estompé quand le panneau est ouvert ; croix nue à droite de l\'en-tête ; entrées aérées, « Se déconnecter » en couleur d\'alerte', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
+  seed(env); await boot(env);
+  const { page } = env, tg = page.locator('.sidebar__toggle');
+  const W = 420, tb = await tg.boundingBox(), logo = await page.locator('.m-brand .brand').first().boundingBox();
+  assert.ok(tb.x + tb.width > W - 40 && tb.x > W / 2, 'bouton à droite : ' + JSON.stringify(tb)); assert.ok(Math.abs((logo.x + logo.width / 2) - W / 2) < 30, 'le logo reste centré : ' + JSON.stringify(logo));
+  const look = () => page.evaluate(() => { const s = getComputedStyle(document.querySelector('.sidebar__toggle')); return { border: s.borderTopColor, color: s.color, bg: s.backgroundColor }; });
+  const closed = await look();
+  await tg.click(); await wait(page);
+  const open = await look(); assert.notDeepEqual(open, closed, 'le bouton change d\'aspect panneau ouvert'); assert.notEqual(open.bg, closed.bg, 'fond teinté'); assert.equal(await tg.getAttribute('aria-expanded'), 'true');
+  const cls = page.locator('.sidebar__close'), cb = await cls.boundingBox(), sb = await page.locator('#sidebar').boundingBox();
+  assert.equal(await cls.evaluate(e => getComputedStyle(e).borderTopWidth), '0px', 'croix sans cadre'); assert.equal(await cls.evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
+  assert.ok(cb.x + cb.width > sb.x + sb.width - 40 && cb.y < 80, 'croix en haut à droite de l\'en-tête : ' + JSON.stringify([cb, sb]));
+  const rows = await page.$$eval('#sidebar .sidebar__list .sidebar__link', els => els.map(e => Math.round(e.getBoundingClientRect().height))); assert.ok(rows.every(h => h >= 56), 'entrées aérées : ' + rows);
+  const logout = await page.locator('#sidebar [data-act=logout] .sidebar__text').evaluate(e => getComputedStyle(e).color), other = await page.locator('#sidebar [data-go=home] .sidebar__text').evaluate(e => getComputedStyle(e).color); assert.notEqual(logout, other, 'déconnexion en couleur d\'alerte');
+  assert.ok(sb.width <= 301 && sb.width >= 280, 'largeur du panneau : ' + sb.width);
+  assert.equal(await hOverflow(page), 0);
+  await page.keyboard.press('Escape'); await wait(page); assert.equal(await page.locator('#sidebar').isVisible(), false); assert.deepEqual(await look(), closed, 'fermé : le bouton retrouve son aspect');
+  assert.deepEqual(env.errors, []);
+  await env.close();
+});

@@ -32,9 +32,24 @@ body.sb-lock{overflow:hidden}
 .sidebar__label{margin:0 0 var(--s-1) var(--s-3);color:var(--ink-3);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .sidebar small{margin:var(--s-2) var(--s-3) 0;color:var(--ink-3);font-size:13px;line-height:1.5}
 
-/* Icône de menu : dans l'en-tête mobile, à gauche du logo (le logo reste centré). */
+/* Bouton de menu : dans l'en-tête mobile, à DROITE du logo (le logo reste centré). Panneau ouvert, le bouton s'estompe (contour et icône à demi-teinte, fond teinté). */
 .m-brand{position:relative}
-.sidebar__toggle{position:absolute;left:0;top:50%;transform:translateY(-50%)}
+.sidebar__toggle{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.sidebar__toggle[aria-expanded="true"]{border-color:color-mix(in srgb,var(--accent) 28%,transparent);color:color-mix(in srgb,var(--accent) 55%,transparent);background:var(--tint)}
+
+/* Panneau ouvert (mobile) : en-tête logo + croix nue, entrées aérées avec icône d'accent, filet puis « Se déconnecter » en couleur d'alerte, signature discrète en bas. */
+@media (max-width:919.98px){
+  .sidebar{width:min(300px,78vw);gap:var(--s-4);background:var(--surface);border-right:1px solid color-mix(in srgb,var(--accent) 35%,var(--line))}
+  .sidebar__head{padding-bottom:var(--s-2)}
+  .sidebar__close{width:var(--tap);height:var(--tap);border:0;border-radius:var(--r-sm);background:transparent;color:var(--ink-3)}
+  .sidebar__close svg{width:24px;height:24px;stroke-width:1.5}
+  .sidebar__list{gap:var(--s-2)}
+  .sidebar__link{min-height:56px;gap:var(--s-4);padding:var(--s-3);color:var(--ink)}
+  .sidebar__link svg{color:var(--accent)}
+  .sidebar__link[data-act="logout"] .sidebar__text{color:var(--error-ink)}
+  .sidebar__foot{gap:var(--s-3);padding-top:var(--s-4)}
+  .sidebar small{margin:var(--s-3) var(--s-3) 0;font-size:12px;letter-spacing:.04em}
+}
 
 @media (min-width:920px){
   .sidebar{position:sticky;top:0;bottom:auto;left:auto;z-index:auto;width:auto;height:100vh;height:100svh;gap:var(--s-4);padding:var(--s-6) var(--s-4) var(--s-5);box-shadow:none;transform:none;visibility:visible;transition:none}
