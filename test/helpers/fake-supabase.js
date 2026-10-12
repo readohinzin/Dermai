@@ -9,6 +9,11 @@ const okRaw = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <=
 const okScore = v => v === null || (Number.isInteger(v) && v >= 0 && v <= 100);
 const GOALS = ['hydration', 'oil_pores', 'blemishes', 'tone', 'redness_comfort', 'texture', 'aging', 'maintenance'];
 
+/* Réponse type de la fonction SQL admin_overview (valeurs arbitraires, cohérentes entre elles). */
+const ADMIN_OVERVIEW_SAMPLE = { v: 1, generated_at: '2026-10-12T10:00:00Z',
+  accounts: { total: 42, new_7d: 5, new_30d: 17, signed_in_7d: 20, signed_in_30d: 31, active_7d: 12, active_30d: 25, returned_7d: 7, never_used: 9, inactive_30d: 11 },
+  functions: { analysis: { available: true, runs_7d: 30, runs_30d: 90, users_30d: 25 }, simulation: { available: true, runs_7d: 4, runs_30d: 10, users_30d: 6 }, makeup: { available: false }, hair: { available: true, runs_7d: 3, runs_30d: 8, users_30d: 4, units_7d: 5, units_30d: 14 } },
+  saved_analyses: { total: 120, last_30d: 40, users: 30 } };
 function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
   const users = new Map();            // email -> { id, email, password, confirmed }
   const profiles = new Map();         // user_id -> ligne
@@ -135,6 +140,17 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       const rows = hairUsage.get(t.sub) || [], within = rows.filter(x => x.at > clock - body.p_window_seconds), used = within.reduce((n, x) => n + x.units, 0);
       if (used + body.p_units > body.p_limit) return resp(200, { ok: false, used, limit: body.p_limit, retry_after: Math.max(1, Math.min(...within.map(x => x.at), clock) + body.p_window_seconds - clock) });
       hairUsage.set(t.sub, [...rows, { at: clock, units: body.p_units }]); return resp(200, { ok: true, used: used + body.p_units, limit: body.p_limit });
+    }
+    if (u.pathname === '/rest/v1/rpc/admin_overview') {   // équivalent de la fonction SQL de la proposition 20261014120000 : agrégats seulement, refusée hors admin_users
+      state.rpcCalls = (state.rpcCalls || []).concat('admin_overview'); state.adminCalls = (state.adminCalls || []).concat({ method: init.method, auth: h.authorization, apikey: h.apikey, body: init.body });
+      if (state.adminOverviewMode === 'missing') return resp(404, { code: 'PGRST202', message: 'Could not find the function public.admin_overview' });
+      if (state.adminOverviewMode === 'fail') return resp(500, { message: 'internal db trace ACME-9', code: 'XX000' });
+      if (state.adminOverviewMode === 'hang') return new Promise((res, rej) => { init.signal && init.signal.addEventListener('abort', () => rej(new Error('aborted'))); });
+      const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
+      if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
+      if (state.adminDbAllowed && !state.adminDbAllowed.includes(t.sub)) return resp(403, { code: '42501', message: 'not found' });
+      if (state.adminOverviewMode === 'garbage') return { ok: true, status: 200, text: async () => '<html>oups</html>' };
+      return resp(200, state.adminOverview || ADMIN_OVERVIEW_SAMPLE);
     }
     if (u.pathname === '/rest/v1/rpc/reserve_analysis' || u.pathname === '/rest/v1/rpc/reserve_simulation' || u.pathname === '/rest/v1/rpc/reserve_makeup') {   // réservation atomique du quota (équivalent de la fonction SQL)
       const kind = u.pathname.split('/').pop(), sim = kind === 'reserve_simulation', mk = kind === 'reserve_makeup', usage = mk ? mkUsage : sim ? simUsage : analysisUsage;

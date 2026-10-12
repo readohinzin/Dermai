@@ -2,7 +2,7 @@
    dépendance de menu ; il ne connaît ni le Studio ni ses fichiers.
    Ce module n'est PAS un contrôle d'accès : l'API refuse (404) tout compte non autorisé. L'entrée de menu n'apparaît que si l'API a répondu « fondateur » à une requête d'accès authentifiée ;
    sinon la page se présente comme une page inexistante, sans rien révéler.
-   Quatre blocs : solde Perfect Corp, coûts officiels annoncés, état des fonctionnalités, quotas configurés. Aucun bouton de modification, de suppression, d'activation, ni de lancement d'une
+   Six blocs : solde Perfect Corp, comptes, utilisation par fonction (nombres agrégés lus en base par l'API, jamais d'identité), coûts officiels annoncés, état des fonctionnalités, quotas configurés. Aucun bouton de modification, de suppression, d'activation, ni de lancement d'une
    analyse ; le seul bouton « Actualiser » relit les mêmes sources en lecture. Les données indisponibles s'affichent « Indisponible », jamais zéro. Rien n'est écrit dans le navigateur
    (ni localStorage, ni sessionStorage) et aucun secret, identifiant d'utilisateur ou donnée personnelle ne transite par ici. */
 (function (root, factory) {
@@ -12,13 +12,15 @@
 })(typeof self !== 'undefined' ? self : this, function (root) {
   'use strict';
   const ENDPOINT = '/api/admin-stats';
-  const SECTIONS = ['features', 'quotas', 'credit', 'costs'];
+  const SECTIONS = ['features', 'quotas', 'credit', 'costs', 'usage'];
   const REASONS = {
     key_missing: 'La clé Perfect Corp n\'est pas configurée sur le serveur.',
     provider_error: 'Perfect Corp a refusé la requête ou n\'a pas pu répondre.',
     timeout: 'Délai dépassé.',
     network: 'Connexion au fournisseur impossible.',
     malformed: 'La réponse du fournisseur a une forme inconnue : rien n\'est affiché plutôt qu\'une valeur inventée.',
+    not_applied: 'La fonction SQL de lecture n\'est pas appliquée dans la base (proposition 20261014120000_admin_overview.sql).',
+    not_authorized: 'La base refuse la lecture : ajoutez votre identifiant dans la table admin_users (voir la proposition SQL).',
     unavailable: 'Source indisponible.'
   };
   const MSG = { loadFail: 'Cette section n\'a pas pu être chargée.', network: 'Connexion impossible. Vérifiez votre réseau.', history: 'Historique non disponible : aucune source confirmée, et les réservations de quota ne sont pas une dépense confirmée.' };
@@ -77,7 +79,7 @@
     const when = iso => { try { const t = new Date(iso); return Number.isNaN(t.getTime()) ? '' : t.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'medium' }); } catch (e) { return ''; } };
     const num = v => (typeof v === 'number' && Number.isFinite(v) ? new Intl.NumberFormat('fr-FR').format(v) : 'Indisponible');
     const note = (t, cls, role) => `<div class="c-notice${cls ? ' ' + cls : ''} u-my-5" role="${role || 'status'}"><div>${esc(t)}</div></div>`;
-    const stamp = o => (o && o.fetchedAt ? `<p class="muted c-ad-stamp">Relevé du ${esc(when(o.fetchedAt))}${o.cached ? ' (mémorisé par le serveur : au plus 60 s pour le solde, 10 min pour les coûts)' : ' (lecture directe)'}.</p>` : '');
+    const stamp = o => (o && o.fetchedAt ? `<p class="muted c-ad-stamp">Relevé du ${esc(when(o.fetchedAt))}${o.cached ? ' (mémorisé par le serveur : au plus 60 s pour le solde, les comptes et l\'utilisation, 10 min pour les coûts)' : ' (lecture directe)'}.</p>` : '');
     const card = (title, inner, id) => `<section class="c-card c-ad-card" id="${id}" aria-labelledby="${id}-t"><h2 class="h3" id="${id}-t">${esc(title)}</h2>${inner}</section>`;
     const wait = () => '<p class="muted" role="status"><span class="c-spinner" aria-hidden="true"></span> Chargement…</p>';
     const unavailable = o => `<div class="c-ad-unavail" role="status"><b>Indisponible</b><span>${esc(REASONS[o.reason] || REASONS.unavailable)}</span></div>${stamp(o)}`;
@@ -113,6 +115,30 @@
       return `<p class="muted">Coût officiel ANNONCÉ par Perfect Corp, par type d'opération. Ce n'est pas la consommation réelle observée, qui n'est pas disponible. Plusieurs lignes peuvent exister pour une même fonction : aucun coût unique n'est attribué à une catégorie.</p>${groups}${un}${c.truncated ? note('Liste tronquée : toutes les pages n\'ont pas été lues.', 'c-notice--warning') : ''}<p class="muted c-ad-stamp">${esc(String(c.total))} ligne${c.total > 1 ? 's' : ''} sur ${esc(String(c.pages))} page${c.pages > 1 ? 's' : ''}.</p>${stamp(c)}`;
     }
 
+    /* Comptes et utilisation : NOMBRES agrégés lus en base par l'API (fonction SQL admin_overview). Une valeur absente ou invalide s'affiche « Indisponible », jamais 0. */
+    const pair = (a, b) => `${esc(num(a))} <small>sur 7 j</small> · ${esc(num(b))} <small>sur 30 j</small>`;
+    function accountsBody(data) {
+      const u = data.usage;
+      if (!u || u.status !== 'ok') return unavailable(u || {});
+      const a = u.accounts, row = (label, v) => `<li><span>${label}</span><b>${v}</b></li>`;
+      return `<p class="c-ad-big">${esc(num(a.total))} <small>comptes</small></p>
+        <ul class="c-ad-list">${row('Nouveaux comptes', pair(a.new_7d, a.new_30d))}${row('Connectés (dernière connexion)', pair(a.signed_in_7d, a.signed_in_30d))}${row('Actifs (au moins une demande)', pair(a.active_7d, a.active_30d))}${row('Retour à 7 jours', esc(num(a.returned_7d)))}${row('Inactifs depuis 30 jours', esc(num(a.inactive_30d)))}${row('Jamais utilisé une fonction', esc(num(a.never_used)))}</ul>
+        <p class="muted">Actif : au moins une demande (analyse, simulation, maquillage ou cheveux) sur la période. Retour à 7 jours : compte créé il y a plus de 7 jours et actif ces 7 derniers jours. Inactif : compte de plus de 30 jours sans aucune demande sur 30 jours. « Connectés » repose sur la dernière connexion enregistrée, une seule date par compte. Nombres seulement : aucun compte n'est identifié.</p>${stamp(u)}`;
+    }
+    function usageBody(data) {
+      const u = data.usage;
+      if (!u || u.status !== 'ok') return unavailable(u || {});
+      const rows = u.functions.map(f => {
+        if (!f.available) return `<article class="c-ad-row"><div class="c-ad-row__hd"><h3 class="c-ad-h">${esc(f.name)}</h3><span class="c-badge c-badge--outline">Non mesurée</span></div><p class="muted">Aucun compteur en base pour cette fonction (proposition SQL de quota non appliquée) : rien n'est affiché plutôt qu'un zéro.</p></article>`;
+        const unit = typeof f.units_30d === 'number' ? `<div><dt>Unités</dt><dd>${pair(f.units_7d, f.units_30d)}</dd></div>` : '';
+        return `<article class="c-ad-row"><div class="c-ad-row__hd"><h3 class="c-ad-h">${esc(f.name)}</h3><b class="c-ad-limit">${esc(num(f.runs_30d))} <small>sur 30 j</small></b></div>
+          <dl class="c-ad-dl"><div><dt>Demandes</dt><dd>${pair(f.runs_7d, f.runs_30d)}</dd></div><div><dt>Comptes concernés</dt><dd>${esc(num(f.users_30d))} <small>sur 30 j</small></dd></div>${unit}</dl></article>`;
+      }).join('');
+      const s = u.savedAnalyses;
+      return `<p class="muted">Une demande = une réservation de quota, c'est-à-dire une demande qui a atteint l'étape fournisseur, réussie ou non. Ce n'est pas un coût confirmé ni un nombre de résultats obtenus.</p>${rows}
+        <div class="c-ad-row"><h3 class="c-ad-h">Analyses enregistrées dans l'historique</h3><dl class="c-ad-dl"><div><dt>Total</dt><dd>${esc(num(s.total))}</dd></div><div><dt>Sur 30 jours</dt><dd>${esc(num(s.last_30d))}</dd></div><div><dt>Comptes concernés</dt><dd>${esc(num(s.users))}</dd></div></dl></div>${stamp(u)}`;
+    }
+
     function featuresBody(data) {
       const rows = data.features.map(f => {
         const st = STATE[f.state] || ['Inconnu', 'c-badge--outline'];
@@ -144,7 +170,7 @@
       if (!ui.loaded && !ui.busy) loadAll(true);
       return `<div class="pagehead"><p class="kicker">Fondateur</p><h1>Administration</h1><p>Lecture seule : cette page ne modifie rien et ne lance aucune analyse.</p></div>
         <div class="c-ad-bar"><button type="button" class="c-btn c-btn--secondary" data-ad="refresh"${ui.busy ? ' disabled' : ''} aria-busy="${ui.busy}">${ui.busy ? 'Actualisation…' : 'Actualiser'}</button><span class="muted">Relit les mêmes sources, sans effet.</span></div>
-        <div class="c-ad-grid">${shell('credit', 'ad-credit', 'Solde Perfect Corp', creditBody)}${shell('costs', 'ad-costs', 'Coûts officiels annoncés', costsBody)}${shell('features', 'ad-features', 'Fonctionnalités', featuresBody)}${shell('quotas', 'ad-quotas', 'Quotas configurés', quotasBody)}</div>`;
+        <div class="c-ad-grid">${shell('credit', 'ad-credit', 'Solde Perfect Corp', creditBody)}${shell('usage', 'ad-accounts', 'Comptes', accountsBody)}${shell('usage', 'ad-usage', 'Utilisation par fonction', usageBody)}${shell('costs', 'ad-costs', 'Coûts officiels annoncés', costsBody)}${shell('features', 'ad-features', 'Fonctionnalités', featuresBody)}${shell('quotas', 'ad-quotas', 'Quotas configurés', quotasBody)}</div>`;
     }
 
     function attach(x) {

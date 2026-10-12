@@ -42,7 +42,7 @@ test('SEP3 ressources séparées : chargement, feuilles de style et fichiers pro
   assert.equal((read('css/styles.css').match(/components\/admin\.css/g) || []).length, 1);
   for (const f of ['js/makeup-studio.js', 'js/makeup-data.js', 'js/hair-studio.js', 'js/hair-data.js', 'css/components/makeup.css']) assert.ok(!/admin|c-ad-/i.test(read(f)), f + ' ne contient rien d\'administratif');
   for (const f of ['js/admin-dashboard.js', 'css/components/admin.css']) assert.ok(!/studio|makeup|hair|c-ms-|c-hs-/i.test(strip(read(f))), f + ' ne mentionne ni le Studio ni le style du Studio');
-  for (const f of ['api/admin-stats.js', 'server/admin.js', 'server/perfectcorp-billing.js']) assert.ok(!/makeup-vto|hair-vto|perfectcorp-makeup|perfectcorp-hair|api\/makeup|api\/hair/.test(strip(read(f)).replace(/MAKEUP_PATHS|makeupAllowList|isMakeupEnabled|makeupQuota|MAKEUP_QUOTA_DEFAULTS|hair\.(IDS|FEATURES|activeFeatures)|require\('\.\/hair'\)|hairQuota|hairAllowList|isHairEnabled|isHair\w+|HAIR_QUOTA_DEFAULTS/g, '')), f + ' : seulement la lecture de la configuration, jamais les endpoints du Studio');
+  for (const f of ['api/admin-stats.js', 'server/admin.js', 'server/admin-usage.js', 'server/perfectcorp-billing.js']) assert.ok(!/makeup-vto|hair-vto|perfectcorp-makeup|perfectcorp-hair|api\/makeup|api\/hair/.test(strip(read(f)).replace(/MAKEUP_PATHS|makeupAllowList|isMakeupEnabled|makeupQuota|MAKEUP_QUOTA_DEFAULTS|hair\.(IDS|FEATURES|activeFeatures)|require\('\.\/hair'\)|hairQuota|hairAllowList|isHairEnabled|isHair\w+|HAIR_QUOTA_DEFAULTS/g, '')), f + ' : seulement la lecture de la configuration, jamais les endpoints du Studio');
   for (const f of ['api/makeup-vto.js', 'api/hair-vto.js']) assert.ok(!/admin/i.test(read(f)), f + ' : aucune administration');
 });
 
@@ -62,6 +62,7 @@ const NOW = '2026-10-14T09:30:00.000Z';
 const ENV = { PERFECT_CORP_API_KEY: 'k', SUPABASE_URL: 'https://demo.supabase.co', SUPABASE_ANON_KEY: 'a', DERMAI_ANALYSIS_ENABLED: '1' };
 const SECTIONS = { features: { ok: true, generatedAt: NOW, features: A.featureRows(ENV) }, quotas: { ok: true, generatedAt: NOW, quotas: A.quotaRows({}) },
   credit: { ok: true, credit: { status: 'ok', fetchedAt: NOW, cached: false, spendable: 150, categories: [{ type: 'Api Purchased', amount: 150, spendable: true }] } },
+  usage: { ok: true, usage: { status: 'ok', fetchedAt: NOW, cached: false, accounts: { total: 42, new_7d: 5, new_30d: 17, signed_in_7d: 20, signed_in_30d: 31, active_7d: 12, active_30d: 25, returned_7d: 7, never_used: 9, inactive_30d: 11 }, functions: [{ key: 'analysis', name: 'Analyse de la peau', available: true, runs_7d: 30, runs_30d: 90, users_30d: 25 }, { key: 'simulation', name: 'Simulation cosmétique', available: true, runs_7d: 4, runs_30d: 10, users_30d: 6 }, { key: 'makeup', name: 'Studio Beauté : maquillage', available: false }, { key: 'hair', name: 'Studio Beauté : cheveux', available: true, runs_7d: 3, runs_30d: 8, users_30d: 4, units_7d: 5, units_30d: 14 }], savedAnalyses: { total: 120, last_30d: 40, users: 30 } } },
   costs: { ok: true, costs: Object.assign({ status: 'ok', fetchedAt: NOW, cached: false, total: 1, pages: 1, truncated: false }, A.matchCosts([{ description: 'Skin analysis', amount: 4, unit: 'unit', procUnit: 'task', slug: 'skin-analysis' }])) } };
 const TPL = { status: 200, body: { ok: true, next: null, templates: [{ id: 'tpl_001', title: 'Tresses', category: 'Femme', thumb: '' }] } };
 const both = () => ({ user: { email: 'f@exemple.com' }, admin: { access: 'yes', sections: SECTIONS }, makeup: { available: true, behaviors: [{ status: 200, body: { ok: true, makeup: { image: H.MK_IMG + '/o.png' } } }] },
@@ -90,7 +91,7 @@ test('SEP4 l\'administration s\'ouvre SANS initialiser le Studio : sa page n\'es
   assert.equal(env.stats.hrTemplates.length, 0, 'aucune lecture de modèles capillaires'); noPaid(env);
   await page.evaluate(() => { __c.ad = 0; }); await toStudio(env);
   assert.equal(await page.evaluate(() => __c.ad), 0, 'la page d\'administration n\'est pas appelée depuis le Studio'); assert.ok(await page.evaluate(() => __c.st) > 0);
-  assert.equal(sectionsAsked(env), 4, 'ouvrir le Studio ne demande aucune section d\'administration (les 4 viennent de la visite de l\'administration)'); noPaid(env);
+  assert.equal(sectionsAsked(env), 5, 'ouvrir le Studio ne demande aucune section d\'administration (les 5 viennent de la visite de l\'administration)'); noPaid(env);
   clean(env); await env.close();
 });
 
@@ -102,7 +103,7 @@ test('SEP5 états indépendants : actualiser l\'administration ne touche pas le 
   const snap = await studioView(); assert.ok(snap.photo && snap.look === 'natural' && snap.lips);
   await toAdmin(env); const asked = sectionsAsked(env);
   await page.click('[data-ad=refresh]'); await page.waitForFunction(() => !document.querySelector('[data-ad=refresh]').disabled, null, { timeout: 10000 });
-  assert.equal(sectionsAsked(env), asked + 4, 'actualiser relit les quatre sources, rien d\'autre'); assert.deepEqual(await studioView(), snap, 'le Studio est intact après l\'actualisation de l\'administration');
+  assert.equal(sectionsAsked(env), asked + 5, 'actualiser relit les cinq sources, rien d\'autre'); assert.deepEqual(await studioView(), snap, 'le Studio est intact après l\'actualisation de l\'administration');
   await toStudio(env); assert.equal(await page.locator('.c-ms-preview img').count(), 1, 'la photo est toujours là'); assert.equal(await page.getAttribute('[data-ms=look][data-id=natural]', 'aria-pressed'), 'true');
   const adminBefore = await page.evaluate(() => ({ access: AD.state().access, loaded: AD.state().loaded, keys: Object.keys(AD.state().sec) }));
   await page.click('[data-ms=tab][data-cat=blush]'); await page.click('[data-ms=mode][data-v=haircolor]'); await page.click('[data-ms=mode][data-v=makeup]');

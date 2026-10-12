@@ -1,9 +1,10 @@
 'use strict';
-/* Page d'administration PRIVÉE du fondateur : lecture seule. GET uniquement, par section (?section=access|features|quotas|credit|costs).
+/* Page d'administration PRIVÉE du fondateur : lecture seule. GET uniquement, par section (?section=access|features|quotas|credit|costs|usage).
    Accès : session Supabase vérifiée (même mécanisme que les autres fonctions) PUIS identifiant du compte dans la liste fermée DERMAI_ADMIN_USER_IDS (« * » refusé, liste invalide refusée en entier).
    TOUT refus (jeton absent ou invalide, Supabase injoignable, compte non listé, liste absente) renvoie la MÊME réponse 404, sans aucun contenu : la route n'existe pas pour qui n'est pas autorisé.
    Seul un fondateur authentifié peut obtenir un 405 (méthode autre que GET). Aucune écriture, aucun paramètre ne désigne un utilisateur, aucune donnée individuelle, aucun secret : seulement la
-   configuration serveur (modes et nombres, jamais d'identifiants), les quotas configurés, et deux LECTURES gratuites chez Perfect Corp (solde, coûts officiels).
+   configuration serveur (modes et nombres, jamais d'identifiants), les quotas configurés, deux LECTURES gratuites chez Perfect Corp (solde, coûts officiels) et des NOMBRES agrégés lus par la fonction SQL admin_overview
+   (server/admin-usage.js : appelée avec le jeton du fondateur, qui vérifie elle-même admin_users ; jamais de service_role).
    Réponses jamais mises en cache par un intermédiaire (private, no-store, Vary: Authorization). Les lectures fournisseur sont mémorisées EN MÉMOIRE du serveur (solde 60 s, coûts 10 min, erreurs 15 s)
    pour ne pas solliciter Perfect Corp à chaque affichage : cette mémoire n'est lue qu'APRÈS le contrôle d'accès. */
 const auth = require('../server/auth');
@@ -11,11 +12,12 @@ const { AnalysisError, toUserMessage } = require('../server/errors');
 const { isAdminAllowed } = require('../server/config');
 const admin = require('../server/admin');
 const billing = require('../server/perfectcorp-billing');
+const usage = require('../server/admin-usage');
 const perfectcorp = require('../server/perfectcorp');
 const { createBudget } = require('../server/budget');
 
-const SECTIONS = ['access', 'features', 'quotas', 'credit', 'costs'];
-const TTL = { credit: 60 * 1000, costs: 10 * 60 * 1000, error: 15 * 1000 };
+const SECTIONS = ['access', 'features', 'quotas', 'credit', 'costs', 'usage'];
+const TTL = { credit: 60 * 1000, costs: 10 * 60 * 1000, usage: 60 * 1000, error: 15 * 1000 };
 const memo = new Map();
 const BUDGET_MS = 20000;
 
@@ -41,7 +43,10 @@ function reasonOf(err) {
   if (!(err instanceof AnalysisError)) return 'unavailable';
   if (err.code === 'TIME_BUDGET') return 'timeout';
   const d = String(err.detail || '');
+  if (/not_applied/.test(d)) return 'not_applied';
+  if (/not_authorized/.test(d)) return 'not_authorized';
   if (/forme inconnue/.test(d)) return 'malformed';
+  if (/délai/.test(d)) return 'timeout';
   if (/HTTP \d+/.test(d)) return 'provider_error';
   if (/réseau/.test(d)) return 'network';
   return 'unavailable';
@@ -56,11 +61,12 @@ async function remembered(key, load) {
   return Object.assign({}, value, { cached: false });
 }
 
-async function section(name) {
+async function section(name, token) {
   const now = new Date().toISOString();
   if (name === 'access') return { ok: true, admin: true };
   if (name === 'features') return { ok: true, generatedAt: now, source: 'configuration lue par le serveur à chaque requête', features: admin.featureRows() };
   if (name === 'quotas') return { ok: true, generatedAt: now, source: 'configuration lue par le serveur à chaque requête', quotas: admin.quotaRows() };
+  if (name === 'usage') return { ok: true, usage: await remembered('usage', () => usage.getOverview(token, process.env, { budget: createBudget({ totalMs: BUDGET_MS }) })) };
   if (!perfectcorp.isConfigured()) return { ok: true, [name]: { status: 'unavailable', reason: 'key_missing', fetchedAt: now } };
   if (name === 'credit') return { ok: true, credit: await remembered('credit', () => billing.getBalance({ budget: createBudget({ totalMs: BUDGET_MS }) })) };
   return { ok: true, costs: await remembered('costs', async () => {
@@ -79,7 +85,7 @@ async function handler(req, res) {
   let names;
   try { names = new URL(req.url || '', 'http://x').searchParams.getAll('section'); } catch (e) { names = []; }
   if (names.length !== 1 || !SECTIONS.includes(names[0])) return send(res, 400, { ok: false, error: 'Section inconnue.' });
-  try { return send(res, 200, await section(names[0])); }
+  try { return send(res, 200, await section(names[0], auth.bearerToken(req))); }
   catch (err) { console.error('[DERMAI] Admin failed:', err instanceof AnalysisError ? err.code : 'unknown'); return send(res, 500, { ok: false, error: toUserMessage('UNKNOWN') }); }
 }
 

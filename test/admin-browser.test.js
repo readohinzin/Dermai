@@ -22,6 +22,7 @@ const ENV = { PERFECT_CORP_API_KEY: 'k', SUPABASE_URL: 'https://demo.supabase.co
 const SECTIONS = {
   features: { ok: true, generatedAt: NOW, features: A.featureRows(ENV) }, quotas: { ok: true, generatedAt: NOW, quotas: A.quotaRows({}) },
   credit: { ok: true, credit: { status: 'ok', fetchedAt: NOW, cached: false, spendable: 150, categories: [{ type: 'Api Purchased', amount: 120, spendable: true }, { type: 'Api Gift', amount: 30, spendable: true }, { type: 'Web Trial', amount: 5, spendable: false }] } },
+  usage: { ok: true, usage: { status: 'ok', fetchedAt: NOW, cached: false, accounts: { total: 42, new_7d: 5, new_30d: 17, signed_in_7d: 20, signed_in_30d: 31, active_7d: 12, active_30d: 25, returned_7d: 7, never_used: 9, inactive_30d: 11 }, functions: [{ key: 'analysis', name: 'Analyse de la peau', available: true, runs_7d: 30, runs_30d: 90, users_30d: 25 }, { key: 'simulation', name: 'Simulation cosmétique', available: true, runs_7d: 4, runs_30d: 10, users_30d: 6 }, { key: 'makeup', name: 'Studio Beauté : maquillage', available: false }, { key: 'hair', name: 'Studio Beauté : cheveux', available: true, runs_7d: 3, runs_30d: 8, users_30d: 4, units_7d: 5, units_30d: 14 }], savedAnalyses: { total: 120, last_30d: 40, users: 30 } } },
   costs: { ok: true, costs: Object.assign({ status: 'ok', fetchedAt: NOW, cached: false, total: 4, pages: 1, truncated: false }, A.matchCosts([{ description: 'Skin analysis', amount: 4, unit: 'unit', procUnit: 'task', slug: 'skin-analysis' }, { description: 'Makeup', amount: 1, unit: 'unit', procUnit: 'task', slug: 'makeup-vto' }, { description: 'Hair style', amount: 2, unit: 'unit', procUnit: 'task', slug: 'hair-transfer' }, { description: 'Autre outil', amount: 3, unit: 'unit', procUnit: 'task', slug: 'face-attr-analysis' }])) }
 };
 const founder = (over = {}) => ({ user: { email: 'f@exemple.com' }, admin: { access: 'yes', sections: Object.assign({}, SECTIONS, over) } });
@@ -58,7 +59,7 @@ test('AB1 compte non fondateur (cas général) : aucune entrée de menu, une seu
   clean(env); await env.close();
 });
 
-test('AB2 fondateur : entrée « Administration » (ordinateur et mobile), page à quatre blocs lus en GET, solde et coûts officiels, états et quotas, aucune action de modification, aucune analyse', opts, async () => {
+test('AB2 fondateur : entrée « Administration » (ordinateur et mobile), page à six blocs lus en GET, solde et coûts officiels, états et quotas, aucune action de modification, aucune analyse', opts, async () => {
   const env = await H.open(browser, server, founder());
   await boot(env); const { page } = env;
   await openAdmin(env);
@@ -68,9 +69,9 @@ test('AB2 fondateur : entrée « Administration » (ordinateur et mobile), page 
   for (const l of ['Solde Perfect Corp', 'Coûts officiels annoncés', 'Fonctionnalités', 'Quotas configurés', 'Lecture seule']) assert.match(t, new RegExp(l));
   assert.match(t, /150\s*unités API/); assert.match(t, /Historique non disponible/); assert.match(t, /Api Purchased/); assert.match(t, /Ce n'est pas la consommation réelle observée/);
   assert.match(t, /Analyse cutanée/); assert.match(t, /Non rapprochés d'une fonction DERMAI \(1\)/); assert.match(t, /3 analyses \/ 24 h/); assert.match(t, /Tous les comptes connectés/);
-  assert.deepEqual(env.stats.adm.map(x => x.section).sort(), ['access', 'costs', 'credit', 'features', 'quotas']); assert.ok(env.stats.adm.every(x => x.auth && x.method === 'GET'));
+  assert.deepEqual(env.stats.adm.map(x => x.section).sort(), ['access', 'costs', 'credit', 'features', 'quotas', 'usage']); assert.ok(env.stats.adm.every(x => x.auth && x.method === 'GET'));
   const inMain = await page.$$eval('.main [data-ad], .main form, .main input, .main select, .main textarea, .main [data-act], .main a[href]', els => els.length); assert.equal(inMain, 1, 'un seul contrôle dans la page : Actualiser');
-  assert.deepEqual(await page.$$eval('.c-ad-card', els => els.map(e => e.id)), ['ad-credit', 'ad-costs', 'ad-features', 'ad-quotas']);
+  assert.deepEqual(await page.$$eval('.c-ad-card', els => els.map(e => e.id)), ['ad-credit', 'ad-accounts', 'ad-usage', 'ad-costs', 'ad-features', 'ad-quotas']);
   // mobile : même entrée dans le panneau
   await page.evaluate(() => go('home')); await page.setViewportSize({ width: 420, height: 900 }); await page.waitForTimeout(150);
   await page.click('.sidebar__toggle'); await page.waitForTimeout(350); await page.locator('#sidebar .sidebar__link', { hasText: 'Administration' }).click(); await page.waitForFunction(() => state.route === 'admin'); await page.waitForTimeout(350);
@@ -88,14 +89,14 @@ test('AB3 données indisponibles : « Indisponible » avec la cause, jamais zér
   clean(env); await env.close();
 });
 
-test('AB4 actualiser et clavier : le bouton relit les quatre sources sans effet, une seule fois malgré un double clic, au clavier aussi ; rien n\'est stocké ; aucun appel d\'analyse', opts, async () => {
+test('AB4 actualiser et clavier : le bouton relit les cinq sources sans effet, une seule fois malgré un double clic, au clavier aussi ; rien n\'est stocké ; aucun appel d\'analyse', opts, async () => {
   const env = await H.open(browser, server, founder());
   await boot(env); const { page } = env; await openAdmin(env);
-  const before = env.stats.adm.length; assert.equal(before, 5);
+  const before = env.stats.adm.length; assert.equal(before, 6, 'un accès et cinq sections');
   await page.locator('[data-ad=refresh]').focus(); await page.keyboard.press('Enter');
-  await page.waitForFunction(() => !document.querySelector('[data-ad=refresh]').disabled, null, { timeout: 10000 }); assert.equal(env.stats.adm.length, before + 4, 'quatre lectures, jamais plus');
+  await page.waitForFunction(() => !document.querySelector('[data-ad=refresh]').disabled, null, { timeout: 10000 }); assert.equal(env.stats.adm.length, before + 5, 'cinq lectures, jamais plus');
   await page.evaluate(() => { const b = document.querySelector('[data-ad=refresh]'); b.click(); b.click(); b.click(); });
-  await page.waitForFunction(() => !document.querySelector('[data-ad=refresh]').disabled, null, { timeout: 10000 }); assert.equal(env.stats.adm.length, before + 8, 'un double clic ne double pas les lectures');
+  await page.waitForFunction(() => !document.querySelector('[data-ad=refresh]').disabled, null, { timeout: 10000 }); assert.equal(env.stats.adm.length, before + 10, 'un double clic ne double pas les lectures (une seule relecture de cinq sections)');
   const dump = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)])); assert.ok(!/admin|Api Purchased|150|credit/i.test(dump), 'rien de la page en stockage navigateur');
   clean(env); await env.close();
 });
@@ -104,10 +105,10 @@ test('AB5 mise en page : une colonne à 420 px sans défilement horizontal, deux
   const env = await H.open(browser, server, founder());
   await boot(env); const { page } = env; await openAdmin(env);
   const box = id => page.locator('#' + id).boundingBox();
-  const wide = [await box('ad-credit'), await box('ad-costs'), await box('ad-features'), await box('ad-quotas')];
-  assert.ok(wide[0].y === wide[1].y && wide[1].x > wide[0].x + wide[0].width - 2, 'ordinateur : solde et coûts côte à côte : ' + JSON.stringify(wide.slice(0, 2)));
+  const wide = [await box('ad-credit'), await box('ad-accounts'), await box('ad-usage'), await box('ad-costs'), await box('ad-features'), await box('ad-quotas')];
+  assert.ok(wide[0].y === wide[1].y && wide[1].x > wide[0].x + wide[0].width - 2, 'ordinateur : solde et comptes côte à côte : ' + JSON.stringify(wide.slice(0, 2)));
   await page.setViewportSize({ width: 420, height: 900 }); await page.waitForTimeout(250);
-  assert.equal(await hOverflow(page), 0); const narrow = [await box('ad-credit'), await box('ad-costs')]; assert.ok(narrow[1].y > narrow[0].y + narrow[0].height - 2 && narrow[0].width <= 420, 'mobile : empilé : ' + JSON.stringify(narrow));
+  assert.equal(await hOverflow(page), 0); const narrow = [await box('ad-credit'), await box('ad-accounts')]; assert.ok(narrow[1].y > narrow[0].y + narrow[0].height - 2 && narrow[0].width <= 420, 'mobile : empilé : ' + JSON.stringify(narrow));
   const tooWide = await page.evaluate(() => [...document.querySelectorAll('.c-ad-card, .c-ad-row, .c-ad-list li, .c-ad-dl dd')].filter(e => e.getBoundingClientRect().right > document.documentElement.clientWidth + 1).length); assert.equal(tooWide, 0, 'aucun élément ne dépasse');
   const btn = await page.locator('[data-ad=refresh]').boundingBox(); assert.ok(btn.height >= 40, 'cible tactile : ' + JSON.stringify(btn));
   clean(env); await env.close();
