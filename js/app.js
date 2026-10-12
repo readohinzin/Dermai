@@ -340,14 +340,14 @@ async function deletePhotos(){
 /* Retour d'un lien reçu par e-mail (confirmation d'adresse, mot de passe oublié). Les jetons du fragment d'adresse sont effacés de l'URL dès la lecture ;
    la session est ouverte après vérification auprès de Supabase (l'identité n'est jamais déduite du lien lui-même). */
 async function handleAuthRedirect(redirect){
-  if(redirect.kind!==`session`){state.account.status=`visitor`;state.account.error=DermaiAccount.MSG.linkInvalid;state.account.info=``;go(`login`,null,{reset:true,replace:true});return}
+  if(redirect.kind!==`session`){state.account.status=`visitor`;state.account.error=redirect.denied?DermaiAccount.MSG.oauthDenied:DermaiAccount.MSG.linkInvalid;state.account.info=``;go(`login`,null,{reset:true,replace:true});return}
   const r=await ACCOUNT.acceptRedirect(redirect);
   if(!r.ok){state.account.status=`visitor`;state.account.error=r.error;state.account.info=``;go(`login`,null,{reset:true,replace:true});return}
   resetPrivateState();
   await enterSession(r.user,false);
   if(!signedIn())return;
   if(r.type===`recovery`){state.account.recovery=true;go(`reset`,null,{reset:true,replace:true});return}
-  toast(DermaiAccount.MSG.emailConfirmed);afterAuth({reset:true,replace:true});
+  toast(r.message);afterAuth({reset:true,replace:true});
 }
 async function bootAccount(arrivedWithoutPage,redirect){
   if(!ACCOUNT||!ACCOUNT.available)return;
@@ -440,6 +440,7 @@ const ICONS={
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||``}</svg>`;
 const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
 const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
+const SOC=DermaiSocial.create({url:p=>ACCOUNT?ACCOUNT.oauthUrl(p):``});SOC.attach(document);
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
@@ -650,6 +651,7 @@ const authForm=kind=>{
   ${A.info?`<div class="c-notice c-notice--success u-my-5" role="status">${ic(`check`)}<div>${A.info}</div></div>`:``}
   ${A.error?`<div class="c-notice u-my-5" role="alert">${ic(`info`)}<div>${A.error}</div></div>`:``}
   ${A.error===DermaiAccount.MSG.notConfirmed||A.info===DermaiAccount.MSG.needsConfirmation?`<p style="margin:-6px 0 14px"><button class="link" type="button" data-act="resend-confirmation">Renvoyer l'e-mail de confirmation</button></p>`:``}
+  ${SOC.html()}
   <form class="stack" style="gap:16px" data-form="${kind}" novalidate>
     <div class="c-field"><label class="c-field__label" for="f-mail">Adresse e-mail</label><input class="c-input" id="f-mail" name="email" type="email" inputmode="email" enterkeyhint="next" autocomplete="email" autocapitalize="none" spellcheck="false" value="${esc(A.formEmail)}" required></div>
     <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" name="password" type="password" enterkeyhint="go" autocomplete="${signup?`new-password`:`current-password`}" required>${signup?`<p class="c-field__hint">8 caractères au minimum.</p>`:`<p style="margin-top:8px"><button class="link" type="button" data-go="forgot">Mot de passe oublié ?</button></p>`}</div>
@@ -1388,7 +1390,7 @@ document.addEventListener(`keydown`,e=>{if(e.key===`Escape`)closeSheet()});
 window.addEventListener(`online`,()=>F.resume());document.addEventListener(`visibilitychange`,()=>{if(!document.hidden)F.resume()});
 window.addEventListener(`popstate`,()=>{const h=readLocation();go(h?h.route:`landing`,h?h.param:null,{replace:true,noHash:true})});
 const authRedirect=(!DEMO_MODE&&window.DermaiAccount)?DermaiAccount.readAuthRedirect(location.hash):null;
-if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}                                    // les jetons ne restent pas dans la barre d'adresse
+if(authRedirect)try{history.replaceState(null,``,`/`)}catch(e){}   // jetons hors de la barre d'adresse
 const initialRoute=readLocation();
 if(initialRoute&&location.hash)try{history.replaceState(null,``,pathOf(initialRoute.route,initialRoute.param))}catch(e){}
 if(initialRoute){state.route=initialRoute.route;state.param=initialRoute.param}

@@ -42,6 +42,8 @@
     passwordSame: 'Choisissez un mot de passe différent de l\'ancien.',
     linkInvalid: 'Ce lien n\'est plus valide. Demandez-en un nouveau.',
     emailConfirmed: 'Votre adresse e-mail est confirmée. Bienvenue !',
+    oauthDone: 'Vous êtes connecté. Bienvenue !',
+    oauthDenied: 'Connexion annulée. Vous pouvez réessayer, ou utiliser votre adresse e-mail.',
     deleteFailed: 'Votre compte n\'a pas pu être supprimé. Réessayez.',
     photoChoiceFailed: 'Votre choix pour les photos n\'a pas pu être enregistré. Réessayez.',
     photoSaveFailed: 'Votre analyse est enregistrée, mais sa photo n\'a pas pu être gardée dans votre compte.',
@@ -146,9 +148,12 @@
     const q = new URLSearchParams(h);
     if (q.get('access_token') && q.get('refresh_token')) {
       const type = q.get('type') || '';
-      return { kind: 'session', type: type === 'recovery' ? 'recovery' : 'signup', access_token: q.get('access_token'), refresh_token: q.get('refresh_token'), expires_in: Number(q.get('expires_in')) || 3600 };
+      /* Sans `type` : retour d'une connexion Google ou Apple (jetons dans le fragment, sans type). */
+      return { kind: 'session', type: type === 'recovery' ? 'recovery' : (type ? 'signup' : 'oauth'), access_token: q.get('access_token'), refresh_token: q.get('refresh_token'), expires_in: Number(q.get('expires_in')) || 3600 };
     }
-    return { kind: 'error' };
+    /* Refus ou abandon chez Google ou Apple (#error=access_denied…) : message propre, sans le texte du fournisseur. */
+    /* Un lien d'e-mail expiré arrive aussi avec error=access_denied (error_code=otp_expired) : ce n'est pas un refus de l'utilisatrice. */
+    return /(^|&)error=access_denied/.test(h) && !/(^|&)error_code=otp_/.test(h) ? { kind: 'error', denied: true } : { kind: 'error' };
   }
 
   function create(opts) {
@@ -421,7 +426,14 @@
       try { body = JSON.parse(await res.text()); } catch (e) { body = null; }
       if (!res.ok || !body || !body.id) return { ok: false, error: MSG.linkInvalid };
       if (!setSession({ access_token: parsed.access_token, refresh_token: parsed.refresh_token, expires_in: parsed.expires_in, user: { id: body.id, email: body.email } })) return { ok: false, error: MSG.linkInvalid };
-      return { ok: true, type: parsed.type, user: { id: session.user.id, email: session.user.email } };
+      return { ok: true, type: parsed.type, message: parsed.type === 'oauth' ? MSG.oauthDone : MSG.emailConfirmed, user: { id: session.user.id, email: session.user.email } };
+    }
+    /* Adresse de départ d'une connexion Google ou Apple : Supabase fait le tour chez le fournisseur puis revient sur ce site (adresse à autoriser dans
+       « Redirect URLs »). Aucune requête ici : c'est le navigateur qui s'y rend. Fournisseur hors liste ou site sans adresse https : chaîne vide. */
+    function oauthUrl(provider) {
+      const origin = o.origin !== undefined ? o.origin : (typeof location === 'object' && location ? location.origin : '');
+      if (!available || !['google', 'apple'].includes(provider) || !/^https?:\/\/[^/\s]+$/.test(String(origin))) return '';
+      return base + '/auth/v1/authorize?provider=' + provider + '&redirect_to=' + encodeURIComponent(origin + '/');
     }
     async function updatePassword(password) {
       if (typeof password !== 'string' || password.length < 8) return { ok: false, error: MSG.passwordShort };
@@ -493,7 +505,7 @@
       return session && gen === g0 ? session.access_token : null;               // jamais le jeton d'un autre compte que celui qui le demande
     }
 
-    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, resendConfirmation, acceptRedirect, updatePassword, deleteAccount,
+    return { available, accessToken, restoreSession, signUp, signIn, signOut, loadProfile, saveProfile, savePhotoChoice, uploadPhoto, listPhotos, photoUrls, deletePhotos, saveAnalysis, listAnalyses, deleteAnalyses, requestPasswordReset, resendConfirmation, acceptRedirect, oauthUrl, updatePassword, deleteAccount,
       get user() { return session ? { id: session.user.id, email: session.user.email } : null } };
   }
 

@@ -115,7 +115,12 @@ const simulationQuota = (env = process.env) => ({
   windowSeconds: intIn(env.DERMAI_SIMULATION_PERIOD_HOURS, 1, 8760, SIM_QUOTA_DEFAULTS.hours) * 3600
 });
 
+/* Connexion Google / Apple : fournisseurs dont le bouton est affiché (DERMAI_SOCIAL_PROVIDERS, par exemple « google » ou « google,apple »). Valeur PUBLIQUE
+   (noms de fournisseurs). Vide ou absente : aucun bouton. Le fournisseur doit aussi être activé dans Supabase (Authentication, Providers). */
+const socialProviders = (env = process.env) => [...new Set(String(env.DERMAI_SOCIAL_PROVIDERS || '').split(',').map(s => s.trim().toLowerCase()).filter(s => ['google', 'apple'].includes(s)))];
+
 module.exports = {
+  socialProviders,
   analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET,
   SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, simulationIntensity, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota
 };
