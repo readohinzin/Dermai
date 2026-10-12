@@ -141,8 +141,28 @@ const makeupQuota = (env = process.env) => ({
   windowSeconds: intIn(env.DERMAI_MAKEUP_PERIOD_HOURS, 1, 8760, MAKEUP_QUOTA_DEFAULTS.hours) * 3600
 });
 
+/* Studio Beauté, volet CAPILLAIRE (coiffure, couleur, extensions, franges, ondulations, volume) : verrou, liste de comptes et quota PROPRES, distincts du maquillage.
+   Fermé par défaut. Le quota est compté en UNITÉS Perfect Corp documentées (coiffure et volume : 2, les autres : 1), pas en nombre de tâches : une coiffure pèse deux fois
+   une couleur. DERMAI_HAIR_FEATURES (liste d'identifiants séparés par des virgules) restreint les fonctions ouvertes ; DERMAI_HAIR_ALLOW_UNCONFIRMED=1 ouvre aussi celles dont le
+   chemin REST n'est pas confirmé par une source officielle consultée (voir server/hair.js). */
+const isHairEnabled = (env = process.env) => flag(env.DERMAI_HAIR_ENABLED);
+const hairAllowList = (env = process.env) => new Set(String(env.DERMAI_HAIR_ALLOWED_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean));
+const isHairAllowed = (userId, env = process.env) => {
+  if (typeof userId !== 'string' || !userId) return false;
+  const list = hairAllowList(env);
+  return list.has('*') || list.has(userId);
+};
+const isHairUnconfirmedAllowed = (env = process.env) => flag(env.DERMAI_HAIR_ALLOW_UNCONFIRMED);
+const hairFeatureFilter = (env = process.env) => { const l = String(env.DERMAI_HAIR_FEATURES || '').split(',').map(s => s.trim()).filter(Boolean); return l.length ? new Set(l) : null; };
+const HAIR_QUOTA_DEFAULTS = { units: 6, hours: 24 };
+const hairQuota = (env = process.env) => ({
+  limit: intIn(env.DERMAI_MAX_HAIR_UNITS_PER_PERIOD, 0, 100, HAIR_QUOTA_DEFAULTS.units),
+  windowSeconds: intIn(env.DERMAI_HAIR_PERIOD_HOURS, 1, 8760, HAIR_QUOTA_DEFAULTS.hours) * 3600
+});
+
 module.exports = {
   analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET,
   SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, simulationIntensity, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota,
-  MAKEUP_PATHS, MAKEUP_QUOTA_DEFAULTS, isMakeupEnabled, makeupAllowList, isMakeupAllowed, makeupQuota
+  MAKEUP_PATHS, MAKEUP_QUOTA_DEFAULTS, isMakeupEnabled, makeupAllowList, isMakeupAllowed, makeupQuota,
+  HAIR_QUOTA_DEFAULTS, isHairEnabled, hairAllowList, isHairAllowed, isHairUnconfirmedAllowed, hairFeatureFilter, hairQuota
 };

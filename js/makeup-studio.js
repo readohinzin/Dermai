@@ -18,6 +18,8 @@
 })(typeof self !== 'undefined' ? self : this, function (root) {
   'use strict';
   const Data = () => (typeof module === 'object' && module.exports ? require('./makeup-data.js') : root.DermaiMakeupData);
+  const Hair = () => (typeof module === 'object' && module.exports ? require('./hair-studio.js') : root.DermaiHairStudio);
+  const HairData = () => (typeof module === 'object' && module.exports ? require('./hair-data.js') : root.DermaiHairData);
   const FAV_PREFIX = 'dermai.studio.', PENDING = 'dermai.studio.pending.';
   const MAX_FAVORITES = 12, MAX_RESULTS = 4, MAX_NAME = 30, TIMEOUT_MS = 65000, MAX_FILE = 10 * 1024 * 1024;
   const MSG = {
@@ -59,11 +61,11 @@
     const doc = () => (typeof document !== 'undefined' ? document : null);
 
     const fresh = () => ({ who: undefined, avail: 'unknown', tone: 'medium', look: null, sel: D.fresh(), tab: 'lips', photo: null, photoUrl: '', photoBusy: false, photoNote: null, photoError: '',
-      status: 'idle', error: '', unsure: false, acked: false, results: [], shown: -1, pos: 50, notice: '', favName: '', favMsg: '', favOpen: false, seq: 0 });
+      status: 'idle', error: '', unsure: false, acked: false, results: [], shown: -1, pos: 50, notice: '', favName: '', favMsg: '', favOpen: false, seq: 0, mode: '', hair: 'unknown', hairFeatures: [] });
     let ui = fresh();
     const revoke = () => { if (ui.photoUrl) { try { URL.revokeObjectURL(ui.photoUrl); } catch (e) { /* sans importance */ } } ui.photoUrl = ''; };
     /* Un autre compte (ou une déconnexion) : rien ne se transmet d'un compte à l'autre (photo, résultats, sélection). */
-    function sync() { const w = uid() || 'none'; if (ui.who !== w) { revoke(); ui = fresh(); ui.who = w; } }
+    function sync() { const w = uid() || 'none'; if (ui.who !== w) { revoke(); HS.reset(); ui = fresh(); ui.who = w; } }
 
     const marker = {
       get() { try { const s = session(); return !!(s && uid() && s.getItem(PENDING + uid())); } catch (e) { return false; } },
@@ -71,27 +73,36 @@
       clear() { try { const s = session(); if (s && uid()) s.removeItem(PENDING + uid()); } catch (e) { /* sans importance */ } }
     };
 
+    /* Volet capillaire (js/hair-studio.js) : mêmes photo, session et règles que le maquillage ; une seule demande à la fois, tous modules confondus. */
+    const HS = Hair().create({ esc, uid, acc, epoch, who: () => ui.who, redraw, doFetch, marker, storage: local, toJpeg: d.toJpeg, shrink: d.shrink,
+      photo: () => (ui.photo ? { blob: ui.photo, url: ui.photoUrl } : null), busy: () => ui.status === 'running', features: () => ui.hairFeatures });
+
     /* ---------- Disponibilité pour CE compte : GET sans effet (ni fournisseur, ni quota) ---------- */
+    /* Deux lectures GET sans effet (ni fournisseur, ni quota) : le maquillage et le volet capillaire sont ouverts INDÉPENDAMMENT pour ce compte. */
+    async function ask(url, token) {
+      try {
+        const r = await doFetch(url, { method: 'GET', headers: { Authorization: 'Bearer ' + token } });
+        const j = r && r.ok ? await r.json() : null;
+        return j && j.ok === true && j.available === true ? j : null;
+      } catch (e) { return null; }
+    }
     async function probe() {
       sync();
       if (ui.avail !== 'unknown' || !uid()) return;
       ui.avail = 'checking';
       const ep = epoch(), who = ui.who;
-      let ok = false;
+      let mk = null, hr = null;
       try {
         const a = acc(), token = a && a.accessToken ? await a.accessToken() : null;
-        if (token) {
-          const r = await doFetch('/api/makeup-vto', { method: 'GET', headers: { Authorization: 'Bearer ' + token } });
-          const j = r && r.ok ? await r.json() : null;
-          ok = !!(j && j.ok === true && j.available === true);
-        }
-      } catch (e) { ok = false; }
+        if (token) [mk, hr] = await Promise.all([ask('/api/makeup-vto', token), ask('/api/hair-vto', token)]);
+      } catch (e) { mk = null; hr = null; }
       if (ep !== epoch() || who !== ui.who) return;
-      ui.avail = ok ? 'yes' : 'no';
-      if (ok) redraw();
+      const HD = HairData(), feats = hr && Array.isArray(hr.features) ? hr.features.filter(f => f && HD.FEATURES[f.id] && Number.isInteger(f.units) && f.units > 0 && f.units <= 10).map(f => ({ id: f.id, units: f.units, templates: f.templates === true })) : [];
+      ui.avail = mk ? 'yes' : 'no'; ui.hair = feats.length ? 'yes' : 'no'; ui.hairFeatures = feats;
+      if (mk || feats.length) redraw();
     }
     /* Pour le menu : l'entrée n'apparaît que si le Studio est ouvert pour ce compte. */
-    function ready() { probe(); return ui.avail === 'yes'; }
+    function ready() { probe(); return ui.avail === 'yes' || ui.hair === 'yes'; }
 
     /* ---------- Favoris : paramètres seulement (jamais d'image), une clé par compte ---------- */
     function loadFavs() {
@@ -110,7 +121,7 @@
     let lastUid = null;
     function clear() {
       const w = uid() || lastUid || ui.who;
-      revoke(); ui = fresh(); marker.clear();
+      HS.clear(); revoke(); ui = fresh(); marker.clear();
       if (w && w !== 'none') { try { const s = local(); if (s) s.removeItem(FAV_PREFIX + w); } catch (e) { /* rien à effacer */ } }
     }
 
@@ -132,19 +143,19 @@
         try { chk = d.inspect ? await d.inspect(blob) : null; } catch (e) { chk = null; }
         if (ep !== epoch() || who !== ui.who) return;
         if (chk && chk.level === 'block') { ui.photoError = chk.issues && chk.issues[0] && chk.issues[0].text ? chk.issues[0].text : (chk.body || MSG.unreadable); ui.photoBusy = false; redraw(); return; }
-        revoke(); ui.photo = blob; ui.photoUrl = URL.createObjectURL(blob);
+        revoke(); ui.photo = blob; ui.photoUrl = URL.createObjectURL(blob); ui.results = []; ui.shown = -1; HS.dropResults();
         ui.photoNote = chk && chk.level === 'warn' ? { title: chk.title, issues: (chk.issues || []).map(i => i.text).filter(Boolean) } : null;
       } catch (e) { if (ep === epoch() && who === ui.who) ui.photoError = (e && e.userMessage) || MSG.unreadable; }
       ui.photoBusy = false; redraw();
     }
-    function removePhoto() { revoke(); ui.photo = null; ui.photoNote = null; ui.photoError = ''; }
+    function removePhoto() { revoke(); ui.results = []; ui.shown = -1; HS.dropResults(); ui.photo = null; ui.photoNote = null; ui.photoError = ''; }
 
     /* ---------- Essayage : UNE demande, tous les effets ---------- */
     const cfgNow = () => D.toConfig(ui.sel);
-    const canRun = () => !!ui.photo && D.hasMakeup(ui.sel) && ui.status !== 'running' && (!marker.get() || ui.acked);
+    const canRun = () => !!ui.photo && D.hasMakeup(ui.sel) && ui.status !== 'running' && !HS.busy() && (!marker.get() || ui.acked);
     async function run() {
       sync();
-      if (ui.status === 'running') return;                                       // une seule demande à la fois (contrôlé avant toute attente)
+      if (ui.status === 'running' || HS.busy()) return;                          // une seule demande à la fois, tous modules confondus (contrôlé avant toute attente)
       if (!ui.photo || !D.hasMakeup(ui.sel)) return;
       if (marker.get() && !ui.acked) { redraw(); return; }
       ui.status = 'running'; ui.error = ''; ui.unsure = false; ui.notice = ''; redraw();
@@ -243,13 +254,18 @@
 
     function page() {
       sync();
-      const head = `<div class="pagehead"><p class="kicker">Maquillage virtuel</p><h1>Studio Beauté</h1><p>Essayez des looks sur votre propre photo : choisissez vos couleurs, puis lancez un essayage. Votre peau n'est pas retouchée.</p></div>`;
+      const head = `<div class="pagehead"><p class="kicker">${ui.hair === 'yes' ? 'Maquillage et cheveux' : 'Maquillage virtuel'}</p><h1>Studio Beauté</h1><p>Essayez des looks sur votre propre photo : choisissez vos couleurs, puis lancez un essayage. Votre peau n'est pas retouchée.</p></div>`;
       if (!uid()) return `${head}${note('Connectez-vous ou créez un compte pour utiliser le Studio Beauté.')}<div class="stack" style="gap:8px"><button class="c-btn c-btn--primary c-btn--block" data-go="signup">Créer un compte</button><button class="c-btn c-btn--secondary c-btn--block" data-go="login">Se connecter</button></div>`;
       lastUid = uid();
       probe();
       if (ui.avail === 'unknown' || ui.avail === 'checking') return `${head}<p class="muted" role="status">Vérification de votre accès…</p>`;
-      if (ui.avail !== 'yes') return `${head}${note('Le Studio Beauté n\'est pas disponible pour votre compte pour le moment.')}`;
-      const busy = ui.status === 'running', pending = marker.get() && !ui.acked;
+      if (ui.avail !== 'yes' && ui.hair !== 'yes') return `${head}${note('Le Studio Beauté n\'est pas disponible pour votre compte pour le moment.')}`;
+      /* Onglets : Maquillage (si ouvert pour ce compte) puis les fonctions capillaires ouvertes ; un seul onglet = aucune barre. */
+      const HD = HairData(), hairTabs = ui.hair === 'yes' ? HS.tabsFor(ui.hairFeatures.map(f => f.id)) : [];
+      const modes = (ui.avail === 'yes' ? [{ id: 'makeup', label: 'Maquillage' }] : []).concat(hairTabs.map(t => ({ id: t.id, label: t.label })));
+      if (!modes.some(m => m.id === ui.mode)) ui.mode = modes[0].id;
+      const studioTabs = modes.length > 1 ? `<div class="chips c-ms-modes" role="group" aria-label="Espaces du Studio">${modes.map(m => `<button type="button" class="c-chip" data-ms="mode" data-v="${m.id}" aria-pressed="${ui.mode === m.id}">${esc(m.label)}</button>`).join('')}</div>` : '';
+      const busy = ui.status === 'running', pending = marker.get() && !ui.acked, locked = busy || HS.busy();
       const lookChips = D.LOOKS.map(l => `<button type="button" class="c-chip" data-ms="look" data-id="${l.id}" aria-pressed="${ui.look === l.id}" title="${esc(l.about)}">${esc(l.label)}</button>`).join('');
       const toneChips = D.TONES.map(t => `<button type="button" class="c-chip" data-ms="tone" data-t="${t[0]}" aria-pressed="${ui.tone === t[0]}">${esc(t[1])}</button>`).join('');
       const tabs = D.CATEGORIES.map(c => `<button type="button" class="c-chip" data-ms="tab" data-cat="${c[0]}" aria-pressed="${ui.tab === c[0]}">${esc(c[1])}${ui.sel[c[0]].on ? ' <span aria-hidden="true">●</span><span class="sr"> (ajouté)</span>' : ''}</button>`).join('');
@@ -258,15 +274,17 @@
         : `<div class="c-ms-empty"><p class="muted">${ui.photoBusy ? 'Préparation de la photo…' : 'Aucune photo choisie.'}</p></div>`;
       const sections = D.CATEGORIES.filter(c => c[0] === ui.tab).map(c => editor(c[0])).join('');
       const run = `<button class="c-btn c-btn--primary c-btn--block" data-ms="run"${canRun() && !busy ? '' : ' disabled'} aria-busy="${busy}">${busy ? 'Essayage en cours…' : 'Essayer ce maquillage'}</button>`;
-      return `${head}
+      const photoSection = `
         <section class="c-ms-photo"><div class="hd"><h2 class="h3">1. Votre photo</h2></div>
-          <ul class="c-ms-tips"><li>Visage de face, regard vers l'appareil.</li><li>Bien éclairé, avec une lumière douce.</li><li>Visage entièrement visible : cheveux, mains et lunettes écartés.</li><li>Assez proche : le visage doit remplir une bonne partie de la photo.</li></ul>
+          ${ui.mode === 'makeup' ? `<ul class="c-ms-tips"><li>Visage de face, regard vers l'appareil.</li><li>Bien éclairé, avec une lumière douce.</li><li>Visage entièrement visible : cheveux, mains et lunettes écartés.</li><li>Assez proche : le visage doit remplir une bonne partie de la photo.</li></ul>` : `<ul class="c-ms-tips"><li>Visage de face, regard vers l'appareil.</li><li>Bien éclairé, avec une lumière douce.</li><li>Cheveux entiers dans le cadre et épaules visibles : ni chapeau, ni foulard, ni main devant les cheveux.</li><li>Assez proche pour un visage bien visible, mais pas coupé.</li></ul>`}
           ${photo}${ui.photoError ? note(ui.photoError, 'c-notice--error', 'alert') : ''}
-          <div class="stack" style="gap:8px"><button type="button" class="c-btn c-btn--secondary c-btn--block" data-ms="pick-file"${ui.photoBusy || busy ? ' disabled' : ''}>${ui.photoUrl ? 'Remplacer la photo' : 'Choisir une photo'}</button>
-          <button type="button" class="c-btn c-btn--ghost c-btn--block" data-ms="pick-selfie"${ui.photoBusy || busy ? ' disabled' : ''}>Prendre un selfie</button>
-          ${ui.photoUrl ? `<button type="button" class="link" data-ms="photo-remove"${busy ? ' disabled' : ''}>Retirer la photo</button>` : ''}</div>
+          <div class="stack" style="gap:8px"><button type="button" class="c-btn c-btn--secondary c-btn--block" data-ms="pick-file"${ui.photoBusy || locked ? ' disabled' : ''}>${ui.photoUrl ? 'Remplacer la photo' : 'Choisir une photo'}</button>
+          <button type="button" class="c-btn c-btn--ghost c-btn--block" data-ms="pick-selfie"${ui.photoBusy || locked ? ' disabled' : ''}>Prendre un selfie</button>
+          ${ui.photoUrl ? `<button type="button" class="link" data-ms="photo-remove"${locked ? ' disabled' : ''}>Retirer la photo</button>` : ''}</div>
           <p class="muted">JPEG ou PNG, moins de 10 Mo. La photo est réduite sur votre appareil.</p>
-          <input type="file" id="ms-file" data-ms="file" accept="image/jpeg,image/png" hidden><input type="file" id="ms-selfie" data-ms="file" accept="image/jpeg,image/png" capture="user" hidden></section>
+          <input type="file" id="ms-file" data-ms="file" accept="image/jpeg,image/png" hidden><input type="file" id="ms-selfie" data-ms="file" accept="image/jpeg,image/png" capture="user" hidden></section>`;
+      if (ui.mode !== 'makeup') return `${head}${studioTabs}${photoSection}${HS.body(ui.mode)}`;
+      return `${head}${studioTabs}${photoSection}
         <section class="c-ms-looks"><div class="hd"><h2 class="h3">2. Un look pour commencer</h2></div>
           <p class="c-ms-label">Votre carnation (pour proposer des couleurs adaptées)</p><div class="chips" role="group" aria-label="Carnation">${toneChips}</div>
           <p class="c-ms-label" style="margin-top:12px">Look</p><div class="chips" role="group" aria-label="Looks">${lookChips}</div>
@@ -285,6 +303,7 @@
     const custom = () => { if (ui.look) { ui.look = null; const x = doc(); if (x) x.querySelectorAll('[data-ms=look]').forEach(b => b.setAttribute('aria-pressed', 'false')); } };
     function attach(x) {
       if (!x || !x.addEventListener) return;
+      HS.attach(x);
       x.addEventListener('click', ev => {
         const el = ev.target && ev.target.closest ? ev.target.closest('[data-ms]') : null;
         if (!el || el.disabled || el.tagName === 'INPUT') return;
@@ -294,6 +313,7 @@
         else if (a === 'pick-file') { const f = x.getElementById('ms-file'); if (f) f.click(); }
         else if (a === 'pick-selfie') { const f = x.getElementById('ms-selfie'); if (f) f.click(); }
         else if (a === 'photo-remove') { removePhoto(); redraw(); }
+        else if (a === 'mode') { ui.mode = el.getAttribute('data-v'); redraw(); }
         else if (a === 'tone') { ui.tone = el.getAttribute('data-t'); if (ui.look) ui.sel = D.applyLook(ui.sel, ui.look, ui.tone); redraw(); }
         else if (a === 'look') { ui.look = el.getAttribute('data-id'); ui.sel = D.applyLook(ui.sel, ui.look, ui.tone); redraw(); }
         else if (a === 'tab' && cat) { ui.tab = cat; redraw(); }
@@ -352,8 +372,8 @@
     }
 
     /* Déconnexion ou changement de compte : on oublie tout (photo, résultats, sélection). */
-    function reset() { revoke(); ui = fresh(); }
-    return { page, attach, probe, ready, clear, reset, state: () => ui, favorites: loadFavs };
+    function reset() { revoke(); HS.reset(); ui = fresh(); }
+    return { page, attach, probe, ready, clear, reset, state: () => ui, favorites: loadFavs, hair: HS };
   }
 
   return { create, MSG, DATA_NOTE, FAV_PREFIX, PENDING, MAX_FAVORITES, MAX_RESULTS };

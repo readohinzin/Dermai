@@ -331,3 +331,43 @@ Annoncée par le fournisseur : 1 unité par tâche, aucune unité en cas d'erreu
 
 ### Tests
 `test/makeup-server.test.js` (14), `test/makeup-data.test.js` (6), `test/makeup-studio.test.js` (11), `test/makeup-studio-browser.test.js` (8, vrai `app.js` dans Chromium, réseau simulé), `test/makeup-quota-db.test.js` (8, PostgreSQL jetable).
+
+## Studio Beauté, volet capillaire : coiffures, couleurs, extensions, franges, boucles, volume (développé, FERMÉ, jamais testé en réel)
+
+Même écran que le maquillage (une seule entrée « Studio Beauté », mêmes photo et règles), avec des onglets : Maquillage, Coiffures et perruques, Couleurs de cheveux, Extensions, Franges, Boucles et volume. Chaque onglet appelle réellement une API Perfect Corp, une tâche par essai. Aucun appel réel n'a été fait, aucune unité consommée, aucune migration appliquée, aucune variable modifiée. Le maquillage n'a pas été réécrit.
+
+### Verrous (tout est fermé par défaut, séparés du maquillage)
+- `DERMAI_HAIR_ENABLED` : interrupteur de `/api/hair-vto` (fermé si absent, vide, `0`, `false`…). `DERMAI_HAIR_ALLOWED_USER_IDS` : identifiants autorisés, `*` seul = tout compte connecté (choix explicite).
+- `DERMAI_MAX_HAIR_UNITS_PER_PERIOD` (défaut 6) et `DERMAI_HAIR_PERIOD_HOURS` (défaut 24) : quota PROPRE aux essais capillaires, compté en **unités** documentées (coiffure et volume : 2, les autres : 1), distinct de l'analyse, de la simulation et du maquillage.
+- Quota en base : fonction `reserve_hair(p_limit, p_window_seconds, p_units)` **proposée, non appliquée** (`supabase/proposals/20261013120000_hair_quota.sql` + `.rollback.sql`, testée sur PostgreSQL jetable par `test/hair-quota-db.test.js`, y compris l'atomicité à 10 requêtes simultanées). Tant qu'elle est absente, le serveur refuse (503).
+- `DERMAI_HAIR_FEATURES` : liste des fonctions ouvertes (`hairstyle, haircolor, extensions, bangs, wavy, volume`). `DERMAI_HAIR_ALLOW_UNCONFIRMED=1` : ouvre aussi les quatre dont le chemin REST n'est pas confirmé (voir plus bas). `DERMAI_HAIR_PATH_<IDENTIFIANT>` corrige un chemin sans toucher au code. `vercel.json` : `api/hair-vto.js` reçoit `maxDuration: 60`.
+
+### Fonctionnement
+- **Serveur** (`api/hair-vto.js`, `server/hair.js`, `server/perfectcorp-hair.js`). `GET` : fonctions ouvertes pour le compte (aucun fournisseur, aucun quota). `GET ?templates=<id>` : liste des modèles du fournisseur (lecture seule, cache de 10 minutes, aucune tâche). `POST ?feature=<id>&cfg=<sélection>` avec la photo JPEG brute ; pour une coiffure par photo de référence, la référence est collée juste après et `ref_at` donne l'octet de coupure. Ordre des garde-fous : méthode, session, interrupteur, compte autorisé, fonction ouverte, sélection, temps restant, photos (JPEG réel, grand côté ≤ 1 024 px, petit côté ≥ 256 px), clé, quota en unités, Perfect Corp. Aucune relance automatique.
+- **Le navigateur n'envoie jamais d'URL ni de corps fournisseur** : seulement `{v:1, …}` validé strictement par fonction (preset OU palettes jamais les deux ; modèle OU référence jamais les deux ; identifiants de modèle de forme sûre). Les photos partent par `file_id`. L'image finale (URL https temporaire du fournisseur) est lue dans `data.results.url`, jamais téléchargée par le serveur.
+- **Modèles** : jamais d'identifiant ni de vignette inventés. La liste vient du fournisseur ; une vignette n'est affichée que si le fournisseur en donne une en https. Les catégories affichées (Longues, Afro…) sont celles que le fournisseur renvoie, jamais écrites en dur.
+- **Couleurs** : les 20 presets officiels (noms exacts envoyés), et des teintes personnalisées (couleur libre avec intensité et brillance, ou dégradé à deux couleurs avec fondu et position). Preset et couleur libre ne sont jamais envoyés ensemble (le preset l'emporterait).
+- **Nature de la transformation** : chaque onglet la dit. Une extension n'est pas une perruque ; une coiffure est l'aperçu d'un STYLE, pas d'un modèle commercial précis de perruque ; le volume n'est ni un diagnostic de chute de cheveux ni une solution médicale ; le catalogue des boucles ne couvre pas forcément toutes les textures afro.
+- **Coût** affiché avant chaque essai (« consomme N unités », valeur documentée, non mesurée). Aucune tâche à l'ouverture d'un onglet, au choix d'un modèle ou d'une couleur, ni au clavier : seul le bouton « Essayer ». Une seule demande à la fois, maquillage compris. Photo et résultats en mémoire seulement ; favoris de réglages seulement (`dermai.studio.hair.<id>`, 12 au plus), effacés avec le compte. Photo remplacée : les résultats sont oubliés (ils ne se compareraient plus à la bonne photo).
+- **Combiner les transformations (coiffure puis couleur…) : NON implémenté, volontairement.** Réutiliser une image générée comme entrée suivante imposerait soit d'accepter une URL fournie par le navigateur (interdit), soit que le serveur la télécharge ou la garde (rien n'est conservé, la forme de l'hôte des résultats n'est pas connue pour l'autoriser). Les essais partent donc toujours de la photo d'origine.
+- `js/app.js` : inchangé par ce volet (149 980 octets, plafond 150 000) : les modules sont créés par `js/makeup-studio.js`.
+
+### Contrat API : établi, non confirmé
+| Élément | Statut | Source |
+|---|---|---|
+| Coiffure V2.1 : `POST /s2s/v2.1/task/hair-transfer`, modèles `GET /s2s/v2.1/task/template/hair-transfer`, 2 unités | **Confirmé** | dépôt officiel `YouCam-API/skills` (`api-fallback.yaml`, instantané du 01/09/2026) |
+| Couleur V1.0 : `POST /s2s/v2.0/task/hair-color`, 1 unité | **Confirmé** | idem |
+| Corps de chacune des six fonctions (photo par `src_file_id`, `template_id`, `ref_file_id`, `hair_color`, `preset`, `pattern`, `palettes`) | **Confirmé** | outils `AI-…` du dépôt `YouCam-API/beauty-skin-care-mcp` |
+| Statut : `<chemin de création>/<task_id>` ; image dans `data.results.url` | **Confirmé** | scripts et `SKILL.md` du dépôt de skills |
+| Consommations (2, 1, 1, 1, 1, 2) | **Rapporté** (énoncé de la mission) | non vérifié (docs inaccessibles), jamais mesuré |
+| Chemins de création : extensions, franges, ondulations, volume | **NON confirmés** | aucune source consultée ; noms supposés (`hair-extension`, `bangs`, `wavy-hair`, `hair-volume`) ; fermés par défaut |
+| Chemin des modèles de ces quatre fonctions | **Déduit** du motif confirmé `/task/template/<fonction>` | look-vto, bg-replace, hair-transfer |
+| Forme de la liste des modèles (`data.templates[]`, `id`, `thumb`/`thumbnail`/`thumb_url`, `title`/`name`, `category_name`/`category`, `next_token`) et paramètre de page suivante `starting_token` | **NON confirmés** | lecture prudente : tout ce qui n'a pas la forme attendue est ignoré, et si rien n'est reconnu la liste est refusée (la structure seule est journalisée) |
+| Exigences de photo | Extensions : ≤ 1 024 px (énoncé de la mission) ; appliqué à TOUTES les fonctions capillaires par prudence | à confirmer par fonction |
+`docs.perfectcorp.com` est **refusé par la politique réseau** de l'environnement de développement (403) : rien n'a pu être vérifié dans la documentation en ligne.
+
+### Limites
+Disponibilité d'une API ne prouve pas un rendu de qualité sur toutes les textures, couleurs et styles, notamment pour les cheveux crépus et les coiffures protectrices : à juger sur de vrais rendus. Les valeurs par défaut (intensité 70, brillance 40) et l'ordre des deux couleurs d'un dégradé (le service ne dit pas laquelle est en haut) sont à valider à l'essai.
+
+### Tests
+`test/hair-server.test.js` (12), `test/hair-data.test.js` (8), `test/hair-studio.test.js` (13), `test/hair-studio-browser.test.js` (10, vrai `app.js` dans Chromium, réseau simulé, 420 px et clavier), `test/hair-quota-db.test.js` (9, PostgreSQL jetable).
