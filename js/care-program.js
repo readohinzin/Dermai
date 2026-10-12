@@ -99,6 +99,7 @@
         case 'cancel': ui.pending = null; break;
         case 'restart': case 'erase': break;                       // demande de confirmation : l'écran l'affiche, rien n'est encore effacé
         case 'resume': { if (!st) break; const next = P.resume(st, t); if (next) { save(next); ui.notice = ''; } break; }
+        case 'evolution': if (st && d.evolution) d.evolution(); return;   // ouvre l'écran d'évolution (module js/evolution.js) : le programme ne calcule rien lui-même
         default: return;
       }
       redraw();
@@ -173,6 +174,7 @@
       }).join('')}</section>`;
     }
 
+    const evolutionLink = () => (d.evolution ? `<section style="margin-bottom:20px"><button class="c-btn c-btn--secondary c-btn--block" data-cp="evolution">Voir mon évolution depuis le début du programme</button><p class="muted s" style="margin-top:8px">Compare votre analyse de départ à votre dernière analyse enregistrée. Les dates du programme sont indicatives : elles ne disent pas que le programme a causé les variations.</p></section>` : '');
     function active(st, eng, scan) {
       const t = today(), raw = P.dayNumber(st.start, t), cur = Math.min(raw, P.DAYS) || 1, day = viewDay(st);
       const view = P.dayView(st, day), over = raw > P.DAYS;
@@ -191,7 +193,7 @@
         ${ui.notice && !(view.suspended && ui.notice === C.reaction.strong) ? notice(esc(ui.notice)) : ''}
         ${view.suspended ? `<div class="c-notice c-notice--error u-my-5" role="alert">${ic('info')}<div>${esc(C.reaction.strong)}<p style="margin-top:8px">${esc(C.resumeNote)}</p><button class="c-btn c-btn--secondary c-btn--block" style="margin-top:10px" data-cp="resume">${esc(C.resumeBtn)}</button></div></div>` : ''}
         ${nav}<p class="muted" style="margin-bottom:12px">${day === cur && !over ? 'Aujourd\'hui' : `Jour ${day}`} : ${view.done} sur ${view.expected} actions prévues faites.</p>
-        ${slots}${toleranceBlock(st, day)}${reviewBlock(st)}${budget()}${safety()}
+        ${slots}${toleranceBlock(st, day)}${reviewBlock(st)}${evolutionLink()}${budget()}${safety()}
         <div class="stack" style="margin-top:24px;gap:8px"><button class="link" data-cp="restart">Recommencer le programme</button><button class="link" data-cp="erase">Effacer mon suivi</button></div>${confirmBox}
         <p class="c-disclaimer">Conseils cosmétiques d'information, ce n'est pas un diagnostic médical. En cas de doute ou de réaction importante, demandez l'avis d'un professionnel de santé.</p>`;
     }

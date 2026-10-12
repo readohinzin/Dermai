@@ -603,7 +603,7 @@ test('WI1 écran programme : route restaurable, alimenté par la dernière analy
   const v = app.slice(app.indexOf('V.program='), app.indexOf('\n', app.indexOf('V.program=')));
   assert.match(v, /noReal\(\)\?emptyScan\(/); assert.match(v, /CP\.page\(engineFor\(SCANS\[state\.latest\]\),SCANS\[state\.latest\]\)/);
   assert.doesNotMatch(v, /provider|analyzeSkin|runRealAnalysis|F\.arm|go\(/);
-  assert.match(app, /const CP=DermaiCare\.create\(\{storage:\(\)=>window\.localStorage,userId:\(\)=>ACCOUNT&&ACCOUNT\.user\?ACCOUNT\.user\.id:null,render:\(\)=>render\(true\),ic,esc\}\);CP\.attach\(document\);/);
+  assert.match(app, /const CP=DermaiCare\.create\(\{storage:\(\)=>window\.localStorage,userId:\(\)=>ACCOUNT&&ACCOUNT\.user\?ACCOUNT\.user\.id:null,render:\(\)=>render\(true\),ic,esc,evolution:\(\)=>EVO\.fromProgram\(\)\}\);CP\.attach\(document\);/);
 });
 test('WI2 entrée depuis la routine, limites dans le résultat, effacement avec le compte', () => {
   assert.match(app, /<div class="col">\$\{CP\.entry\(\)\}<button class="rowlink" data-go="actives"/);

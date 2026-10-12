@@ -36,3 +36,20 @@
 .c-insight__group .c-insight__text{margin-bottom:10px}
 .c-insight__note{margin-top:18px}
 .c-photo-ask__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+
+/* Bilan d'évolution (js/evolution.js) : variations de scores entre deux analyses enregistrées, photos côte à côte */
+.c-evo{margin-bottom:24px;min-width:0}
+.c-evo__shortcuts{margin:0 0 18px}
+.c-evo__shortcuts .c-btn{min-height:44px;white-space:normal}
+.c-evo__period{font-weight:600;margin:0 0 6px}
+.c-evo__summary{margin:0 0 14px;line-height:1.5}
+.c-evo__group{margin-top:16px;min-width:0}
+.c-evo__title{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:1.05rem;margin:0 0 4px}
+.c-evo__note{margin:8px 0 0;line-height:1.45;overflow-wrap:anywhere}
+.c-evo__global{margin:16px 0 0;line-height:1.5}
+.c-evo .c-indicator__name{overflow-wrap:anywhere;min-width:0}
+.c-evo__photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.c-evo__photos--one{grid-template-columns:minmax(0,1fr);max-width:260px}
+.c-evo__fig{margin:0;min-width:0}
+.c-evo__fig img{display:block;width:100%;height:auto;aspect-ratio:3/4;object-fit:cover;border-radius:var(--r-sm);background:var(--line)}
+.c-evo__fig figcaption{margin-top:6px;font-size:var(--fs-sm);color:var(--ink-2);overflow-wrap:anywhere}
