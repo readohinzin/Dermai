@@ -198,6 +198,16 @@ Une barre compacte sous l'en-tête des écrans Résultat, Routine et Produits : 
 - Tests : `test/export.test.js` (EXP1 à EXP18, dont l'interface en icônes), harnais navigateur aux six largeurs (téléchargement réel, PDF relu avec `pdftotext`, partage simulé, aucune requête réseau).
 
 
+## DERMAI Évolution : bilan entre deux analyses (MVP, local)
+Dans l'écran « Votre évolution », un bloc « Bilan de votre évolution » (module `js/evolution.js`, chargé avant `app.js`) précède le graphique et les tableaux existants.
+- **Entrée** : deux analyses ENREGISTRÉES, déjà chargées dans l'application (tableau `SCANS`). Aucun appel réseau, aucune table SQL, aucun appel à `/api/skin-analysis` ni à Perfect Corp : consulter ou comparer ne coûte rien. Une analyse non enregistrée est exclue, avec un message.
+- **Classement** : seuls les indicateurs présents dans les deux analyses sont comparés (une valeur absente n'est jamais inventée ni classée). « Score en hausse », « Variation faible », « Score en baisse » au seuil de `SkinModel.TREND_STEP` (2 points), annoncé comme valeur technique provisoire, non validée scientifiquement. Huile, texture et radiance (sens non documenté) vont dans « Variation observée », sans jugement ; le contour des yeux reste « à titre indicatif ». L'avertissement du bilan est affiché tel quel ; aucune variation n'est attribuée à un produit, un ingrédient, une routine ou au programme.
+- **Sélection par défaut** : si l'une des deux dernières analyses n'est pas enregistrée (par exemple une sauvegarde qui a échoué), le bilan sélectionne les deux plus récentes analyses ENREGISTRÉES et le dit. Un choix fait à la main n'est jamais modifié. Avec une seule analyse enregistrée, ou aucune, le bloc l'explique au lieu de produire un bilan.
+- **Raccourcis** : « Depuis ma première analyse » (refusé tant que l'historique n'est pas entièrement chargé) et « Depuis le début du programme » (analyse `plan.base.id` du programme local, jusqu'à la plus récente analyse enregistrée ; si la base est introuvable ou qu'aucune analyse n'est plus récente, un message l'explique et la sélection ne change pas). Les deux analyses restent modifiables à la main. Depuis l'écran du programme : bouton « Voir mon évolution depuis le début du programme ».
+- **Photos** : le curseur avant/après est conservé ; en plus, les deux photos côte à côte quand elles existent (adresses `blob:` ou `https:` seulement, liens temporaires jamais stockés). Une seule photo ou aucune : un état explicite, le comparatif de scores reste disponible.
+- **Limites connues** : `plan.base.id` n'existe que pour un programme commencé sur une analyse enregistrée (sinon le raccourci du programme l'explique) ; le raccourci « première analyse » ne couvre que l'historique chargé (20 analyses par page) ; le seuil de 2 points n'est pas validé ; les conditions de prise de vue influencent les scores.
+- Tests : `test/evolution.test.js` (logique), `test/evolution-browser.test.js` (Chromium, 420 px).
+
 ## Programme de soins sur 30 jours et limites du rapport
 
 Le rapport et la routine existaient déjà (priorités classées avec « Pourquoi cet axe ? », routine matin et soir, actifs, précautions). Cette étape ajoute le suivi dans le temps, sans nouvelle analyse :
@@ -229,7 +239,7 @@ Illustration visuelle d'une zone « un peu améliorée » à partir de la photo 
 - **Zones proposées** (une par demande) : rides, radiance, acné, poches, cernes, taches, pores, texture, rougeurs. `oiliness` est exclue : son intensité AJOUTE de la brillance (sens inverse), ce ne serait pas une amélioration. Intensité choisie côté serveur (jamais par le navigateur) : 0,8 par défaut, réglable par `DERMAI_SIMULATION_INTENSITY` (0,1 à 1). Le premier essai à 0,5 (zone acné) n'a donné aucune différence visible ; 0,8 est un nouvel essai, valeur provisoire à ajuster.
 - **Navigateur** (`js/simulation.js`, chargé avant `app.js`) : bouton « Simuler une amélioration » dans le résultat de l'analyse la plus récente, uniquement si le serveur répond « disponible » pour ce compte. Écran : avertissement « une illustration, pas une prédiction », choix de la zone, mention du quota, curseur avant/après. Une seule demande à la fois, clic explicite ; une demande restée sans réponse laisse une trace de session et la relance exige une confirmation (elle a peut-être été comptée). L'image simulée reste en mémoire de la page (jamais dans `localStorage`).
 - **Photo** : la photo de l'analyse en cours si elle est encore en mémoire ; sinon celle que l'utilisatrice a choisi de garder dans son compte (lien temporaire, JPEG vérifié) ; sinon l'écran explique que la photo n'est plus disponible et demande une photo de face, **sans lancer d'analyse**. Le fournisseur n'a pas de `file_id` réutilisable : la photo est renvoyée à chaque simulation.
-- `js/app.js` : 3 lignes de branchement (149 713 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
+- `js/app.js` : 3 lignes de branchement (149 301 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
 
 ### Contrat de l'API : ce qui est confirmé, rapporté ou non vérifié
 Trois statuts, à ne pas confondre :
