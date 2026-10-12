@@ -37,6 +37,8 @@
       return p.protocol === 'https:' && !p.username && !p.password && !p.port && h.includes('.') && !h.endsWith('.local') && !h.endsWith('.internal') && !/^\d+\.\d+\.\d+\.\d+$/.test(h) && !h.includes(':');
     } catch (e) { return false; }
   };
+  /* Libellés de catégories : seuls les deux mots anglais vus chez le fournisseur sont traduits pour l'affichage ; la valeur de filtrage reste celle du fournisseur. */
+  const CAT_FR = { male: 'Homme', female: 'Femme' };
   const extOf = name => (String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || '';
 
   /* Réduction JPEG à 1 024 px (grand côté) dans le navigateur : exigence documentée pour les extensions, appliquée à tous les essais capillaires par prudence. */
@@ -217,7 +219,7 @@
       if (t.status === 'error' && !t.items.length) return `${note(t.error || MSG.templates, 'c-notice--error', 'alert')}<button type="button" class="c-btn c-btn--secondary" data-hs="retry-templates" data-f="${fid}">Réessayer</button>`;
       const cats = [...new Set(t.items.map(x => x.category).filter(Boolean))];
       const shown = t.items.filter(x => !s.cat || x.category === s.cat);
-      const chips = cats.length > 1 ? `<div class="chips" role="group" aria-label="Catégories de modèles">${chip(`data-hs="cat" data-f="${fid}" data-v=""`, !s.cat, 'Tous')}${cats.map(k => chip(`data-hs="cat" data-f="${fid}" data-v="${esc(k)}"`, s.cat === k, k)).join('')}</div>` : '';
+      const chips = cats.length > 1 ? `<div class="chips" role="group" aria-label="Catégories de modèles">${chip(`data-hs="cat" data-f="${fid}" data-v=""`, !s.cat, 'Tous')}${cats.map(k => chip(`data-hs="cat" data-f="${fid}" data-v="${esc(k)}"`, s.cat === k, CAT_FR[k.toLowerCase()] || k)).join('')}</div>` : '';
       const cards = shown.map((x, i) => `<button type="button" class="c-hs-card" data-hs="tpl" data-f="${fid}" data-id="${esc(x.id)}" aria-pressed="${s.sel.templateId === x.id}">${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="c-hs-card__ph" aria-hidden="true"></span>'}<span class="c-hs-card__t">${esc(x.title || 'Modèle ' + (i + 1))}</span></button>`).join('');
       const more = t.next ? `<button type="button" class="c-btn c-btn--ghost c-btn--block" data-hs="more-templates" data-f="${fid}"${t.status === 'loading' ? ' disabled' : ''}>${t.status === 'loading' ? 'Chargement…' : 'Voir plus de modèles'}</button>` : '';
       return `${chips}<div class="c-hs-grid" role="group" aria-label="Modèles proposés">${cards}</div>${t.status === 'error' ? note(t.error || MSG.templates, 'c-notice--error', 'alert') : ''}${more}<p class="muted">${t.items.length} modèle${t.items.length > 1 ? 's' : ''} proposé${t.items.length > 1 ? 's' : ''} par le service. Rien n'est envoyé tant que vous n'avez pas lancé l'essai.</p>`;

@@ -208,3 +208,10 @@ test('HS13 conseils photo adaptés : maquillage = cheveux écartés ; capillaire
   assert.match(h, /Cheveux entiers dans le cadre et épaules visibles/); assert.ok(!/cheveux, mains et lunettes écartés/.test(h));
   const m = setup({ hair: null, makeup: true }); await ready(m); assert.match(txt(m), /Maquillage virtuel/); assert.ok(!/Maquillage et cheveux/.test(txt(m)));
 });
+
+test('HS14 catégories du fournisseur : « Male » / « Female » affichés en français, valeur de filtrage inchangée ; les autres libellés restent tels que reçus', async () => {
+  const c = setup({ templates: () => json(200, { ok: true, templates: [{ id: 'a1', title: 'A', category: 'Female' }, { id: 'a2', title: 'B', category: 'Male' }, { id: 'a3', title: 'C', category: 'Afro' }], next: null }) });
+  const doc = await open(c, 'hairstyle'); const h = txt(c);
+  assert.match(h, /data-v="Female"[^>]*>Femme</); assert.match(h, /data-v="Male"[^>]*>Homme</); assert.match(h, /data-v="Afro"[^>]*>Afro</);
+  hs(doc, 'cat', { 'data-f': 'hairstyle', 'data-v': 'Female' }); const f = txt(c); assert.match(f, /data-id="a1"/); assert.ok(!/data-id="a2"/.test(f), 'le filtre utilise la valeur du fournisseur');
+});
