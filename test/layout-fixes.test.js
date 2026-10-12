@@ -30,6 +30,7 @@ test('LF3 bouton d\'analyse (téléphone) : cercle de 60 px centré en bas au-de
   const rule = nav.match(/\.c-scanfab\{[^}]*\}/)[0];
   assert.match(rule, /position:fixed;left:50%;bottom:calc\(16px \+ env\(safe-area-inset-bottom,0px\)\)/); assert.match(rule, /width:60px;height:60px/); assert.match(rule, /border-radius:50%/); assert.match(rule, /transform:translateX\(-50%\)/);
   assert.match(rule, /z-index:var\(--z-nav\)/, 'sous le menu (z-sheet) et le message (z-toast)');
+  assert.match(rule, /box-shadow:var\(--shadow-2\);/, 'seulement l\'ombre douce'); assert.ok(!/0 0 0 \d+px/.test(rule) && !/border:\s*[1-9]|outline:\s*[1-9]/.test(rule), 'aucun liseré ni contour autour du bouton (ni anneau de la couleur du fond)');
   assert.match(nav, /@media \(min-width:920px\)\{\.c-scanfab\{display:none\}\}/);
   assert.match(nav, /\.c-scanfab:focus-visible\{outline:none;box-shadow:var\(--focus-ring\)\}/, 'anneau de focus conservé');
   assert.ok(!/bottomnav/.test(nav) && !/\.nav\b/.test(nav + legacy), 'aucune règle .nav / .c-bottomnav restante');
