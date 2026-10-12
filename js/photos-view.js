@@ -42,6 +42,7 @@
         ['image', 'Vos photos d\'analyse ne sont gardées dans votre compte que si vous l\'avez choisi. Elles sont privées : personne d\'autre que vous n\'y a accès, et vous pouvez les supprimer à tout moment. Les zones détectées sur la photo ne sont jamais conservées.'],
         ['shield', 'Ces données sont associées à votre compte : vous seul pouvez accéder à vos analyses.'],
         ['lock', 'Votre adresse e-mail et votre mot de passe sont gérés par notre service d\'authentification. DERMAI ne voit ni ne conserve votre mot de passe.'],
+        ['eye', 'Quand vous êtes connecté, DERMAI enregistre la date de votre dernière activité sur le site (une seule date, sans page visitée ni appareil) pour savoir si votre compte est en ligne. Elle est effacée avec votre compte.'],
         ['trash', 'Vous pouvez supprimer vos photos, votre historique d\'analyses (photos comprises), ou votre compte entier (profil, analyses et photos compris), depuis « Gérer mes données ».'],
         ['eye', 'Une analyse nécessite un compte. Sans compte, rien n\'est conservé d\'une session à l\'autre.']];
     const keep = o.photos === true;

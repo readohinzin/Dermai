@@ -17,6 +17,7 @@ const ADMIN_OVERVIEW_SAMPLE = { v: 1, generated_at: '2026-10-12T10:00:00Z',
 function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
   const users = new Map();            // email -> { id, email, password, confirmed }
   const profiles = new Map();         // user_id -> ligne
+  const presence = new Map();         // user_id -> dernière présence (secondes de l'horloge simulée)
   const usage = new Map();            // user_id -> horodatages (secondes) des analyses réservées (quota)
   const analysisUsage = usage;
   const simUsage = new Map();         // idem pour les SIMULATIONS (compteur distinct, voir supabase/proposals/)
@@ -141,6 +142,30 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       if (used + body.p_units > body.p_limit) return resp(200, { ok: false, used, limit: body.p_limit, retry_after: Math.max(1, Math.min(...within.map(x => x.at), clock) + body.p_window_seconds - clock) });
       hairUsage.set(t.sub, [...rows, { at: clock, units: body.p_units }]); return resp(200, { ok: true, used: used + body.p_units, limit: body.p_limit });
     }
+    if (u.pathname === '/rest/v1/rpc/touch_presence') {   // équivalent de la fonction SQL de la proposition 20261015 : une date par compte, au plus une écriture toutes les 20 s
+      state.rpcCalls = (state.rpcCalls || []).concat('touch_presence'); state.presenceCalls = (state.presenceCalls || []).concat({ method: init.method, auth: h.authorization, body: init.body });
+      if (state.presenceMode === 'missing') return resp(404, { code: 'PGRST202', message: 'Could not find the function public.touch_presence' });
+      if (state.presenceMode === 'fail') return resp(500, { message: 'internal db trace ACME-7', code: 'XX000' });
+      const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
+      if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
+      if (!presence.has(t.sub) || presence.get(t.sub) < clock - 20) presence.set(t.sub, clock);
+      return resp(204);
+    }
+    if (u.pathname === '/rest/v1/rpc/admin_accounts') {   // équivalent de admin_accounts() : refusée hors admin_users ; adresses e-mail, présence (75 s), jamais d'identifiant
+      state.rpcCalls = (state.rpcCalls || []).concat('admin_accounts'); state.adminCalls = (state.adminCalls || []).concat({ method: init.method, auth: h.authorization, apikey: h.apikey, body: init.body, fn: 'admin_accounts' });
+      if (state.adminAccountsMode === 'missing') return resp(404, { code: 'PGRST202', message: 'Could not find the function public.admin_accounts' });
+      if (state.adminAccountsMode === 'fail') return resp(500, { message: 'internal db trace ACME-8', code: 'XX000' });
+      if (state.adminAccountsMode === 'hang') return new Promise((res, rej) => { init.signal && init.signal.addEventListener('abort', () => rej(new Error('aborted'))); });
+      const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
+      if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
+      if (state.adminDbAllowed && !state.adminDbAllowed.includes(t.sub)) return resp(403, { code: '42501', message: 'not found' });
+      if (state.adminAccountsMode === 'garbage') return { ok: true, status: 200, text: async () => '<html>oups</html>' };
+      if (state.adminAccounts) return resp(200, state.adminAccounts);
+      const iso = sec => new Date(sec * 1000).toISOString();   // l'horloge simulée est en secondes d'époque
+      const accountsList = [...users.values()].map(x => { const seen = presence.get(x.id); return { email: x.email, created_at: '2026-10-01T08:00:00.000Z', last_sign_in_at: seen != null ? iso(seen - 30) : null, last_seen_at: seen != null ? iso(seen) : null, online: seen != null && seen > clock - 75 }; })
+        .sort((a, b) => Number(b.online) - Number(a.online));
+      return resp(200, { v: 1, generated_at: iso(clock), total: accountsList.length, truncated: false, accounts: accountsList });
+    }
     if (u.pathname === '/rest/v1/rpc/admin_overview') {   // équivalent de la fonction SQL de la proposition 20261014120000 : agrégats seulement, refusée hors admin_users
       state.rpcCalls = (state.rpcCalls || []).concat('admin_overview'); state.adminCalls = (state.adminCalls || []).concat({ method: init.method, auth: h.authorization, apikey: h.apikey, body: init.body });
       if (state.adminOverviewMode === 'missing') return resp(404, { code: 'PGRST202', message: 'Could not find the function public.admin_overview' });
@@ -241,7 +266,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
     const sess = mkSession(u);
     return `#access_token=${sess.access_token}&expires_in=3600&refresh_token=${sess.refresh_token}&token_type=bearer&type=${type}`;
   };
-  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), magicLink: e => link(e, 'magiclink'), users, profiles, analyses, usage, simUsage, mkUsage, hairUsage, tokens, refresh, log, GOALS, METRICS,
+  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), magicLink: e => link(e, 'magiclink'), users, profiles, presence, analyses, usage, simUsage, mkUsage, hairUsage, tokens, refresh, log, GOALS, METRICS,
     removeProfile: id => profiles.delete(id) };
 }
 

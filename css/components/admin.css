@@ -25,3 +25,28 @@
 .c-ad-dl small{color:var(--ink-3)}
 .c-ad-history,.c-ad-stamp{margin-top:var(--s-3)}
 @media (max-width:480px){.c-ad-dl>div{grid-template-columns:minmax(0,1fr);gap:var(--s-1)}}
+
+/* Comptes : titre qui se déploie, liste des adresses avec point d'état. Vert qui pulse = en ligne ; rouge fixe = hors ligne (le texte double toujours la couleur). Jetons existants seulement. */
+.c-ad-acc-h{margin:0}
+.c-ad-disclosure{display:flex;align-items:center;gap:var(--s-3);width:100%;min-height:var(--tap);padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.c-ad-disclosure:focus-visible,.c-ad-more:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--r-sm)}
+.c-ad-disclosure__t{flex:1 1 auto;min-width:0}
+.c-ad-disclosure__n{flex:none;display:inline-flex;align-items:center;gap:var(--s-2);font:600 var(--fs-md)/1.2 var(--font-sans);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.c-ad-chev{flex:none;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
+[aria-expanded="true"]>.c-ad-chev{transform:rotate(180deg)}
+.c-ad-acc-panel{margin-top:var(--s-3);min-width:0}
+.c-ad-onl{margin:0 0 var(--s-2)}
+.c-ad-accs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.c-ad-acc{display:flex;align-items:flex-start;gap:var(--s-3);padding:var(--s-3) 0;border-bottom:1px solid var(--line);min-width:0}
+.c-ad-acc__txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
+.c-ad-mail{overflow-wrap:anywhere;font-weight:600}
+.c-ad-acc small{color:var(--ink-3)}
+.c-ad-dot{flex:none;display:inline-block;width:10px;height:10px;margin-top:.5em;border-radius:50%}
+.c-ad-disclosure__n .c-ad-dot{margin-top:0}
+.c-ad-dot{--ad-on:color-mix(in srgb,var(--good) 50%,#1fd16b);--ad-off:color-mix(in srgb,var(--error) 50%,#ff2d2d)}   /* vert et rouge francs, dérivés des jetons d'état (ils suivent le thème clair ou sombre) */
+.c-ad-dot--on{background:var(--ad-on);animation:adPulse 1.8s ease-out infinite}
+.c-ad-dot--off{background:var(--ad-off)}
+.c-ad-on{color:var(--good-ink);font-weight:600}
+@keyframes adPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ad-on) 65%,transparent)}70%{box-shadow:0 0 0 8px color-mix(in srgb,var(--ad-on) 0%,transparent)}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ad-on) 0%,transparent)}}
+@media (prefers-reduced-motion:reduce){.c-ad-dot--on{animation:none}.c-ad-chev{transition:none}}
+.c-ad-more{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);width:100%;min-height:var(--tap);margin-top:var(--s-3);padding:0;border:0;border-top:1px solid var(--line);background:none;color:var(--ink-2);font:600 var(--fs-sm)/1.3 var(--font-sans);text-align:left;cursor:pointer}

@@ -135,7 +135,7 @@ async function open(browser, server, { fake = createFake(), behaviors = [{ statu
       return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from(PNG_1PX, 'base64') });
     }
     if (url.origin === SB) {
-      stats.supabase.push(`${req.method()} ${url.pathname}`);
+      if (!/\/rpc\/touch_presence$/.test(url.pathname)) stats.supabase.push(`${req.method()} ${url.pathname}`);   // le battement de présence part à son rythme (30 s) : il ne compte pas parmi les requêtes provoquées par un écran (il est suivi par fake.state.presenceCalls)
       const r = await fake.fetch(req.url(), { method: req.method(), headers: req.headers(), body: req.postData() || undefined });
       return route.fulfill({ status: r.status, contentType: 'application/json', body: await r.text() });
     }

@@ -14,6 +14,7 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const ENV = { PERFECT_CORP_API_KEY: 'k', SUPABASE_URL: 'https://demo.supabase.co', SUPABASE_ANON_KEY: 'a', DERMAI_ANALYSIS_ENABLED: '1', DERMAI_MAKEUP_ENABLED: '1', DERMAI_MAKEUP_ALLOWED_USER_IDS: '11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222' };
 const NOW = '2026-10-14T09:30:00.000Z';
+const DAY = 86400e3, iso = off => new Date(Date.now() + off).toISOString();
 const BODY = {
   access: { ok: true, admin: true },
   features: { ok: true, generatedAt: NOW, features: A.featureRows(ENV) },
@@ -22,10 +23,15 @@ const BODY = {
   usage: { ok: true, usage: { status: 'ok', fetchedAt: NOW, cached: false, accounts: { total: 42, new_7d: 5, new_30d: 17, signed_in_7d: 20, signed_in_30d: 31, active_7d: 12, active_30d: 25, returned_7d: 7, never_used: 9, inactive_30d: 11 },
     functions: [{ key: 'analysis', name: 'Analyse de la peau', available: true, runs_7d: 30, runs_30d: 90, users_30d: 25 }, { key: 'simulation', name: 'Simulation cosmétique', available: true, runs_7d: 4, runs_30d: 10, users_30d: 6 }, { key: 'makeup', name: 'Studio Beauté : maquillage', available: false }, { key: 'hair', name: 'Studio Beauté : cheveux', available: true, runs_7d: 3, runs_30d: 8, users_30d: 4, units_7d: 5, units_30d: 14 }],
     savedAnalyses: { total: 120, last_30d: 40, users: 30 } } },
+  accounts: { ok: true, accounts: { status: 'ok', fetchedAt: NOW, cached: false, total: 4, truncated: false, accounts: [
+    { email: 'en-ligne@exemple.com', createdAt: iso(-3 * DAY), lastSignInAt: iso(-30e3), lastSeenAt: iso(-10e3), online: true },
+    { email: 'parti@exemple.com', createdAt: iso(-9 * DAY), lastSignInAt: iso(-3 * 3600e3), lastSeenAt: iso(-2 * 3600e3), online: false },
+    { email: 'connecte-une-fois@exemple.com', createdAt: iso(-DAY), lastSignInAt: iso(-5 * 60e3), lastSeenAt: null, online: false },
+    { email: null, createdAt: iso(-5 * DAY), lastSignInAt: null, lastSeenAt: null, online: false }] } },
   costs: { ok: true, costs: Object.assign({ status: 'ok', fetchedAt: NOW, cached: true, total: 3, pages: 1, truncated: false }, A.matchCosts([{ description: 'Skin <b>analysis</b>', amount: 4, unit: 'unit', procUnit: 'task', slug: 'skin-analysis' }, { description: 'Hair color', amount: null, unit: 'unit', procUnit: null, slug: 'hair-color' }, { description: 'Autre', amount: 3, unit: 'unit', procUnit: null, slug: 'face-attr-analysis' }])) }
 };
 function setup(o = {}) {
-  const ctx = Object.assign({ uid: 'u1', token: 'tok-1', epoch: 0, renders: 0, calls: [], access: 'yes', overrides: {} }, o);
+  const ctx = Object.assign({ uid: 'u1', token: 'tok-1', epoch: 0, renders: 0, calls: [], access: 'yes', overrides: {}, route: 'admin', timer: null }, o);
   const acct = () => (ctx.uid ? { user: { id: ctx.uid }, accessToken: async () => ctx.token } : null);
   const fetchImpl = async (url, init = {}) => {
     const sec = (String(url).match(/section=([a-z]+)/) || [])[1], rec = { url: String(url), method: init.method || 'GET', headers: init.headers || {} }; ctx.calls.push(rec);
@@ -33,13 +39,15 @@ function setup(o = {}) {
     const ov = ctx.overrides[sec]; if (ov) return typeof ov === 'function' ? ov(rec) : ov;
     return json(200, BODY[sec]);
   };
-  ctx.ad = AD.create({ account: acct, epoch: () => ctx.epoch, render: () => { ctx.renders++; }, fetchImpl });
+  ctx.ad = AD.create({ account: acct, epoch: () => ctx.epoch, render: () => { ctx.renders++; }, fetchImpl, route: () => ctx.route, setInterval: (fn, ms) => { ctx.timer = { fn, ms }; return ctx.timer; }, clearInterval: t => { if (ctx.timer === t) ctx.timer = null; ctx.cleared = (ctx.cleared || 0) + 1; } });
   return ctx;
 }
 const tick = (ms = 0) => new Promise(r => setTimeout(r, ms));
 const open = async ctx => { ctx.ad.page(); await tick(); await tick(); const h = ctx.ad.page(); await tick(15); return ctx.ad.page(); };
+const press = (ctx, which) => { const doc = ctx.doc || (ctx.doc = { addEventListener: (t, fn) => { doc.fn = fn; } }); if (!ctx.attached) { ctx.ad.attach(doc); ctx.attached = true; } const btn = { disabled: false, getAttribute: k => (k === 'data-ad' ? which : null), closest: () => btn }; doc.fn({ target: btn }); };
+const openStats = async ctx => { await open(ctx); press(ctx, 'accounts'); await tick(15); press(ctx, 'stats'); await tick(5); return txt(ctx.ad.page()); };
 const sections = ctx => ctx.calls.filter(c => !/section=access/.test(c.url));
-const txt = h => h.replace(/&#39;/g, '\'');
+const txt = h => h.replace(/&#39;/g, '\'').replace(/<wbr>/g, '');   // <wbr> : points de coupure ajoutés aux adresses e-mail longues
 
 test('AU1 accès : seul « fondateur » ouvre le menu ; 404, erreur, réseau ou visiteur → pas de menu, page « introuvable » sans aucun mot sur l\'administration ; une seule requête d\'accès par compte', async () => {
   const c = setup(); assert.equal(c.ad.ready(), false, 'avant la réponse : masqué'); await tick(); assert.equal(c.ad.ready(), true); c.ad.ready(); c.ad.page(); await tick();
@@ -66,7 +74,7 @@ test('AU3 page du fondateur : cinq sections demandées en lecture (GET, jeton), 
   assert.ok(c.calls.every(x => x.method === 'GET' && x.headers.Authorization === 'Bearer tok-1'));
   const h = txt(c.ad.page());
   for (const l of ['Solde Perfect Corp', 'Comptes', 'Utilisation par fonction', 'Coûts officiels annoncés', 'Fonctionnalités', 'Quotas configurés', 'Administration', 'Lecture seule']) assert.match(h, new RegExp(l));
-  assert.equal((h.match(/<button/g) || []).length, 1, 'un seul bouton : Actualiser'); assert.match(h, /data-ad="refresh"/); assert.ok(!/<form|<input|<select|<textarea|href=|data-act=|data-go="(?!home)|supprimer|désactiver|activer |modifier|lancer/i.test(h.replace(/data-ad="refresh"/, '')), 'aucune commande de modification');
+  assert.deepEqual([...h.matchAll(/<button[^>]*data-ad="(\w+)"/g)].map(m => m[1]), ['refresh', 'accounts'], 'deux boutons seulement : Actualiser et le titre « Comptes » qui se déploie'); assert.equal((h.match(/<button/g) || []).length, 2); assert.ok(!/en-ligne@exemple/.test(h) && !sections(c).some(x => /accounts/.test(x.url)), 'aucune adresse chargée tant que la liste est fermée'); assert.ok(!/<form|<input|<select|<textarea|href=|data-act=|data-go="(?!home)|supprimer|désactiver|activer |modifier|lancer/i.test(h.replace(/data-ad="refresh"/, '')), 'aucune commande de modification');
   assert.equal(c.renders > 0, true);
 });
 
@@ -131,21 +139,74 @@ test('AU8 module AUTONOME : lecture seule, une seule route, aucun stockage, aucu
 });
 
 test('AU9 comptes et utilisation : nombres lus tels que reçus, fonction sans compteur = « Non mesurée » (jamais zéro), valeur invalide = « Indisponible », causes lisibles, aucun compte identifié', async () => {
-  const c = setup(); const h = txt(await open(c));
+  const h = await openStats(setup());
   assert.match(h, /<p class="c-ad-big">42 <small>comptes/); assert.match(h, /Nouveaux comptes<\/span><b>5 <small>sur 7 j<\/small> · 17 <small>sur 30 j/); assert.match(h, /Actifs \(au moins une demande\)<\/span><b>12 <small>sur 7 j<\/small> · 25/);
   assert.match(h, /Retour à 7 jours<\/span><b>7</); assert.match(h, /Inactifs depuis 30 jours<\/span><b>11</); assert.match(h, /Jamais utilisé une fonction<\/span><b>9</);
   assert.match(h, /Analyse de la peau/); assert.match(h, /Demandes<\/dt><dd>30 <small>sur 7 j<\/small> · 90 <small>sur 30 j/); assert.match(h, /Unités<\/dt><dd>5 <small>sur 7 j<\/small> · 14/);
   assert.equal((h.match(/Unités<\/dt>/g) || []).length, 1, 'les unités ne concernent que les cheveux');
   assert.match(h, /Studio Beauté : maquillage<\/h3><span class="c-badge c-badge--outline">Non mesurée/); assert.match(h, /rien n'est affiché plutôt qu'un zéro/);
   assert.match(h, /Analyses enregistrées dans l'historique/); assert.match(h, /Total<\/dt><dd>120</); assert.match(h, /ce n'est pas un coût confirmé|Ce n'est pas un coût confirmé/);
-  assert.match(h, /Nombres seulement : aucun compte n'est identifié/); assert.ok(!/@|[0-9a-f]{8}-[0-9a-f]{4}-/.test(h.replace(/<[^>]+>/g, ' ').replace(/20261014120000/g, '')), 'ni e-mail ni identifiant');
+  assert.match(h, /Ces statistiques sont des nombres seulement : aucun compte n'y est identifié/); const statsPanel = h.split('id="ad-stats-panel"')[1].split('</section>')[0], usageCard = h.split('id="ad-usage"')[1].split('</section>')[0];
+  for (const part of [statsPanel, usageCard]) assert.ok(!/@|[0-9a-f]{8}-[0-9a-f]{4}-/.test(part.replace(/<[^>]+>/g, ' ').replace(/20261014120000/g, '')), 'ni e-mail ni identifiant dans les statistiques et l\'utilisation');
   const bad = JSON.parse(JSON.stringify(BODY.usage)); bad.usage.accounts.total = null; bad.usage.accounts.active_7d = null; bad.usage.functions[0].runs_30d = null; bad.usage.savedAnalyses.total = null;
-  const n = txt(await open(setup({ overrides: { usage: json(200, bad) } })));
+  const n = await openStats(setup({ overrides: { usage: json(200, bad) } }));
   assert.match(n, /<p class="c-ad-big">Indisponible <small>comptes/); assert.match(n, /Actifs \(au moins une demande\)<\/span><b>Indisponible <small>sur 7 j/); assert.match(n, /Total<\/dt><dd>Indisponible</); assert.ok(!/<p class="c-ad-big">0 /.test(n));
   for (const [reason, re] of [['not_applied', /fonction SQL de lecture n'est pas appliquée/], ['not_authorized', /table admin_users/], ['timeout', /Délai dépassé/], ['malformed', /forme inconnue/]]) {
-    const u = txt(await open(setup({ overrides: { usage: json(200, { ok: true, usage: { status: 'unavailable', reason, fetchedAt: NOW } }) } })));
+    const u = await openStats(setup({ overrides: { usage: json(200, { ok: true, usage: { status: 'unavailable', reason, fetchedAt: NOW } }) } }));
     assert.match(u, re, reason); assert.equal((u.match(/c-ad-unavail/g) || []).length, 2, 'les deux blocs disent « Indisponible » avec la cause'); assert.ok(!/<p class="c-ad-big">0/.test(u));
     assert.match(u, /Solde Perfect Corp/); assert.match(u, /150 <small>unités API/, 'le solde reste affiché');
   }
   const evil = JSON.parse(JSON.stringify(BODY.usage)); evil.usage.functions[0].name = '<img src=x onerror=alert(1)>'; const e = await open(setup({ overrides: { usage: json(200, evil) } })); assert.ok(!/<img src=x/.test(e), 'noms échappés');
+});
+
+const accReq = ctx => ctx.calls.filter(c => /section=accounts/.test(c.url));
+const rowsOf = h => [...h.matchAll(/<li class="c-ad-acc"><span class="c-ad-dot c-ad-dot--(on|off)"[^>]*><\/span><span class="c-ad-acc__txt"><span class="c-ad-mail">(.*?)<\/span><small>(.*?)<\/small>/g)].map(m => [m[1], m[2].replace(/<[^>]+>/g, ''), m[3].replace(/<[^>]+>/g, '')]);
+const body = (c, over) => json(200, { ok: true, accounts: Object.assign({ status: 'ok', fetchedAt: NOW, cached: false, total: 4, truncated: false }, BODY.accounts.accounts, over) });
+
+test('AU10 comptes : titre qui se déploie ; fermé, aucune adresse chargée ni affichée ; ouvert, une lecture, les adresses avec point vert qui pulse (en ligne) ou rouge fixe (hors ligne) et un texte qui double la couleur ; refermé, tout est oublié', async () => {
+  const c = setup(); const closed = txt(await open(c));
+  assert.match(closed, /data-ad="accounts" aria-expanded="false" aria-controls="ad-accounts-panel"><span class="c-ad-disclosure__t">Comptes<\/span><span class="c-ad-disclosure__n">42</); assert.ok(!/exemple\.com|id="ad-accounts-panel"/.test(closed)); assert.equal(accReq(c).length, 0);
+  press(c, 'accounts'); assert.match(txt(c.ad.page()), /aria-expanded="true"[\s\S]*Chargement…/, 'chargement visible'); await tick(15);
+  const h = txt(c.ad.page()); assert.equal(accReq(c).length, 1); assert.deepEqual([accReq(c)[0].method, accReq(c)[0].headers.Authorization], ['GET', 'Bearer tok-1']);
+  assert.deepEqual(rowsOf(h), [['on', 'en-ligne@exemple.com', 'En ligne'], ['off', 'parti@exemple.com', 'Hors ligne · vu il y a 2 h'], ['off', 'connecte-une-fois@exemple.com', 'Hors ligne · connecté il y a 5 min'], ['off', 'sans adresse e-mail', 'Hors ligne · jamais vu']]);
+  assert.match(h, /<span class="c-ad-disclosure__n">4 · <span class="c-ad-dot c-ad-dot--on" aria-hidden="true"><\/span>1 en ligne</); assert.match(h, /<b>4<\/b> comptes · <span class="c-ad-on"><b>1<\/b> en ligne/);
+  assert.match(h, /Mise à jour automatique toutes les 10 s/); assert.match(h, /données personnelles/);
+  assert.equal(c.timer && c.timer.ms, 10000, 'relecture toutes les 10 s');
+  assert.ok(!/<form|<input|href=|data-act=|supprimer|désactiver|modifier|lancer/i.test(h.replace(/data-ad="\w+"/g, '')), 'aucune commande de modification : seulement ouvrir, fermer, actualiser');
+  press(c, 'accounts'); const shut = txt(c.ad.page()); assert.ok(!/exemple\.com|c-ad-accs/.test(shut), 'refermé : plus aucune adresse affichée'); assert.equal(c.ad.state().acc.data, null, 'ni gardée en mémoire'); assert.equal(c.timer, null, 'relecture arrêtée');
+  press(c, 'accounts'); await tick(15); assert.equal(accReq(c).length, 2, 'rouvert : relu, jamais rejoué depuis la mémoire'); assert.match(txt(c.ad.page()), /en-ligne@exemple\.com/);
+});
+
+test('AU11 relecture automatique : toutes les 10 s, sans réaffichage si rien de visible ne change, avec réaffichage quand un compte passe hors ligne ; arrêt si la page n\'est plus affichée', async () => {
+  const c = setup(); await open(c); press(c, 'accounts'); await tick(15); const r0 = c.renders, n0 = accReq(c).length;
+  await c.timer.fn(); await tick(15); assert.equal(accReq(c).length, n0 + 1, 'une relecture'); assert.equal(c.renders, r0, 'rien n\'a changé : la page n\'est pas réaffichée (le clavier garde sa place)');
+  const off = JSON.parse(JSON.stringify(BODY.accounts.accounts)); off.accounts[0].online = false; off.accounts[0].lastSeenAt = iso(-100e3); c.overrides.accounts = json(200, { ok: true, accounts: off });
+  await c.timer.fn(); await tick(15); assert.ok(c.renders > r0, 'un compte est passé hors ligne : réaffichage'); const h = txt(c.ad.page());
+  assert.deepEqual(rowsOf(h)[0], ['off', 'en-ligne@exemple.com', 'Hors ligne · vu il y a 1 min']); assert.match(h, /<b>0<\/b> en ligne/); assert.match(h, /c-ad-dot c-ad-dot--off" aria-hidden="true"><\/span>0 en ligne/, 'résumé : point rouge quand personne n\'est en ligne');
+  const on = JSON.parse(JSON.stringify(off)); on.accounts[0].online = true; on.accounts[0].lastSeenAt = iso(-5e3); on.accounts.push({ email: 'nouveau@exemple.com', createdAt: iso(-1e3), lastSignInAt: iso(-1e3), lastSeenAt: iso(-1e3), online: true }); on.total = 5; c.overrides.accounts = json(200, { ok: true, accounts: on });
+  await c.timer.fn(); await tick(15); assert.match(txt(c.ad.page()), /nouveau@exemple\.com/); assert.match(txt(c.ad.page()), /<b>2<\/b> en ligne/);
+  const keep = c.timer; c.route = 'home'; const n1 = accReq(c).length; await keep.fn(); await tick(10); assert.equal(accReq(c).length, n1, 'page quittée : aucune lecture'); assert.equal(c.timer, null, 'minuterie arrêtée');
+  c.route = 'admin'; c.ad.page(); assert.ok(c.timer, 'revenu sur la page avec la liste ouverte : la relecture reprend');
+});
+
+test('AU12 pannes de la liste : 404 retire tout (droit perdu) ; fonction non appliquée, non autorisé, réseau, forme inconnue → message clair sans liste ni zéro ; les autres blocs restent', async () => {
+  const msgs = [['not_applied', /fonction SQL de lecture n'est pas appliquée/], ['not_authorized', /table admin_users/], ['timeout', /Délai dépassé/], ['malformed', /forme inconnue/]];
+  for (const [reason, re] of msgs) {
+    const c = setup({ overrides: { accounts: json(200, { ok: true, accounts: { status: 'unavailable', reason, fetchedAt: NOW } }) } }); await open(c); press(c, 'accounts'); await tick(15); const h = txt(c.ad.page());
+    assert.match(h, re, reason); assert.ok(!/c-ad-accs|en ligne<\/span>/.test(h) && !/<b>0<\/b> comptes/.test(h), reason + ' : ni liste ni zéro'); assert.match(h, /150 <small>unités API/, 'le solde reste affiché'); assert.match(h, /id="ad-accounts-panel"/);
+  }
+  const net = setup({ overrides: { accounts: () => Promise.reject(new TypeError('network')) } }); await open(net); press(net, 'accounts'); await tick(15); assert.match(txt(net.ad.page()), /Connexion impossible/);
+  const bad = setup({ overrides: { accounts: json(500, 'x') } }); await open(bad); press(bad, 'accounts'); await tick(15); assert.match(txt(bad.ad.page()), /n'a pas pu être chargée/);
+  const gone = setup({ overrides: { accounts: json(404, 'Not found') } }); await open(gone); press(gone, 'accounts'); await tick(15);
+  const hg = txt(gone.ad.page()); assert.match(hg, /Page introuvable/); assert.ok(!/Solde|Comptes|exemple/.test(hg), 'droit retiré : plus rien n\'est montré'); assert.equal(gone.timer, null); assert.equal(gone.ad.ready(), false);
+});
+
+test('AU13 autre compte, déconnexion, réponse tardive : la liste d\'un compte n\'apparaît jamais pour un autre ; une réponse arrivée après la fermeture ou le changement de compte est ignorée', async () => {
+  const c = setup(); await open(c); press(c, 'accounts'); await tick(15); assert.match(txt(c.ad.page()), /en-ligne@exemple\.com/);
+  c.uid = null; const out = txt(c.ad.page()); assert.ok(!/exemple\.com/.test(out)); assert.equal(c.timer, null, 'déconnexion : relecture arrêtée'); assert.equal(c.ad.state().acc.data, null);
+  c.uid = 'u2'; c.token = 'tok-2'; const other = txt(await open(c)); assert.ok(!/en-ligne@exemple|id="ad-accounts-panel"/.test(other), 'autre compte : liste fermée et vide');
+  const slow = setup({ overrides: { accounts: () => new Promise(res => setTimeout(() => res(body(slow)), 30)) } }); await open(slow); press(slow, 'accounts'); press(slow, 'accounts');
+  await tick(60); assert.ok(!/exemple\.com/.test(txt(slow.ad.page())), 'fermée avant la réponse : rien n\'est affiché');
+  const swap = setup({ overrides: { accounts: () => new Promise(res => setTimeout(() => res(body(swap)), 30)) } }); await open(swap); press(swap, 'accounts'); swap.uid = 'u3'; swap.epoch++; await tick(60);
+  assert.ok(!/exemple\.com/.test(txt(swap.ad.page())), 'compte changé pendant la lecture : réponse ignorée');
 });
