@@ -1,0 +1,41 @@
+/* Barre latérale (js/sidebar.js) : colonne fixe à gauche dès 920 px, panneau coulissant en dessous. Un seul élément (#sidebar), la barre du bas reste disponible sur mobile.
+   Couleurs, rayons et espacements viennent des jetons existants (clair et sombre). Les animations sont brèves et coupées si l'utilisateur demande moins de mouvement. */
+.sidebar{position:fixed;top:0;bottom:0;left:0;z-index:var(--z-sheet);display:flex;flex-direction:column;gap:var(--s-5);width:min(320px,86vw);height:100vh;height:100dvh;
+  padding:calc(var(--s-5) + env(safe-area-inset-top,0px)) var(--s-4) calc(var(--s-5) + env(safe-area-inset-bottom,0px));background:var(--bg);border-right:1px solid var(--line);box-shadow:var(--shadow-2);
+  overflow-y:auto;overscroll-behavior:contain;transform:translateX(-102%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s}
+.sidebar[data-open]{transform:none;visibility:visible;transition:transform .22s ease,visibility 0s}
+.sidebar__scrim{position:fixed;inset:0;z-index:calc(var(--z-sheet) - 1);background:var(--overlay);opacity:0;visibility:hidden;transition:opacity .22s ease,visibility 0s linear .22s}
+.sidebar__scrim[data-open]{opacity:1;visibility:visible;transition:opacity .22s ease,visibility 0s}
+body.sb-lock{overflow:hidden}
+
+.sidebar__head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3)}
+.sidebar .brand{align-self:flex-start;justify-content:flex-start;padding-left:var(--s-2);margin:0}
+.sidebar__close,.sidebar__toggle{display:grid;place-items:center;flex:none;width:var(--tap);height:var(--tap);padding:0;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--ink);cursor:pointer}
+.sidebar__close svg,.sidebar__toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sidebar__close:focus-visible,.sidebar__toggle:focus-visible,.sidebar__link:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+
+.sidebar__list{display:flex;flex-direction:column;gap:var(--s-1);margin:0;padding:0;list-style:none}
+.sidebar__link{display:flex;align-items:center;gap:var(--s-3);width:100%;min-height:48px;padding:var(--s-2) var(--s-3);border:0;border-radius:var(--r-sm);background:transparent;color:var(--ink-2);
+  font:500 var(--fs-md,1rem)/1.2 var(--font-sans,inherit);text-align:left;cursor:pointer}
+.sidebar__link svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sidebar__link:hover{background:var(--bg-soft);color:var(--ink)}
+.sidebar__link[aria-current="page"]{background:var(--tint);color:var(--accent);font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
+.sidebar__text{flex:1;min-width:0;overflow-wrap:anywhere}
+.sidebar__badge{flex:none;padding:1px 7px;border-radius:var(--r-pill);background:var(--tint-strong);color:var(--accent);font-size:11px;font-weight:700;line-height:1.45}
+.sidebar__avatar{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--tint-strong);color:var(--accent);font-size:13px;font-weight:700}
+.sidebar__avatar svg{width:16px;height:16px}
+
+.sidebar__foot{display:flex;flex-direction:column;gap:var(--s-2);margin-top:auto;padding-top:var(--s-4);border-top:1px solid var(--line)}
+.sidebar__label{margin:0 0 var(--s-1) var(--s-3);color:var(--ink-3);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.sidebar small{margin:var(--s-2) var(--s-3) 0;color:var(--ink-3);font-size:13px;line-height:1.5}
+
+/* Icône de menu : dans l'en-tête mobile, à gauche du logo (le logo reste centré). */
+.m-brand{position:relative}
+.sidebar__toggle{position:absolute;left:0;top:50%;transform:translateY(-50%)}
+
+@media (min-width:920px){
+  .sidebar{position:sticky;top:0;bottom:auto;left:auto;z-index:auto;width:auto;height:100vh;height:100svh;padding:var(--s-8) var(--s-4) var(--s-6);box-shadow:none;transform:none;visibility:visible;transition:none}
+  .sidebar__close,.sidebar__toggle,.sidebar__scrim{display:none}
+  body.sb-lock{overflow:auto}
+}
+@media (prefers-reduced-motion:reduce){.sidebar,.sidebar__scrim{transition:none}}
