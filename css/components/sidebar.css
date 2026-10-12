@@ -22,8 +22,8 @@ body.sb-lock{overflow:hidden}
 .sidebar__link[aria-current="page"]{background:var(--tint);color:var(--accent);font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
 .sidebar__text{flex:1;min-width:0;overflow-wrap:anywhere}
 .sidebar__badge{flex:none;padding:1px 7px;border-radius:var(--r-pill);background:var(--tint-strong);color:var(--accent);font-size:11px;font-weight:700;line-height:1.45}
-.sidebar__avatar{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--tint-strong);color:var(--accent);font-size:13px;font-weight:700}
-.sidebar__avatar svg{width:16px;height:16px}
+.sidebar__avatar{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:var(--tint-strong);color:var(--accent);font-size:12px;font-weight:700}
+.sidebar__avatar svg{width:14px;height:14px}
 
 .sidebar__foot{display:flex;flex-direction:column;gap:var(--s-2);margin-top:auto;padding-top:var(--s-4);border-top:1px solid var(--line)}
 .sidebar__label{margin:0 0 var(--s-1) var(--s-3);color:var(--ink-3);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}

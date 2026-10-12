@@ -50,6 +50,9 @@
     const currentId = r => { const all = ITEMS.concat(OTHERS), hit = all.find(i => i.routes.includes(r)); return hit ? hit.id : null; };
     const wide = () => { try { return typeof matchMedia === 'function' && matchMedia(WIDE).matches; } catch (e) { return false; } };
 
+    const signedIn = () => { try { return !!(d.signedIn && d.signedIn()); } catch (e) { return false; } };
+    /* « Se déconnecter » : même action que dans le profil (data-act="logout", traitée par l'application). Visible seulement pour un compte connecté. */
+    const logoutItem = () => `<li><button type="button" class="sidebar__link" data-act="logout">${ic('out')}<span class="sidebar__text">Se déconnecter</span></button></li>`;
     function link(i, cur) {
       const badge = i.fresh && now() < NEW_UNTIL ? '<span class="sidebar__badge">Nouveau</span>' : '';
       const lead = i.avatar && d.initial ? `<span class="sidebar__avatar" aria-hidden="true">${d.initial()}</span>` : ic(i.icon);
@@ -64,7 +67,7 @@
       return `<aside class="rail sidebar" id="sidebar" aria-label="Barre latérale"${open ? ' role="dialog" aria-modal="true"' : ''}${open ? ' data-open="1"' : ''}>
       <div class="sidebar__head">${d.brand ? d.brand(52) : ''}<button type="button" class="sidebar__close" data-sb="close" aria-label="Fermer le menu">${ic('close')}</button></div>
       <nav aria-label="Menu principal"><ul class="sidebar__list">${ITEMS.filter(allowed).map(i => link(i, cur)).join('')}</ul></nav>
-      <div class="sidebar__foot"><p class="sidebar__label">Autres accès</p><nav aria-label="Compte"><ul class="sidebar__list">${OTHERS.map(i => link(i, cur)).join('')}</ul></nav>
+      <div class="sidebar__foot"><p class="sidebar__label">Autres accès</p><nav aria-label="Compte"><ul class="sidebar__list">${OTHERS.map(i => link(i, cur)).join('')}${signedIn() ? logoutItem() : ''}</ul></nav>
       <small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></div></aside>
       <div class="sidebar__scrim" data-sb="close"${open ? ' data-open="1"' : ''} aria-hidden="true"></div>`;
     }
@@ -104,7 +107,7 @@
       if (!x || !x.addEventListener) return;
       /* Capture : le panneau se ferme AVANT que l'application ne traite le même clic (navigation), sans jamais l'empêcher. */
       x.addEventListener('click', ev => {
-        const el = ev.target && ev.target.closest ? ev.target.closest('[data-sb],#sidebar [data-go]') : null;
+        const el = ev.target && ev.target.closest ? ev.target.closest('[data-sb],#sidebar [data-go],#sidebar [data-act]') : null;
         if (!el) return;
         const a = el.getAttribute('data-sb');
         if (a === 'open') show(); else if (a === 'close') hide(true); else hide(false);

@@ -93,7 +93,7 @@ test('SB7 câblage : module et feuille chargés une fois, avant l\'application ;
   const html = read('index.html'), at = f => html.indexOf(`<script src="${f}"></script>`);
   assert.equal((html.match(/js\/sidebar\.js/g) || []).length, 1); assert.ok(at('js/sidebar.js') > 0 && at('js/sidebar.js') < at('js/app.js'));
   assert.match(read('css/styles.css'), /@import url\("components\/sidebar\.css"\) layer\(components\);/);
-  assert.match(app, /const SB=DermaiSidebar\.create\(\{ic,brand:h=>brandBtn\(h\),route:\(\)=>state\.route,initial:\(\)=>initial\(\),simulation:\(\)=>\{SIM\.probe\(\);return SIM\.state\(\)\.avail===`yes`&&!noReal\(\)\}\}\);SB\.attach\(document\);/);
+  assert.match(app, /const SB=DermaiSidebar\.create\(\{ic,brand:h=>brandBtn\(h\),route:\(\)=>state\.route,initial:\(\)=>initial\(\),signedIn:\(\)=>signedIn\(\),simulation:\(\)=>\{SIM\.probe\(\);return SIM\.state\(\)\.avail===`yes`&&!noReal\(\)\}\}\);SB\.attach\(document\);/);
   const shell = app.slice(app.indexOf('function shell('), app.indexOf('const V={}'));
   assert.match(shell, /\$\{SB\.html\(\)\}/); assert.match(shell, /<div class="m-brand">\$\{SB\.toggle\(\)\}\$\{brandBtn\(44\)\}<\/div>/);
   assert.doesNotMatch(shell, /<aside class="rail">/, 'l\'ancien rail à cinq entrées est remplacé');
@@ -110,4 +110,21 @@ test('SB8 feuille de style : panneau coulissant sous 920 px, colonne dès 920 px
   for (const m of css.matchAll(/var\((--[a-z0-9-]+)/g)) assert.ok(tokens.has(m[1]), `jeton ${m[1]} défini`);
   assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(css), 'aucune couleur en dur : tout vient de la charte');
   assert.ok(!/@keyframes|animation:/.test(css), 'aucune animation d\'entrée ou de rebond');
+});
+
+test('SB9 « Se déconnecter » : sous « Autres accès », après le profil, pour un compte connecté seulement, avec l\'action de déconnexion existante', () => {
+  const closed = mk().html();
+  assert.ok(!/Se déconnecter|data-act="logout"/.test(closed), 'visiteur, démonstration ou vérification en cours : aucune entrée');
+  assert.ok(!/Se déconnecter/.test(mk('home', { signedIn: () => false }).html()));
+  assert.ok(!/Se déconnecter/.test(mk('home', { signedIn: () => { throw new Error('x'); } }).html()), 'une erreur n\'affiche jamais l\'entrée');
+  const h = mk('home', { signedIn: () => true }).html(), [top, foot] = h.split('<div class="sidebar__foot">');
+  assert.ok(!/Se déconnecter/.test(top), 'pas dans la navigation principale');
+  assert.deepEqual(labels(foot).map(decode), ['Profil et paramètres', 'Se déconnecter']);
+  assert.match(foot, /Autres accès/); assert.ok(foot.indexOf('Autres accès') < foot.indexOf('Profil et paramètres') && foot.indexOf('Profil et paramètres') < foot.indexOf('Se déconnecter'));
+  assert.match(foot, /<button type="button" class="sidebar__link" data-act="logout"><svg data-i="out"><\/svg><span class="sidebar__text">Se déconnecter<\/span><\/button>/);
+  assert.ok(!/data-act="logout"[^>]*data-go|data-go[^>]*data-act="logout"/.test(h), 'une action, pas une navigation');
+  assert.equal((h.match(/data-act="logout"/g) || []).length, 1);
+  assert.ok(!/aria-current/.test(mk('profile', { signedIn: () => true }).html().split('data-act="logout"')[1].split('</button>')[0]), 'jamais marquée comme page active');
+  const src = read('js/sidebar.js'); assert.match(src, /#sidebar \[data-act\]/, 'le panneau mobile se referme aussi après cette action');
+  assert.match(app, /case `logout`:logout\(\);break;/, 'l\'action existe dans l\'application');
 });
