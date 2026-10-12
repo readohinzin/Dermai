@@ -57,7 +57,7 @@ test('SBB1 ordinateur : colonne latérale à gauche, contenu non recouvert, mêm
   assert.equal(await hOverflow(page), 0);
   assert.equal(await visible(page, '.sidebar__toggle'), false, 'pas de bouton de menu sur ordinateur'); assert.equal(await visible(page, '.sidebar__close'), false); assert.equal(await visible(page, '.sidebar__scrim'), false);
   assert.equal(await visible(page, 'nav.c-bottomnav'), false, 'la barre du bas laisse la place à la colonne');
-  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), TARGETS.map(t => t[0]));
+  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), [...TARGETS.map(t => t[0]), 'Se déconnecter']);
   assert.ok(await visible(page, '#sidebar .brand'), 'logo en haut');
   const pos = await page.evaluate(() => [...document.querySelectorAll('#sidebar .sidebar__link')].map(e => Math.round(e.getBoundingClientRect().top)));
   assert.deepEqual(pos, [...pos].sort((x, y) => x - y)); assert.ok(pos[6] > pos[5] + 200, 'le profil est séparé et en bas de la colonne');
@@ -122,7 +122,7 @@ test('SBB3 mobile 420 px : panneau fermé par défaut, icône de menu, ouverture
   assert.ok(await page.locator('.sidebar__scrim').isVisible());
   const box = await side.boundingBox(); assert.ok(box.x === 0 && box.width <= 420 * 0.86 + 1 && box.width >= 280, JSON.stringify(box));
   assert.equal(await hOverflow(page), 0); assert.equal(await page.evaluate(() => getComputedStyle(document.body).overflow), 'hidden', 'le fond ne défile pas');
-  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), TARGETS.map(t => t[0]), 'mêmes entrées que sur ordinateur');
+  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), [...TARGETS.map(t => t[0]), 'Se déconnecter'], 'mêmes entrées que sur ordinateur');
   assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.className), 'sidebar__close', 'le focus entre dans le panneau');
   // fermeture par le bouton : le focus revient à l'icône de menu
   await page.click('.sidebar__close'); await wait(page);
@@ -274,7 +274,7 @@ test('SBB11 simulation ouverte pour le compte : l\'entrée apparaît (ordinateur
   await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(150);
   const entry = page.locator('#sidebar .sidebar__link', { hasText: 'Simulation cosmétique' });
   await entry.waitFor({ state: 'visible', timeout: 10000 });
-  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres']);
+  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres', 'Se déconnecter']);
   assert.equal(await page.locator('.sidebar__badge').count(), 1, 'le badge reste réservé à Évolution');
   await entry.click();
   await page.waitForFunction(() => state.route === 'simulation');
@@ -313,5 +313,78 @@ test('SBB12 simulation : l\'entrée disparaît à la déconnexion et ne passe ja
   await page.evaluate(() => go('progress'));
   await page.locator('#sidebar [data-go=simulation]').waitFor({ state: 'visible', timeout: 10000 });
   assert.equal(env.stats.simProbe.length, 3, 'une vérification par compte et par chargement de page, jamais reprise de l\'autre compte');
+  clean(env); await env.close();
+});
+
+test('SBB13 « Se déconnecter » (ordinateur) : sous « Autres accès », après le profil ; déconnecte comme le bouton du profil ; rien ne reste', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
+  seed(env); await boot(env);
+  const { page } = env;
+  await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(150);
+  const out = page.locator('#sidebar [data-act=logout]');
+  assert.ok(await out.isVisible()); assert.equal((await out.innerText()).trim(), 'Se déconnecter');
+  const y = await page.evaluate(() => ['.sidebar__label', '[data-go=profile]', '[data-act=logout]'].map(s => Math.round(document.querySelector('#sidebar ' + s).getBoundingClientRect().top)));
+  assert.ok(y[0] < y[1] && y[1] < y[2], 'Autres accès, puis Profil et paramètres, puis Se déconnecter : ' + y);
+  assert.deepEqual(await page.locator('#sidebar .sidebar__foot .sidebar__text').allInnerTexts(), ['Profil et paramètres', 'Se déconnecter']);
+  assert.equal(await page.locator('#sidebar [data-act=logout][aria-current]').count(), 0);
+  const uid = await page.evaluate(() => ACCOUNT.user.id);
+  assert.ok(await page.evaluate(() => localStorage.getItem('dermai.session')), 'session présente avant');
+  await out.click();
+  await page.waitForFunction(() => state.account.status === 'visitor' && state.route === 'landing');
+  assert.equal(await page.evaluate(() => localStorage.getItem('dermai.session')), null, 'la session est effacée');
+  assert.equal(await page.evaluate(() => SCANS.length), 0, 'l\'historique en mémoire est effacé'); assert.equal(await page.evaluate(() => state.account.email), '');
+  assert.match(await page.locator('#toast').innerText(), /déconnecté/);
+  assert.equal(await page.locator('#sidebar').count(), 0);
+  assert.equal(await page.evaluate(() => document.body.classList.contains('sb-lock')), false);
+  assert.equal(env.fake.analyses.get(uid).length, 2, 'les analyses du compte restent dans le compte : se déconnecter n\'efface rien en base');
+  clean(env); await env.close();
+});
+
+test('SBB14 « Se déconnecter » (mobile) : dans le panneau, qui se referme ; le même compte ou un autre peut se reconnecter, sans reste de l\'ancien', opts, async () => {
+  const fake = H.createFake();
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, fake });
+  seed(env); await boot(env, 'analyses');
+  const { page } = env;
+  await page.click('.sidebar__toggle'); await wait(page);
+  assert.ok(await page.locator('#sidebar [data-act=logout]').isVisible());
+  assert.equal(await hOverflow(page), 0);
+  await page.locator('#sidebar [data-act=logout]').click();
+  await page.waitForFunction(() => state.account.status === 'visitor' && state.route === 'landing');
+  assert.equal(await page.evaluate(() => document.body.classList.contains('sb-lock')), false, 'le défilement est libéré');
+  assert.equal(await hOverflow(page), 0);
+  // un autre compte se connecte : l'entrée revient pour lui, avec ses seules données
+  await fake.fetch(`${H.SB}/auth/v1/signup`, { method: 'POST', headers: { apikey: 'anon-key-for-tests' }, body: JSON.stringify({ email: 'b@exemple.com', password: 'motdepasse1' }) });
+  await page.evaluate(() => go('login'));
+  await page.fill('form[data-form=login] [name=email]', 'b@exemple.com'); await page.fill('form[data-form=login] [name=password]', 'motdepasse1');
+  await page.click('form[data-form=login] button[type=submit]');
+  await page.waitForFunction(() => state.account.email === 'b@exemple.com' && state.history.status === 'ready');
+  assert.equal(await page.evaluate(() => SCANS.length), 0, 'aucune analyse de A chez B');
+  await page.evaluate(() => go('profile'));
+  await page.click('.sidebar__toggle'); await wait(page);
+  assert.ok(await page.locator('#sidebar [data-act=logout]').isVisible());
+  clean(env); await env.close();
+});
+
+test('SBB15 visiteur sans compte : aucune entrée « Se déconnecter » ; le bouton du profil continue de fonctionner', opts, async () => {
+  const env = await H.open(browser, server);
+  const { page } = env;
+  await page.clock.setFixedTime(NOW);
+  await page.goto('/home');
+  await page.waitForFunction(() => typeof state !== 'undefined' && state.account.status === 'visitor', null, { timeout: 15000 });
+  await page.evaluate(() => go('analyses'));
+  assert.equal(await page.locator('#sidebar').count(), 1);
+  assert.equal(await page.locator('#sidebar [data-act=logout]').count(), 0);
+  assert.ok(!/Se déconnecter/.test(await page.locator('#sidebar').innerText()));
+  clean(env); await env.close();
+});
+
+test('SBB16 depuis le profil : le bouton « Se déconnecter » existant fonctionne toujours, et la colonne propose la même action', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
+  seed(env); await boot(env, 'profile');
+  const { page } = env;
+  await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(150);
+  assert.equal(await page.locator('[data-act=logout]').count(), 2, 'le profil et la colonne');
+  await page.locator('main.main [data-act=logout]').click();
+  await page.waitForFunction(() => state.account.status === 'visitor' && state.route === 'landing');
   clean(env); await env.close();
 });
