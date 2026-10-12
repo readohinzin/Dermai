@@ -258,7 +258,7 @@ Illustration visuelle d'une zone « un peu améliorée » à partir de la photo 
 - **Zones proposées** (une par demande) : rides, radiance, acné, poches, cernes, taches, pores, texture, rougeurs. `oiliness` est exclue : son intensité AJOUTE de la brillance (sens inverse), ce ne serait pas une amélioration. Intensité choisie côté serveur (jamais par le navigateur) : 0,8 par défaut, réglable par `DERMAI_SIMULATION_INTENSITY` (0,1 à 1). Le premier essai à 0,5 (zone acné) n'a donné aucune différence visible ; 0,8 est un nouvel essai, valeur provisoire à ajuster.
 - **Navigateur** (`js/simulation.js`, chargé avant `app.js`) : bouton « Simuler une amélioration » dans le résultat de l'analyse la plus récente, uniquement si le serveur répond « disponible » pour ce compte. Écran : avertissement « une illustration, pas une prédiction », choix de la zone, mention du quota, curseur avant/après. Une seule demande à la fois, clic explicite ; une demande restée sans réponse laisse une trace de session et la relance exige une confirmation (elle a peut-être été comptée). L'image simulée reste en mémoire de la page (jamais dans `localStorage`).
 - **Photo** : la photo de l'analyse en cours si elle est encore en mémoire ; sinon celle que l'utilisatrice a choisi de garder dans son compte (lien temporaire, JPEG vérifié) ; sinon l'écran explique que la photo n'est plus disponible et demande une photo de face, **sans lancer d'analyse**. Le fournisseur n'a pas de `file_id` réutilisable : la photo est renvoyée à chaque simulation.
-- `js/app.js` : 3 lignes de branchement (149 980 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
+- `js/app.js` : 3 lignes de branchement (149 969 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
 
 ### Contrat de l'API : ce qui est confirmé, rapporté ou non vérifié
 Trois statuts, à ne pas confondre :
@@ -315,7 +315,7 @@ Essayage de maquillage sur la photo de l'utilisatrice, via l'outil officiel Perf
 - **Photo** : choisie sur l'appareil (galerie ou selfie), JPEG ou PNG de moins de 10 Mo, réduite et convertie en JPEG par le navigateur, contrôlée localement (`js/photo-check.js`), gardée en mémoire de la page seulement. Résultats : quatre au plus, en mémoire. Comparaison avant / avec maquillage, nouvel essai, téléchargement (ouverture dans un onglet si le navigateur refuse).
 - **Stockage** : ni photo ni résultat dans `localStorage`. Seuls les **favoris** (couleurs, textures, intensités, nom ; 12 au plus) sont gardés par compte (`dermai.studio.<id>`), effacés avec le compte. Une demande sans réponse laisse un horodatage dans `sessionStorage` : la relance demande une confirmation explicite.
 - **Journaux** : étapes sans donnée (« Makeup started », « quota reserved »…), jamais photo, clé, jeton, URL signée ni couleurs ; en cas de forme de réponse inconnue, seule la STRUCTURE (chemins et types) est journalisée.
-- `js/app.js` : branchement minimal (149 980 octets, plafond 150 000) ; l'écran n'est pas restaurable après rechargement (la photo n'est qu'en mémoire).
+- `js/app.js` : branchement minimal (149 969 octets, plafond 150 000) ; l'écran n'est pas restaurable après rechargement (la photo n'est qu'en mémoire).
 
 ### Consommation
 Annoncée par le fournisseur : 1 unité par tâche, aucune unité en cas d'erreur de requête ou de traitement. **Aucun relevé réel** : à mesurer au premier essai en Preview.
@@ -350,7 +350,7 @@ Même écran que le maquillage (une seule entrée « Studio Beauté », mêmes p
 - **Nature de la transformation** : chaque onglet la dit. Une extension n'est pas une perruque ; une coiffure est l'aperçu d'un STYLE, pas d'un modèle commercial précis de perruque ; le volume n'est ni un diagnostic de chute de cheveux ni une solution médicale ; le catalogue des boucles ne couvre pas forcément toutes les textures afro.
 - **Coût** affiché avant chaque essai (« consomme N unités », valeur documentée, non mesurée). Aucune tâche à l'ouverture d'un onglet, au choix d'un modèle ou d'une couleur, ni au clavier : seul le bouton « Essayer ». Une seule demande à la fois, maquillage compris. Photo et résultats en mémoire seulement ; favoris de réglages seulement (`dermai.studio.hair.<id>`, 12 au plus), effacés avec le compte. Photo remplacée : les résultats sont oubliés (ils ne se compareraient plus à la bonne photo).
 - **Combiner les transformations (coiffure puis couleur…) : NON implémenté, volontairement.** Réutiliser une image générée comme entrée suivante imposerait soit d'accepter une URL fournie par le navigateur (interdit), soit que le serveur la télécharge ou la garde (rien n'est conservé, la forme de l'hôte des résultats n'est pas connue pour l'autoriser). Les essais partent donc toujours de la photo d'origine.
-- `js/app.js` : inchangé par ce volet (149 980 octets, plafond 150 000) : les modules sont créés par `js/makeup-studio.js`.
+- `js/app.js` : inchangé par ce volet (149 969 octets, plafond 150 000) : les modules sont créés par `js/makeup-studio.js`.
 
 ### Contrat API : établi, non confirmé
 | Élément | Statut | Source |
@@ -371,3 +371,33 @@ Disponibilité d'une API ne prouve pas un rendu de qualité sur toutes les textu
 
 ### Tests
 `test/hair-server.test.js` (12), `test/hair-data.test.js` (8), `test/hair-studio.test.js` (13), `test/hair-studio-browser.test.js` (10, vrai `app.js` dans Chromium, réseau simulé, 420 px et clavier), `test/hair-quota-db.test.js` (9, PostgreSQL jetable).
+
+## Page d'administration du fondateur (V1, lecture seule, privée)
+
+Une page « Administration » réservée au fondateur : solde d'unités Perfect Corp, coûts officiels annoncés, état de configuration des fonctionnalités, quotas configurés. Elle ne modifie rien, ne lance aucune analyse, n'affiche aucune donnée d'utilisatrice. Aucune migration SQL, aucune clé `service_role`, aucun appel payant.
+
+### Accès
+- `DERMAI_ADMIN_USER_IDS` (variable serveur, **à créer dans Vercel par le fondateur**, jamais commitée) : identifiants de comptes Supabase (UUID) séparés par des virgules (Supabase, Authentication, Users, colonne UID). Absente, vide, ou contenant UNE entrée qui n'est pas un UUID : personne n'y accède. **`*` n'a aucun effet** : il invalide la liste.
+- Contrôle **côté serveur, à chaque requête** (`api/admin-stats.js`) : session Supabase vérifiée (même mécanisme que les autres fonctions), puis identifiant vérifié comparé à la liste. L'identifiant ne vient jamais du navigateur.
+- **Tout refus renvoie la même réponse 404** (`Not found`, sans contenu) : jeton absent ou invalide, Supabase injoignable, compte non listé, liste absente. Seul un fondateur reconnu peut obtenir un 405 (méthode autre que GET) ou un 400 (section inconnue). Réponses `Cache-Control: private, no-store`, `Vary: Authorization`.
+- L'entrée de menu « Administration » apparaît seulement si cette API a répondu « fondateur » (une requête d'accès par session) ; sinon la route tapée à la main affiche « Page introuvable ». Ce n'est PAS un contrôle d'accès : l'API refuse à elle seule.
+
+### Données (quatre blocs, sections `?section=credit|costs|features|quotas`, plus `access`)
+- **Solde** : `GET /s2s/v1.0/client/credit` (lecture). Catégories telles que retournées ; total « Api » annoncé avec sa source (convention du code officiel : lots dont le type commence par « Api ») ; autres catégories jamais additionnées. **Historique de consommation (24 h, 7 j, 30 j) : « non disponible »** (la forme de la réponse de `/client/credit/history` est inconnue, il n'est pas appelé ; une consommation n'est jamais déduite des réservations de quota).
+- **Coûts officiels** : `GET /s2s/v2.0/credit/feature-cost` (lecture, paginée par `page_size` et `starting_token`, 10 pages au plus). Rapprochement EXACT par identifiant technique (`/task/<fonction>` appelé par DERMAI) ; plusieurs lignes par fonction conservées, aucun coût unique par catégorie ; un coût sans correspondance est « non rapproché » ; un montant absent est « indisponible ».
+- **Fonctionnalités** : activation (variable, valeur réellement lue par le code), autorisation (Personne, Liste restreinte avec le NOMBRE de comptes, Tous les utilisateurs, Tous les comptes connectés pour l'analyse), prérequis (clé Perfect Corp, Supabase, fonction SQL). État : Fermée, Bloquée, ou « Configurée : disponibilité non vérifiée » (la fonction SQL de quota ne peut pas être vérifiée sans réserver un crédit). Jamais d'identifiant de compte.
+- **Quotas** : limites CONFIGURÉES (pas la consommation), unité, fenêtre, variable et origine (variable, valeur par défaut du code, ou variable invalide ignorée). Cheveux en unités.
+- Les lectures Perfect Corp sont mémorisées en mémoire du serveur (solde 60 s, coûts 10 min, erreurs 15 s), après le contrôle d'accès. Toute source en échec s'affiche « Indisponible » avec une cause courte, jamais zéro. Sources : scripts officiels de `YouCam-API/skills` (instantané du 2026-09-01) lus hors dépôt ; le README officiel décrit ces deux lectures comme gratuites ; **aucune n'a été exécutée en réel** (tests simulés).
+
+### Intégration et taille
+Module **indépendant** du Studio Beauté : `js/admin-dashboard.js` (+ `css/components/admin.css`), chargé avant `js/app.js` comme les autres modules. `js/makeup-studio.js` est identique à son état d'avant l'administration et ne la connaît pas.
+- **Branchement propre dans `js/app.js`** : `const AD=DermaiAdmin.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR})`, sa vue `V.admin=()=>shell(AD.page())` (identifiant de vue `admin`, fonction de rendu distincte de `V.studio`), et sa dépendance de menu `admin:()=>AD.ready()` (une dépendance par entrée : `simulation`, `studio`, `admin`). Aucune affectation commune, aucun paramètre de vue détourné, aucune porte partagée. La route `admin` n'est pas restaurable au rechargement.
+- **État et retour propres** : l'état (chargements, erreurs, mémoire de la page) vit dans le module ; le retour utilise la navigation commune (`back()`, pile `state.stack`) et revient à la vue réellement précédente, jamais au Studio par défaut. Une panne du Studio ne bloque pas l'administration et inversement (tests).
+- **Utilitaires partagés, limités** : `shell`, `go`/`back`, `render` et la session (`ACCOUNT`, `authEpoch`) fournis par l'application. Pour rester sous le plafond d'`app.js` sans retirer de commentaire ni de logique métier, deux fonctions de câblage répétées ont été mises en commun (`UID`, identifiant du compte ; `RR`, réaffichage) : comportement identique pour le suivi, la simulation, l'évolution et la vérification de routine (tests épinglés mis à jour).
+- `js/app.js` : 149 969 octets (plafond 150 000, test de taille inchangé dans sa protection). `vercel.json` : `api/admin-stats.js` en 30 s.
+
+### Hors V1 (missions distinctes)
+Statistiques de comptes (inscriptions, actifs, retour à 7 jours), comptes en limite, historique des quotas, table d'événements, taux d'échec et durées, stockage des photos, mesure du coût par opération payante, toute action de modification. Une V2 « usage et quotas » exigera des fonctions SQL de lecture réservées (propositions à examiner à part, non appliquées).
+
+### Tests
+`test/admin-server.test.js` (11 : accès, 404 uniforme, fuites, lectures simulées, pagination, mémoire, lecture seule), `test/admin-dashboard.test.js` (8), `test/admin-browser.test.js` (6 : menu, 420 px, clavier, déconnexion), `test/admin-separation.test.js` (8 : câblage statique, ressources séparées, indépendance à l'exécution, pannes isolées, navigation et retour, non-régression du Studio) ; épingles mises à jour : `test/sidebar.test.js`, `test/config.test.js`, taille d'`app.js`.

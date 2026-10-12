@@ -3,7 +3,8 @@
     "api/skin-analysis.js": { "maxDuration": 60 },
     "api/skin-simulation.js": { "maxDuration": 60 },
     "api/makeup-vto.js": { "maxDuration": 60 },
-    "api/hair-vto.js": { "maxDuration": 60 }
+    "api/hair-vto.js": { "maxDuration": 60 },
+    "api/admin-stats.js": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }

@@ -21,7 +21,8 @@
     { id: 'verif', label: 'Vérif\'Routine', icon: 'shield', go: 'verif', routes: ['verif'] },
     { id: 'simulation', label: 'Simulation cosmétique', icon: 'sparkle', go: 'simulation', routes: ['simulation'], when: 'simulation' },
     { id: 'studio', label: 'Studio Beauté', icon: 'sparkle', go: 'studio', routes: ['studio'], when: 'studio' },
-    { id: 'routine', label: 'Ma routine', icon: 'routine', go: 'routine', routes: ['routine', 'actives', 'active', 'products'] }
+    { id: 'routine', label: 'Ma routine', icon: 'routine', go: 'routine', routes: ['routine', 'actives', 'active', 'products'] },
+    { id: 'admin', label: 'Administration', icon: 'dashboard', go: 'admin', routes: ['admin'], when: 'admin' }
   ];
   const OTHERS = [
     { id: 'profile', label: 'Profil et paramètres', icon: 'user', go: 'profile', routes: ['profile', 'privacy'], avatar: true }
@@ -35,7 +36,8 @@
     /* Icône « panneau latéral » : cadre arrondi dont la partie gauche est pleine (la colonne). */
     panel: '<rect x="3" y="5" width="18" height="14" rx="3.5"/><path d="M3 8.5A3.5 3.5 0 0 1 6.5 5H11v14H6.5A3.5 3.5 0 0 1 3 15.5z" fill="currentColor" stroke="none"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
-    calendar: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>'
+    calendar: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>',
+    dashboard: '<rect x="3" y="3" width="8" height="10" rx="2"/><rect x="14" y="3" width="7" height="6" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="8" height="5" rx="2"/>'
   };
   const svg = p => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
 
@@ -47,8 +49,9 @@
     const route = () => { try { return d.route ? d.route() : ''; } catch (e) { return ''; } };
     const now = () => { try { return d.now ? d.now() : Date.now(); } catch (e) { return Date.now(); } };
     let open = false, openRoute = null, opener = null;
-    /* Entrées conditionnelles : `when` nomme la condition, évaluée par l'application (jamais déduite ici). */
-    const allowed = i => { if (!i.when) return true; try { return !!(d[i.when] && ['simulation', 'studio'].includes(i.when) && d[i.when]()); } catch (e) { return false; } };
+    /* Entrées conditionnelles : `when` nomme la condition, évaluée par l'application (jamais déduite ici), chacune par SA dépendance : simulation, studio, admin.
+       « admin » n'apparaît que si le serveur a répondu « fondateur » : l'absence d'entrée n'est pas un contrôle d'accès (l'API refuse à elle seule). */
+    const allowed = i => { if (!i.when) return true; try { return !!(d[i.when] && ['simulation', 'studio', 'admin'].includes(i.when) && d[i.when]()); } catch (e) { return false; } };
 
     const currentId = r => { const all = ITEMS.concat(OTHERS), hit = all.find(i => i.routes.includes(r)); return hit ? hit.id : null; };
     const wide = () => { try { return typeof matchMedia === 'function' && matchMedia(WIDE).matches; } catch (e) { return false; } };

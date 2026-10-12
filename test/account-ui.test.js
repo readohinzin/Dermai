@@ -49,7 +49,7 @@ test('U4 le profil n\'est jamais copié dans le stockage local ; seules la sessi
   /* Seule exception : le tampon temporaire d'une analyse reçue mais pas encore enregistrée (js/analysis-flow.js, sessionStorage de l'onglet).
      Il ne contient pas le profil : voir analysis-flow.test.js pour la liste blanche de ses champs et ses règles d'effacement. */
   /* Autre exception : le suivi du programme de 30 jours (js/care-program.js), une clé par compte `dermai.care.<id>`, sans profil (voir care-program.test.js). */
-  for (const u of uses) assert.match(u, /dermai_demo_photo|localStorage\}catch|^sessionStorage,userId:\(\)=>|^localStorage,userId:\(\)=>/, u);
+  for (const u of uses) assert.match(u, /dermai_demo_photo|localStorage\}catch|^sessionStorage,userId:\(\)=>|^localStorage,userId:(?:\(\)=>|UID,)/, u);
   const acc = strip(read('js/account.js'));
   assert.match(acc, /SESSION_KEY = 'dermai\.session'/);
   assert.doesNotMatch(acc, /setItem\([^)]*(goals|profile|level)/i);

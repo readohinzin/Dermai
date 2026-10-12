@@ -62,14 +62,16 @@ async function makeJpeg(page) {
 
 /* options : { fake, behaviors } ; behaviors = file d'actions pour les appels à /api/skin-analysis (la dernière se répète) :
    { status, body, delay } | { abort: true } | { never: true }. */
-async function open(browser, server, { fake = createFake(), behaviors = [{ status: 200, body: analysisPayload() }], user = null, preload = null, sim = null, makeup = null, hair = null } = {}) {
+async function open(browser, server, { fake = createFake(), behaviors = [{ status: 200, body: analysisPayload() }], user = null, preload = null, sim = null, makeup = null, hair = null, admin = null } = {}) {
   /* sim : { available, behaviors } — par défaut la simulation est FERMÉE (GET → available:false) et aucune demande de simulation n'est attendue. */
   const simCfg = Object.assign({ available: false, behaviors: [{ status: 200, body: { ok: false, error: 'simulation de test non configurée' } }] }, sim || {});
   /* makeup : { available, behaviors } pour le Studio Beauté (GET → disponibilité ; POST → comportements) ; les images « générées » viennent de MK_IMG, hôte factice intercepté. */
   const mkCfg = Object.assign({ available: false, behaviors: [{ status: 200, body: { ok: false, error: 'studio de test non configuré' } }] }, makeup || {});
   /* hair : { available, features, templates:{<id>:{status,body}}, behaviors } pour le volet capillaire (GET → disponibilité ; GET ?templates= → modèles ; POST → essais). */
   const hrCfg = Object.assign({ available: false, features: [], templates: {}, behaviors: [{ status: 200, body: { ok: false, error: 'volet capillaire de test non configuré' } }] }, hair || {});
-  const stats = { skin: [], escaped: [], serverApi: server.stats.serverApi, supabase: [], simProbe: [], sim: [], mkProbe: [], mk: [], mkImages: [], hrProbe: [], hrTemplates: [], hr: [] };
+  /* admin : { access: 'yes' | 'no' (défaut : « no » = 404 uniforme comme le vrai serveur pour tout compte non fondateur), sections: { credit, costs, features, quotas } (corps JSON ou { status, body, delay }) }. */
+  const adCfg = Object.assign({ access: 'no', sections: {} }, admin || {});
+  const stats = { adm: [], skin: [], escaped: [], serverApi: server.stats.serverApi, supabase: [], simProbe: [], sim: [], mkProbe: [], mk: [], mkImages: [], hrProbe: [], hrTemplates: [], hr: [] };
   const context = await browser.newContext({ baseURL: `http://127.0.0.1:${server.address().port}`, viewport: { width: 420, height: 900 } });
   const hold = [];
   await context.route('**/*', async route => {
@@ -100,6 +102,15 @@ async function open(browser, server, { fake = createFake(), behaviors = [{ statu
         if (b.never) { hold.push(route); return; }
         if (b.delay) await new Promise(r => setTimeout(r, b.delay));
         return route.fulfill({ status: b.status || 200, contentType: b.contentType || 'application/json', body: typeof b.body === 'string' ? b.body : JSON.stringify(b.body) });
+      }
+      if (url.pathname === '/api/admin-stats') {
+        const sec = url.searchParams.get('section'); stats.adm.push({ method: req.method(), section: sec, auth: !!req.headers().authorization });
+        const notFound = () => route.fulfill({ status: 404, contentType: 'text/plain; charset=utf-8', body: 'Not found' });
+        if (adCfg.access !== 'yes' || req.method() !== 'GET') return notFound();
+        if (sec === 'access') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, admin: true }) });
+        const o = adCfg.sections[sec]; if (!o) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'section de test non configurée' }) });
+        const r = o.body !== undefined ? o : { status: 200, body: o }; if (r.delay) await new Promise(res => setTimeout(res, r.delay));
+        return route.fulfill({ status: r.status || 200, contentType: 'application/json', body: typeof r.body === 'string' ? r.body : JSON.stringify(r.body) });
       }
       if (url.pathname === '/api/hair-vto') {
         if (req.method() === 'GET' && url.searchParams.has('templates')) {
