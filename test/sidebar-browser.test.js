@@ -39,7 +39,7 @@ const clean = env => {
   assert.deepEqual(env.stats.escaped.filter(u => !/fonts\.(googleapis|gstatic)\.com/.test(u)), []);
   assert.ok(!env.stats.escaped.some(u => /perfectcorp|youcam|yce|makeupar/i.test(u)));
 };
-const TARGETS = [['Tableau de bord', 'home'], ['Analyser ma peau', 'scan'], ['Mes analyses', 'analyses'], ['DERMAI Évolution', 'progress'], ['Programme de soins', 'program'], ['Ma routine', 'routine'], ['Profil et paramètres', 'profile']];
+const TARGETS = [['Tableau de bord', 'home'], ['Analyser ma peau', 'scan'], ['Mes analyses', 'analyses'], ['DERMAI Évolution', 'progress'], ['Programme de soins', 'program'], ['Vérif\'Routine', 'verif'], ['Ma routine', 'routine'], ['Profil et paramètres', 'profile']];
 const visible = (page, sel) => page.locator(sel).first().isVisible();
 const wait = page => page.waitForTimeout(350);        // durée de la transition du panneau (0,22 s)
 const hOverflow = page => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -60,7 +60,7 @@ test('SBB1 ordinateur : colonne latérale à gauche, contenu non recouvert, mêm
   assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), [...TARGETS.map(t => t[0]), 'Se déconnecter']);
   assert.ok(await visible(page, '#sidebar .brand'), 'logo en haut');
   const pos = await page.evaluate(() => [...document.querySelectorAll('#sidebar .sidebar__link')].map(e => Math.round(e.getBoundingClientRect().top)));
-  assert.deepEqual(pos, [...pos].sort((x, y) => x - y)); assert.ok(pos[6] > pos[5] + 200, 'le profil est séparé et en bas de la colonne');
+  assert.deepEqual(pos, [...pos].sort((x, y) => x - y)); assert.ok(pos[7] > pos[6] + 100, 'le profil est séparé et en bas de la colonne');
   assert.match(await page.locator('.sidebar__badge').innerText(), /Nouveau/); assert.equal(await page.locator('.sidebar__badge').count(), 1);
   // la colonne reste en place quand la page défile
   await page.evaluate(() => { document.querySelector('main.main').style.minHeight = '3000px'; window.scrollTo(0, 600); });
@@ -74,7 +74,7 @@ test('SBB2 chaque entrée ouvre la bonne vraie vue, avec la bonne adresse et la 
   const { page } = env;
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.evaluate(() => { window.__marker = 'same-document'; });
-  for (const [label, route] of [TARGETS[2], TARGETS[3], TARGETS[4], TARGETS[5], TARGETS[6], TARGETS[0]]) {
+  for (const [label, route] of [TARGETS[2], TARGETS[3], TARGETS[4], TARGETS[5], TARGETS[6], TARGETS[7], TARGETS[0]]) {
     await page.locator('#sidebar .sidebar__link', { hasText: label }).click();
     await page.waitForFunction(r => state.route === r, route);
     assert.equal(await page.evaluate(() => window.__marker), 'same-document', `${label} : pas de rechargement`);
@@ -274,7 +274,7 @@ test('SBB11 simulation ouverte pour le compte : l\'entrée apparaît (ordinateur
   await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(150);
   const entry = page.locator('#sidebar .sidebar__link', { hasText: 'Simulation cosmétique' });
   await entry.waitFor({ state: 'visible', timeout: 10000 });
-  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres', 'Se déconnecter']);
+  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres', 'Se déconnecter']);
   assert.equal(await page.locator('.sidebar__badge').count(), 1, 'le badge reste réservé à Évolution');
   await entry.click();
   await page.waitForFunction(() => state.route === 'simulation');

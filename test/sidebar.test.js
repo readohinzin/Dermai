@@ -18,7 +18,7 @@ const decode = s => s.replace(/&#39;/g, '\'').replace(/&amp;/g, '&');
 
 test('SB1 entrées : uniquement des écrans qui existent, restaurables par l\'adresse, sans doublon ni lien inventé', () => {
   const all = SB.ITEMS.concat(SB.OTHERS);
-  assert.deepEqual(all.map(i => i.label), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres']);
+  assert.deepEqual(all.map(i => i.label), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres']);
   for (const i of all) {
     assert.ok(SCREENS.has(i.go), `${i.label} : l'écran « ${i.go} » existe dans app.js`);
     assert.ok(RESTORABLE.has(i.go) || i.go === 'scan' || i.when, `${i.label} : l'adresse de « ${i.go} » est restaurable (sauf la simulation, qui exige le contexte d'une analyse)`);
@@ -33,7 +33,7 @@ test('SB1 entrées : uniquement des écrans qui existent, restaurables par l\'ad
   assert.ok(!/simulation/i.test(mk('home', { simulation: () => { throw new Error('x'); } }).html()), 'une erreur de vérification n\'ouvre jamais l\'entrée');
   const open = mk('home', { simulation: () => true }).html();
   assert.match(open, /data-go="simulation" data-reset="1"[^>]*>(?:(?!<\/button>).)*Simulation cosmétique/s);
-  assert.deepEqual(labels(open).map(decode).slice(4, 7), ['Programme de soins', 'Simulation cosmétique', 'Ma routine']);
+  assert.deepEqual(labels(open).map(decode).slice(4, 8), ['Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Ma routine']);
   assert.equal((open.match(/Nouveau/g) || []).length, 1, 'le badge reste réservé à Évolution');
   assert.deepEqual(SB.OTHERS.map(i => i.id), ['profile']);
 });
@@ -44,7 +44,7 @@ test('SB2 DERMAI Évolution et le programme de soins sont dans les cinq premièr
   const h = mk().html();
   assert.match(h, /data-go="progress"[^>]*>(?:(?!<\/button>).)*DERMAI Évolution/s); assert.match(h, /data-go="program"[^>]*>(?:(?!<\/button>).)*Programme de soins/s);
   assert.match(h, /data-go="analyses"[^>]*>(?:(?!<\/button>).)*Mes analyses/s);
-  assert.equal((h.match(/class="sidebar__link" data-go="[a-z]+" data-reset="1"/g) || []).length, 7, 'sept entrées, chacune avec le même mécanisme que la barre du bas (data-go + data-reset)');
+  assert.equal((h.match(/class="sidebar__link" data-go="[a-z]+" data-reset="1"/g) || []).length, 8, 'huit entrées, chacune avec le même mécanisme que la barre du bas (data-go + data-reset)');
 });
 
 test('SB3 page active : exactement une entrée aria-current pour chaque écran connu, aucune pour un écran inconnu', () => {
@@ -71,7 +71,7 @@ test('SB5 structure : colonne latérale, séparation « Autres accès », profil
   assert.ok(!/data-open|role="dialog"|aria-modal/.test(h), 'fermé par défaut');
   assert.match(h, /<nav aria-label="Menu principal">/); assert.match(h, /<nav aria-label="Compte">/);
   const [top, foot] = h.split('<div class="sidebar__foot">');
-  assert.deepEqual(labels(top).map(decode), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Ma routine']);
+  assert.deepEqual(labels(top).map(decode), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Ma routine']);
   assert.deepEqual(labels(foot).map(decode), ['Profil et paramètres']); assert.match(foot, /Autres accès/); assert.match(foot, /ne pose pas de diagnostic médical/);
   assert.match(foot, /sidebar__avatar[^>]*>C</, 'initiale du compte');
   assert.match(h, /data-h="52"/, 'logo DERMAI en haut'); assert.ok(h.indexOf('class="brand"') < h.indexOf('Menu principal'));
