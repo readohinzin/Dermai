@@ -196,6 +196,14 @@ Une barre compacte sous l'en-tête des écrans Résultat, Routine et Produits : 
 - Tests : `test/export.test.js` (EXP1 à EXP18, dont l'interface en icônes), harnais navigateur aux six largeurs (téléchargement réel, PDF relu avec `pdftotext`, partage simulé, aucune requête réseau).
 
 
+## Barre latérale de navigation (`js/sidebar.js`)
+- **Ordinateur (dès 920 px)** : colonne fixe à gauche (logo, sept entrées avec icône et libellé, page active en surbrillance, section « Autres accès » avec « Profil et paramètres » en bas). Le contenu occupe la place restante.
+- **Mobile** : le même élément devient un panneau coulissant ouvert par l'icône de menu à gauche du logo. Fermeture par le bouton, le fond ou Échap ; le focus reste dans le panneau (Tab, Maj+Tab) et revient à l'icône ; le défilement du fond est bloqué pendant l'ouverture ; fermeture automatique après le choix d'une entrée. La barre du bas reste disponible sur mobile. Animations brèves, coupées si l'utilisateur demande moins de mouvement.
+- **Entrées, toutes reliées à un écran existant** (même mécanisme `data-go` que la barre du bas, donc mêmes protections) : Tableau de bord (`home`), Analyser ma peau (`scan`), Mes analyses (`analyses`), DERMAI Évolution (`progress`, pastille « Nouveau » jusqu'au 15 décembre 2026, sans stockage), Programme de soins (`program`), Simulation cosmétique (`simulation`, voir ci-dessous), Ma routine (`routine`), Profil et paramètres (`profile`).
+- **Simulation cosmétique : entrée conditionnelle.** Elle n'apparaît que si le serveur ouvre la simulation pour le compte connecté (vérification existante `GET /api/skin-simulation`, sans fournisseur ni quota ni crédit, une fois par compte et par chargement de page) et si une analyse existe. Ouvrir l'écran ne lance aucune simulation : la demande reste un geste explicite avec ses garde-fous (avertissement, quota). Son adresse n'est pas restaurable à l'ouverture directe (elle exige le contexte d'une analyse). Aucune page n'a été créée pour remplir le menu.
+- L'écran de scan est un parcours plein cadre : il n'affiche ni colonne ni barre du bas, comme avant.
+- Style : `css/components/sidebar.css` (jetons existants, aucune couleur en dur). Tests : `test/sidebar.test.js`, `test/sidebar-browser.test.js`.
+
 ## DERMAI Évolution : bilan entre deux analyses (MVP, local)
 Dans l'écran « Votre évolution », un bloc « Bilan de votre évolution » (module `js/evolution.js`, chargé avant `app.js`) précède le graphique et les tableaux existants.
 - **Entrée** : deux analyses ENREGISTRÉES, déjà chargées dans l'application (tableau `SCANS`). Aucun appel réseau, aucune table SQL, aucun appel à `/api/skin-analysis` ni à Perfect Corp : consulter ou comparer ne coûte rien. Une analyse non enregistrée est exclue, avec un message.
@@ -237,7 +245,7 @@ Illustration visuelle d'une zone « un peu améliorée » à partir de la photo 
 - **Zones proposées** (une par demande) : rides, éclat, imperfections, poches, cernes, taches, pores, grain de peau, rougeurs. `oiliness` est exclue : son intensité AJOUTE de la brillance (sens inverse), ce ne serait pas une amélioration. Intensité fixe 0,5, côté serveur (provisoire).
 - **Navigateur** (`js/simulation.js`, chargé avant `app.js`) : bouton « Simuler une amélioration » dans le résultat de l'analyse la plus récente, uniquement si le serveur répond « disponible » pour ce compte. Écran : avertissement « une illustration, pas une prédiction », choix de la zone, mention du quota, curseur avant/après. Une seule demande à la fois, clic explicite ; une demande restée sans réponse laisse une trace de session et la relance exige une confirmation (elle a peut-être été comptée). L'image simulée reste en mémoire de la page (jamais dans `localStorage`).
 - **Photo** : la photo de l'analyse en cours si elle est encore en mémoire ; sinon celle que l'utilisatrice a choisi de garder dans son compte (lien temporaire, JPEG vérifié) ; sinon l'écran explique que la photo n'est plus disponible et demande une photo de face, **sans lancer d'analyse**. Le fournisseur n'a pas de `file_id` réutilisable : la photo est renvoyée à chaque simulation.
-- `js/app.js` : 3 lignes de branchement (149 400 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
+- `js/app.js` : 3 lignes de branchement (149 452 octets, plafond 150 000), des commentaires ont été raccourcis pour faire de la place.
 
 ### Contrat de l'API : ce qui est confirmé, rapporté ou non vérifié
 Trois statuts, à ne pas confondre :

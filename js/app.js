@@ -441,6 +441,7 @@ const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||
 const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc,evolution:()=>EVO.fromProgram()});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
 const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
 const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:()=>render(true),program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
+const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial(),simulation:()=>{SIM.probe();return SIM.state().avail===`yes`&&!noReal()}});SB.attach(document);   // js/sidebar.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
 
@@ -543,8 +544,8 @@ function shell(inner,{title=``,back=false}={}){
   const tab=TAB_OF[state.route];
   const navBtns=cls=>NAV.map(n=>`<button ${cls?`class="${cls}" `:``}data-go="${n[0]}" data-reset="1" ${tab===n[0]?`aria-current="page"`:``}>${ic(n[2])}<span>${n[1]}</span></button>`).join(``);
   return `<div class="app">
-    <aside class="rail">${brandBtn(52)}<nav aria-label="Navigation principale">${navBtns()}</nav><small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></aside>
-    <main class="main"><div class="m-brand">${brandBtn(44)}</div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
+    ${SB.html()}
+    <main class="main"><div class="m-brand">${SB.toggle()}${brandBtn(44)}</div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
     <nav class="nav c-bottomnav" aria-label="Navigation principale">${navBtns(`c-bottomnav__item`)}</nav>
   </div>`;
 }
