@@ -158,3 +158,21 @@ test('PB4 suppression du compte : le suivi local du compte est effacé aussi', o
   assert.equal(await care(page, a), null);
   clean(env); await env.close();
 });
+
+test('PB-reload rechargement sur /program : l\'écran se réaffiche une fois la session restaurée (il ne reste pas sur « Chargement de votre historique… »)', opts, async () => {
+  const SkinModel = require('../js/skin-model.js');
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
+  const uid = env.stats.session.user.id, metrics = {}; SkinModel.METRIC_KEYS.forEach(k => { metrics[k] = 55; });
+  env.fake.analyses.set(uid, [{ id: '00000000-0000-4000-8000-000000000001', user_id: uid, analyzed_at: '2026-10-05T08:00:00.000Z', global_score: 60, skin_type: 'combination', skin_age: 30, metrics, raw_metrics: {}, priorities: [], goals_snapshot: [], engine_version: 'test' }]);
+  const { page } = env;
+  await page.goto('/');
+  await page.waitForFunction(() => typeof state !== 'undefined' && state.account.status === 'signedIn' && state.history.status === 'ready', null, { timeout: 15000 });
+  await page.evaluate(() => go('program'));
+  await page.reload();
+  await page.waitForFunction(() => typeof state !== 'undefined' && state.account.status === 'signedIn' && state.history.status === 'ready' && state.route === 'program', null, { timeout: 15000 });
+  await page.waitForSelector('[data-cp=start]', { timeout: 10000 });
+  const t = await text(page);
+  assert.match(t, /Mon programme de 30 jours/); assert.doesNotMatch(t, /Chargement de votre historique/);
+  assert.equal(env.stats.skin.length, 0, 'aucune analyse lancée par le rechargement');
+  clean(env); await env.close();
+});

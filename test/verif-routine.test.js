@@ -86,7 +86,7 @@ test('VR7 câblage : scripts chargés une fois dans le bon ordre, route restaura
   assert.match(app, /const VR=DermaiVerif\.create\(\{userId:\(\)=>ACCOUNT&&ACCOUNT\.user\?ACCOUNT\.user\.id:null,status:\(\)=>DEMO_MODE\?`demo`:state\.account\.status,render:\(\)=>render\(true\),ic,esc,catalog:\(\)=>DEMO_MODE\?\[\]:Engine\.catalogData\.PRODUCTS\}\);VR\.attach\(document\);/);
   assert.match(app, /V\.verif=\(\)=>shell\(VR\.page\(\),\{title:`Vérif'Routine`\}\);/); assert.match(app, /RESTORABLE=new Set\(\[[^\]]*`verif`/);
   assert.match(app, /F\.clear\(\);CP\.clear\(\);VR\.clear\(\);resetPrivateState\(\)/);
-  assert.match(app.slice(app.indexOf('async function bootAccount'), app.indexOf('async function submitForgot')), /`privacy`,`verif`\]\.includes\(state\.route\)\)render\(true\)/, 'après un rechargement, l\'écran est réaffiché une fois la session restaurée');
+  assert.match(app.slice(app.indexOf('async function bootAccount'), app.indexOf('async function submitForgot')), /`privacy`,`verif`,`program`\]\.includes\(state\.route\)\)render\(true\)/, 'après un rechargement, l\'écran est réaffiché une fois la session restaurée');
   assert.ok(fs.statSync(path.join(ROOT, 'js/app.js')).size < 150000, 'js/app.js sous 150 000 octets');
   const side = require('../js/sidebar.js'); const e = side.ITEMS.find(i => i.id === 'verif');
   assert.deepEqual([e.label, e.go, e.routes], ['Vérif\'Routine', 'verif', ['verif']]);

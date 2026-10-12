@@ -356,7 +356,7 @@ async function bootAccount(arrivedWithoutPage,redirect){
   if(u)await enterSession(u,false);else{state.account.status=`visitor`;if(state.route===`scan`||state.route===`analyzing`){askLogin();return}}
   /* Connecté, arrivé à la racine du site (aucune page dans l'adresse) : on ouvre directement son espace. Une page choisie (ex. #landing) est respectée. */
   if(u&&arrivedWithoutPage&&state.route===`landing`){go(`home`,null,{reset:true,replace:true});return}
-  if([`landing`,`profile`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`products`,`progress`,`analyses`,`privacy`,`verif`].includes(state.route))render(true);
+  if([`landing`,`profile`,`home`,`result`,`concern`,`routine`,`actives`,`active`,`products`,`progress`,`analyses`,`privacy`,`verif`,`program`].includes(state.route))render(true);
 }
 async function submitForgot(form){
   const email=(form.querySelector(`[name=email]`).value||``).trim(),btn=form.querySelector(`button[type=submit]`);
