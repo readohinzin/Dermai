@@ -429,6 +429,8 @@ test('SBB14 bouton d\'analyse (téléphone) : seul reste de la barre du bas, cen
   const fab = page.locator('.c-scanfab');
   assert.equal(await fab.getAttribute('aria-label'), 'Analyser ma peau'); assert.equal((await fab.innerText()).trim(), '', 'aucun texte visible'); assert.equal(await fab.locator('svg').count(), 1, 'l\'icône du scan');
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.c-scanfab')).borderRadius), '50%');
+  const look = await page.evaluate(() => { const c = getComputedStyle(document.querySelector('.c-scanfab')); return { shadow: c.boxShadow, border: c.borderTopWidth, outline: c.outlineStyle + ' ' + c.outlineWidth }; });
+  assert.equal(look.border, '0px', 'aucun contour'); assert.ok(!/0px 0px 0px [1-9]\d*px/.test(look.shadow), 'aucun anneau en ombre portée : ' + look.shadow); assert.ok(look.shadow !== 'none', 'l\'ombre douce reste');
   /* présent sur les écrans à menu, et il lance bien l'analyse */
   for (const r of ['home', 'routine', 'profile', 'analyses', 'progress']) { await page.evaluate(x => go(x), r); await page.waitForTimeout(80); assert.equal(await page.locator('.c-scanfab').count(), 1, r); }
   await page.evaluate(() => go('home')); await fab.click(); await page.waitForFunction(() => state.route === 'scan');

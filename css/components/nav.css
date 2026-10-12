@@ -9,7 +9,7 @@
 
 /* Bouton d'analyse (téléphone) : seul reste de l'ancienne barre du bas. Toutes les autres entrées sont dans le menu (bouton en haut à droite). Centré en bas, au-dessus de la zone sûre de l'écran ;
    absent dès 920 px, où la colonne latérale porte déjà « Analyser ma peau ». Pas de texte visible : le nom accessible est porté par aria-label. */
-.c-scanfab{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:var(--z-nav);display:flex;align-items:center;justify-content:center;width:60px;height:60px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--on-accent);box-shadow:0 0 0 4px var(--bg),var(--shadow-2);cursor:pointer;transform:translateX(-50%);-webkit-tap-highlight-color:transparent}
+.c-scanfab{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:var(--z-nav);display:flex;align-items:center;justify-content:center;width:60px;height:60px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-2);cursor:pointer;transform:translateX(-50%);-webkit-tap-highlight-color:transparent}
 .c-scanfab svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .c-scanfab:hover{background:var(--accent-hover)}
 .c-scanfab:active{background:var(--accent-pressed)}
