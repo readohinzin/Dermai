@@ -8,7 +8,7 @@ const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 
 test('LF1 logo mobile : l\'en-tête « retour » ne recouvre plus le bas du logo (sa marge haute de -20 px est annulée sous .m-brand)', () => {
   const nav = read('css/components/nav.css'), legacy = read('css/legacy.css');
-  assert.match(nav, /\.m-brand\+\.top\{margin-top:0\}/);
+  assert.match(nav, /\.m-brand\+\.top\{margin-top:-12px;top:calc\(env\(safe-area-inset-top,0px\) \+ var\(--mbrand-h\)\)\}/, 'sous le logo, la marge haute de -20 px est annulée (la marge basse de 12 px du logo la remplace) et l\'en-tête retour se fige sous le logo');
   assert.match(legacy, /\.top\{position:sticky;[^}]*margin:-20px -20px 12px/, 'la marge négative historique reste valable partout ailleurs (sans logo au-dessus)');
   assert.match(nav, /@media \(min-width:920px\)\{\.m-brand\{display:none\}\}/);
   assert.ok(read('css/styles.css').indexOf('layer(components)') > 0 && /@import url\("components\/nav\.css"\) layer\(components\)/.test(read('css/styles.css')), 'la règle est dans la couche components, qui l\'emporte sur legacy');

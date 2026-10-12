@@ -24,11 +24,13 @@
 button.brand{appearance:none;background:none;border:0;cursor:pointer;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s-2);color:var(--ink)}
 button.brand:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--r-sm,8px)}
 
-/* Logo en tête des pages de l'application sur mobile (la colonne latérale du bureau porte déjà le logo). */
-.m-brand{display:flex;justify-content:center;padding-top:var(--s-1)}
+/* En-tête des pages de l'application sur mobile (logo et bouton du menu) : FIGÉ en haut pendant le défilement, sous la zone sûre de l'écran. Pleine largeur (annule le remplissage de 20 px de .main),
+   fond du thème légèrement transparent et flouté comme l'en-tête « retour ». Hauteur fixe : l'en-tête « retour », quand il existe, se fige juste en dessous (sa marge haute de -20 px était cachée sous le
+   logo : elle est annulée sous .m-brand, qui garde 12 px de marge basse : le contenu commence là où il commençait). La colonne latérale du bureau porte déjà le logo et reste figée de son côté. */
+:root{--mbrand-h:56px}
+.m-brand{position:sticky;top:env(safe-area-inset-top,0px);z-index:var(--z-header);display:flex;align-items:center;justify-content:center;box-sizing:border-box;height:var(--mbrand-h);margin:-20px -20px 12px;padding:0 20px;background:color-mix(in srgb,var(--bg) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 @media (min-width:920px){.m-brand{display:none}}
-/* L'en-tête « retour » avait une marge haute de -20 px (pour couvrir le remplissage de la page) : sous le logo mobile, elle en cachait le bas. Le logo garde sa hauteur entière. */
-.m-brand+.top{margin-top:0}
+.m-brand+.top{margin-top:-12px;top:calc(env(safe-area-inset-top,0px) + var(--mbrand-h))}
 
 /* Logo image (étape 14B) : le bouton garde sa zone de toucher ; l'image ne déborde jamais et ne se déforme pas. */
 .brand .brand-logo{display:block;max-width:100%;height:auto}
