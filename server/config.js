@@ -160,9 +160,26 @@ const hairQuota = (env = process.env) => ({
   windowSeconds: intIn(env.DERMAI_HAIR_PERIOD_HOURS, 1, 8760, HAIR_QUOTA_DEFAULTS.hours) * 3600
 });
 
+/* Page d'administration du fondateur (lecture seule) : liste FERMÉE d'identifiants de comptes (DERMAI_ADMIN_USER_IDS, identifiants Supabase séparés par des virgules).
+   Contrairement aux autres listes, « * » n'a AUCUN sens ici : sa présence invalide toute la liste. Une liste absente, vide, ou contenant UNE entrée qui n'est pas un identifiant (UUID)
+   est refusée en entier (échec fermé). Les identifiants ne sont jamais renvoyés au navigateur. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function adminAllowList(env = process.env) {
+  const entries = String(env.DERMAI_ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (!entries.length) return { ok: false, reason: 'empty', ids: new Set() };
+  if (entries.some(e => !UUID_RE.test(e))) return { ok: false, reason: 'malformed', ids: new Set() };
+  return { ok: true, reason: null, ids: new Set(entries.map(e => e.toLowerCase())) };
+}
+const isAdminAllowed = (userId, env = process.env) => {
+  if (typeof userId !== 'string' || !UUID_RE.test(userId)) return false;
+  const list = adminAllowList(env);
+  return list.ok && list.ids.has(userId.toLowerCase());
+};
+
 module.exports = {
   analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET,
   SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, simulationIntensity, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota,
   MAKEUP_PATHS, MAKEUP_QUOTA_DEFAULTS, isMakeupEnabled, makeupAllowList, isMakeupAllowed, makeupQuota,
-  HAIR_QUOTA_DEFAULTS, isHairEnabled, hairAllowList, isHairAllowed, isHairUnconfirmedAllowed, hairFeatureFilter, hairQuota
+  HAIR_QUOTA_DEFAULTS, isHairEnabled, hairAllowList, isHairAllowed, isHairUnconfirmedAllowed, hairFeatureFilter, hairQuota,
+  adminAllowList, isAdminAllowed, intIn, flag
 };

@@ -83,7 +83,7 @@ test('VR7 câblage : scripts chargés une fois dans le bon ordre, route restaura
   assert.ok(at('js/engine/data/actives.js') < at('js/engine/data/inci-aliases.js') && at('js/engine/data/inci-aliases.js') < at('js/engine/verif.js') && at('js/engine/verif.js') < at('js/verif-routine.js') && at('js/verif-routine.js') < at('js/app.js'));
   assert.match(read('css/styles.css'), /@import url\("components\/verif\.css"\) layer\(components\);/);
   const app = read('js/app.js');
-  assert.match(app, /const VR=DermaiVerif\.create\(\{userId:\(\)=>ACCOUNT&&ACCOUNT\.user\?ACCOUNT\.user\.id:null,status:\(\)=>DEMO_MODE\?`demo`:state\.account\.status,render:\(\)=>render\(true\),ic,esc,catalog:\(\)=>DEMO_MODE\?\[\]:Engine\.catalogData\.PRODUCTS\}\);VR\.attach\(document\);/);
+  assert.match(app, /const VR=DermaiVerif\.create\(\{userId:UID,status:\(\)=>DEMO_MODE\?`demo`:state\.account\.status,render:RR,ic,esc,catalog:\(\)=>DEMO_MODE\?\[\]:Engine\.catalogData\.PRODUCTS\}\);VR\.attach\(document\);/);
   assert.match(app, /V\.verif=\(\)=>shell\(VR\.page\(\),\{title:`Vérif'Routine`\}\);/); assert.match(app, /RESTORABLE=new Set\(\[[^\]]*`verif`/);
   assert.match(app, /F\.clear\(\);CP\.clear\(\);VR\.clear\(\);ST\.clear\(\);resetPrivateState\(\)/);
   assert.match(app.slice(app.indexOf('async function bootAccount'), app.indexOf('async function submitForgot')), /`privacy`,`verif`,`program`\]\.includes\(state\.route\)\)render\(true\)/, 'après un rechargement, l\'écran est réaffiché une fois la session restaurée');

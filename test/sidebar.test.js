@@ -10,7 +10,7 @@ const SB = require('../js/sidebar.js');
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const app = read('js/app.js');
-const SCREENS = new Set([...app.matchAll(/^V\.([a-z]+)=/gm)].map(m => m[1]));
+const SCREENS = new Set([...app.matchAll(/^V\.([a-z]+)=(?:V\.([a-z]+)=)?/gm)].flatMap(m => [m[1], m[2]]).filter(Boolean));   // « V.studio=V.admin=… » : deux écrans, une fonction
 const RESTORABLE = new Set([...app.match(/const RESTORABLE=new Set\(\[([^\]]*)\]/)[1].matchAll(/`([a-z]+)`/g)].map(m => m[1]));
 const mk = (route = 'home', extra = {}) => SB.create(Object.assign({ route: () => route, ic: n => `<svg data-i="${n}"></svg>`, brand: h => `<button class="brand" data-go="landing" data-h="${h}"></button>`, initial: () => 'C', now: () => Date.parse('2026-10-20T00:00:00Z') }, extra));
 const labels = html => [...html.matchAll(/<span class="sidebar__text">([^<]*)<\/span>/g)].map(m => m[1]);
@@ -18,7 +18,7 @@ const decode = s => s.replace(/&#39;/g, '\'').replace(/&amp;/g, '&');
 
 test('SB1 entrées : uniquement des écrans qui existent, restaurables par l\'adresse, sans doublon ni lien inventé', () => {
   const all = SB.ITEMS.concat(SB.OTHERS);
-  assert.deepEqual(all.map(i => i.label), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Studio Beauté', 'Ma routine', 'Profil et paramètres']);
+  assert.deepEqual(all.map(i => i.label), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Studio Beauté', 'Ma routine', 'Administration', 'Profil et paramètres']);
   for (const i of all) {
     assert.ok(SCREENS.has(i.go), `${i.label} : l'écran « ${i.go} » existe dans app.js`);
     assert.ok(RESTORABLE.has(i.go) || i.go === 'scan' || i.when, `${i.label} : l'adresse de « ${i.go} » est restaurable (sauf la simulation, qui exige le contexte d'une analyse)`);
@@ -27,7 +27,7 @@ test('SB1 entrées : uniquement des écrans qui existent, restaurables par l\'ad
     assert.ok(i.label.length <= 22, `libellé court : ${i.label}`);
   }
   assert.equal(new Set(all.map(i => i.id)).size, all.length); assert.equal(new Set(all.map(i => i.go)).size, all.length);
-  assert.deepEqual(all.filter(i => i.when).map(i => i.id), ['simulation', 'studio'], 'seules la simulation et le Studio Beauté sont conditionnels');
+  assert.deepEqual(all.filter(i => i.when).map(i => i.id), ['simulation', 'studio', 'admin'], 'seules la simulation, le Studio Beauté et l\'Administration sont conditionnels');
   assert.ok(!/Studio/.test(mk().html()) && !/Studio/.test(mk('home', { studio: () => false }).html()) && !/Studio/.test(mk('home', { studio: () => { throw new Error('x'); } }).html()), 'Studio fermé, inconnu ou en erreur : aucune entrée');
   const st = mk('home', { studio: () => true }).html(); assert.match(st, /data-go="studio" data-reset="1"[^>]*>(?:(?!<\/button>).)*Studio Beauté/s); assert.deepEqual(labels(mk('home', { simulation: () => true, studio: () => true }).html()).map(decode).slice(4, 9), ['Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Studio Beauté', 'Ma routine']);
   assert.ok(!/simulation/i.test(mk().html()), 'simulation fermée ou inconnue : aucune entrée');
@@ -51,7 +51,7 @@ test('SB2 DERMAI Évolution et le programme de soins sont dans les cinq premièr
 
 test('SB3 page active : exactement une entrée aria-current pour chaque écran connu, aucune pour un écran inconnu', () => {
   for (const i of SB.ITEMS.concat(SB.OTHERS)) for (const r of i.routes) {
-    const h = mk(r, { simulation: () => true, studio: () => true }).html(), cur = [...h.matchAll(/data-go="([a-z]+)"[^>]*aria-current="page"/g)].map(m => m[1]);
+    const h = mk(r, { simulation: () => true, studio: () => true, admin: () => true }).html(), cur = [...h.matchAll(/data-go="([a-z]+)"[^>]*aria-current="page"/g)].map(m => m[1]);
     assert.deepEqual(cur, [i.go], `écran ${r}`);
   }
   assert.ok(!/aria-current/.test(mk('landing').html())); assert.ok(!/aria-current/.test(mk('').html()));
@@ -95,7 +95,7 @@ test('SB7 câblage : module et feuille chargés une fois, avant l\'application ;
   const html = read('index.html'), at = f => html.indexOf(`<script src="${f}"></script>`);
   assert.equal((html.match(/js\/sidebar\.js/g) || []).length, 1); assert.ok(at('js/sidebar.js') > 0 && at('js/sidebar.js') < at('js/app.js'));
   assert.match(read('css/styles.css'), /@import url\("components\/sidebar\.css"\) layer\(components\);/);
-  assert.match(app, /const SB=DermaiSidebar\.create\(\{ic,brand:h=>brandBtn\(h\),route:\(\)=>state\.route,initial:\(\)=>initial\(\),signedIn:\(\)=>signedIn\(\),simulation:\(\)=>\{SIM\.probe\(\);return SIM\.state\(\)\.avail===`yes`&&!noReal\(\)\},studio:\(\)=>ST\.ready\(\)\}\);SB\.attach\(document\);/);
+  assert.match(app, /const SB=DermaiSidebar\.create\(\{ic,brand:h=>brandBtn\(h\),route:\(\)=>state\.route,initial:\(\)=>initial\(\),signedIn:\(\)=>signedIn\(\),simulation:\(\)=>\{SIM\.probe\(\);return SIM\.state\(\)\.avail===`yes`&&!noReal\(\)\},studio:\(\)=>ST\.ready\(\),admin:\(\)=>AD\.ready\(\)\}\);SB\.attach\(document\);/);
   const shell = app.slice(app.indexOf('function shell('), app.indexOf('const V={}'));
   assert.match(shell, /\$\{SB\.html\(\)\}/); assert.match(shell, /<div class="m-brand">\$\{SB\.toggle\(\)\}\$\{brandBtn\(44\)\}<\/div>/);
   assert.doesNotMatch(shell, /<aside class="rail">/, 'l\'ancien rail à cinq entrées est remplacé');
@@ -138,4 +138,16 @@ test('SB9 bouton d\'ouverture : icône « panneau latéral » (cadre arrondi don
   assert.match(t, /aria-label="Ouvrir le menu"/); assert.match(t, /aria-controls="sidebar"/); assert.match(t, /data-sb="open"/);
   const css = read('css/components/sidebar.css');
   assert.match(css, /\.sidebar__toggle\{border:1\.5px solid color-mix\(in srgb,var\(--accent\) 45%,transparent\);border-radius:var\(--r-sm\);color:var\(--accent\)\}/);
+});
+
+test('SB10 entrée « Administration » : absente par défaut, en erreur ou refusée ; présente seulement si SA dépendance (admin) répond vrai ; indépendante de celle du Studio ; icône propre', () => {
+  const none = [mk('home').html(), mk('home', { admin: () => false }).html(), mk('home', { studio: () => true }).html(), mk('home', { admin: () => { throw new Error('x'); } }).html(), mk('home', { admin: () => undefined }).html(), mk('home', { simulation: () => true, studio: () => true }).html()];
+  for (const h of none) assert.ok(!/Administration|data-go="admin"/.test(h), 'aucune entrée sans réponse « fondateur »');
+  const yes = mk('home', { admin: () => true }).html(); assert.match(yes, /data-go="admin" data-reset="1"[^>]*>(?:(?!<\/button>).)*Administration/s); assert.ok(!/Studio Beauté/.test(yes), 'les deux conditions sont indépendantes');
+  assert.ok(!/Administration/.test(mk('home', { studio: () => true, admin: () => false }).html()) && !/Studio Beauté/.test(mk('home', { studio: () => false, admin: () => true }).html()), 'ni l\'un ni l\'autre ne dépend de l\'autre');
+  assert.deepEqual(labels(yes).map(decode).slice(-3), ['Ma routine', 'Administration', 'Profil et paramètres']); assert.match(yes, /<rect x="3" y="3" width="8" height="10" rx="2"\/>/, 'icône tableau de bord');
+  assert.match(mk('admin', { admin: () => true }).html(), /data-go="admin"[^>]*aria-current="page"/);
+  const asked = []; mk('home', { studio: () => { asked.push('studio'); return false; }, admin: () => { asked.push('admin'); return false; } }).html(); assert.deepEqual(asked.sort(), ['admin', 'studio'], 'chaque entrée interroge SA dépendance');
+  const app = read('js/app.js'); assert.match(app, /^V\.admin=\(\)=>shell\(AD\.page\(\)\);$/m); assert.match(app, /^V\.studio=\(\)=>shell\(ST\.page\(\),\{title:`Studio Beauté`\}\);$/m); assert.ok(!/RESTORABLE=new Set\(\[[^\]]*`admin`/.test(app), 'l\'adresse de l\'administration n\'est pas restaurable');
+  assert.ok(!/V\.studio=V\.admin|V\.admin=V\.studio|ST\.page\(state|AD\.page\(state|gate:/.test(app), 'aucun couplage entre les deux vues');
 });

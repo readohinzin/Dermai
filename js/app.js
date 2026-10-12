@@ -438,12 +438,14 @@ const ICONS={
   image:`<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>`
 };
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||``}</svg>`;
-const CP=DermaiCare.create({storage:()=>window.localStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,render:()=>render(true),ic,esc,evolution:()=>EVO.fromProgram()});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
-const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,epoch:()=>authEpoch,render:()=>render(true),go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
-const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:()=>render(true),program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
-const VR=DermaiVerif.create({userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,status:()=>DEMO_MODE?`demo`:state.account.status,render:()=>render(true),ic,esc,catalog:()=>DEMO_MODE?[]:Engine.catalogData.PRODUCTS});VR.attach(document);   // js/verif-routine.js
-const ST=DermaiStudio.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:()=>render(true),toJpeg:jpegFromFile,inspect:inspectPhoto});ST.attach(document);
-const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial(),signedIn:()=>signedIn(),simulation:()=>{SIM.probe();return SIM.state().avail===`yes`&&!noReal()},studio:()=>ST.ready()});SB.attach(document);   // js/sidebar.js
+const UID=()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,RR=()=>render(true);
+const CP=DermaiCare.create({storage:()=>window.localStorage,userId:UID,render:RR,ic,esc,evolution:()=>EVO.fromProgram()});CP.attach(document);   // suivi sur 30 jours (js/care-program.js)
+const SIM=DermaiSimulation.create({token:()=>ACCOUNT?ACCOUNT.accessToken():null,userId:UID,epoch:()=>authEpoch,render:RR,go,back,ic,esc,toJpeg:jpegFromFile,scan:()=>SCANS[state.view]});SIM.attach(document);   // js/simulation.js
+const EVO=DermaiEvolution.create({scans:()=>SCANS,state:()=>state,select:(i,j)=>{state.cmpA=i;state.cmpB=j},go,render:RR,program:()=>CP.state(),label:s=>dateLabel(s),demo:()=>DEMO_MODE,userId:UID,trend:()=>Engine.copy.PERSONAL.trend});EVO.attach(document);   // js/evolution.js
+const VR=DermaiVerif.create({userId:UID,status:()=>DEMO_MODE?`demo`:state.account.status,render:RR,ic,esc,catalog:()=>DEMO_MODE?[]:Engine.catalogData.PRODUCTS});VR.attach(document);   // js/verif-routine.js
+const ST=DermaiStudio.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR,toJpeg:jpegFromFile,inspect:inspectPhoto});ST.attach(document);
+const AD=DermaiAdmin.create({account:()=>ACCOUNT,epoch:()=>authEpoch,render:RR});AD.attach(document);
+const SB=DermaiSidebar.create({ic,brand:h=>brandBtn(h),route:()=>state.route,initial:()=>initial(),signedIn:()=>signedIn(),simulation:()=>{SIM.probe();return SIM.state().avail===`yes`&&!noReal()},studio:()=>ST.ready(),admin:()=>AD.ready()});SB.attach(document);   // js/sidebar.js
 const QL=DermaiQuickLogin.create({account:()=>ACCOUNT,state:()=>state.account,render:()=>render()});QL.attach(document);   // js/quick-login.js
 const photoSrc=()=>(!DEMO_MODE&&state.realPreview)||state.photo||PORTRAIT_SRC||``;   // affichage seulement : jamais utilisé pour un envoi
 const demoTag=()=>DEMO_MODE?`<span class="c-badge c-badge--demo">Mode démonstration</span>`:``;
@@ -912,6 +914,7 @@ V.simulation=()=>noReal()?emptyScan(`Simulation`,EMPTY_MSG,{back:true,title:`Sim
 V.program=()=>noReal()?emptyScan(`Programme`,EMPTY_MSG,{back:true,title:`Programme`}):shell(CP.page(engineFor(SCANS[state.latest]),SCANS[state.latest]),{back:true,title:`Programme`});
 V.verif=()=>shell(VR.page(),{title:`Vérif'Routine`});
 V.studio=()=>shell(ST.page(),{title:`Studio Beauté`});
+V.admin=()=>shell(AD.page());
 
 /* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DERMAI » = choisis par le moteur pour chaque étape ; « Autres produits » = le reste du
    catalogue, avec la raison du moteur. Aucun score. Prix, vendeur, lien : affichés seulement s'ils existent et sont sourcés, sinon « Données à venir ». Catalogue réel vide : aucun produit fictif. */

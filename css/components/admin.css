@@ -1,0 +1,27 @@
+/* Page d'administration du fondateur (js/admin-dashboard.js) : cartes empilées, aucune table (rien ne déborde à 420 px). Jetons existants seulement. */
+.c-ad-bar{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-3);margin:var(--s-3) 0 var(--s-5)}
+.c-ad-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-5)}
+@media (min-width:920px){.c-ad-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
+.c-ad-card{min-width:0;overflow-wrap:anywhere}
+.c-ad-big{margin:var(--s-2) 0;font:700 2rem/1.1 var(--font-sans);color:var(--ink)}
+.c-ad-big small{font-size:var(--fs-sm);font-weight:600;color:var(--ink-3)}
+.c-ad-big--na{color:var(--ink-3)}
+.c-ad-unavail{display:flex;flex-direction:column;gap:var(--s-1);padding:var(--s-4);border:1px dashed var(--line-strong);border-radius:var(--r-md);background:var(--surface)}
+.c-ad-list{list-style:none;margin:var(--s-3) 0;padding:0;display:flex;flex-direction:column}
+.c-ad-list li{display:flex;align-items:baseline;flex-wrap:wrap;gap:var(--s-2) var(--s-3);padding:var(--s-2) 0;border-bottom:1px solid var(--line)}
+.c-ad-list li>span:first-child{flex:1 1 160px;min-width:0}
+.c-ad-list li b{flex:none;font-variant-numeric:tabular-nums}
+.c-ad-list code,.c-ad-card code{font-size:var(--fs-xs);color:var(--ink-3);overflow-wrap:anywhere}
+.c-ad-h{margin:var(--s-3) 0 var(--s-1);font:700 1rem/1.3 var(--font-sans);overflow-wrap:anywhere}
+.c-ad-group{margin-top:var(--s-4)}
+.c-ad-row{padding:var(--s-4) 0;border-top:1px solid var(--line);min-width:0}
+.c-ad-row__hd{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-2)}
+.c-ad-row__hd .c-ad-h{margin:0;flex:1 1 180px}
+.c-ad-limit{font-variant-numeric:tabular-nums}
+.c-ad-dl{display:flex;flex-direction:column;gap:var(--s-2);margin:var(--s-3) 0 0}
+.c-ad-dl>div{display:grid;grid-template-columns:minmax(96px,28%) minmax(0,1fr);gap:var(--s-3)}
+.c-ad-dl dt{color:var(--ink-3);font-size:var(--fs-sm)}
+.c-ad-dl dd{margin:0;overflow-wrap:anywhere}
+.c-ad-dl small{color:var(--ink-3)}
+.c-ad-history,.c-ad-stamp{margin-top:var(--s-3)}
+@media (max-width:480px){.c-ad-dl>div{grid-template-columns:minmax(0,1fr);gap:var(--s-1)}}
