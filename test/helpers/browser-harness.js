@@ -62,12 +62,14 @@ async function makeJpeg(page) {
 
 /* options : { fake, behaviors } ; behaviors = file d'actions pour les appels à /api/skin-analysis (la dernière se répète) :
    { status, body, delay } | { abort: true } | { never: true }. */
-async function open(browser, server, { fake = createFake(), behaviors = [{ status: 200, body: analysisPayload() }], user = null, preload = null, sim = null, makeup = null } = {}) {
+async function open(browser, server, { fake = createFake(), behaviors = [{ status: 200, body: analysisPayload() }], user = null, preload = null, sim = null, makeup = null, hair = null } = {}) {
   /* sim : { available, behaviors } — par défaut la simulation est FERMÉE (GET → available:false) et aucune demande de simulation n'est attendue. */
   const simCfg = Object.assign({ available: false, behaviors: [{ status: 200, body: { ok: false, error: 'simulation de test non configurée' } }] }, sim || {});
   /* makeup : { available, behaviors } pour le Studio Beauté (GET → disponibilité ; POST → comportements) ; les images « générées » viennent de MK_IMG, hôte factice intercepté. */
   const mkCfg = Object.assign({ available: false, behaviors: [{ status: 200, body: { ok: false, error: 'studio de test non configuré' } }] }, makeup || {});
-  const stats = { skin: [], escaped: [], serverApi: server.stats.serverApi, supabase: [], simProbe: [], sim: [], mkProbe: [], mk: [], mkImages: [] };
+  /* hair : { available, features, templates:{<id>:{status,body}}, behaviors } pour le volet capillaire (GET → disponibilité ; GET ?templates= → modèles ; POST → essais). */
+  const hrCfg = Object.assign({ available: false, features: [], templates: {}, behaviors: [{ status: 200, body: { ok: false, error: 'volet capillaire de test non configuré' } }] }, hair || {});
+  const stats = { skin: [], escaped: [], serverApi: server.stats.serverApi, supabase: [], simProbe: [], sim: [], mkProbe: [], mk: [], mkImages: [], hrProbe: [], hrTemplates: [], hr: [] };
   const context = await browser.newContext({ baseURL: `http://127.0.0.1:${server.address().port}`, viewport: { width: 420, height: 900 } });
   const hold = [];
   await context.route('**/*', async route => {
@@ -94,6 +96,21 @@ async function open(browser, server, { fake = createFake(), behaviors = [{ statu
         if (req.method() === 'GET') { stats.mkProbe.push({ auth: !!req.headers().authorization }); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, available: !!mkCfg.available }) }); }
         const n = stats.mk.push({ at: Date.now(), url: req.url(), size: (req.postDataBuffer() || Buffer.alloc(0)).length, auth: !!req.headers().authorization, type: req.headers()['content-type'] });
         const b = mkCfg.behaviors[Math.min(n - 1, mkCfg.behaviors.length - 1)];
+        if (b.abort) return route.abort('connectionreset');
+        if (b.never) { hold.push(route); return; }
+        if (b.delay) await new Promise(r => setTimeout(r, b.delay));
+        return route.fulfill({ status: b.status || 200, contentType: b.contentType || 'application/json', body: typeof b.body === 'string' ? b.body : JSON.stringify(b.body) });
+      }
+      if (url.pathname === '/api/hair-vto') {
+        if (req.method() === 'GET' && url.searchParams.has('templates')) {
+          const id = url.searchParams.get('templates'); stats.hrTemplates.push({ id, next: url.searchParams.get('next'), auth: !!req.headers().authorization });
+          const t = hrCfg.templates[id] || { status: 502, body: { ok: false, error: 'Les modèles ne sont pas disponibles pour le moment. Réessayez plus tard.' } };
+          if (t.delay) await new Promise(r => setTimeout(r, t.delay));
+          return route.fulfill({ status: t.status || 200, contentType: 'application/json', body: JSON.stringify(t.body) });
+        }
+        if (req.method() === 'GET') { stats.hrProbe.push({ auth: !!req.headers().authorization }); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, available: !!hrCfg.available, features: hrCfg.available ? hrCfg.features : [] }) }); }
+        const n = stats.hr.push({ at: Date.now(), url: req.url(), data: req.postDataBuffer() || Buffer.alloc(0), size: (req.postDataBuffer() || Buffer.alloc(0)).length, auth: !!req.headers().authorization, type: req.headers()['content-type'] });
+        const b = hrCfg.behaviors[Math.min(n - 1, hrCfg.behaviors.length - 1)];
         if (b.abort) return route.abort('connectionreset');
         if (b.never) { hold.push(route); return; }
         if (b.delay) await new Promise(r => setTimeout(r, b.delay));

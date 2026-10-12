@@ -20,6 +20,7 @@ function setup(o = {}) {
   const fetchImpl = async (url, init = {}) => {
     const rec = { url: String(url), method: init.method || 'GET', headers: init.headers || {}, body: init.body }; ctx.calls.push(rec);
     if (rec.url.startsWith('/api/makeup-vto') && rec.method === 'GET') return json(200, { ok: true, available: ctx.avail });
+    if (rec.url.startsWith('/api/hair-vto') && rec.method === 'GET') return json(200, { ok: true, available: false, features: [] });   // volet capillaire fermé : testé dans test/hair-studio*.test.js
     if (rec.url.startsWith('/api/makeup-vto') && rec.method === 'POST') { const r = ctx.post(rec); if (r instanceof Error) throw r; return r; }
     throw new Error('requête inattendue : ' + rec.url);
   };
@@ -28,6 +29,7 @@ function setup(o = {}) {
 }
 const ready = async ctx => { ctx.st.page(); await new Promise(r => setImmediate(r)); await new Promise(r => setImmediate(r)); };
 const posts = ctx => ctx.calls.filter(c => c.method === 'POST');
+const mkCalls = ctx => ctx.calls.filter(c => c.url.startsWith('/api/makeup-vto'));
 const photo = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' });
 const withPhoto = async (ctx, f) => { ctx.st.state().photo = photo(); ctx.st.state().photoUrl = 'blob:x'; return f ? f() : undefined; };
 /* Faux document : relaie click / change / input vers les gestionnaires installés par attach(). */
@@ -51,8 +53,8 @@ test('MS1 écran selon l\'état : visiteur invité à se connecter, vérificatio
 
 test('MS2 disponibilité : UNE requête GET légère avec le jeton, jamais de POST ; répétée pour un autre compte, jamais pour le même ; échec = indisponible', async () => {
   const c = setup(); await ready(c); c.st.page(); c.st.ready(); await ready(c);
-  assert.equal(c.calls.length, 1); assert.equal(c.calls[0].method, 'GET'); assert.equal(c.calls[0].headers.Authorization, 'Bearer tok-1'); assert.equal(c.calls[0].url, '/api/makeup-vto'); assert.equal(posts(c).length, 0);
-  c.uid = 'u2'; c.token = 'tok-2'; await ready(c); assert.equal(c.calls.length, 2); assert.equal(c.calls[1].headers.Authorization, 'Bearer tok-2');
+  assert.equal(mkCalls(c).length, 1); assert.equal(mkCalls(c)[0].method, 'GET'); assert.equal(mkCalls(c)[0].headers.Authorization, 'Bearer tok-1'); assert.equal(mkCalls(c)[0].url, '/api/makeup-vto'); assert.equal(posts(c).length, 0);
+  c.uid = 'u2'; c.token = 'tok-2'; await ready(c); assert.equal(mkCalls(c).length, 2); assert.equal(mkCalls(c)[1].headers.Authorization, 'Bearer tok-2');
   const bad = setup({ token: null }); await ready(bad); assert.equal(bad.calls.length, 0, 'pas de jeton, pas de requête'); assert.match(bad.st.page(), /pas disponible/);
 });
 
@@ -64,7 +66,7 @@ test('MS3 AUCUNE requête payante à l\'ouverture ni au choix d\'un look, d\'une
   doc.fire('input', el({ 'data-ms': 'range', 'data-cat': 'lips', 'data-f': 'colorIntensity' }, { tagName: 'INPUT', value: '77' }));
   doc.fire('change', el({ 'data-ms': 'custom', 'data-cat': 'lips' }, { tagName: 'INPUT', value: '#112233' }));
   doc.fire('change', el({ 'data-ms': 'toggle', 'data-cat': 'blush' }, { tagName: 'INPUT', checked: true }));
-  assert.equal(posts(c).length, 0, 'aucun envoi'); assert.equal(c.calls.length, 1, 'seule la requête de disponibilité a eu lieu');
+  assert.equal(posts(c).length, 0, 'aucun envoi'); assert.equal(mkCalls(c).length, 1, 'seule la requête de disponibilité a eu lieu');
   const s = c.st.state(); assert.equal(s.sel.lips.colorIntensity, 77); assert.equal(s.sel.lips.color, '#112233'); assert.equal(s.look, null, 'une modification manuelle sort du look');
   assert.equal(s.status, 'idle');
 });
@@ -164,7 +166,7 @@ test('MS10 résultats : quatre au plus en mémoire, navigation entre essais, ape
 
 test('MS11 module : un seul point d\'entrée réseau (/api/makeup-vto), aucune écriture HTML directe, aucun fournisseur, clés de stockage limitées', () => {
   const src = read('js/makeup-studio.js').replace(/\/\*[\s\S]*?\*\//g, '');
-  assert.deepEqual([...new Set(src.match(/\/api\/[a-z-]+/g))], ['/api/makeup-vto']);
+  assert.deepEqual([...new Set(src.match(/\/api\/[a-z-]+/g))].sort(), ['/api/hair-vto', '/api/makeup-vto'], 'seulement les deux points d\'entrée du Studio');
   assert.ok(!/perfectcorp|youcam|makeupar|supabase|skin-analysis|skin-simulation|anthropic|openai|XMLHttpRequest|sendBeacon|WebSocket|eval\(|new Function|document\.write|innerHTML|outerHTML|insertAdjacentHTML/i.test(src));
   const keys = new Set((src.match(/(?:getItem|setItem|removeItem)\(([A-Za-z_]+)/g) || []).map(x => x.replace(/^[a-zA-Z]+\(/, '')));
   assert.deepEqual([...keys].sort(), ['FAV_PREFIX', 'PENDING'], 'seules clés de stockage : favoris et marqueur de demande');

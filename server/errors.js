@@ -54,6 +54,18 @@ const MESSAGES = {
   MK_AUTH_REQUIRED: 'Connectez-vous pour utiliser le Studio Beauté.',
   MK_UNAVAILABLE: 'Le Studio Beauté n\'est pas disponible pour le moment. Réessayez plus tard.',
   MK_PROVIDER_CREDIT: 'Le Studio Beauté n\'est pas disponible pour le moment. Réessayez plus tard.',
+  HR_DISABLED: 'Les essais capillaires ne sont pas disponibles pour le moment.',
+  HR_INVALID_REQUEST: 'Ces réglages ne sont pas valides. Modifiez votre sélection et réessayez.',
+  HR_INVALID_IMAGE: 'Cette photo ne peut pas être utilisée. Choisissez une photo de face, bien éclairée, avec les cheveux et les épaules visibles.',
+  HR_QUOTA_EXCEEDED: 'Le nombre d\'essais capillaires disponibles est atteint pour le moment. Réessayez plus tard.',
+  HR_QUOTA_UNAVAILABLE: 'Les essais capillaires ne sont pas disponibles pour le moment. Réessayez plus tard.',
+  HR_RESULT_INVALID: 'L\'essai n\'a pas pu être terminé.',
+  HR_TASK_ERROR: 'L\'essai n\'a pas pu être terminé. Essayez une autre photo.',
+  HR_TIMEOUT: 'L\'essai prend plus de temps que prévu et n\'a pas pu être terminé. Réessayez dans quelques minutes.',
+  HR_AUTH_REQUIRED: 'Connectez-vous pour utiliser les essais capillaires.',
+  HR_UNAVAILABLE: 'Les essais capillaires ne sont pas disponibles pour le moment. Réessayez plus tard.',
+  HR_PROVIDER_CREDIT: 'Les essais capillaires ne sont pas disponibles pour le moment. Réessayez plus tard.',
+  HR_TEMPLATES_UNAVAILABLE: 'Les modèles ne sont pas disponibles pour le moment. Réessayez plus tard.',
   METHOD_NOT_ALLOWED: 'Requête non autorisée.',
   NOT_IMPLEMENTED: 'Le service d\'analyse est momentanément indisponible.',
   UNKNOWN: 'Nous n\'avons pas pu analyser cette photo. Veuillez réessayer.'
@@ -73,6 +85,11 @@ const toSimulationMessage = code => toUserMessage(SIM_REWRITE[code] || code);
 const MK_REWRITE = { AUTH_REQUIRED: 'MK_AUTH_REQUIRED', TIMEOUT: 'MK_TIMEOUT', TIME_BUDGET: 'MK_TIMEOUT', TASK_ERROR: 'MK_TASK_ERROR', SERVICE_UNAVAILABLE: 'MK_UNAVAILABLE',
   INVALID_IMAGE: 'MK_INVALID_IMAGE', UNKNOWN: 'MK_RESULT_INVALID', NOT_IMPLEMENTED: 'MK_UNAVAILABLE', BAD_MIME: 'MK_INVALID_IMAGE', TOO_LARGE: 'MK_INVALID_IMAGE' };
 const toMakeupMessage = code => toUserMessage(MK_REWRITE[code] || code);
+
+/* Messages des essais capillaires : même principe (jamais « analyse », jamais le fournisseur). */
+const HR_REWRITE = { AUTH_REQUIRED: 'HR_AUTH_REQUIRED', TIMEOUT: 'HR_TIMEOUT', TIME_BUDGET: 'HR_TIMEOUT', TASK_ERROR: 'HR_TASK_ERROR', SERVICE_UNAVAILABLE: 'HR_UNAVAILABLE',
+  INVALID_IMAGE: 'HR_INVALID_IMAGE', UNKNOWN: 'HR_RESULT_INVALID', NOT_IMPLEMENTED: 'HR_UNAVAILABLE', BAD_MIME: 'HR_INVALID_IMAGE', TOO_LARGE: 'HR_INVALID_IMAGE' };
+const toHairMessage = code => toUserMessage(HR_REWRITE[code] || code);
 
 /* Reconnaissance prudente d'un code d'erreur Perfect Corp dans un texte (corps HTTP ou erreur de tâche).
    Les libellés ci-dessous sont des motifs de repérage, pas une liste officielle : à confirmer avec les
@@ -94,4 +111,4 @@ function fromPerfectCorpError(text) {
 const CREDIT_PATTERN = /insufficient[_ ]?(credit|unit|balance)|not[_ ]?enough[_ ]?(credit|unit)|out[_ ]?of[_ ]?(credit|unit)|(credit|unit)s?[_ ]?(exhausted|depleted)|exceed(ed)?[_ ]?(quota|limit)/i;
 const isProviderCreditError = text => CREDIT_PATTERN.test(String(text || ''));
 
-module.exports = { AnalysisError, toUserMessage, toSimulationMessage, toMakeupMessage, fromPerfectCorpError, isProviderCreditError, MESSAGES };
+module.exports = { AnalysisError, toUserMessage, toSimulationMessage, toMakeupMessage, toHairMessage, fromPerfectCorpError, isProviderCreditError, MESSAGES };

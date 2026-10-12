@@ -16,6 +16,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
   const analysisUsage = usage;
   const simUsage = new Map();         // idem pour les SIMULATIONS (compteur distinct, voir supabase/proposals/)
   const mkUsage = new Map();          // idem pour les ESSAYAGES DE MAQUILLAGE (compteur distinct)
+  const hairUsage = new Map();        // essais CAPILLAIRES : lignes { at, units } (compteur distinct, quota en unités)
   const analyses = new Map();         // user_id -> lignes de skin_analyses
   const tokens = new Map();           // access_token -> { sub, exp }
   const refresh = new Map();          // refresh_token -> sub
@@ -96,7 +97,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
       if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
       for (const [email, usr] of users) if (usr.id === t.sub) users.delete(email);
-      profiles.delete(t.sub); analyses.delete(t.sub); usage.delete(t.sub); simUsage.delete(t.sub); mkUsage.delete(t.sub);
+      profiles.delete(t.sub); analyses.delete(t.sub); usage.delete(t.sub); simUsage.delete(t.sub); mkUsage.delete(t.sub); hairUsage.delete(t.sub);
       return resp(204);
     }
     if (u.pathname === '/auth/v1/logout') {
@@ -123,6 +124,17 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
         if (own) return resp(409, { code: '23505', message: 'duplicate key' });
         profiles.set(t.sub, Object.assign(newProfile(t.sub), body)); return resp(201);
       }
+    }
+    if (u.pathname === '/rest/v1/rpc/reserve_hair') {   // équivalent de la fonction SQL de la proposition 20261013120000 : quota en UNITÉS
+      state.rpcCalls = (state.rpcCalls || []).concat('reserve_hair'); state.hairUnits = (state.hairUnits || []).concat(body && body.p_units);
+      if (state.hairQuotaMissing) return resp(404, { code: 'PGRST202', message: 'Could not find the function public.reserve_hair' });
+      if (state.failQuota) return resp(500, { message: 'internal db trace', code: 'XX000' });
+      const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
+      if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
+      if (!body || !Number.isInteger(body.p_limit) || body.p_limit < 0 || body.p_limit > 100 || !Number.isInteger(body.p_window_seconds) || body.p_window_seconds < 60 || !Number.isInteger(body.p_units) || body.p_units < 1 || body.p_units > 10) return resp(400, { code: '22023', message: 'invalid parameters' });
+      const rows = hairUsage.get(t.sub) || [], within = rows.filter(x => x.at > clock - body.p_window_seconds), used = within.reduce((n, x) => n + x.units, 0);
+      if (used + body.p_units > body.p_limit) return resp(200, { ok: false, used, limit: body.p_limit, retry_after: Math.max(1, Math.min(...within.map(x => x.at), clock) + body.p_window_seconds - clock) });
+      hairUsage.set(t.sub, [...rows, { at: clock, units: body.p_units }]); return resp(200, { ok: true, used: used + body.p_units, limit: body.p_limit });
     }
     if (u.pathname === '/rest/v1/rpc/reserve_analysis' || u.pathname === '/rest/v1/rpc/reserve_simulation' || u.pathname === '/rest/v1/rpc/reserve_makeup') {   // réservation atomique du quota (équivalent de la fonction SQL)
       const kind = u.pathname.split('/').pop(), sim = kind === 'reserve_simulation', mk = kind === 'reserve_makeup', usage = mk ? mkUsage : sim ? simUsage : analysisUsage;
@@ -213,7 +225,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
     const sess = mkSession(u);
     return `#access_token=${sess.access_token}&expires_in=3600&refresh_token=${sess.refresh_token}&token_type=bearer&type=${type}`;
   };
-  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), magicLink: e => link(e, 'magiclink'), users, profiles, analyses, usage, simUsage, mkUsage, tokens, refresh, log, GOALS, METRICS,
+  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), magicLink: e => link(e, 'magiclink'), users, profiles, analyses, usage, simUsage, mkUsage, hairUsage, tokens, refresh, log, GOALS, METRICS,
     removeProfile: id => profiles.delete(id) };
 }
 

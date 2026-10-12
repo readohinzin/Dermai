@@ -5,7 +5,7 @@
    Appelée APRÈS la validation de la photo et AVANT Perfect Corp : un refus (quota atteint, base injoignable, fonction absente) arrête tout.
    Une réservation n'est jamais remboursée : tout ce qui atteint l'étape fournisseur compte, quel que soit son résultat (la facturation exacte
    du fournisseur n'est pas vérifiée ; c'est l'hypothèse la plus sûre pour le coût). Ni la photo ni aucun résultat ne sont envoyés ici. */
-const { publicSupabase, analysisQuota, simulationQuota, makeupQuota } = require('./config');
+const { publicSupabase, analysisQuota, simulationQuota, makeupQuota, hairQuota } = require('./config');
 const { AnalysisError } = require('./errors');
 const { startDeadline } = require('./budget');
 
@@ -28,6 +28,12 @@ async function reserveSimulation(token, env = process.env, { budget } = {}) {
 async function reserveMakeup(token, env = process.env, { budget } = {}) {
   return reserveVia({ path: '/rest/v1/rpc/reserve_makeup', limits: makeupQuota, exceeded: 'MK_QUOTA_EXCEEDED', unavailable: 'MK_QUOTA_UNAVAILABLE' }, token, env, { budget });
 }
+/* Quota des essais capillaires : fonction et compteur DISTINCTS (reserve_hair, supabase/proposals/20261013120000_hair_quota.sql, NON appliquée), compté en UNITÉS (p_units).
+   Mêmes règles : échec fermé, aucune nouvelle tentative, jamais remboursé. Fonction absente (404) → HR_QUOTA_UNAVAILABLE. */
+async function reserveHair(token, units, env = process.env, { budget } = {}) {
+  if (!Number.isInteger(units) || units < 1 || units > 10) throw new AnalysisError('HR_QUOTA_UNAVAILABLE', { status: 503, detail: 'quota : unités invalides' });
+  return reserveVia({ path: '/rest/v1/rpc/reserve_hair', limits: hairQuota, exceeded: 'HR_QUOTA_EXCEEDED', unavailable: 'HR_QUOTA_UNAVAILABLE', extra: { p_units: units } }, token, env, { budget });
+}
 async function reserveVia(kind, token, env, { budget } = {}) {
   const cfg = publicSupabase(env);
   const UNAVAILABLE = kind.unavailable;
@@ -40,7 +46,7 @@ async function reserveVia(kind, token, env, { budget } = {}) {
       res = await api.fetchImpl(cfg.supabaseUrl + kind.path, {
         method: 'POST',
         headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ p_limit: limit, p_window_seconds: windowSeconds }),
+        body: JSON.stringify(Object.assign({ p_limit: limit, p_window_seconds: windowSeconds }, kind.extra || {})),
         signal: dl.signal
       });
     } catch (e) {
@@ -69,3 +75,4 @@ async function reserveVia(kind, token, env, { budget } = {}) {
 module.exports = { reserve, api, TIMEOUT_MS };   // TIMEOUT_MS : délai maximal de la requête de réservation, lu par le handler pour son budget de temps
 module.exports.reserveSimulation = reserveSimulation;
 module.exports.reserveMakeup = reserveMakeup;
+module.exports.reserveHair = reserveHair;
