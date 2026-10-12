@@ -639,9 +639,6 @@ const demoSignup=()=>`<div class="flow"><div class="flowtop"><button class="icon
     <div class="c-field"><label class="c-field__label" for="f-mail">Email</label><input class="c-input" id="f-mail" type="email" autocomplete="email" value="${DEMO_MODE?`amina@exemple.com`:``}"></div>
     <div class="c-field"><label class="c-field__label" for="f-pw">Mot de passe</label><input class="c-input" id="f-pw" type="password" autocomplete="new-password" value="${DEMO_MODE?`motdepasse`:``}"></div>
     <button class="c-btn c-btn--primary c-btn--block" data-act="signup" style="margin-top:6px">Créer mon compte</button>
-    <div class="or">ou</div>
-    <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Google</button>
-    <button class="c-btn c-btn--secondary c-btn--block" data-act="signup">Continuer avec Apple</button>
   </div><p class="muted" style="margin-top:22px">Mode démonstration : aucun compte réel n'est créé.</p></div></div>`;
 const authForm=kind=>{
   const signup=kind===`signup`,A=state.account;
