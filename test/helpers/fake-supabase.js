@@ -15,6 +15,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
   const usage = new Map();            // user_id -> horodatages (secondes) des analyses réservées (quota)
   const analysisUsage = usage;
   const simUsage = new Map();         // idem pour les SIMULATIONS (compteur distinct, voir supabase/proposals/)
+  const mkUsage = new Map();          // idem pour les ESSAYAGES DE MAQUILLAGE (compteur distinct)
   const analyses = new Map();         // user_id -> lignes de skin_analyses
   const tokens = new Map();           // access_token -> { sub, exp }
   const refresh = new Map();          // refresh_token -> sub
@@ -95,7 +96,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
       const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
       if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
       for (const [email, usr] of users) if (usr.id === t.sub) users.delete(email);
-      profiles.delete(t.sub); analyses.delete(t.sub); usage.delete(t.sub); simUsage.delete(t.sub);
+      profiles.delete(t.sub); analyses.delete(t.sub); usage.delete(t.sub); simUsage.delete(t.sub); mkUsage.delete(t.sub);
       return resp(204);
     }
     if (u.pathname === '/auth/v1/logout') {
@@ -123,10 +124,10 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
         profiles.set(t.sub, Object.assign(newProfile(t.sub), body)); return resp(201);
       }
     }
-    if (u.pathname === '/rest/v1/rpc/reserve_analysis' || u.pathname === '/rest/v1/rpc/reserve_simulation') {   // réservation atomique du quota (équivalent de la fonction SQL)
-      const sim = u.pathname.endsWith('reserve_simulation'), usage = sim ? simUsage : analysisUsage;
-      state.rpcCalls = (state.rpcCalls || []).concat(sim ? 'reserve_simulation' : 'reserve_analysis');
-      if (sim ? state.simQuotaMissing : state.quotaMissing) return resp(404, { code: 'PGRST202', message: 'Could not find the function public.' + u.pathname.split('/').pop() });
+    if (u.pathname === '/rest/v1/rpc/reserve_analysis' || u.pathname === '/rest/v1/rpc/reserve_simulation' || u.pathname === '/rest/v1/rpc/reserve_makeup') {   // réservation atomique du quota (équivalent de la fonction SQL)
+      const kind = u.pathname.split('/').pop(), sim = kind === 'reserve_simulation', mk = kind === 'reserve_makeup', usage = mk ? mkUsage : sim ? simUsage : analysisUsage;
+      state.rpcCalls = (state.rpcCalls || []).concat(kind);
+      if (mk ? state.makeupQuotaMissing : sim ? state.simQuotaMissing : state.quotaMissing) return resp(404, { code: 'PGRST202', message: 'Could not find the function public.' + u.pathname.split('/').pop() });
       if (state.failQuota) return resp(500, { message: 'internal db trace', code: 'XX000' });
       const t = tokens.get((h.authorization || '').replace('Bearer ', ''));
       if (!t || t.exp <= clock) return resp(401, { message: 'JWT expired', code: 'PGRST301' });
@@ -212,7 +213,7 @@ function createFake({ confirmEmails = false, ttl = 3600 } = {}) {
     const sess = mkSession(u);
     return `#access_token=${sess.access_token}&expires_in=3600&refresh_token=${sess.refresh_token}&token_type=bearer&type=${type}`;
   };
-  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), magicLink: e => link(e, 'magiclink'), users, profiles, analyses, usage, simUsage, tokens, refresh, log, GOALS, METRICS,
+  return { fetch: fetchImpl, state, objects, confirmLink: e => link(e, 'signup'), recoveryLink: e => link(e, 'recovery'), magicLink: e => link(e, 'magiclink'), users, profiles, analyses, usage, simUsage, mkUsage, tokens, refresh, log, GOALS, METRICS,
     removeProfile: id => profiles.delete(id) };
 }
 

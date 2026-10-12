@@ -608,7 +608,7 @@ test('WI1 écran programme : route restaurable, alimenté par la dernière analy
 test('WI2 entrée depuis la routine, limites dans le résultat, effacement avec le compte', () => {
   assert.match(app, /<div class="col">\$\{CP\.entry\(\)\}<button class="rowlink" data-go="actives"/);
   assert.match(app, /\$\{H\?``:DermaiInsight\.limits\(eng\)\}<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">/);
-  assert.match(app.slice(app.indexOf('async function deleteMyAccount'), app.indexOf('async function submitAuth')), /F\.clear\(\);CP\.clear\(\);VR\.clear\(\);resetPrivateState\(\)/);
+  assert.match(app.slice(app.indexOf('async function deleteMyAccount'), app.indexOf('async function submitAuth')), /F\.clear\(\);CP\.clear\(\);VR\.clear\(\);ST\.clear\(\);resetPrivateState\(\)/);
 });
 test('WI3 scripts : program.js avant care-program.js, les deux avant app.js, chacun une fois', () => {
   const html = read('index.html'), at = s => html.indexOf(`<script src="${s}"></script>`);

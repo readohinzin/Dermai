@@ -327,7 +327,7 @@ test('SIM-S20 source : ordre des garde-fous, aucune référence à l\'analyse de
   assert.ok(at('await readBody(') < at('validateImage(body') && at('validateImage(body') < at('quota.reserveSimulation') && at('quota.reserveSimulation') < at('simulation.simulate('));
   const code = (h + read('server/perfectcorp-simulation.js')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   assert.doesNotMatch(code, /analyzeSkin|createSkinAnalysisTask|pollSkinAnalysisTask|skinTask|PERFECT_CORP_PATHS\.skin|quota\.reserve\(|reserve_analysis/, 'jamais l\'API d\'analyse ni le quota d\'analyses');
-  assert.doesNotMatch(read('js/simulation.js') + read('index.html'), /PERFECT_CORP|makeup|youcam|yce-api|perfectcorp/i, 'rien du fournisseur côté navigateur');
+  assert.doesNotMatch(read('js/simulation.js') + read('index.html').replace(/<script src="js\/makeup-(data|studio)\.js"><\/script>\n/g, ''), /PERFECT_CORP|makeup|youcam|yce-api|perfectcorp/i, 'rien du fournisseur côté navigateur');
   assert.doesNotMatch(read('js/app.js') + read('js/account.js'), /PERFECT_CORP|makeupar|yce-api|skin-simulation\/|DERMAI_SIMULATION/, 'ni clé, ni hôte, ni réglage serveur côté navigateur');
   assert.doesNotMatch(read('js/simulation.js').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, ''), /skin-analysis|analyzeSkin|postJpeg/, 'le module de simulation ne lance jamais d\'analyse');
 });
