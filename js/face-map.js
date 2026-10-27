@@ -11,7 +11,7 @@
      - la couleur et l'opacité sont fixes (propriété de l'interface), jamais liées au score.
    Rien n'est stocké : ni photo, ni masque, ni dans le navigateur, ni dans l'historique (cache en mémoire seulement).
 
-   Fichier partagé : fonctions pures testées sous Node (sanitize, interpretMask, paint, ratioMatches) ; mount() n'existe qu'au navigateur. */
+   Fichier partagé : fonctions pures testées sous Node (sanitize, interpretMask, paint, ratioMatches) ; mount() et coverageOf() n'existent qu'au navigateur. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.DermaiFaceMap = factory();
@@ -152,6 +152,38 @@
     return r;
   }
 
+  /* Couverture d'un indicateur (déclaration, étape 29) : pour chaque clé de `keys` présente dans `loc` (réponse sanitizée du serveur),
+     retourne la couverture MAXIMALE parmi ses masques lisibles. Aucune peinture, aucun canvas d'affichage, aucun effet de bord DOM :
+     seule la lecture technique `interpretMask` est réutilisée (mêmes seuils, mêmes garanties que la carte).
+     Retourne un objet { <clé>: { coverage, areas: [] } } pour les indicateurs qui ont au moins un masque exploitable, ou null si aucun.
+     Un masque illisible, vide ou au format inconnu est ignoré. Aucun masque ne peut donc être « inventé » (coverage > 0). */
+  async function coverageOf(loc, keys) {
+    if (!loc || typeof loc !== 'object' || Array.isArray(loc)) return null;
+    const out = {};
+    let any = false;
+    for (const k of (keys || [])) {
+      const list = loc[k];
+      if (!Array.isArray(list) || !list.length) continue;
+      let best = 0;
+      for (const src of list) {
+        if (typeof src !== 'string' || !DATA_URL.test(src)) continue;
+        try {
+          const im = await loadImg(src);
+          const mw = im.naturalWidth, mh = im.naturalHeight;
+          if (!mw || !mh) continue;
+          const c = document.createElement('canvas');
+          c.width = mw; c.height = mh;
+          const g = c.getContext('2d', { willReadFrequently: true });
+          g.drawImage(im, 0, 0);
+          const m = interpretMask(g.getImageData(0, 0, mw, mh).data, mw, mh);
+          if (m && m.mode !== 'unknown' && !m.empty && typeof m.coverage === 'number' && m.coverage > best) best = m.coverage;
+        } catch (e) { /* masque illisible : ignoré, jamais inventé */ }
+      }
+      if (best > 0) { out[k] = { coverage: best, areas: [] }; any = true; }
+    }
+    return any ? out : null;
+  }
+
   /* el : conteneur [data-facemap] (photo <img>, <canvas>). items : [{ key, label, masks }] : l'indicateur sélectionné et ses masques réels.
      onStatus(échecs, vides) : libellés dont la localisation n'a pas pu être affichée (masque illisible, proportions…), puis libellés dont
      les masques sont lisibles mais ne contiennent aucune zone. Rien d'autre n'est dessiné. */
@@ -176,5 +208,5 @@
     onStatus && onStatus(failed, empty);
   }
 
-  return { sanitize, ratioMatches, interpretMask, paint, mount, COLOR, EDGE_COLOR, FILL, EDGE, FLOOR, FRAME_MAX_CSS };
+  return { sanitize, ratioMatches, interpretMask, paint, mount, coverageOf, COLOR, EDGE_COLOR, FILL, EDGE, FLOOR, FRAME_MAX_CSS };
 });
