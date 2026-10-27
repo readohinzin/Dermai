@@ -38,6 +38,29 @@
      <p class="c-disclaimer c-insight__note">${y.scoreNote}</p></section>`;
   }
 
+  /* DÉCLARATION (étape 29) : section « Ce que DERMAI observe sur votre photo ». Liste TOUT ce qui a été mesuré, sans seuil de soin.
+     Indépendante des priorités et de l'accompagnement : ne change aucune décision. Textes dans copy.fr.js (DETECTIONS).
+     det = synthesis.detections (forme : mask-severity.js → buildDetections). N'affiche AUCUN score chiffré : c'est une description,
+     pas une note. Un indicateur « Signe marqué » est dit tel quel, même s'il n'est pas priorité. */
+  function detections(det) {
+    if (!det || !Array.isArray(det.items) || !det.items.length) return '';
+    const E = EN(), T = (E.copy && E.copy.DETECTIONS) || {}, S = (E.copy && E.copy.SYNTH) || {};
+    const badgeOf = { trace: 'c-badge--outline', visible: 'c-badge--mid', marked: 'c-badge--low' };
+    const labelOf = { trace: T.levelTrace || 'Trace légère', visible: T.levelVisible || 'Signe visible', marked: T.levelMarked || 'Signe marqué' };
+    const banner = det.summary && det.summary.hasMarked ? `<div class="c-insight__alert" role="status">${T.bannerMarked || 'DERMAI a détecté un signe marqué sur votre photo. Il est détaillé ci-dessous et placé en tête de votre suivi.'}</div>` : '';
+    const isUserFavorable = it => it.declaredByUser && it.fromRaw === 'clean' && it.fromMask === null;
+    const rows = det.items.map(it => {
+      const areas = (it.maskAreas && it.maskAreas.length) ? `<span class="c-insight__detection-areas">${it.maskAreas.map(a => String(a)).join(', ')}</span>` : '';
+      const sentinel = it.sentinel ? `<span class="c-badge c-badge--outline">${T.sentinelNote || 'À titre indicatif, hors hiérarchie.'}</span>` : '';
+      const descriptive = (it.role === 'descriptive' && !it.sentinel) ? `<span class="c-badge c-badge--outline">${T.descriptiveNote || 'Indicateur descriptif : il n\'entraîne pas de soin ciblé.'}</span>` : '';
+      const favorable = isUserFavorable(it) ? `<span class="muted">${T.userGoalFavorable || 'Vous avez indiqué que ce point vous préoccupe. Sur cette photo, la mesure est favorable.'}</span>` : '';
+      return `<li class="c-insight__detection"><span class="c-insight__detection-name">${it.name}</span><span class="c-badge ${badgeOf[it.state] || 'c-badge--outline'}">${labelOf[it.state] || it.state}</span>${sentinel}${descriptive}${areas}${favorable}</li>`;
+    }).join('');
+    const allClean = (det.summary && det.summary.noIssue) ? `<p class="muted">${(T.allClean || 'Aucune imperfection notable détectée sur cette photo. {count} indicateurs mesurés.').replace('{count}', '15')}</p>` : '';
+    return `<section class="c-insight" aria-labelledby="det-title"><p class="kicker">Déclaration</p><div class="hd"><h2 class="h3" id="det-title">${T.title || 'Ce que DERMAI observe sur votre photo'}</h2></div>
+      <p class="muted">${T.intro || ''}</p>${banner}${allClean}${det.items.length ? `<ul class="c-list">${rows}</ul>` : ''}</section>`;
+  }
+
   /* « Pourquoi cette routine ? » : stratégie, objectifs, niveau, contexte de peau. */
   function why(eng) {
     const y = eng.synthesis, pz = eng.personalization;
@@ -66,5 +89,5 @@
      <ul class="l-list" style="margin-top:0">${items.map(t => `<li><span>${t}</span></li>`).join('')}</ul></section>`;
   }
 
-  root.DermaiInsight = { faceMap, found, why, limits, LIMITS };
+  root.DermaiInsight = { faceMap, found, detections, why, limits, LIMITS };
 })(typeof self !== 'undefined' ? self : this);
