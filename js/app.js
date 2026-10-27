@@ -94,6 +94,7 @@ class PerfectCorpProvider extends SkinAnalysisProvider{
        (jamais dans l'historique, le stockage local ou l'URL). Absents → aucune zone ne sera dessinée. */
     const loc=window.DermaiFaceMap?DermaiFaceMap.sanitize(payload.localization,SkinModel.METRIC_KEYS):null;
     if(loc)scan.localization=loc;
+    if(loc&&window.DermaiFaceMap){try{scan.maskCoverage=await DermaiFaceMap.coverageOf(loc,SkinModel.METRIC_KEYS)}catch(e){scan.maskCoverage=null}}
     return scan;
   }
 }
@@ -153,7 +154,7 @@ state.market=DEMO_MODE?null:MK.read(marketStore());state.marketEdit=false;state.
    L'analyse précédente (si elle existe) sert seulement à comparer, jamais de référence courante. */
 /* Catalogue de produits : DÉMONSTRATION en mode démo, RÉEL (js/engine/data/catalog.js, vide tant qu'aucune donnée vérifiée n'existe) en mode réel. Jamais mélangés. */
 const catalogNow=()=>DEMO_MODE?Engine.products.PRODUCTS:Engine.catalogData.PRODUCTS;
-const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},Object.assign({catalog:catalogNow()},prev?{previous:prev.normalized}:{}))};
+const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},Object.assign({catalog:catalogNow(),masks:(s&&s.maskCoverage)||null},prev?{previous:prev.normalized}:{}))};
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 if(!DEMO_MODE){SCANS.length=0;state.cmpA=0;state.cmpB=1}   // mode réel : aucune analyse fictive n'existe, même en mémoire (la démo seule les utilise)
@@ -392,7 +393,7 @@ async function deleteMyAccount(){
   F.clear();CP.clear();VR.clear();ST.clear();resetPrivateState();go(`landing`,null,{reset:true});toast(`Votre compte a été supprimé.`);
 }
 async function submitAuth(kind,form){
-  const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=form.querySelector(`[name=password]`).value||``;
+  const email=(form.querySelector(`[name=email]`).value||``).trim(),pw=(form.querySelector(`[name=password]`).value||``);
   const btn=form.querySelector(`button[type=submit]`);
   state.account.formEmail=email;state.account.error=``;state.account.info=``;
   if(btn){btn.disabled=true;btn.textContent=kind===`signup`?`Création…`:`Connexion…`}
@@ -812,7 +813,7 @@ V.result=()=>{
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
-    ${fmKeys.length?faceMapHtml(s,fmKeys,eng.synthesis):``}${H?``:DermaiInsight.found(eng.synthesis)}
+    ${fmKeys.length?faceMapHtml(s,fmKeys,eng.synthesis):``}${DermaiInsight.detections(eng.synthesis.detections)}${H?``:DermaiInsight.found(eng.synthesis)}
     <section><p class="kicker">Ce que DERMAI retient</p><div class="hd"><h2 class="h3">${H?`Axes retenus à cette date`:`Vos axes de soin`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
       ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.${s.noRaw?` ${Engine.copy.SYNTH.compat}`:``}`:`Les besoins que DERMAI retient d'après les données de votre analyse.`} Le score affiché va de 0 à 100, 100 = meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
