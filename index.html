@@ -20,15 +20,13 @@
 <meta name="twitter:card" content="summary">
 
 <!-- ========================================== -->
-<!-- BALISES AJOUTÉES POUR LA PWA               -->
+<!-- BALISES PWA                                -->
 <!-- ========================================== -->
 <meta name="theme-color" content="#FFF9FA">
 <link rel="manifest" href="/manifest.json">
-<!-- Balises spécifiques pour iOS (Safari) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DERMAI">
-<!-- ========================================== -->
 
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/favicon-32.png">
@@ -43,6 +41,13 @@
 <div id="overlay"></div>
 <input type="file" id="photoInput" accept="image/*" hidden>
 <div id="toast" role="status" aria-live="polite"></div>
+
+<!-- ========================================== -->
+<!-- BOUTON D'INSTALLATION PWA (Caché par défaut) -->
+<!-- ========================================== -->
+<button id="pwa-install-btn" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 12px 24px; background: #0f172a; color: #fff; border: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; font-family: 'Manrope', sans-serif; align-items: center; gap: 8px;">
+  📲 Installer l'application
+</button>
 
 <script src="/api/config-js"></script>
 <script src="js/skin-model.js"></script>
@@ -92,19 +97,66 @@
 <script src="js/app.js"></script>
 
 <!-- ========================================== -->
-<!-- SCRIPT AJOUTÉ POUR ACTIVER LE SERVICE WORKER -->
+<!-- SCRIPT COMPLET POUR LA PWA                 -->
 <!-- ========================================== -->
 <script>
+  // 1. ENREGISTREMENT DU SERVICE WORKER
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
-          console.log('ServiceWorker PWA enregistré avec succès:', registration.scope);
+          console.log('ServiceWorker PWA enregistré:', registration.scope);
         })
         .catch((error) => {
           console.log('Échec de l\'enregistrement du ServiceWorker:', error);
         });
     });
+  }
+
+  // 2. GESTION DU BOUTON D'INSTALLATION (Chrome / Edge / Android)
+  let deferredPrompt;
+  const installBtn = document.getElementById('pwa-install-btn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Empêche Chrome d'afficher sa propre mini-bannière par défaut
+    e.preventDefault();
+    // Sauvegarde l'événement pour le déclencher au clic
+    deferredPrompt = e;
+    // Affiche notre bouton personnalisé
+    if (installBtn) installBtn.style.display = 'flex';
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      
+      // Affiche la vraie popup d'installation
+      deferredPrompt.prompt();
+      
+      // Attend le choix de l'utilisateur
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`L'utilisateur a choisi : ${outcome}`);
+      
+      // Cache le bouton
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  }
+
+  // Cache le bouton si l'application est déjà installée
+  window.addEventListener('appinstalled', () => {
+    if (installBtn) installBtn.style.display = 'none';
+    console.log('PWA installée avec succès !');
+  });
+
+  // 3. DÉTECTION IOS (Safari sur iPhone/iPad)
+  // Safari ne permet pas les popups d'installation automatiques.
+  // On peut afficher un petit message d'aide si besoin.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  
+  if (isIOS) {
+    console.log("Utilisateur sur iOS : Instructions manuelles requises pour installer l'app.");
+    // Optionnel : Tu peux créer un script qui affiche une bulle "Appuyez sur Partager puis 'Sur l'écran d'accueil'"
   }
 </script>
 </body>
