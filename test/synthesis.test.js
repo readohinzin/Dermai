@@ -164,7 +164,7 @@ test('S14 ancienne analyse ou données partielles : la synthèse fonctionne ; l\
   assert.deepEqual(ids(r.synthesis.tiers.priority), ['acne']);
   assert.equal(r.synthesis.strategy.skinContext, null);
   const app = read('js/app.js');
-  assert.match(app, /\$\{H\?``:DermaiInsight\.found\(eng\.synthesis\)\}/);                 // analyse ancienne : pas de synthèse recalculée
+  assert.match(app, /\$\{H\?``:DermaiDeclared\.top\(eng\)\}/);                 // analyse ancienne : pas de synthèse recalculée (top() = encart « Ce que vous signalez » + DermaiInsight.found, voir declared-concerns.test.js DC9)
   assert.match(app, /\$\{Engine\.copy\.MAINTENANCE\.text\}/);
 });
 

@@ -813,7 +813,7 @@ V.result=()=>{
   <div class="grid2 lw">
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
-    ${fmKeys.length?faceMapHtml(s,fmKeys,eng.synthesis):``}${DermaiInsight.detections(eng.synthesis.detections)}${H?``:DermaiInsight.found(eng.synthesis)}
+    ${fmKeys.length?faceMapHtml(s,fmKeys,eng.synthesis):``}${DermaiInsight.detections(eng.synthesis.detections)}${H?``:DermaiDeclared.top(eng)}
     <section><p class="kicker">Ce que DERMAI retient</p><div class="hd"><h2 class="h3">${H?`Axes retenus à cette date`:`Vos axes de soin`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
       ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.${s.noRaw?` ${Engine.copy.SYNTH.compat}`:``}`:`Les besoins que DERMAI retient d'après les données de votre analyse.`} Le score affiché va de 0 à 100, 100 = meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
