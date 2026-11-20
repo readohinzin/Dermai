@@ -3,6 +3,8 @@
    active (et sur celle qui s'efface, le temps du fondu). */
 .hc-wrap{padding:0 0 56px}
 .hc{position:relative;isolation:isolate}
+/* La bannière garde sa palette CLAIRE dans les deux thèmes (fonds pastel, texte foncé) : jetons clairs locaux, jamais de texte clair sur fond pastel. */
+.hc{color-scheme:light;--bg:#FFF9FA;--surface:#FFFFFF;--surface-2:#FBECEF;--surface-3:#F8E7EA;--tint:#F8E7EA;--ink:#211B1D;--ink-2:#5C4E53;--ink-3:#5C4E53;--accent:#542F3B;--on-accent:#FFFFFF;--line:rgba(84,47,59,.13);--line-strong:#8F7E84}
 .hc-stage{display:grid}
 /* Fondu enchaîné : la diapositive qui arrive (au-dessus) apparaît en 1,2 s ; celle qui part reste pleine un instant puis s'efface, sans jamais laisser voir le fond de page.
    Pendant son fondu de sortie elle garde la classe is-leaving (posée par js/hero.js) : ses animations continuent au lieu de se couper net. */
@@ -69,7 +71,7 @@
 .hc-b::after{content:"";position:absolute;inset:5px;border-radius:50%;background:#fff}
 .hc-b .n{position:relative;z-index:1;font-weight:800;font-size:clamp(14px,2.6vw,18px);color:var(--c);font-variant-numeric:tabular-nums}
 .hc-b .l{position:absolute;z-index:1;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;white-space:nowrap;font-size:11.5px;font-weight:700;color:var(--ink);background:rgba(255,255,255,.82);padding:2px 8px;border-radius:99px}
-.hc-b--mid{--c:#B06F12}
+.hc-b--mid{--c:#8F5C0E}
 .hc-b--low{--c:#B03A48}
 .hc-slide:is(.is-active,.is-leaving) .hc-b{animation:hcPop 1s calc(.5s + var(--d) * .16s) both cubic-bezier(.22,.61,.36,1)}
 .hc-slide:is(.is-active,.is-leaving) .hc-ln,.hc-slide:is(.is-active,.is-leaving) .hc-pt{animation:hcFade .9s calc(.45s + var(--d,0) * .16s) both}

@@ -31,7 +31,7 @@ test('PW1 manifeste : installable sur Android (192 et 512 réelles, maskable sé
 
 test('PW2 index.html : manifeste, couleurs, balises iPhone et Android, icônes ; plus de code d\'installation en ligne', () => {
   const h = read('index.html');
-  assert.match(h, /<link rel="manifest" href="\/manifest\.json">/); assert.match(h, /<meta name="theme-color" content="#FFF9FA">/);
+  assert.match(h, /<link rel="manifest" href="\/manifest\.json">/); assert.match(h, /<meta name="theme-color" content="#FFF9FA"/);
   assert.match(h, /<meta name="apple-mobile-web-app-capable" content="yes">/); assert.match(h, /<meta name="mobile-web-app-capable" content="yes">/); assert.match(h, /<meta name="apple-mobile-web-app-title" content="DermAI">/);
   assert.match(h, /<meta name="apple-mobile-web-app-status-bar-style" content="default">/); assert.match(h, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/);
   assert.match(h, /viewport-fit=cover/);

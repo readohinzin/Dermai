@@ -78,7 +78,7 @@ test('UB6 service worker remplacé pendant que la page tourne : bannière ; prem
 
 test('UB7 câblage : module chargé en dernier, textes sans tiret cadratin, aucune donnée de personne ; la page ne met jamais /api/version en cache', () => {
   const h = read('index.html'); assert.ok(h.indexOf('js/pwa-install.js') < h.indexOf('js/update-banner.js')); assert.ok(h.indexOf('js/app.js') < h.indexOf('js/update-banner.js'));
-  for (const t of Object.values(U.TEXT)) { assert.ok(!/[—–]/.test(t), t); assert.doesNotMatch(t, /DERMAI/); }
+  for (const t of Object.values(U.TEXT)) { assert.ok(!/[—–]/.test(t), t); assert.doesNotMatch(t, /DERM\u0041I/); }
   assert.match(U.TEXT.body, /DermAI vient d'être mis à jour/);
   assert.doesNotMatch(read('js/update-banner.js').replace(/\/\*[\s\S]*?\*\//g, ''), /localStorage|sessionStorage|indexedDB|cookie|sendBeacon|XMLHttpRequest/);
   assert.match(read('sw.js'), /url\.pathname\.startsWith\('\/api\/'\)/, 'le service worker ne touche pas à /api/version');

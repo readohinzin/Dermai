@@ -34,7 +34,7 @@ test('B2 icônes : favicon (ico et png 32), icône iOS 180 px, déclarées dans 
   assert.match(html, /<link rel="icon" href="\/favicon\.ico" sizes="any">/);
   assert.match(html, /<link rel="icon" type="image\/png" sizes="32x32" href="\/img\/brand\/favicon-32\.png">/);
   assert.match(html, /<link rel="apple-touch-icon" href="\/apple-touch-icon\.png">/);
-  assert.match(html, /<meta name="theme-color" content="#FFF9FA">/);
+  assert.match(html, /<meta name="theme-color" content="#FFF9FA"( media="\(prefers-color-scheme: light\)")?>/);   // thème sombre : une seconde balise suit le réglage du système
 });
 
 test('B3 intégration : bouton accessible, image décorative aux dimensions fixes, aucun logo en texte, aucune ressource distante', () => {

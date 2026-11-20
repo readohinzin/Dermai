@@ -1107,7 +1107,7 @@ V.profile=()=>{
      ${exclusionsSection()}
      <p class="muted" style="margin-top:12px">Ma routine est recalculée automatiquement lorsque je modifie ces préférences. ${signedIn()?`Elles sont enregistrées avec votre compte.`:state.account.status===`visitor`?`Créez un compte pour les retrouver sur vos prochains appareils.`:`Elles ne sont pas enregistrées définitivement pour l'instant.`}</p>
      ${none?``:`<div style="margin-top:12px"><p style="color:var(--ink);margin-bottom:10px">${engineFor(SCANS[state.latest]).routinePlan.summary}</p><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></div>`}</section>
-   ${TN.picker()}${marketSection()}
+   ${TN.picker()}${DermaiTheme.picker()}${marketSection()}
    ${DEMO_MODE?`<section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>`:``}
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
@@ -1238,7 +1238,7 @@ function realInput(camera){
   return inp;
 }
 function pickRealPhoto(kind){state.scanStatus=`capturing`;realInput(kind===`camera`&&touchUi()).click()}
-/* Vérification locale de la photo (js/photo-check.js) : taille, luminosité, netteté, lumière du visage, visage. Photo à refaire (niveau block) : aucun envoi, aucun résultat ; doute (warn) : l'utilisatrice décide. Aucun envoi, aucune conservation. null = vérification impossible. Seuils provisoires (voir photo-check.js).   */
+/* Vérification locale de la photo (js/photo-check.js) : taille, luminosité, netteté, lumière du visage, visage. Photo à refaire (niveau block) : aucun envoi, aucun résultat ; doute (warn) : l'utilisatrice décide. Aucun envoi, aucune conservation. null = vérification impossible.                      */
 async function inspectPhoto(blob){
   try{
     const url=URL.createObjectURL(blob),im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});

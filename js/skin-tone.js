@@ -100,7 +100,10 @@
 
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' })[c]);
   /* Couleur du numéro lisible sur la pastille (luminance relative). */
-  const inkOn = hex => { const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2] > 0.4 ? '#2b2118' : '#ffffff'; };
+  const rel = hex => { const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const contrast = (a, b) => { const x = rel(a), y = rel(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const INK_DARK = '#140d08', INK_LIGHT = '#ffffff';
+  const inkOn = hex => (contrast(hex, INK_DARK) >= contrast(hex, INK_LIGHT) ? INK_DARK : INK_LIGHT);   // le plus fort contraste des deux (au moins 4,5 pour 1 sur les dix teintes)
 
   /* Sélecteur : dix pastilles (groupe de boutons radio), phrase d'estimation, mention de confidentialité. Géré par bind() : aucun état dans l'application. */
   function picker(tone) {
@@ -143,5 +146,5 @@
     });
   }
 
-  return { KEY, MONK, DEEP_FROM, REDNESS_FOR_DEEP, TEXT, isTone, isDeep, maskRedness, marks, read, write, get, set, addMasker, view, stripRedness, picker, alertHtml, maskedHtml, bind };
+  return { contrast, inkOn, KEY, MONK, DEEP_FROM, REDNESS_FOR_DEEP, TEXT, isTone, isDeep, maskRedness, marks, read, write, get, set, addMasker, view, stripRedness, picker, alertHtml, maskedHtml, bind };
 });

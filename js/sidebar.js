@@ -74,7 +74,7 @@
       <div class="sidebar__head">${d.brand ? d.brand(52) : ''}<button type="button" class="sidebar__close" data-sb="close" aria-label="Fermer le menu">${ic('close')}</button></div>
       <nav aria-label="Menu principal"><ul class="sidebar__list">${ITEMS.filter(allowed).map(i => link(i, cur)).join('')}</ul></nav>
       <div class="sidebar__foot"><p class="sidebar__label">Autres accès</p><nav aria-label="Compte"><ul class="sidebar__list">${OTHERS.map(i => link(i, cur)).join('')}${signedIn() ? logoutItem() : ''}</ul></nav>
-      <small>Analyse cosmétique visuelle. DermAI ne pose pas de diagnostic médical.</small></div></aside>
+      ${typeof DermaiTheme !== 'undefined' ? DermaiTheme.compact() : ''}<small>Analyse cosmétique visuelle. DermAI ne pose pas de diagnostic médical.</small></div></aside>
       <div class="sidebar__scrim" data-sb="close"${open ? ' data-open="1"' : ''} aria-hidden="true"></div>`;
     }
     /* Icône de menu (mobile), placée dans l'en-tête de page. */

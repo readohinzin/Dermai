@@ -33,7 +33,8 @@ button.brand:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radi
 .m-brand+.top{margin-top:-12px;top:calc(env(safe-area-inset-top,0px) + var(--mbrand-h))}
 
 /* Logo image (étape 14B) : le bouton garde sa zone de toucher ; l'image ne déborde jamais et ne se déforme pas. */
-.brand .brand-logo{display:block;max-width:100%;height:auto}
+/* sombre : plaque claire sous le logo (le dessin du logo n'est pas modifié) ; transparente en clair */
+.brand .brand-logo{display:block;box-sizing:content-box;background:var(--logo-plate);padding:var(--logo-pad);border-radius:14px;max-width:100%;height:auto}
 button.brand{display:inline-flex;align-items:center;justify-content:center;line-height:0}
 .rail .brand{align-self:flex-start;justify-content:flex-start;padding-left:var(--s-2);margin-bottom:var(--s-3)}
 

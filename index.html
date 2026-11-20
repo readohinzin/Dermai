@@ -22,7 +22,10 @@
 <!-- ========================================== -->
 <!-- BALISES PWA                                -->
 <!-- ========================================== -->
-<meta name="theme-color" content="#FFF9FA">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFF9FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171214" media="(prefers-color-scheme: dark)">
+<script>try{var t=localStorage.getItem("dermai.theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <link rel="manifest" href="/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32,9 +35,12 @@
 <meta name="format-detection" content="telephone=no">
 
 <link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/img/icons/favicon-48.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/img/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/img/icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -74,6 +80,7 @@
 <script src="js/photo-check.js"></script>
 <script src="js/face-map.js"></script>
 <script src="js/insight-view.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/skin-tone.js"></script>
 <script src="js/confidence.js"></script>
 <script src="js/declared-concerns.js"></script>

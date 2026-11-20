@@ -1,7 +1,8 @@
 /* Design tokens v1. Noms identiques à la spécification, sauf --rose de la spec qui existe
    déjà dans la feuille historique sous --rose-deep (même valeur #D98F9F).
-   Thème : clair uniquement pour l'instant. Les valeurs sombres sont prêtes mais ne
-   s'appliquent que si <html data-theme="dark"> est posé explicitement (non utilisé). */
+   Thèmes : clair (défaut) et sombre. Le sombre s'applique selon le réglage du téléphone ou de l'ordinateur (prefers-color-scheme), sauf si la personne a choisi « Clair » ;
+   <html data-theme="dark"> le force, <html data-theme="light"> force le clair (js/theme.js, choix gardé sur l'appareil). Chaque couple texte / fond est vérifié (WCAG AA, 4,5 pour 1)
+   dans les deux thèmes par test/contrast.test.js : jamais de blanc sur blanc. N'écrire aucune couleur en dur dans un composant : utiliser ces jetons. */
 :root{
   color-scheme:light;
 
@@ -16,8 +17,11 @@
   --good-ink:#285A45; --good-bg:#E6F3EC; --good:#3F7A62;
   --mid-ink:#7A4E0B;  --mid-bg:#FBF0DC;  --mid:#A8670F;
   --low-ink:#7A2F45;  --low-bg:#F8E7EA;  --low:#8E3F55;
-  --error-ink:#9F2F35; --error-bg:#FBEAEA; --error:#A63D40;
+  --error-ink:#9F2F35; --error-bg:#FBEAEA; --error:#A63D40; --on-error:#FFFFFF;
   --info-ink:#542F3B; --info-bg:#F8E7EA;
+
+  /* surface INVERSE (bandeaux d'installation et de mise à jour) et plaque claire sous le logo */
+  --inv-bg:#2B2118; --inv-ink:#FFFFFF; --logo-plate:transparent; --logo-pad:0;
 
   /* typographie */
   --font-serif:'DM Serif Display','Playfair Display',Georgia,serif;
@@ -46,7 +50,25 @@
   --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
 }
 
-/* Sombre : préparé, volontairement inactif tant que le thème n'est pas déclaré. */
+/* Sombre : selon le réglage du système, sauf choix « Clair » ; ou forcé par data-theme="dark". Les deux blocs sont identiques. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#171214; --bg-soft:#2A2024; --surface:#211A1D; --tint:#33262B; --tint-strong:#3A2A30;
+    --ink:#F7EEF0; --ink-2:#CDBDC2; --ink-3:#B3A2A8; --ink-disabled:#7E6E74;
+    --accent:#F0BBC7; --accent-hover:#F6CCD5; --accent-pressed:#E7A9B8; --on-accent:#2A1219;
+    --line:rgba(248,231,234,.14); --line-strong:#8A7A80; --track:#3F3035; --overlay:rgba(0,0,0,.6);
+    --good-ink:#A9D8C1; --good-bg:#1F3329; --good:#6FB898;
+    --mid-ink:#EBC27A; --mid-bg:#3A2D14; --mid:#D9A04A;
+    --low-ink:#F0B3C2; --low-bg:#3A2029; --low:#D97A93;
+    --error-ink:#F4AEB0; --error-bg:#3A2022; --error:#E0777A; --on-error:#2A1219;
+    --info-ink:#F0BBC7; --info-bg:#33262B;
+    --inv-bg:#F7EEF0; --inv-ink:#211B1D; --logo-plate:#FFF9FA; --logo-pad:4px 10px;
+    --shadow-1:0 1px 2px rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.5);
+    --shadow-2:0 18px 40px -20px rgba(0,0,0,.7);
+    --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+  }
+}
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#171214; --bg-soft:#2A2024; --surface:#211A1D; --tint:#33262B; --tint-strong:#3A2A30;
@@ -56,8 +78,9 @@
   --good-ink:#A9D8C1; --good-bg:#1F3329; --good:#6FB898;
   --mid-ink:#EBC27A; --mid-bg:#3A2D14; --mid:#D9A04A;
   --low-ink:#F0B3C2; --low-bg:#3A2029; --low:#D97A93;
-  --error-ink:#F4AEB0; --error-bg:#3A2022; --error:#E0777A;
+  --error-ink:#F4AEB0; --error-bg:#3A2022; --error:#E0777A; --on-error:#2A1219;
   --info-ink:#F0BBC7; --info-bg:#33262B;
+  --inv-bg:#F7EEF0; --inv-ink:#211B1D; --logo-plate:#FFF9FA; --logo-pad:4px 10px;
   --shadow-1:0 1px 2px rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.5);
   --shadow-2:0 18px 40px -20px rgba(0,0,0,.7);
   --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
