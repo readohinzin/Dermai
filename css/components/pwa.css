@@ -36,8 +36,8 @@
 .c-theme--compact .c-theme__row{margin-top:var(--s-1,4px)}
 .c-theme--compact .c-theme__opt{min-height:44px;padding:0 var(--s-3,12px);font-size:var(--fs-sm,.875rem)}
 
-/* Bouton clair/sombre de l'en-tête (js/theme.js) : posé juste avant (à gauche de) le bouton du menu, même gabarit ; couleur d'accent du thème (violet foncé en clair, rose en sombre) ; on montre le dessin de l'action possible. */
-.c-themebtn{position:absolute;left:20px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:var(--tap);height:var(--tap);padding:0;border:1.5px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:var(--r-sm);background:var(--surface);color:var(--accent);cursor:pointer}
+/* Bouton clair/sombre de l'en-tête (js/theme.js) : posé juste avant (à gauche de) le bouton du menu, tous deux à droite, même gabarit ; couleur d'accent du thème (violet foncé en clair, rose en sombre) ; on montre le dessin de l'action possible. */
+.c-themebtn{position:absolute;right:calc(20px + var(--tap) + 8px);top:50%;transform:translateY(-50%);display:grid;place-items:center;width:var(--tap);height:var(--tap);padding:0;border:1.5px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:var(--r-sm);background:var(--surface);color:var(--accent);cursor:pointer}
 .c-themebtn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .c-themebtn__sun{display:none}
 :root[data-theme="dark"] .c-themebtn__moon{display:none}

@@ -32,7 +32,7 @@ const rects = page => page.evaluate(() => {
   return { brand: r('.m-brand'), logo: r('.m-brand .brand'), toggle: r('.sidebar__toggle'), top: r('.top'), content: r('.main > :not(.m-brand):not(.top)'), scrollY: window.scrollY, docH: document.documentElement.scrollHeight, vh: window.innerHeight };
 });
 
-test('SH1 l\'en-tête de la page (boutons à gauche, logo à droite) reste en haut pendant le défilement, sur chaque écran à menu, à 320, 390 et 420 px', opts, async () => {
+test('SH1 l\'en-tête de la page (logo à gauche, boutons à droite) reste en haut pendant le défilement, sur chaque écran à menu, à 320, 390 et 420 px', opts, async () => {
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   seed(env); await boot(env); const { page } = env;
   let scrolled = 0;
@@ -42,8 +42,8 @@ test('SH1 l\'en-tête de la page (boutons à gauche, logo à droite) reste en ha
       await page.evaluate(x => go(x), r); await page.waitForTimeout(120);
       await page.evaluate(() => window.scrollTo(0, 0)); const top0 = await rects(page);
       assert.ok(top0.brand && Math.abs(top0.brand.y) <= 1 && Math.abs(top0.brand.h - 56) <= 0.5 && top0.brand.w >= w - 1, `${r} ${w}px haut de page : ${JSON.stringify(top0.brand)}`);
-      assert.ok(Math.abs(top0.logo.x + top0.logo.w - (w - 12)) <= 1, 'logo à l\'extrême droite (dessin à 20 px du bord, marge interne du bouton annulée) : ' + JSON.stringify(top0.logo));
-      assert.ok(Math.abs(top0.toggle.x - 72) <= 1 && top0.toggle.x + top0.toggle.w < top0.logo.x, 'bouton du menu à gauche (après le bouton clair / sombre), sans toucher le logo : ' + JSON.stringify(top0.toggle));
+      assert.ok(Math.abs(top0.logo.x - 12) <= 1, 'logo à l\'extrême gauche (dessin à 20 px du bord, marge interne du bouton annulée) : ' + JSON.stringify(top0.logo));
+      assert.ok(top0.toggle.x + top0.toggle.w <= w - 16 && top0.toggle.x + top0.toggle.w >= w - 24 && top0.toggle.x > top0.logo.x + top0.logo.w, 'bouton du menu à 20 px du bord droit, sans toucher le logo : ' + JSON.stringify(top0.toggle));
       assert.ok(top0.toggle.y >= 0 && top0.toggle.y + top0.toggle.h <= 56, 'bouton dans l\'en-tête');
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
       const t = await rects(page);
@@ -117,6 +117,6 @@ test('SH5 source : en-tête figé (sticky) dans nav.css, sous la zone sûre, au-
   assert.match(nav, /:root\{--mbrand-h:56px\}/); assert.match(nav, /\.m-brand\+\.top\{margin-top:-12px;top:calc\(env\(safe-area-inset-top,0px\) \+ var\(--mbrand-h\)\)\}/);
   assert.match(nav, /@media \(min-width:920px\)\{\.m-brand\{display:none\}\}/);
   assert.ok(!/\.m-brand\{position:relative\}/.test(sb), 'plus de position:relative qui annulerait le sticky (même couche, chargée après)');
-  assert.match(sb, /\.sidebar__toggle\{position:absolute;left:calc\(20px \+ var\(--tap\) \+ 8px\);top:50%/);
+  assert.match(sb, /\.sidebar__toggle\{position:absolute;right:20px;top:50%/);
   const z = fs.readFileSync(path.join(__dirname, '../css/tokens.css'), 'utf8'); assert.match(z, /--z-header:10;/); assert.match(z, /--z-sheet:50;/);
 });

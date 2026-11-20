@@ -17,9 +17,9 @@ test('TT1 bouton : libellé accessible, lune et soleil, aucun tiret cadratin ; p
   assert.equal(Buffer.byteLength(read('js/app.js')), 149502, 'app.js : taille fixée, plafond non relevé');
 });
 
-test('TT2 style : même gabarit que le bouton du menu, collé à sa gauche, logo à l\'extrême droite, couleur d\'accent (violet en clair, rose en sombre), jamais sur le bureau', () => {
+test('TT2 style : même gabarit que le bouton du menu, collé à sa gauche, logo à l\'extrême gauche, couleur d\'accent (violet en clair, rose en sombre), jamais sur le bureau', () => {
   const css = read('css/components/pwa.css');
-  assert.match(css, /\.c-themebtn\{position:absolute;left:20px/);
+  assert.match(css, /\.c-themebtn\{position:absolute;right:calc\(20px \+ var\(--tap\) \+ 8px\)/);
   assert.match(css, /width:var\(--tap\);height:var\(--tap\)/); assert.match(css, /color:var\(--accent\)/);
   assert.match(css, /:root\[data-theme="dark"\] \.c-themebtn__sun\{display:block\}/); assert.match(css, /:root:not\(\[data-theme="light"\]\) \.c-themebtn__sun\{display:block\}/);
   assert.match(css, /@media \(min-width:920px\)\{\.c-themebtn\{display:none\}\}/);
@@ -41,11 +41,11 @@ test('TT3 clic : passe de clair à sombre et inverse, choix gardé sur l\'appare
       const b = document.querySelector('.m-brand .c-themebtn'), m = document.querySelector('.m-brand .sidebar__toggle'), vis = s => getComputedStyle(b.querySelector(s)).display !== 'none';
       return { theme: document.documentElement.getAttribute('data-theme'), stored: localStorage.getItem('dermai.theme'), moon: vis('.c-themebtn__moon'), sun: vis('.c-themebtn__sun'), color: getComputedStyle(b).color,
         gap: Math.round(m.getBoundingClientRect().left - b.getBoundingClientRect().right), before: b.getBoundingClientRect().right <= m.getBoundingClientRect().left,
-        logoRight: Math.round(innerWidth - document.querySelector('.m-brand .brand-logo').getBoundingClientRect().right), menuRight: Math.round(m.getBoundingClientRect().right), logoLeft: Math.round(document.querySelector('.m-brand .brand-logo').getBoundingClientRect().left) };
+        themeLeft: Math.round(b.getBoundingClientRect().left), menuRight: Math.round(m.getBoundingClientRect().right), logoLeft: Math.round(document.querySelector('.m-brand .brand-logo').getBoundingClientRect().left) };
     });
     const a = await snap();
     assert.deepEqual([a.moon, a.sun, a.before, a.gap], [true, false, true, 8], 'en clair : lune, juste avant le menu');
-    assert.equal(a.logoRight, 20, 'logo à l\'extrême droite (marge de la page)'); assert.ok(a.logoLeft > a.menuRight, 'les deux boutons à gauche, le logo à droite');
+    assert.equal(a.logoLeft, 20, 'logo à l\'extrême gauche (marge de la page)'); assert.ok(a.logoLeft + 100 < a.themeLeft && a.menuRight === 370, 'logo à gauche, les deux boutons à droite');
     await btn.click(); const d = await snap();
     assert.deepEqual([d.theme, d.stored, d.moon, d.sun], ['dark', 'dark', false, true], 'en sombre : soleil');
     assert.notEqual(d.color, a.color, 'la couleur suit le thème');

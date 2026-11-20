@@ -391,12 +391,12 @@ test('SBB16 depuis le profil : le bouton « Se déconnecter » existant fonction
   clean(env); await env.close();
 });
 
-test('SBB14 mobile : bouton de menu à GAUCHE (après le bouton clair / sombre, logo à droite), estompé quand le panneau est ouvert ; croix nue à droite de l\'en-tête ; entrées aérées, « Se déconnecter » en couleur d\'alerte', opts, async () => {
+test('SBB14 mobile : bouton de menu à DROITE (le bouton clair / sombre juste avant, logo à gauche), estompé quand le panneau est ouvert ; croix nue à droite de l\'en-tête ; entrées aérées, « Se déconnecter » en couleur d\'alerte', opts, async () => {
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   seed(env); await boot(env);
   const { page } = env, tg = page.locator('.sidebar__toggle');
   const W = 420, tb = await tg.boundingBox(), logo = await page.locator('.m-brand .brand').first().boundingBox();
-  assert.ok(tb.x < W / 2 && Math.abs(tb.x - 72) <= 1, 'bouton à gauche : ' + JSON.stringify(tb)); assert.ok(logo.x > tb.x + tb.width && Math.abs(logo.x + logo.width - (W - 12)) <= 1, 'le logo est à l\'extrême droite : ' + JSON.stringify(logo));
+  assert.ok(tb.x + tb.width > W - 40 && tb.x > W / 2, 'bouton à droite : ' + JSON.stringify(tb)); assert.ok(Math.abs(logo.x - 12) <= 1 && logo.x + logo.width < tb.x, 'le logo est à l\'extrême gauche : ' + JSON.stringify(logo));
   const look = () => page.evaluate(() => { const s = getComputedStyle(document.querySelector('.sidebar__toggle')); return { border: s.borderTopColor, color: s.color, bg: s.backgroundColor }; });
   const closed = await look();
   await tg.click(); await wait(page);
