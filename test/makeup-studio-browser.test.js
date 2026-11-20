@@ -102,9 +102,12 @@ test('MB3 parcours complet : photo, look, couleur, texture, intensité (rien n\'
   assert.deepEqual(cfg.lips, { color: '#6e2150', texture: 'gloss', colorIntensity: 72 }); assert.equal(cfg.foundation.color, '#5e3425'); assert.ok(!/src_file|effects|http/.test(q.url.replace(/^.*cfg=/, '')));
   await page.waitForFunction(() => { const i = document.querySelector('[data-ms=after]'); return i && i.complete && i.naturalWidth > 0; });
   const t = await text(page);
-  assert.match(t, /Avant/); assert.match(t, /Avec maquillage/); assert.match(t, /Aperçu généré par ordinateur/); assert.match(t, /Recommencer avec d'autres couleurs/); assert.match(t, /Télécharger l'image/);
+  assert.match(t, /Avant/); assert.match(t, /avec maquillage/); assert.match(t, /Aperçu généré par ordinateur/); assert.match(t, /Recommencer avec d'autres couleurs/); assert.match(t, /Télécharger l'image/);
   await page.$eval('[data-ms=pos]', el => { el.value = '20'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-  assert.match(await page.$eval('[data-ms=after]', el => el.style.clipPath), /20%/);
+  assert.match(await page.$eval('[data-ms=after]', el => el.style.clipPath), /80%/, 'curseur à 20 : 20 % de l\'image générée visible, depuis le bord droit');
+  const clipMs = async v => { await page.$eval('[data-ms=pos]', (el, x) => { el.value = x; el.dispatchEvent(new Event('input', { bubbles: true })); }, v); return page.$eval('[data-ms=after]', el => el.style.clipPath.replace(/px/g, '')); };
+  assert.match(await clipMs(0), /inset\(0 0 0 100%\)/, 'tout à gauche : photo d\'origine seule'); assert.match(await clipMs(100), /inset\(0 0 0 0%\)/, 'tout à droite : image générée seule');
+  assert.match(await page.innerText('.c-sim-ends'), /Avant\s*Après/, 'sous le curseur : Avant à gauche, Après à droite'); assert.match(await text(page), /Après : avec maquillage/);
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-ms=download]')]);
   assert.match(dl.suggestedFilename(), /^studio-beaute\.(png|jpg)$/);
   assert.equal(env.stats.mk.length, 1, 'télécharger ne relance rien'); assert.equal(env.stats.skin.length, 0);

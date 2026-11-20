@@ -140,5 +140,5 @@ test('PV10 câblage : module chargé avant son premier lecteur, titres et badges
   assert.ok(at('engine/data/inci-aliases.js') < at('engine/data/prevention.js') && at('engine/data/prevention.js') < at('engine/products.js') && at('engine/data/prevention.js') < at('engine/verif.js') && at('engine/data/prevention.js') < at('declared-concerns.js'));
   const r = read('js/verif-routine.js');
   assert.match(r, /unknownBadge: 'Composition non vérifiable'/); assert.match(r, /PV\.BADGE\.lightening/);
-  assert.ok(Buffer.byteLength(read('js/app.js')) <= 149502, 'app.js : plafond de taille non relevé');
+  assert.ok(Buffer.byteLength(read('js/app.js')) <= 149389, 'app.js : plafond de taille non relevé');
 });

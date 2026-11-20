@@ -228,6 +228,8 @@
         ${textures}<div class="c-ms-block">${sliders}</div></div>`;
     }
 
+    /* Curseur avant / après : tout à gauche = photo d'origine, tout à droite = image générée (découverte depuis le bord droit, donc toujours à droite comme l'étiquette « Après »). */
+    const clipOf = p => 'inset(0 0 0 ' + (100 - p) + '%)';
     function resultView() {
       const r = ui.results[ui.shown];
       if (!r) return '';
@@ -235,9 +237,10 @@
       return `<section class="c-ms-result" id="ms-result"><div class="hd"><h2 class="h3">Résultat</h2></div>${thumbs}
         ${r.expired ? note(MSG.imageLoad, 'c-notice--error', 'alert') : `<div class="c-ms-compare" data-ms="frame">
           <img src="${esc(ui.photoUrl)}" alt="Votre photo d'origine">
-          <img src="${esc(r.image)}" alt="Votre photo avec le maquillage essayé, image générée" data-ms="after" style="clip-path:inset(0 0 0 ${ui.pos}%)">
-          <span class="c-ms-tag c-ms-tag--l">Avant</span><span class="c-ms-tag c-ms-tag--r">Avec maquillage</span></div>
-        <input type="range" min="0" max="100" value="${ui.pos}" data-ms="pos" aria-label="Comparer avant et avec maquillage" class="c-ms-pos">`}
+          <img src="${esc(r.image)}" alt="Votre photo avec le maquillage essayé, image générée" data-ms="after" style="clip-path:${clipOf(ui.pos)}">
+          <span class="c-ms-tag c-ms-tag--l">Avant</span><span class="c-ms-tag c-ms-tag--r">Après : avec maquillage</span></div>
+        <input type="range" min="0" max="100" value="${ui.pos}" data-ms="pos" aria-label="Comparer avant et après : à gauche la photo d'origine, à droite l'image avec le maquillage" class="c-ms-pos">
+        <div class="c-sim-ends" aria-hidden="true"><span>Avant</span><span>Après</span></div>`}
         ${ui.notice ? note(ui.notice) : ''}
         <div class="stack" style="gap:8px;margin-top:12px"><button class="c-btn c-btn--secondary c-btn--block" data-ms="download"${r.expired ? ' disabled' : ''}>Télécharger l'image</button><button class="c-btn c-btn--secondary c-btn--block" data-ms="again">Recommencer avec d'autres couleurs</button></div>
         <p class="c-disclaimer">${esc(DATA_NOTE)}</p></section>`;
@@ -354,7 +357,7 @@
           }
         } else if (a === 'pos') {
           ui.pos = Math.max(0, Math.min(100, Number(t.value) || 0));
-          const img = x.querySelector('[data-ms="after"]'); if (img) img.style.clipPath = 'inset(0 0 0 ' + ui.pos + '%)';
+          const img = x.querySelector('[data-ms="after"]'); if (img) img.style.clipPath = clipOf(ui.pos);
         } else if (a === 'custom') {
           const cat = catOf(t); if (cat && /^#[0-9a-fA-F]{6}$/.test(t.value)) {
             ui.sel[cat].color = t.value.toLowerCase(); custom();

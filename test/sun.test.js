@@ -104,5 +104,5 @@ test('SU7 câblage : module chargé avant ses lecteurs ; explication de la règl
   const html = read('index.html'), at = s => html.indexOf('<script src="js/' + s + '"></script>');
   assert.ok(at('engine/data/prevention.js') < at('engine/data/sun.js') && at('engine/data/sun.js') < at('engine/products.js') && at('engine/data/sun.js') < at('declared-concerns.js'));
   assert.equal(typeof copy.selectionText({ rule: 'white_cast', candidates: 2 }), 'string'); assert.match(copy.selectionText({ rule: 'white_cast', candidates: 2 }), /^Parmi 2 protections solaires possibles/);
-  assert.equal(Buffer.byteLength(read('js/app.js')), 149502, 'app.js : taille fixée, plafond non relevé');
+  assert.equal(Buffer.byteLength(read('js/app.js')), 149389, 'app.js : taille fixée, plafond non relevé');
 });

@@ -99,7 +99,7 @@ test('SB7 câblage : module et feuille chargés une fois, avant l\'application ;
   const shell = app.slice(app.indexOf('function shell('), app.indexOf('const V={}'));
   assert.match(shell, /\$\{SB\.html\(\)\}/); assert.match(shell, /<div class="m-brand">\$\{DermaiTheme\.toggle\(\)\}\$\{SB\.toggle\(\)\}\$\{brandBtn\(44\)\}<\/div>/);
   assert.doesNotMatch(shell, /<aside class="rail">/, 'l\'ancien rail à cinq entrées est remplacé');
-  assert.match(shell, /<button class="c-scanfab" data-go="scan" data-reset="1" aria-label="Analyser ma peau">\$\{ic\(`scan`\)\}<\/button>/, 'seul reste de la barre du bas : le bouton d\'analyse, sans texte visible');
+  assert.ok(!/c-scanfab/.test(shell), 'plus de bouton d\'analyse flottant : « Analyser ma peau » reste dans le menu et sur l\'accueil');
   assert.doesNotMatch(app, /c-bottomnav|navBtns|const NAV=|TAB_OF/, 'l\'ancienne barre à cinq onglets est supprimée');
   assert.ok(fs.statSync(path.join(ROOT, 'js/app.js')).size < 150000);
 });

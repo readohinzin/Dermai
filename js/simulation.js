@@ -28,8 +28,11 @@
     generic: 'La simulation n\'a pas pu être terminée.',
     badImage: 'L\'image reçue n\'est pas utilisable. Cette simulation a peut-être été comptée dans votre quota.',
     imageLoad: 'L\'image simulée n\'a pas pu être chargée. Cette simulation est comptée dans votre quota.',
-    gone: 'La photo de cette analyse n\'est plus disponible dans DermAI.'
+    gone: 'La photo de cette analyse n\'est plus disponible dans DermAI.',
+    format: 'Format non pris en charge. Choisissez une photo JPEG ou PNG.',
+    tooBig: 'Cette photo est trop lourde (10 Mo au maximum). Choisissez-en une plus légère.'
   };
+  const MAX_FILE = 10 * 1024 * 1024;
   const PENDING = 'dermai.sim.pending.';
   const TIMEOUT_MS = 65000;
   const DATA_IMG = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -56,7 +59,7 @@
     const epoch = () => { try { return d.epoch ? d.epoch() : 0; } catch (e) { return 0; } };
     const redraw = () => { try { if (d.render) d.render(); } catch (e) { /* sans importance */ } };
     const store = () => { try { return d.session ? d.session() : root.sessionStorage; } catch (e) { return null; } };
-    const fresh = () => ({ who: undefined, avail: 'unknown', scanKey: null, concern: null, status: 'idle', error: '', unsure: false, acked: false, photo: null, photoBusy: false, needPhoto: false, beforeUrl: '', image: '', pos: 50, multi: false, concerns: [], shown: [] });
+    const fresh = () => ({ who: undefined, avail: 'unknown', scanKey: null, concern: null, status: 'idle', error: '', unsure: false, acked: false, photo: null, photoBusy: false, needPhoto: false, beforeUrl: '', image: '', pos: 50, multi: false, concerns: [], shown: [], photoUrl: '', autoUrl: '' });
     let ui = fresh();
 
     const marker = {
@@ -64,18 +67,20 @@
       set() { try { const s = store(); if (s && uid()) s.setItem(PENDING + uid(), String(Date.now())); } catch (e) { /* sans importance */ } },
       clear() { try { const s = store(); if (s && uid()) s.removeItem(PENDING + uid()); } catch (e) { /* sans importance */ } }
     };
+    /* Aperçus de la photo (photo choisie, ou photo de l'analyse en mémoire) : adresses locales libérées dès qu'elles ne servent plus. */
+    const revokePhoto = () => { for (const k of ['photoUrl', 'autoUrl']) { if (ui[k]) { try { URL.revokeObjectURL(ui[k]); } catch (e) { /* sans importance */ } } ui[k] = ''; } };
     const revoke = () => { if (ui.beforeUrl) { try { URL.revokeObjectURL(ui.beforeUrl); } catch (e) { /* sans importance */ } } ui.beforeUrl = ''; };
     /* Un autre compte (ou une déconnexion) : rien ne se transmet d'un compte à l'autre. */
     function sync() {
       const w = uid() || 'none';
-      if (ui.who !== w) { revoke(); ui = fresh(); ui.who = w; }
+      if (ui.who !== w) { revoke(); revokePhoto(); ui = fresh(); ui.who = w; }
     }
     const keyOf = s => (s && s.rec && s.rec.id) || (s && s.id) || 'cur';
     function forScan(s) {
       sync();
       if (ui.scanKey !== keyOf(s)) {
         if (ui.status === 'running' || ui.status === 'fetching') return;       // une demande est en cours : on ne change rien sous ses pieds
-        revoke();
+        revoke(); revokePhoto();
         Object.assign(ui, { scanKey: keyOf(s), concern: null, concerns: [], shown: [], multi: false, status: 'idle', error: '', photo: null, needPhoto: false, image: '', pos: 50, unsure: false, acked: false });
       }
     }
@@ -117,6 +122,13 @@
     };
     const urlOf = scan => (scan && typeof scan.photo === 'string' && /^https:\/\//.test(scan.photo) ? scan.photo : '');
 
+    /* Photo de l'analyse encore en mémoire : une adresse locale par analyse, pour l'aperçu seulement. */
+    function autoUrl(scan) {
+      if (ui.photo || !(scan && scan.blob instanceof Blob && scan.blob.size)) return '';
+      if (!ui.autoUrl) { try { ui.autoUrl = URL.createObjectURL(scan.blob); } catch (e) { ui.autoUrl = ''; } }
+      return ui.autoUrl;
+    }
+
     function page(scan) {
       forScan(scan);
       if (ui.avail !== 'yes') {
@@ -129,9 +141,22 @@
       const pending = marker.get() && !busy && ui.status !== 'done';
       const chips = CONCERNS.map(([k, l]) => `<button class="c-chip" data-sim="pick" data-c="${k}" aria-pressed="${ui.concerns.includes(k)}"${busy ? ' disabled' : ''}>${esc(l)}</button>`).join('');
       const multiBox = `<label class="c-checkrow"><input type="checkbox" data-sim="multi"${ui.multi ? ' checked' : ''}${busy ? ' disabled' : ''}><span>Sélectionner plusieurs zones</span></label>`;
-      const picker = `<div style="margin-top:10px"><input type="file" accept="image/*" data-sim="file" aria-label="Choisir une photo de face"${busy || ui.photoBusy ? ' disabled' : ''}></div>`;
-      const askPhoto = mustAsk ? `<div class="c-notice u-my-5">${ic('info')}<div><span class="c-notice__title">Une photo est nécessaire</span>${esc(MSG.gone)} La simulation modifie une photo de votre visage. DermAI ne garde pas la photo de vos analyses, sauf si vous l'avez choisi : vous devez donc en choisir une de face, bien éclairée. Elle sert uniquement à créer l'image simulée. Aucune nouvelle analyse n'est lancée.${picker}</div></div>`
-        : ui.photo ? `<div class="c-notice u-my-5">${ic('check')}<div><span class="c-notice__title">Photo prête</span>Cette photo servira uniquement à la simulation. Aucune analyse n'est lancée.${picker}</div></div>` : '';
+      const shownUrl = ui.photoUrl || autoUrl(scan) || urlOf(scan);
+      const off = busy || ui.photoBusy ? ' disabled' : '';
+      const preview = shownUrl
+        ? `<div class="c-ms-preview"><img src="${esc(shownUrl)}" alt="Votre photo, prête pour la simulation"></div>`
+        : `<div class="c-ms-empty"><p class="muted">${ui.photoBusy ? 'Préparation de la photo…' : 'Aucune photo choisie.'}</p></div>`;
+      const askPhoto = mustAsk ? `<div class="c-notice u-my-5">${ic('info')}<div><span class="c-notice__title">Une photo est nécessaire</span>${esc(MSG.gone)} La simulation modifie une photo de votre visage. DermAI ne garde pas la photo de vos analyses, sauf si vous l'avez choisi : vous devez donc en choisir une de face, bien éclairée. Elle sert uniquement à créer l'image simulée. Aucune nouvelle analyse n'est lancée.</div></div>`
+        : ui.photo ? `<div class="c-notice u-my-5">${ic('check')}<div><span class="c-notice__title">Photo prête</span>Cette photo servira uniquement à la simulation. Aucune analyse n'est lancée.</div></div>` : '';
+      const hasScanPhoto = !!(scan && ((scan.blob instanceof Blob && scan.blob.size) || urlOf(scan)));
+      const photoSection = `<section class="c-ms-photo"><div class="hd"><h2 class="h3">1. Votre photo</h2></div>
+        <ul class="c-ms-tips"><li>Visage de face, regard vers l'appareil.</li><li>Bien éclairé, avec une lumière douce.</li><li>Visage entièrement visible : cheveux, mains et lunettes écartés.</li><li>Assez proche : le visage doit remplir une bonne partie de la photo.</li></ul>
+        ${preview}${askPhoto}
+        <div class="stack" style="gap:8px"><button type="button" class="c-btn c-btn--secondary c-btn--block" data-sim="pick-file"${off}>${shownUrl ? 'Remplacer la photo' : 'Choisir une photo'}</button>
+        <button type="button" class="c-btn c-btn--ghost c-btn--block" data-sim="pick-selfie"${off}>Prendre un selfie</button>
+        ${ui.photo ? `<button type="button" class="link" data-sim="photo-remove"${off}>${hasScanPhoto ? 'Utiliser la photo de mon analyse' : 'Retirer la photo'}</button>` : ''}</div>
+        <p class="muted">JPEG ou PNG, moins de 10 Mo. La photo est réduite sur votre appareil.</p>
+        <input type="file" id="sim-file" data-sim="file" accept="image/jpeg,image/png" aria-label="Choisir une photo de face" hidden><input type="file" id="sim-selfie" data-sim="selfie" accept="image/jpeg,image/png" capture="user" aria-label="Prendre un selfie" hidden></section>`;
       const notice = ui.error ? `<div class="c-notice c-notice--error u-my-5" role="alert">${ic('info')}<div><span class="c-notice__title">${ui.unsure ? 'Réponse non reçue' : 'Simulation impossible'}</span>${esc(ui.error)}</div></div>` : '';
       const ack = pending && !ui.acked ? `<div class="c-notice u-my-5" role="status">${ic('info')}<div><span class="c-notice__title">Une simulation précédente est restée sans réponse</span>Elle a peut-être été comptée dans votre quota. Relancer en consomme une autre.
           <div style="margin-top:10px"><button class="c-btn c-btn--secondary" data-sim="ack">Je comprends, continuer</button></div></div></div>` : '';
@@ -140,8 +165,9 @@
       const result = ui.status === 'done' && ui.image ? beforeAfter(scan) : '';
       return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone, ou plusieurs : DermAI génère une image illustrative de ces zones améliorées, à comparer avec votre photo.</p></div>
         ${disclaimer}
-        <section><div class="hd"><h2 class="h3">${ui.multi ? 'Quelles zones ?' : 'Quelle zone ?'}</h2></div>${multiBox}<div class="chips" style="margin-bottom:14px">${chips}</div></section>
-        ${askPhoto}${ack}${notice}
+        ${photoSection}
+        <section><div class="hd"><h2 class="h3">${ui.multi ? '2. Quelles zones ?' : '2. Quelle zone ?'}</h2></div>${multiBox}<div class="chips" style="margin-bottom:14px">${chips}</div></section>
+        ${ack}${notice}
         <p class="muted" style="margin-bottom:12px">Chaque simulation compte dans votre quota de simulations, même si elle échoue, et reste indépendante de vos analyses. Plusieurs zones choisies ensemble donnent une seule image et comptent pour une seule simulation. L'image simulée n'est pas conservée par DermAI.</p>
         <button class="c-btn c-btn--primary c-btn--block" data-sim="run"${ready ? '' : ' disabled'} aria-busy="${busy}">${ui.status === 'fetching' ? 'Préparation de la photo…' : ui.status === 'running' ? 'Simulation en cours…' : 'Lancer la simulation'}</button>
         ${result}
@@ -218,15 +244,21 @@
       redraw();
     }
 
-    async function chosen(input, scan) {
+    async function chosen(input) {
       const f = input && input.files && input.files[0];
       if (!f || ui.photoBusy) return;
+      try { input.value = ''; } catch (e) { /* le même fichier pourra être rechoisi */ }
+      const ext = ((f.name || '').split('.').pop() || '').toLowerCase();
+      if (!(f.type === 'image/jpeg' || f.type === 'image/png' || (!f.type && ['jpg', 'jpeg', 'png'].includes(ext)))) { ui.error = MSG.format; redraw(); return; }
+      if (f.size > MAX_FILE) { ui.error = MSG.tooBig; redraw(); return; }
       ui.photoBusy = true; ui.error = ''; redraw();
       const ep = epoch(), who = ui.who;
       try {
         const blob = d.toJpeg ? await d.toJpeg(f) : null;
         if (ep !== epoch() || who !== ui.who) return;
-        ui.photo = blob; ui.needPhoto = false;
+        if (!blob) throw new Error('vide');
+        revokePhoto(); ui.photo = blob; ui.photoUrl = URL.createObjectURL(blob); ui.needPhoto = false;
+        if (ui.status === 'done' || ui.status === 'error') { ui.status = 'idle'; ui.image = ''; revoke(); }       // une autre photo : l'ancien résultat ne la concerne plus
       } catch (e) { if (ep === epoch() && who === ui.who) ui.error = (e && e.userMessage) || 'Impossible de lire cette photo. Essayez une autre image.'; }
       ui.photoBusy = false; redraw();
     }
@@ -250,6 +282,9 @@
           }
         }
         else if (act === 'ack') { ui.acked = true; redraw(); }
+        else if (act === 'pick-file') { const f = doc.getElementById('sim-file'); if (f) f.click(); }
+        else if (act === 'pick-selfie') { const f = doc.getElementById('sim-selfie'); if (f) f.click(); }
+        else if (act === 'photo-remove') { if (ui.status !== 'running' && ui.status !== 'fetching') { revokePhoto(); ui.photo = null; ui.needPhoto = false; if (ui.status === 'done' || ui.status === 'error') { ui.status = 'idle'; ui.image = ''; revoke(); } redraw(); } }
         else if (act === 'run') run(cur());
       });
       /* Image simulée illisible (lien expiré, réseau) : message clair plutôt qu'un cadre vide. L'événement « error » ne remonte pas : écoute en capture. */
@@ -260,7 +295,7 @@
       doc.addEventListener('change', ev => {
         const el = ev.target; if (!el || !el.getAttribute) return;
         const k = el.getAttribute('data-sim');
-        if (k === 'file') chosen(el, cur());
+        if (k === 'file' || k === 'selfie') chosen(el);
         else if (k === 'multi' && ui.status !== 'running' && ui.status !== 'fetching') {
           ui.multi = !!el.checked;
           if (!ui.multi && ui.concerns.length > 1) { ui.concerns = ui.concerns.slice(0, 1); ui.concern = ui.concerns[0]; if (ui.status === 'done' || ui.status === 'error') { ui.status = 'idle'; ui.image = ''; ui.error = ''; revoke(); } }   // une seule zone : on garde la première
@@ -276,7 +311,7 @@
     }
 
     /* Déconnexion / suppression de compte : on oublie tout (image, photo choisie, choix). */
-    function reset() { revoke(); ui = fresh(); }
+    function reset() { revoke(); revokePhoto(); ui = fresh(); }
     return { entry, page, attach, reset, probe, state: () => ui, CONCERNS };
   }
 

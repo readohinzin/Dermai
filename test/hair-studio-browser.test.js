@@ -97,7 +97,9 @@ test('HB3 coiffure : photo (réduite à 1 024 px), modèle choisi, UNE tâche ex
   const size = M.jpegSize(q.data); assert.ok(size && Math.max(size.width, size.height) <= 1024, 'photo envoyée : ' + JSON.stringify(size));
   await page.waitForFunction(() => { const i = document.querySelector('[data-hs=after]'); return i && i.complete && i.naturalWidth > 0; });
   const t = await text(page); assert.match(t, /Résultat : Coiffure complète/); assert.match(t, /Avant/); assert.match(t, /Aperçu généré par ordinateur/); assert.match(t, /Changer de modèle ou de couleur/);
-  await page.$eval('[data-hs=pos]', el => { el.value = '25'; el.dispatchEvent(new Event('input', { bubbles: true })); }); assert.match(await page.$eval('[data-hs=after]', el => el.style.clipPath), /25%/);
+  await page.$eval('[data-hs=pos]', el => { el.value = '25'; el.dispatchEvent(new Event('input', { bubbles: true })); }); assert.match(await page.$eval('[data-hs=after]', el => el.style.clipPath), /75%/, 'curseur à 25 : 25 % de l\'image générée visible, depuis le bord droit');
+  for (const [v, re] of [[0, /inset\(0 0 0 100%\)/], [100, /inset\(0 0 0 0%\)/]]) { await page.$eval('[data-hs=pos]', (el, x) => { el.value = x; el.dispatchEvent(new Event('input', { bubbles: true })); }, v); assert.match((await page.$eval('[data-hs=after]', el => el.style.clipPath)).replace(/px/g, ''), re); }
+  assert.match(await page.innerText('.c-sim-ends'), /Avant\s*Après/);
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-hs=download]')]); assert.match(dl.suggestedFilename(), /^studio-beaute-hairstyle\.(png|jpg)$/);
   assert.equal(env.stats.hr.length, 1, 'télécharger ne relance rien');
   const dump = await storageDump(page); assert.ok(!/blob:|data:image|vto-images|hair1|Signature/.test(dump), 'ni photo ni résultat en stockage'); assert.ok(!/dermai\.studio\.pending/.test(dump));

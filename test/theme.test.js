@@ -49,7 +49,7 @@ test('TH4 câblage : script posé dans <head> avant l\'affichage, métadonnées 
   const h = read('index.html'); assert.ok(h.indexOf('dermai.theme') > 0 && h.indexOf('dermai.theme') < h.indexOf('<link rel="stylesheet" href="css/styles.css">'), 'posé avant la feuille de style : aucun éclair clair');
   assert.match(h, /<meta name="color-scheme" content="light dark">/); assert.match(h, /name="theme-color" content="#FFF9FA" media="\(prefers-color-scheme: light\)"/); assert.match(h, /name="theme-color" content="#171214" media="\(prefers-color-scheme: dark\)"/);
   assert.ok(h.indexOf('js/theme.js') < h.indexOf('js/app.js') && h.indexOf('js/theme.js') < h.indexOf('js/sidebar.js'));
-  const app = read('js/app.js'); assert.match(app, /\$\{TN\.picker\(\)\}\$\{DermaiTheme\.picker\(\)\}\$\{marketSection\(\)\}/); assert.equal(Buffer.byteLength(app), 149502);
+  const app = read('js/app.js'); assert.match(app, /\$\{TN\.picker\(\)\}\$\{DermaiTheme\.picker\(\)\}\$\{marketSection\(\)\}/); assert.equal(Buffer.byteLength(app), 149389);
   assert.match(read('js/sidebar.js'), /DermaiTheme\.compact\(\)/);
   assert.doesNotMatch(read('js/theme.js').replace(/\/\*[\s\S]*?\*\//g, ''), /fetch\(|XMLHttpRequest|sendBeacon|sessionStorage|indexedDB|cookie/);
 });

@@ -83,7 +83,7 @@ test('MS4 essayage : UNE demande avec la photo et TOUS les effets choisis, le je
   const cfg = JSON.parse(decodeURIComponent(p.url.split('cfg=')[1])); assert.deepEqual(Object.keys(cfg).sort(), ['blush', 'eyes', 'lips', 'v'], 'tous les effets dans une seule demande');
   assert.ok(!/src_file|image_url|effects|skin_smooth/.test(p.url), 'le navigateur n\'envoie ni URL ni corps fournisseur');
   const s = c.st.state(); assert.equal(s.status, 'done'); assert.equal(s.results.length, 1); assert.equal(s.results[0].image, IMG); assert.equal(s.results[0].label, 'Élégant');
-  assert.match(c.st.page(), /Avant/); assert.match(c.st.page(), /Avec maquillage/); assert.match(c.st.page(), /Télécharger l'image/); assert.match(c.st.page(), /Recommencer avec d'autres couleurs/); assert.equal(c.sess.getItem('dermai.studio.pending.u1'), null, 'réponse reçue : marqueur levé');
+  assert.match(c.st.page(), /Avant/); assert.match(c.st.page(), /Après : avec maquillage/); assert.match(c.st.page(), /Télécharger l'image/); assert.match(c.st.page(), /Recommencer avec d'autres couleurs/); assert.equal(c.sess.getItem('dermai.studio.pending.u1'), null, 'réponse reçue : marqueur levé');
 });
 
 test('MS5 erreurs : session expirée (401), refus du serveur (message affiché tel quel), image inutilisable, réseau coupé (essayage peut-être compté, relance bloquée jusqu\'à confirmation)', async () => {

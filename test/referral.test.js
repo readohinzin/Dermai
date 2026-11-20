@@ -64,7 +64,7 @@ test('RF5 page du programme : le même bloc dans les deux vues (avant et pendant
   assert.equal((care.match(/\$\{referralBlock\(\)\}\$\{safety\(\)\}/g) || []).length, 2); assert.match(care, /data-referral-block/);
   const html = read('index.html'), at = s => html.indexOf('<script src="js/' + s + '"></script>');
   assert.ok(at('engine/data/referral.js') > 0 && at('engine/data/referral.js') < at('declared-concerns.js') && at('declared-concerns.js') < at('app.js'));
-  assert.equal(Buffer.byteLength(read('js/app.js')), 149502, 'app.js : taille fixée, plafond non relevé');
+  assert.equal(Buffer.byteLength(read('js/app.js')), 149389, 'app.js : taille fixée, plafond non relevé');
   assert.doesNotMatch(read('js/engine/data/referral.js').replace(/\/\*[\s\S]*?\*\//g, ''), /fetch\(|XMLHttpRequest|localStorage|sessionStorage|document\.|window\./);
 });
 
