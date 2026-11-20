@@ -96,7 +96,7 @@ test('SU6 affichage : rappel court sur chaque résultat, critères complets sur 
   assert.ok(h.includes('data-sun-note')); assert.match(h.replace(/<[^>]+>/g, ' '), /le soleil fonce les marques/);
   assert.ok(D.top(eng).includes('data-sun-note')); assert.equal(D.sunNote(null), ''); assert.equal(D.sunNote({}) !== '', true);
   const care = read('js/care-program.js');
-  assert.equal((care.match(/\$\{sunBlock\(\)\}\$\{safety\(\)\}/g) || []).length, 2, 'les deux vues du programme (avant et pendant)');
+  assert.equal((care.match(/\$\{sunBlock\(\)\}(?:\$\{referralBlock\(\)\})?\$\{safety\(\)\}/g) || []).length, 2, 'les deux vues du programme (avant et pendant)');
   assert.match(care, /data-sun-block/);
 });
 

@@ -87,9 +87,9 @@ test('DC8 affichage seul : le moteur n\'est ni modifié ni relu différemment (m
 
 test('DC9 top() = encart puis la synthèse existante, inchangée', () => {
   const eng = goodRun({ goals: ['blemishes'] });
-  assert.equal(D.top(eng), D.html(eng) + D.toneHtml() + D.rednessNote(eng) + D.preventionNote(eng) + D.sunNote(eng) + DermaiInsight.found(eng.synthesis));
+  assert.equal(D.top(eng), D.html(eng) + D.toneHtml() + D.rednessNote(eng) + D.preventionNote(eng) + D.sunNote(eng) + D.referralNote(eng) + DermaiInsight.found(eng.synthesis));
   const calm = goodRun({ goals: ['maintenance'] });
-  assert.equal(D.top(calm), D.toneHtml() + D.rednessNote(calm) + D.preventionNote(calm) + D.sunNote(calm) + DermaiInsight.found(calm.synthesis));
+  assert.equal(D.top(calm), D.toneHtml() + D.rednessNote(calm) + D.preventionNote(calm) + D.sunNote(calm) + D.referralNote(calm) + DermaiInsight.found(calm.synthesis));
 });
 
 test('DC10 entrées hostiles : jamais d\'exception', () => {
