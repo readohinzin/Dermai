@@ -87,9 +87,9 @@ test('DC8 affichage seul : le moteur n\'est ni modifié ni relu différemment (m
 
 test('DC9 top() = encart puis la synthèse existante, inchangée', () => {
   const eng = goodRun({ goals: ['blemishes'] });
-  assert.equal(D.top(eng), D.html(eng) + D.toneHtml() + D.rednessNote(eng) + D.preventionNote(eng) + D.sunNote(eng) + D.referralNote(eng) + DermaiInsight.found(eng.synthesis));
+  assert.equal(D.top(eng), D.html(eng) + D.confidenceHtml() + D.toneHtml() + D.rednessNote(eng) + D.preventionNote(eng) + D.sunNote(eng) + D.referralNote(eng) + DermaiInsight.found(eng.synthesis));
   const calm = goodRun({ goals: ['maintenance'] });
-  assert.equal(D.top(calm), D.toneHtml() + D.rednessNote(calm) + D.preventionNote(calm) + D.sunNote(calm) + D.referralNote(calm) + DermaiInsight.found(calm.synthesis));
+  assert.equal(D.top(calm), D.confidenceHtml() + D.toneHtml() + D.rednessNote(calm) + D.preventionNote(calm) + D.sunNote(calm) + D.referralNote(calm) + DermaiInsight.found(calm.synthesis));
 });
 
 test('DC10 entrées hostiles : jamais d\'exception', () => {
@@ -111,7 +111,7 @@ test('DC12 câblage : script chargé après insight-view.js et avant app.js ; ap
   const html = read('index.html'), at = s => html.indexOf('<script src="js/' + s + '"></script>');
   assert.ok(at('insight-view.js') > 0 && at('declared-concerns.js') > at('insight-view.js') && at('app.js') > at('declared-concerns.js'));
   const app = read('js/app.js');
-  assert.ok(app.includes('DermaiDeclared.top(eng)') && !app.includes('DermaiInsight.found(eng.synthesis)'));
+  assert.ok(app.includes('DermaiDeclared.top(eng,s)') && !app.includes('DermaiInsight.found(eng.synthesis)'));
   assert.ok(Buffer.byteLength(app) <= 149737, 'app.js ne doit pas grossir : le nouveau code vit dans un module');
   assert.doesNotMatch(read('js/declared-concerns.js'), /fetch\(|XMLHttpRequest|localStorage|sessionStorage/);
 });

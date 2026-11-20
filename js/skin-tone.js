@@ -78,12 +78,20 @@
     const m = /^(dry|oily|combination) & redness$/.exec(k);
     return m ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : v;
   }
+  /* Autres raisons de masquer une mesure (confiance, js/confidence.js) : des fonctions (normalized, teint) -> identifiants de mesures à masquer. */
+  const maskers = [];
+  const addMasker = fn => { if (typeof fn === 'function') maskers.push(fn); };
   /* COPIE de `normalized` pour l'affichage et le moteur. La donnée enregistrée n'est jamais modifiée. Sans masquage : le même objet. */
   function view(normalized, tone) {
     const t = tone === undefined ? get() : tone;
-    if (normalized === null || typeof normalized !== 'object' || !maskRedness(t)) return normalized;
-    const out = Object.assign({}, normalized, { redness: { rawScore: null, uiScore: null } });
-    if (normalized.skinType && typeof normalized.skinType === 'object') {
+    if (normalized === null || typeof normalized !== 'object') return normalized;
+    const ids = new Set();
+    if (maskRedness(t)) ids.add('redness');
+    for (const m of maskers) { try { for (const id of (m(normalized, t) || [])) ids.add(id); } catch (e) { /* un masqueur défaillant ne masque rien */ } }
+    if (!ids.size) return normalized;
+    const out = Object.assign({}, normalized);
+    for (const id of ids) if (id === 'redness' || (out[id] !== null && typeof out[id] === 'object')) out[id] = { rawScore: null, uiScore: null };
+    if (ids.has('redness') && normalized.skinType && typeof normalized.skinType === 'object') {
       const s = normalized.skinType;
       out.skinType = { whole: stripRedness(s.whole), tZone: stripRedness(s.tZone), uZone: stripRedness(s.uZone) };
     }
@@ -135,5 +143,5 @@
     });
   }
 
-  return { KEY, MONK, DEEP_FROM, REDNESS_FOR_DEEP, TEXT, isTone, isDeep, maskRedness, marks, read, write, get, set, view, stripRedness, picker, alertHtml, maskedHtml, bind };
+  return { KEY, MONK, DEEP_FROM, REDNESS_FOR_DEEP, TEXT, isTone, isDeep, maskRedness, marks, read, write, get, set, addMasker, view, stripRedness, picker, alertHtml, maskedHtml, bind };
 });

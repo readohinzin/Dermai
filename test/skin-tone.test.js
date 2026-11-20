@@ -115,7 +115,7 @@ test('TT7 « peau qui marque » : introduction plus lente des soins qui irritent
 
 test('TT8 écran Résultat : avertissement pour un teint foncé, note ou masque pour la rougeur, rien sans teint', () => {
   const eng = run({ redness: 70 }, { raw: 62 }, { goals: [] });
-  const none = D.top(eng, null), light = D.top(eng, 3), deep = D.top(Engine.run(T.view(norm({ redness: 70 }, { raw: 62 }), 8), { goals: [], level: 'simple' }), 8);
+  const none = D.top(eng, null, null), light = D.top(eng, null, 3), deep = D.top(Engine.run(T.view(norm({ redness: 70 }, { raw: 62 }), 8), { goals: [], level: 'simple' }), null, 8);
   assert.ok(!none.includes('data-tone-alert') && !none.includes('data-redness-masked') && none.includes('data-redness-note'));
   assert.ok(!light.includes('data-tone-alert') && !light.includes('data-redness-masked') && light.includes('data-redness-note'));
   assert.ok(deep.includes('data-tone-alert') && deep.includes('data-redness-masked') && !deep.includes('data-redness-note'));
