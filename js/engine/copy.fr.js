@@ -374,6 +374,7 @@
     only: 'C\'est le seul produit du catalogue DERMAI qui remplit ces critères.',
     more_actives: n => 'Parmi ' + n + ' produits possibles, c\'est celui qui contient le plus d\'ingrédients recherchés.',
     skin: n => 'Parmi ' + n + ' produits possibles, c\'est celui dont la fiche correspond à votre type de peau.',
+    white_cast: n => 'Parmi ' + n + ' protections solaires possibles, il est retenu de préférence : le fabricant indique qu\'il ne laisse pas de trace blanche (mention du fabricant, non mesurée par DERMAI).',
     editorial: n => 'Parmi ' + n + ' produits possibles, il passe en premier selon le classement éditorial DERMAI pour cet actif.',
     order: n => 'Parmi ' + n + ' produits équivalents, il est retenu selon l\'ordre du catalogue.'
   };

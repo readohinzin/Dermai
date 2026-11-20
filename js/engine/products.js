@@ -22,8 +22,8 @@
   const isNode = typeof module === 'object' && module.exports;
   const E = root.DermaiEngine || {};
   const dep = isNode
-    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js'), markets: require('./data/markets.js'), prevention: require('./data/prevention.js') }
-    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel, markets: E.marketsData, prevention: E.preventionData };
+    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js'), markets: require('./data/markets.js'), prevention: require('./data/prevention.js'), sun: require('./data/sun.js') }
+    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel, markets: E.marketsData, prevention: E.preventionData, sun: E.sunData };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); NS.products = api; }
@@ -204,6 +204,7 @@
         if (!isRealLink(p.image.sourceUrl) || !isDate(p.image.checkedAt) || !text(p.image.credit, 80)) e.push('image réelle : page d\'origine (https), date et crédit obligatoires');
       }
     }
+    for (const m of dep.sun.validate(p)) e.push(m);
     const sf = dep.prevention.check(p);
     if (sf.excluded.length) e.push('substance exclue (' + sf.excluded.join(', ') + ') : jamais dans le catalogue');
     if (sf.claims.length) e.push('promesse d\'éclaircissement (« ' + sf.claims[0] + ' ») : jamais dans le catalogue');
@@ -324,7 +325,8 @@
     for (const slot of ['morning', 'evening']) {
       routine.slots[slot].forEach(step => {
         if (step.owned) return;
-        const candidates = list.map((p, order) => ({ p, order })).filter(({ p }) => fitsStep(p, step)).filter(({ p }) => rejection(p, step, ctx) === null);
+        const ranked = step.kind === 'spf' ? [...list].sort((x, y) => (dep.sun.claimsNoWhiteCast(x) ? 0 : 1) - (dep.sun.claimsNoWhiteCast(y) ? 0 : 1)) : list;   // solaire : « sans trace blanche » (mention du fabricant) d'abord, tri stable
+        const candidates = ranked.map((p, order) => ({ p, order })).filter(({ p }) => fitsStep(p, step)).filter(({ p }) => rejection(p, step, ctx) === null);
         let wanted = [];
         if (step.kind === 'treatment') wanted = [step.activeId];
         if (step.kind === 'moisturize') wanted = step.supportIds;
@@ -339,13 +341,17 @@
         /* Justification obligatoire (produits réels) : un produit n'est proposé que si sa fiche contient ce que l'étape recherche
            (l'actif du soin ciblé, ou un ingrédient de soutien retenu pour l'hydratant). Une étape qui ne recherche rien (hydratant
            d'entretien, nettoyant, protection solaire) ne reçoit aucun produit réel « par défaut ». Les produits de démonstration restent des exemples. */
-        if (!wanted.length) pool = pool.filter(c => c.p.demo === true);
+        /* Protection solaire (réel) : proposée seulement si sa fiche porte un indice de 30 ou plus et une liste INCI lisible (data/sun.js) ; parmi elles, celles dont le fabricant dit « sans trace blanche »
+           passent d'abord (préférence, jamais un score : elle réordonne le point de départ du catalogue, la chaîne de tri reste actifs, peau, priorité, ordre). Un produit solaire « à vérifier » est déjà écarté par usable(). */
+        if (step.kind === 'spf') pool = pool.filter(c => c.p.demo === true || dep.sun.isSunOk(c.p));
+        else if (!wanted.length) pool = pool.filter(c => c.p.demo === true);
+        const whiteCast = p => (step.kind === 'spf' && dep.sun.claimsNoWhiteCast(p) ? 0 : 1);   // sert à nommer la règle appliquée (white_cast)
         pool = pool.sort((a, b) => score(b) - score(a) || (skinOk(b.p, routine.skinBase) - skinOk(a.p, routine.skinBase)) || byPrio(a, b) || a.order - b.order);
         if (!pool.length) return;
         const p = pool[0].p, because = wanted.filter(id => ids(p).includes(id));
         /* Règle de départage réellement appliquée (pour expliquer « pourquoi celui-ci plutôt qu'un autre ») */
         const sec = pool[1];
-        const rule = !sec ? 'only' : score(pool[0]) !== score(sec) ? 'more_actives' : skinOk(p, routine.skinBase) !== skinOk(sec.p, routine.skinBase) ? 'skin' : byPrio(pool[0], sec) !== 0 ? 'editorial' : 'order';
+        const rule = !sec ? 'only' : score(pool[0]) !== score(sec) ? 'more_actives' : skinOk(p, routine.skinBase) !== skinOk(sec.p, routine.skinBase) ? 'skin' : whiteCast(p) !== whiteCast(sec.p) ? 'white_cast' : byPrio(pool[0], sec) !== 0 ? 'editorial' : 'order';
         out.push(Object.assign({ stepId: step.id, kind: step.kind, productId: p.id, activeIds: because,
           because: because.length ? copy.productBecause(because.map(id => actives.byId(id).label)) : null, demo: p.demo === true,
           selection: { rule, candidates: pool.length } }, step.origin === 'accompaniment' ? { origin: 'accompaniment' } : {}));   // l'origine n'est notée que pour un soin d'accompagnement

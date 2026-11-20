@@ -17,8 +17,8 @@
 (function (root, factory) {
   const isNode = typeof module === 'object' && module.exports;
   const dep = isNode
-    ? { insight: require('./insight-view.js').DermaiInsight, actives: require('./engine/actives.js'), decision: require('./engine/data/decision.js'), copy: require('./engine/copy.fr.js'), tone: require('./skin-tone.js'), prevention: require('./engine/data/prevention.js') }
-    : { insight: root.DermaiInsight, actives: (root.DermaiEngine || {}).actives, decision: (root.DermaiEngine || {}).decisionData, copy: (root.DermaiEngine || {}).copy, tone: root.DermaiTone, prevention: (root.DermaiEngine || {}).preventionData };
+    ? { insight: require('./insight-view.js').DermaiInsight, actives: require('./engine/actives.js'), decision: require('./engine/data/decision.js'), copy: require('./engine/copy.fr.js'), tone: require('./skin-tone.js'), prevention: require('./engine/data/prevention.js'), sun: require('./engine/data/sun.js') }
+    : { insight: root.DermaiInsight, actives: (root.DermaiEngine || {}).actives, decision: (root.DermaiEngine || {}).decisionData, copy: (root.DermaiEngine || {}).copy, tone: root.DermaiTone, prevention: (root.DermaiEngine || {}).preventionData, sun: (root.DermaiEngine || {}).sunData };
   const api = factory(dep);
   if (isNode) module.exports = api; else root.DermaiDeclared = api;
 })(typeof self !== 'undefined' ? self : this, function (dep) {
@@ -114,8 +114,15 @@
     return '<div class="c-notice u-my-5" data-prevention-note><div><span class="c-notice__title">' + esc(g.title) + '</span>' + esc(g.text) + '</div></div>';
   }
 
-  /* Point d'entrée de l'écran Résultat : l'encart, l'avertissement lié au teint, la note sur les rougeurs, le rappel sur les taches, puis la synthèse existante, inchangée. */
-  const top = (eng, tone) => html(eng) + toneHtml(tone) + rednessNote(eng) + preventionNote(eng) + dep.insight.found(eng.synthesis);
+  /* Protection solaire : nécessaire à toutes les peaux (« le soleil fonce les marques »). Rappel court sur chaque résultat ; les critères de choix sont sur la page du programme. Texte : data/sun.js. */
+  function sunNote(eng) {
+    if (!dep.sun || !isObj(eng)) return '';
+    const t = dep.sun.TEXT;
+    return '<div class="c-notice u-my-5" data-sun-note><div><span class="c-notice__title">' + esc(t.title) + '</span>' + esc(t.rule) + '</div></div>';
+  }
 
-  return { view, html, rednessNote, toneHtml, preventionNote, top, TEXT, HANDLED, PERSISTENT };
+  /* Point d'entrée de l'écran Résultat : l'encart, l'avertissement lié au teint, la note sur les rougeurs, le rappel sur les taches, la protection solaire, puis la synthèse existante, inchangée. */
+  const top = (eng, tone) => html(eng) + toneHtml(tone) + rednessNote(eng) + preventionNote(eng) + sunNote(eng) + dep.insight.found(eng.synthesis);
+
+  return { view, html, rednessNote, toneHtml, preventionNote, sunNote, top, TEXT, HANDLED, PERSISTENT };
 });

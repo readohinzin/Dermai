@@ -54,6 +54,8 @@
   const MF = 'Fiche fabricant relevée par l\'équipe DERMAI et fournie au projet ; page non rouverte depuis l\'environnement d\'intégration (réseau bloqué)';
   const fournie = (label, url) => ({ kind: 'manufacturer', label, url, checkedAt: D2, method: MF });
   const TO = 'The Ordinary';
+  const D4 = '2026-11-20';   // date de lecture des pages fabricant solaires (lot 5)
+  const MD4 = 'Page fabricant ouverte et lue le jour du relevé (outil de lecture de pages) ; aucune liste INCI ni point de vente par pays sur la page';
 
   const PRODUCTS = [
     { id: 'to-salicylic-2-solution', name: 'Salicylic Acid 2% Solution', brand: TO, format: '30 ml', category: 'serum',
@@ -222,6 +224,23 @@
       active: false, demo: false, status: 'to_verify', inci: null,
       sources: [src('Vichy France : Liftactiv Sérum Vitamine C (20 ml)', 'https://www.vichy.fr/tous-les-produits/soins-de-la-peau/serums-pour-le-visage/signes-de-lage/liftactiv-vitaminc-serum-20ml'), src('Vichy UK : Liftactiv Vitamin C Serum', 'https://www.vichy.co.uk/all-products/skincare/face-serums/ageing-signs/liftactiv-vitamin-c-serum')],
       verification: { missing: ['Nom exact non confirmé : « Liftactiv Vitamin C Serum » (20 ml) et « Liftactiv Supreme Vitamin C Brightening Skin Corrector » sont deux références distinctes chez Vichy', 'Format, dosage et liste INCI de la référence retenue à confirmer sur la fiche fabricant'] },
+      offers: [], image: null },
+
+    /* PROTECTION SOLAIRE (lot 5). Seule fiche fabricant lue : La Roche-Posay Afrique (versions anglaise et française, 2026-11-20). Bioderma et Eucerin : sites africains inaccessibles depuis l'environnement
+       de travail, rien n'est repris de mémoire. « À VÉRIFIER » : jamais recommandé tant que la liste INCI et la disponibilité en Afrique de l'Ouest francophone ne sont pas établies. */
+    { id: 'lrp-anthelios-uvmune-400-invisible-fluid', name: 'Anthelios UVMune 400 Invisible Fluid SPF50+ (non parfumé)', brand: 'La Roche-Posay', format: '50 ml', category: 'spf',
+      ingredients: [{ activeId: null, label: 'Filtres UV (liste INCI non lue : à vérifier)' }],
+      skinTypes: ['all'], skinTypesDocumented: true, targets: [],
+      description: 'Fluide solaire visage SPF 50+, non parfumé, à la texture invisible (fini invisible, non gras, non collant), présenté par la marque pour tous les types de peau et tous les phototypes. La page fabricant en français dit qu\'il ne laisse pas de traces blanches.',
+      sun: { spf: '50+', filters: 'unknown', noWhiteCast: { claimed: true, quote: 'Il ne laisse pas de traces blanches ni de résidu gras, offrant un aspect naturel « peau nue » après l\'application.', source: 'La Roche-Posay Afrique, page produit en français, question « laisse-t-il un fini visible sur la peau ? »' } },
+      active: false, demo: false, status: 'to_verify', inci: null,
+      inciNote: 'Aucune liste d\'ingrédients sur les pages fabricant lues : à relever sur l\'emballage ou auprès de la marque.',
+      sources: [{ kind: 'manufacturer', label: 'La Roche-Posay Afrique : Anthelios UVMune 400 Invisible Fluid SPF50+ non parfumé (page en français)', url: 'https://africa.laroche-posay.com/fr/anthelios/anthelios-uvmune/anthelios-uvmune-400-invisible-fluid-spf50-plus-non-perfumed', checkedAt: D4, method: MD4 },
+        { kind: 'manufacturer', label: 'La Roche-Posay Afrique : Anthelios UVMune 400 Invisible Fluid SPF50+ non perfumed (page en anglais)', url: 'https://africa.laroche-posay.com/en-za/anthelios/anthelios-uvmune/anthelios-uvmune-400-invisible-fluid-spf50-plus-non-perfumed', checkedAt: D4, method: MD4 }],
+      verification: { missing: ['Liste d\'ingrédients (INCI) absente des pages fabricant lues : à relever sur l\'emballage ou auprès de La Roche-Posay',
+        'Disponibilité au Bénin et en Afrique de l\'Ouest francophone NON établie : les pages ne citent aucun pays ni revendeur (« No retailers are selected for this product »)',
+        'Mention « sans traces blanches » lue dans la version française seulement : à confirmer sur l\'emballage',
+        'Aucune offre (prix, vendeur, lien d\'achat) relevée'] },
       offers: [], image: null }
   ];
   return { PRODUCTS };
