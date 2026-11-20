@@ -11,3 +11,15 @@
 .pwa-install{background:#fff;color:var(--ink,#2b2118)}
 .pwa-later{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)}
 .pwa-banner button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+/* Bannière de mise à jour (js/update-banner.js) : en HAUT de l'écran, sous l'encoche, pour ne jamais recouvrir le bandeau d'installation (en bas). */
+.update-banner{position:fixed;left:12px;right:12px;top:calc(8px + env(safe-area-inset-top,0px));z-index:950;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  padding:14px 16px;background:var(--banner-bg,#2b2118);color:var(--banner-ink,#ffffff);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:560px;margin:0 auto;font-size:.95rem;line-height:1.4}
+.update-banner .update-text{flex:1 1 220px;min-width:0}
+.update-banner .update-title{margin:0 0 2px;font-weight:700;color:inherit}
+.update-banner .update-body{margin:0;color:inherit}
+.update-banner .update-actions{display:flex;gap:8px;flex:0 0 auto}
+.update-banner button{min-height:44px;padding:0 16px;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+.update-banner .update-apply{background:var(--banner-ink,#ffffff);color:var(--banner-bg,#2b2118);border:0}
+.update-banner .update-later{background:transparent;color:var(--banner-ink,#ffffff);border:1px solid currentColor}
+.update-banner button:focus-visible{outline:3px solid var(--banner-ink,#ffffff);outline-offset:2px}
