@@ -87,9 +87,9 @@ test('DC8 affichage seul : le moteur n\'est ni modifié ni relu différemment (m
 
 test('DC9 top() = encart puis la synthèse existante, inchangée', () => {
   const eng = goodRun({ goals: ['blemishes'] });
-  assert.equal(D.top(eng), D.html(eng) + D.confidenceHtml() + D.toneHtml() + D.rednessNote(eng) + D.preventionNote(eng) + D.sunNote(eng) + D.referralNote(eng) + DermaiInsight.found(eng.synthesis));
+  assert.equal(D.top(eng), D.html(eng) + D.confidenceHtml() + D.notesHtml(eng) + DermaiInsight.found(eng.synthesis));
   const calm = goodRun({ goals: ['maintenance'] });
-  assert.equal(D.top(calm), D.confidenceHtml() + D.toneHtml() + D.rednessNote(calm) + D.preventionNote(calm) + D.sunNote(calm) + D.referralNote(calm) + DermaiInsight.found(calm.synthesis));
+  assert.equal(D.top(calm), D.confidenceHtml() + D.notesHtml(calm) + DermaiInsight.found(calm.synthesis));
 });
 
 test('DC10 entrées hostiles : jamais d\'exception', () => {
@@ -114,4 +114,14 @@ test('DC12 câblage : script chargé après insight-view.js et avant app.js ; ap
   assert.ok(app.includes('DermaiDeclared.top(eng,s)') && !app.includes('DermaiInsight.found(eng.synthesis)'));
   assert.ok(Buffer.byteLength(app) <= 149737, 'app.js ne doit pas grossir : le nouveau code vit dans un module');
   assert.doesNotMatch(read('js/declared-concerns.js'), /fetch\(|XMLHttpRequest|localStorage|sessionStorage/);
+});
+
+test('DC13 espacement : les cartes d\'information sont groupées, sans marge propre ; un seul écart (12 px) entre elles, jamais 72 px', () => {
+  const { run } = require('./helpers/engine.js');
+  const eng = run({}, { raw: 70 }, { goals: ['tone'] }), h = D.notesHtml(eng);
+  assert.match(h, /^<div class="c-notes">/); assert.ok((h.match(/class="c-notice"/g) || []).length >= 3, 'plusieurs cartes dans un seul groupe');
+  assert.doesNotMatch(h, /u-my-5/, 'aucune marge propre : la colonne et le groupe espacent');
+  assert.equal((D.top(eng).match(/class="c-notes"/g) || []).length, 1, 'un seul groupe');
+  assert.match(fs.readFileSync(path.join(__dirname, '../css/components/feedback.css'), 'utf8'), /\.c-notes\{display:flex;flex-direction:column;gap:var\(--s-3,12px\)\}/);
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '../js/skin-tone.js'), 'utf8'), /c-notice u-my-5/);
 });

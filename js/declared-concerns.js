@@ -97,7 +97,7 @@
     const ind = isObj(eng) && isObj(eng.interpretation) && Array.isArray(eng.interpretation.indicators) ? eng.interpretation.indicators.find(i => i && i.id === 'redness') : null;
     if (!ind || !ind.available || !dep.copy || !dep.copy.REDNESS_NOTE) return '';
     const n = dep.copy.REDNESS_NOTE;
-    return '<div class="c-notice u-my-5" data-redness-note><div><span class="c-notice__title">' + esc(n.title) + '</span>' + esc(n.text) + '</div></div>';
+    return '<div class="c-notice" data-redness-note><div><span class="c-notice__title">' + esc(n.title) + '</span>' + esc(n.text) + '</div></div>';
   }
 
   /* Teint choisi (sur l'appareil) : avertissement « peau qui marque » et, si la mesure est masquée, la raison. Sans teint : rien. */
@@ -111,14 +111,14 @@
     const kept = isObj(eng.priorities) && Array.isArray(eng.priorities.items) ? eng.priorities.items.map(i => i && i.indicator) : [];
     if (!goals.includes('tone') && !kept.includes('pigmentation')) return '';
     const g = dep.prevention.GENERAL;
-    return '<div class="c-notice u-my-5" data-prevention-note><div><span class="c-notice__title">' + esc(g.title) + '</span>' + esc(g.text) + '</div></div>';
+    return '<div class="c-notice" data-prevention-note><div><span class="c-notice__title">' + esc(g.title) + '</span>' + esc(g.text) + '</div></div>';
   }
 
   /* Protection solaire : nécessaire à toutes les peaux (« le soleil fonce les marques »). Rappel court sur chaque résultat ; les critères de choix sont sur la page du programme. Texte : data/sun.js. */
   function sunNote(eng) {
     if (!dep.sun || !isObj(eng)) return '';
     const t = dep.sun.TEXT;
-    return '<div class="c-notice u-my-5" data-sun-note><div><span class="c-notice__title">' + esc(t.title) + '</span>' + esc(t.rule) + '</div></div>';
+    return '<div class="c-notice" data-sun-note><div><span class="c-notice__title">' + esc(t.title) + '</span>' + esc(t.rule) + '</div></div>';
   }
 
   /* Cas préoccupants : orientation vers un dermatologue, sans interprétation (texte : data/referral.js). Toujours présente sur le résultat, repliée sur la liste des situations ;
@@ -127,7 +127,7 @@
     if (!dep.referral || !isObj(eng)) return '';
     const t = dep.referral.TEXT;
     const kept = isObj(eng.priorities) && Array.isArray(eng.priorities.items) ? eng.priorities.items.map(i => i && i.indicator) : [];
-    return '<section class="c-notice u-my-5" data-referral aria-labelledby="ref-title"><div><span class="c-notice__title" id="ref-title">' + esc(t.title) + '</span>' + esc(t.intro) +
+    return '<section class="c-notice" data-referral aria-labelledby="ref-title"><div><span class="c-notice__title" id="ref-title">' + esc(t.title) + '</span>' + esc(t.intro) +
       (kept.includes('acne') ? '<p style="margin-top:8px" data-referral-acne>' + esc(t.acne) + '</p>' : '') +
       '<details class="c-why" style="margin-top:8px"><summary>' + esc(t.summary) + '</summary><ul class="l-list" style="margin-top:8px">' + t.signs.map(s => '<li><span>' + esc(s) + '</span></li>').join('') + '</ul>' +
       dep.referral.CLOSING.map(c => '<p style="margin-top:6px">' + esc(c) + '</p>').join('') + '</details></div></section>';
@@ -138,7 +138,10 @@
   /* Confiance de chaque mesure (js/confidence.js), pour l'analyse affichée : calculée par DermAI, mesures peu fiables masquées. */
   const confidenceHtml = (scan, tone) => (dep.confidence ? dep.confidence.card(scan, tone) : '');
 
-  const top = (eng, scan, tone) => html(eng) + confidenceHtml(scan, tone) + toneHtml(tone) + rednessNote(eng) + preventionNote(eng) + sunNote(eng) + referralNote(eng) + dep.insight.found(eng.synthesis);
+  /* Les cartes d'information se suivent dans UN groupe (écart de 12 px entre elles) : la colonne de l'écran sépare déjà ses sections de 32 px, deux marges s'additionnaient (environ 72 px). */
+  const notesHtml = (eng, tone) => { const n = toneHtml(tone) + rednessNote(eng) + preventionNote(eng) + sunNote(eng) + referralNote(eng); return n ? '<div class="c-notes">' + n + '</div>' : ''; };
 
-  return { view, html, rednessNote, toneHtml, preventionNote, sunNote, referralNote, confidenceHtml, top, TEXT, HANDLED, PERSISTENT };
+  const top = (eng, scan, tone) => html(eng) + confidenceHtml(scan, tone) + notesHtml(eng, tone) + dep.insight.found(eng.synthesis);
+
+  return { view, html, rednessNote, toneHtml, preventionNote, sunNote, referralNote, confidenceHtml, notesHtml, top, TEXT, HANDLED, PERSISTENT };
 });

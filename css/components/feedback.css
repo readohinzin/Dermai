@@ -29,3 +29,6 @@
 
 .c-disclaimer{font-size:var(--fs-xs);line-height:1.5;color:var(--ink-3)}
 .c-empty .c-btn--block{max-width:20rem}
+
+/* Groupe de cartes d'information qui se suivent (écran Résultat) : 12 px entre elles, sans marge propre. */
+.c-notes{display:flex;flex-direction:column;gap:var(--s-3,12px)}

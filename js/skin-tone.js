@@ -120,12 +120,12 @@
   /* Avertissement pour les teints foncés (texte seul : « peau qui marque »). '' sinon. */
   const alertHtml = tone => {
     const t = tone === undefined ? get() : tone;
-    return isDeep(t) ? '<div class="c-notice u-my-5" data-tone-alert><div><span class="c-notice__title">' + TEXT.alertTitle + '</span>' + esc(TEXT.alert) + '</div></div>' : '';
+    return isDeep(t) ? '<div class="c-notice" data-tone-alert><div><span class="c-notice__title">' + TEXT.alertTitle + '</span>' + esc(TEXT.alert) + '</div></div>' : '';
   };
   /* Rougeurs masquées : dit pourquoi la ligne est indisponible, avec un lien vers le profil. '' sinon. */
   const maskedHtml = tone => {
     const t = tone === undefined ? get() : tone;
-    return maskRedness(t) ? '<div class="c-notice u-my-5" data-redness-masked><div><span class="c-notice__title">' + TEXT.maskedTitle + '</span>' + esc(TEXT.masked) +
+    return maskRedness(t) ? '<div class="c-notice" data-redness-masked><div><span class="c-notice__title">' + TEXT.maskedTitle + '</span>' + esc(TEXT.masked) +
       ' <button type="button" class="link" data-go="profile">' + TEXT.maskedLink + '</button></div></div>' : '';
   };
 
