@@ -1,4 +1,4 @@
-/* DERMAI : modèle de résultat d'analyse de peau (Perfect Corp → DERMAI).
+/* DermAI : modèle de résultat d'analyse de peau (Perfect Corp → DermAI).
    Fichier partagé : chargé par le navigateur (<script>, expose window.SkinModel) et par Node (require).
    Aucune dépendance, aucune configuration de module. Fonctions pures : pas de DOM, pas de réseau.
 
@@ -16,7 +16,7 @@
      Tout autre type (dont resize_image) est ignoré. mask_urls, url et tout champ non listé ne sont jamais lus.
 
    DEUX COUCHES
-   1. normalized : donnée Perfect Corp renommée. Aucun calcul DERMAI.
+   1. normalized : donnée Perfect Corp renommée. Aucun calcul DermAI.
         { <métrique>: { rawScore, uiScore }, globalScore, skinType: { whole, tZone, uZone }, skinAge }
    2. affichage  : toResultView, compareScans, globalSeries (section « Modèle de score de l'interface »). Une seule échelle,
         0 à 100, 100 = meilleur, lue dans uiScore (métriques) et globalScore (global). rawScore n'est jamais utilisé à l'affichage.
@@ -41,7 +41,7 @@
 
   const SCHEMA_VERSION = 1;
 
-  /* Correspondance clé Perfect Corp → clé DERMAI. Source de vérité unique. */
+  /* Correspondance clé Perfect Corp → clé DermAI. Source de vérité unique. */
   const METRICS = [
     ['acne', 'acne'],
     ['pore', 'pores'],
@@ -116,7 +116,7 @@
 
   const FAIL = (status, extra) => Object.assign({ status, path: OUTPUT_PATH.join('.'), normalized: null, types: [], ignoredTypes: [] }, extra || {});
 
-  /* Région de skin_type (clé Perfect Corp) → clé DERMAI. */
+  /* Région de skin_type (clé Perfect Corp) → clé DermAI. */
   const SKIN_TYPE_REGIONS = { whole: 'whole', t_zone: 'tZone', u_zone: 'uZone' };
 
   function parseSkinResponse(envelope) {
@@ -197,7 +197,7 @@
        - global    : globalScore, tel que reçu. Jamais recalculé à partir des métriques, jamais inversé.
      Un score absent, non numérique ou hors de 0 à 100 est « indisponible » (score null) : jamais remplacé, jamais borné.
      Seul l'arrondi à l'entier est appliqué, pour l'affichage. */
-  /* Editorial DERMAI thresholds (61 / 31) : NOT supplied by Perfect Corp. Perfect Corp documente un ui_score entier, plus haut = mieux,
+  /* Editorial DermAI thresholds (61 / 31) : NOT supplied by Perfect Corp. Perfect Corp documente un ui_score entier, plus haut = mieux,
      sans bande ni seuil. Ces bandes servent à l'affichage (badges, barres) du score affiché. Les décisions du moteur utilisent leurs propres
      repères sur rawScore (js/engine/data/decision.js) ; 61 / 31 n'y servent qu'en compatibilité, pour une analyse sans rawScore. */
   const BANDS = [
@@ -212,7 +212,7 @@
   };
   const PRIORITY_COUNT = 3;
   /* Libellés des badges d'un INDICATEUR (même bande, même seuil 61 / 31 que ci-dessus : seule la formulation change). « Bien » était trop
-     absolu à côté d'une carte de détection ; « Niveau élevé » à côté de « Acné » se lisait comme beaucoup d'acné : le libellé parle donc du SCORE (100 = meilleur état), jamais de la chose mesurée, et ne dit pas « favorable » (contradiction avec un accompagnement, étape 27) ; ces libellés ne reprennent jamais le vocabulaire des décisions DERMAI (axe à soutenir,
+     absolu à côté d'une carte de détection ; « Niveau élevé » à côté de « Acné » se lisait comme beaucoup d'acné : le libellé parle donc du SCORE (100 = meilleur état), jamais de la chose mesurée, et ne dit pas « favorable » (contradiction avec un accompagnement, étape 27) ; ces libellés ne reprennent jamais le vocabulaire des décisions DermAI (axe à soutenir,
      priorité de soin), qui vient du moteur. Le score global garde les libellés de BANDS. */
   const INDICATOR_BAND_LABELS = { good: 'Score élevé', mid: 'Score intermédiaire', low: 'Score plus bas' };
 
@@ -259,7 +259,7 @@
   /* ---------- 4. Évolution entre deux analyses (écran Progression) ----------
      Même échelle et même validité que ci-dessus. Évolution = après − avant, sur les entiers affichés (100 = meilleur : + = mieux).
      Plus de TREND_STEP : Amélioration ; entre −TREND_STEP et +TREND_STEP inclus : Stable ; moins de −TREND_STEP : Baisse.
-     TREND_STEP = 2 est une convention d'interface DERMAI, pas une règle Perfect Corp.
+     TREND_STEP = 2 est une convention d'interface DermAI, pas une règle Perfect Corp.
      Si le score manque dans l'une des deux analyses (absent, invalide ou hors plage) : indisponible, jamais 0 ni autre valeur. */
   const TREND_STEP = 2;
   const TREND_LABELS = { up: 'Amélioration', same: 'Stable', down: 'Baisse' };

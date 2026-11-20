@@ -1,5 +1,5 @@
-/* DERMAI : écran « Vérif'Routine » (produits de la routine, ingrédients saisis ou du catalogue, points d'attention). Chargé avant app.js, après js/engine/verif.js.
-   Aucune décision cosmétique ici : l'analyse vient de js/engine/verif.js (fiches et règles DERMAI). Ce module n'appelle jamais le réseau ni le service d'analyse.
+/* DermAI : écran « Vérif'Routine » (produits de la routine, ingrédients saisis ou du catalogue, points d'attention). Chargé avant app.js, après js/engine/verif.js.
+   Aucune décision cosmétique ici : l'analyse vient de js/engine/verif.js (fiches et règles DermAI). Ce module n'appelle jamais le réseau ni le service d'analyse.
 
    Données et vie privée (version 1) : les produits (nom, catégorie, moments d'utilisation, liste INCI confirmée, origine, « m'a déjà irrité(e) ») sont gardés dans ce navigateur
    seulement (localStorage, une clé par compte : `dermai.verif.<identifiant du compte>`), 20 produits au plus. Ils ne sont ni envoyés, ni synchronisés entre appareils.
@@ -16,35 +16,35 @@
 
   const COPY = {
     title: 'Vérif\'Routine',
-    intro: 'Ajoutez les produits de votre routine et vérifiez leurs ingrédients. DERMAI s\'appuie seulement sur ses fiches, ses règles et ce que vous saisissez : il ne devine jamais la composition d\'un produit.',
+    intro: 'Ajoutez les produits de votre routine et vérifiez leurs ingrédients. DermAI s\'appuie seulement sur ses fiches, ses règles et ce que vous saisissez : il ne devine jamais la composition d\'un produit.',
     local: 'Vos produits sont gardés dans ce navigateur seulement : ils ne sont pas synchronisés avec vos autres appareils.',
     memory: 'Dans cette version de démonstration, vos produits ne sont pas conservés : ils disparaissent quand vous quittez la page.',
     visitor: 'Connectez-vous ou créez un compte pour enregistrer les produits de votre routine : ils sont gardés pour votre compte, dans ce navigateur.',
     warn: 'Ce navigateur refuse de garder vos produits : ils restent visibles pendant cette visite mais ne seront pas conservés.',
-    empty: 'Aucun produit pour le moment. Ajoutez un produit du catalogue DERMAI ou saisissez sa liste d\'ingrédients (INCI), écrite sur l\'emballage.',
+    empty: 'Aucun produit pour le moment. Ajoutez un produit du catalogue DermAI ou saisissez sa liste d\'ingrédients (INCI), écrite sur l\'emballage.',
     full: 'Votre routine contient déjà 20 produits, le maximum de cette version. Supprimez-en un pour en ajouter.',
     catalogDemo: 'Le catalogue vérifié n\'est pas affiché en démonstration. Vous pouvez saisir un produit à la main.',
     catalogNone: 'Aucun produit du catalogue ne correspond. Le catalogue vérifié est volontairement petit : vous pouvez saisir la liste INCI à la main.',
     unknownBadge: 'Composition non vérifiable',
-    originCatalog: 'Catalogue DERMAI sourcé',
+    originCatalog: 'Catalogue DermAI sourcé',
     originUser: 'Saisi par vous',
-    orderNote: 'Ordre indicatif DERMAI : nettoyant, soin ciblé, hydratant, protection solaire. Les produits « Autre » : suivez la notice.',
+    orderNote: 'Ordre indicatif DermAI : nettoyant, soin ciblé, hydratant, protection solaire. Les produits « Autre » : suivez la notice.',
     freqNote: 'Ce repère concerne l\'actif reconnu seulement. Il dépend de la concentration et de la formule du produit : suivez la notice du fabricant.',
-    freqMultiple: 'Ce produit contient plusieurs actifs ciblés : DERMAI ne propose pas de fréquence globale. Consultez la notice du produit.',
-    freqUnknown: 'Composition non vérifiable : DERMAI ne propose aucune fréquence. Consultez la notice du produit.',
-    freqUnvalidated: 'La fiche de cet actif est encore à valider : DERMAI ne propose pas de repère de fréquence. Consultez la notice du produit.',
-    noInci: 'Aucune liste INCI enregistrée pour ce produit. Utilisez « Modifier » pour la saisir : DERMAI ne peut rien vérifier tant qu\'elle manque.',
-    unknownNote: 'Non reconnu : DERMAI n\'a pas de fiche pour cet ingrédient. Ce n\'est ni bon ni mauvais, simplement non documenté ici.',
+    freqMultiple: 'Ce produit contient plusieurs actifs ciblés : DermAI ne propose pas de fréquence globale. Consultez la notice du produit.',
+    freqUnknown: 'Composition non vérifiable : DermAI ne propose aucune fréquence. Consultez la notice du produit.',
+    freqUnvalidated: 'La fiche de cet actif est encore à valider : DermAI ne propose pas de repère de fréquence. Consultez la notice du produit.',
+    noInci: 'Aucune liste INCI enregistrée pour ce produit. Utilisez « Modifier » pour la saisir : DermAI ne peut rien vérifier tant qu\'elle manque.',
+    unknownNote: 'Non reconnu : DermAI n\'a pas de fiche pour cet ingrédient. Ce n\'est ni bon ni mauvais, simplement non documenté ici.',
     reviewIntro: 'Vérifiez et corrigez chaque ingrédient avant d\'enregistrer. Rien n\'est enregistré tant que vous n\'avez pas confirmé.',
-    reviewEmpty: 'Aucune liste INCI saisie : le produit sera enregistré avec une « composition non vérifiable ». DERMAI ne pourra rien vérifier pour lui tant que vous n\'aurez pas saisi sa liste.',
-    pointsEmpty: 'Aucun point d\'attention avec les produits et les règles actuels. Cela ne veut pas dire que la routine est adaptée : DERMAI ne vérifie que ce qui est documenté.'
+    reviewEmpty: 'Aucune liste INCI saisie : le produit sera enregistré avec une « composition non vérifiable ». DermAI ne pourra rien vérifier pour lui tant que vous n\'aurez pas saisi sa liste.',
+    pointsEmpty: 'Aucun point d\'attention avec les produits et les règles actuels. Cela ne veut pas dire que la routine est adaptée : DermAI ne vérifie que ce qui est documenté.'
   };
 
   const fmtDay = iso => { try { return new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
   const newId = list => { let id; do { id = 'v' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4); } while (list.some(p => p.id === id)); return id; };
 
   /* deps : userId() → identifiant du compte ou null · status() → 'signedIn' | 'visitor' | 'checking' | 'off' | 'demo' · render() · ic(nom) · esc(texte)
-     storage() → localStorage ou null · catalog() → produits du catalogue (par défaut le catalogue vérifié de DERMAI ; vide en démonstration) */
+     storage() → localStorage ou null · catalog() → produits du catalogue (par défaut le catalogue vérifié de DermAI ; vide en démonstration) */
   function create(deps) {
     const d = deps || {}, E = V();
     const esc = d.esc || (s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c])));
@@ -205,10 +205,10 @@
 
     function addView() {
       const demo = !catalogRows().length;
-      return `<div class="chips" role="group" aria-label="Méthode d'ajout"><button class="c-chip" data-vr="tab" data-t="catalog" aria-pressed="${ui.tab === 'catalog'}">Catalogue DERMAI</button><button class="c-chip" data-vr="tab" data-t="manual" aria-pressed="${ui.tab === 'manual'}">Saisir à la main</button></div>
+      return `<div class="chips" role="group" aria-label="Méthode d'ajout"><button class="c-chip" data-vr="tab" data-t="catalog" aria-pressed="${ui.tab === 'catalog'}">Catalogue DermAI</button><button class="c-chip" data-vr="tab" data-t="manual" aria-pressed="${ui.tab === 'manual'}">Saisir à la main</button></div>
         ${ui.tab === 'catalog' ? `<div class="c-field" style="margin-top:14px"><label class="c-field__label" for="vr-q">Rechercher un produit</label><input class="c-input" id="vr-q" type="search" autocomplete="off" value="${esc(ui.q)}" placeholder="Marque ou nom"${demo ? ' disabled' : ''}></div><div id="vr-results" aria-live="polite">${resultsHtml()}</div>
         <p class="muted">Le catalogue contient des produits dont la liste INCI a été relevée sur la fiche du fabricant. Un produit absent du catalogue : saisissez sa liste à la main.</p>`
-          : `<div class="stack" style="margin-top:14px;gap:10px"><p>Vous saisirez le nom du produit puis la liste INCI écrite sur l'emballage. DERMAI ne devine jamais la composition d'un produit à partir de son nom.</p><button class="c-btn c-btn--primary c-btn--block" data-vr="manual">Continuer</button></div>`}
+          : `<div class="stack" style="margin-top:14px;gap:10px"><p>Vous saisirez le nom du produit puis la liste INCI écrite sur l'emballage. DermAI ne devine jamais la composition d'un produit à partir de son nom.</p><button class="c-btn c-btn--primary c-btn--block" data-vr="manual">Continuer</button></div>`}
         <div class="stack" style="margin-top:18px"><button class="link" data-vr="home">Retour à ma routine</button></div>`;
     }
 
@@ -251,11 +251,11 @@
       const x = E.analyzeProduct(p);
       const known = x.tokens.filter(t => t.kind === 'active'), unknown = x.tokens.filter(t => t.kind === 'unknown'), excl = x.tokens.filter(t => t.kind === 'excluded');
       const f = x.frequency;
-      const freq = f.kind === 'single' ? `<p><b>Repère DERMAI pour ${esc(f.label)} :</b> ${esc(f.text)}.${f.note ? ' ' + esc(f.note) : ''}</p><p class="muted">${esc(COPY.freqNote)}</p>`
+      const freq = f.kind === 'single' ? `<p><b>Repère DermAI pour ${esc(f.label)} :</b> ${esc(f.text)}.${f.note ? ' ' + esc(f.note) : ''}</p><p class="muted">${esc(COPY.freqNote)}</p>`
         : f.kind === 'multiple' ? `<p>${esc(COPY.freqMultiple)}</p>` : f.kind === 'unknown' ? `<p>${esc(COPY.freqUnknown)}</p>` : f.kind === 'unvalidated' ? `<p>${esc(COPY.freqUnvalidated)}</p>` : `<p class="muted">Aucune fréquence proposée : suivez la notice du produit.</p>`;
       const origin = p.origin.kind === 'catalog'
         ? `<p>${badge(COPY.originCatalog, 'c-badge--good')}</p><p class="muted">${esc(p.origin.label || '')}${p.origin.checkedAt ? `. Relevé le ${esc(fmtDay(p.origin.checkedAt))}.` : ''}</p>`
-        : `<p>${badge(COPY.originUser, 'c-badge--outline')}</p><p class="muted">Cette liste vient de votre saisie : DERMAI ne l'a pas vérifiée sur l'emballage.</p>`;
+        : `<p>${badge(COPY.originUser, 'c-badge--outline')}</p><p class="muted">Cette liste vient de votre saisie : DermAI ne l'a pas vérifiée sur l'emballage.</p>`;
       const mine = an => an.points.filter(pt => pt.productIds.includes(p.id) && ['EXCL', 'USER'].includes(pt.rule));
       return `${ui.notice ? note(ui.notice, 'c-notice--success') : ''}<div class="c-card c-vr-card"><h2 class="h3">${esc(p.name)}</h2><p class="muted">${esc(catLabel(p.category))}</p><p>${slotChips(p.slots)}</p>${origin}</div>
         ${mine(E.analyze(products)).map(pointHtml).join('')}
@@ -264,7 +264,7 @@
           ${known.length ? `<ul class="c-vr-list">${known.map(t => { const a = E.activeById(t.activeId); return `<li><b>${esc(t.raw)}</b> : ${esc(a.label)}${a.status === 'validated' ? '' : ' (fiche à valider)'}${t.validation === 'a_relire' ? ' <span class="muted">(correspondance à relire)</span>' : ''}${a.summary ? `<br><span class="muted">${esc(a.summary)}</span>` : ''}</li>`; }).join('')}</ul>` : ''}
           ${excl.length ? `<ul class="c-vr-list">${excl.map(t => `<li><b>${esc(t.raw)}</b> : ${stateBadge(t)}</li>`).join('')}</ul>` : ''}
           ${unknown.length ? `<details class="c-why"><summary>Ingrédients non reconnus (${unknown.length})</summary><p class="muted">${esc(COPY.unknownNote)}</p><p>${unknown.map(t => esc(t.raw)).join(', ')}</p></details>` : ''}`}</section>
-        ${x.cautions.length ? `<section style="margin-top:18px"><div class="hd"><h3 class="h3">Précautions des fiches DERMAI</h3></div><ul class="c-vr-list">${x.cautions.map(c => `<li><b>${esc(c.label)}</b>${c.status === 'validated' ? '' : ' (fiche à valider)'} : ${c.texts.map(esc).join(' ')}</li>`).join('')}</ul></section>` : ''}
+        ${x.cautions.length ? `<section style="margin-top:18px"><div class="hd"><h3 class="h3">Précautions des fiches DermAI</h3></div><ul class="c-vr-list">${x.cautions.map(c => `<li><b>${esc(c.label)}</b>${c.status === 'validated' ? '' : ' (fiche à valider)'} : ${c.texts.map(esc).join(' ')}</li>`).join('')}</ul></section>` : ''}
         <section style="margin-top:18px"><div class="hd"><h3 class="h3">Fréquence</h3></div>${freq}</section>
         <section style="margin-top:18px"><label class="c-check-row"><input type="checkbox" data-vr="irr" data-id="${esc(p.id)}"${p.irritated ? ' checked' : ''}> Ce produit m'a déjà irrité(e)</label><p class="muted">Information gardée dans ce navigateur seulement.</p></section>
         ${ui.confirm === p.id ? `<div class="c-notice c-notice--error u-my-5" role="alert"><div>Supprimer ce produit de votre routine ?<div class="stack" style="gap:8px;margin-top:10px"><button class="c-btn c-btn--primary c-btn--block" data-vr="del-yes" data-id="${esc(p.id)}">Supprimer</button><button class="link" data-vr="del-no">Annuler</button></div></div></div>`

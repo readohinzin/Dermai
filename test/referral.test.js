@@ -55,7 +55,7 @@ test('RF4 jamais déduit d\'un score : la liste est la même pour toutes les ana
   const a = D.referralNote(run({}, { raw: 90 }, { goals: [] })), b = D.referralNote(run({ hydration: 5, pigmentation: 5 }, { rawMap: { hydration: 5, pigmentation: 5 }, rawFill: 90 }, { goals: ['tone'] })),
     c = D.referralNote(run({ acne: 5 }, { rawMap: { acne: 5 }, rawFill: 90 }, { goals: [] }));
   assert.equal(noAcne(a), noAcne(b)); assert.equal(noAcne(a), noAcne(c));
-  assert.ok(!/(score|\/100|\d{2}\b)/.test(strip(a).replace(/DERMAI/g, '')), 'aucune note chiffrée');
+  assert.ok(!/(score|\/100|\d{2}\b)/.test(strip(a).replace(/DermAI/g, '')), 'aucune note chiffrée');
   assert.doesNotMatch(read('js/engine/data/referral.js').replace(/\/\*[\s\S]*?\*\//g, ''), /interpretation|indicators|rawScore|uiScore/);
 });
 
@@ -97,7 +97,7 @@ test('RFB1 résultat : le bloc est visible, la liste s\'ouvre au toucher ; page 
   await page.locator('[data-referral] summary').click();
   assert.equal(await page.locator('[data-referral] details').evaluate(d => d.open), true);
   const t = await page.locator('[data-referral] details').innerText();
-  assert.match(t, /cicatrice en relief qui grossit/); assert.match(t, /grain de beauté/); assert.match(t, /sous les ongles/); assert.match(t, /DERMAI ne peut ni examiner votre peau/);
+  assert.match(t, /cicatrice en relief qui grossit/); assert.match(t, /grain de beauté/); assert.match(t, /sous les ongles/); assert.match(t, /DermAI ne peut ni examiner votre peau/);
   const before = [...env.stats.supabase];
   await page.evaluate(() => go('program'));
   await page.waitForSelector('[data-referral-block]');

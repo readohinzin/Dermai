@@ -1,4 +1,4 @@
-/* DERMAI : écran « Programme de 30 jours » (suivi quotidien, tolérance, bilan hebdomadaire). Chargé avant app.js, après js/engine/program.js.
+/* DermAI : écran « Programme de 30 jours » (suivi quotidien, tolérance, bilan hebdomadaire). Chargé avant app.js, après js/engine/program.js.
    Aucune décision cosmétique ici : le plan vient de la routine DÉJÀ calculée (Engine.run → routinePlan, synthesis), les règles de calendrier de
    js/engine/program.js. Ce module ne contacte jamais le réseau et n'appelle jamais le service d'analyse : il ne fait que lire un résultat existant,
    tenir un petit journal local et afficher.

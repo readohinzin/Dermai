@@ -20,7 +20,7 @@
   const LEVEL_LABELS = ['Aucun signe', 'Léger', 'Modéré', 'Marqué'];
   const GROUPS = [['light', 'Teints 1 à 3', 1, 3], ['medium', 'Teints 4 à 5', 4, 5], ['deep', 'Teints 6 à 10', 6, 10]];
   const MIN_N = 10;                 // en dessous : « trop petit pour conclure »
-  const ENGINE_FLAG_BELOW = 50;     // repère DERMAI provisoire (js/engine/data/decision.js, RAW_BANDS) : en dessous, le moteur voit un point à soutenir
+  const ENGINE_FLAG_BELOW = 50;     // repère DermAI provisoire (js/engine/data/decision.js, RAW_BANDS) : en dessous, le moteur voit un point à soutenir
   const ALERT_RATE = 0.3;           // fausse rassurance à partir de laquelle on signale un écart
 
   const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);

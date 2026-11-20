@@ -36,7 +36,7 @@
   /* Textes. Mêmes garde-fous de vocabulaire que le reste de l'interface (test/care-program.test.js) : ni diagnostic, ni promesse, ni produit imposé. */
   const COPY = {
     title: 'Mon programme de 30 jours',
-    intro: 'Un calendrier simple, construit à partir de la routine de votre dernière analyse. DERMAI réutilise les résultats déjà obtenus : aucune nouvelle analyse n\'est lancée, jamais automatiquement.',
+    intro: 'Un calendrier simple, construit à partir de la routine de votre dernière analyse. DermAI réutilise les résultats déjà obtenus : aucune nouvelle analyse n\'est lancée, jamais automatiquement.',
     how: [
       'Les étapes de base (nettoyage doux, hydratation, protection solaire le matin) commencent dès le premier jour.',
       'Les soins ciblés arrivent un par un, à une semaine d\'intervalle, avec la fréquence de départ indiquée sur la fiche de l\'actif.',
@@ -49,7 +49,7 @@
       'Commencez par les étapes de base : un nettoyant doux, un hydratant simple et une protection solaire. Le soin ciblé est un plus, pas un préalable.',
       'N\'achetez le soin ciblé suivant qu\'après une semaine de bonne tolérance du précédent : cela évite des dépenses inutiles.',
       'Regardez l\'actif et sa concentration sur l\'étiquette plutôt que la marque. Si votre peau est sensible, privilégiez une formule courte et sans parfum.',
-      'DERMAI n\'impose aucun produit. Les prix et la disponibilité varient selon les points de vente au Bénin : un prix n\'est affiché dans « Produits » que s\'il est vérifié. Un pharmacien peut aussi vous orienter vers des produits simples.'
+      'DermAI n\'impose aucun produit. Les prix et la disponibilité varient selon les points de vente au Bénin : un prix n\'est affiché dans « Produits » que s\'il est vérifié. Un pharmacien peut aussi vous orienter vers des produits simples.'
     ],
     budgetByKind: {
       cleanse: 'Option économique : un nettoyant doux et simple, sans parfum, suffit. Évitez les produits très décapants.',
@@ -61,7 +61,7 @@
     safety: [
       'Rougeurs ou brûlures qui persistent, desquamation importante, boutons qui s\'étendent ou douloureux : arrêtez le soin concerné, rincez à l\'eau tiède et demandez conseil à un pharmacien, un médecin ou un dermatologue.',
       'Gonflement du visage, des lèvres ou des paupières, difficulté à respirer, douleur vive, yeux douloureux ou vision gênée : arrêtez tout produit et consultez en urgence.',
-      'Une plaie qui ne cicatrise pas, un grain de beauté qui change d\'aspect ou de taille, ou une question sur votre santé : parlez-en à un professionnel de santé. DERMAI n\'est pas un outil de diagnostic.',
+      'Une plaie qui ne cicatrise pas, un grain de beauté qui change d\'aspect ou de taille, ou une question sur votre santé : parlez-en à un professionnel de santé. DermAI n\'est pas un outil de diagnostic.',
       'Grossesse, allaitement, peau très réactive ou prise de médicaments : demandez l\'avis d\'un professionnel avant d\'ajouter un actif.'
     ],
     levelLabel: { none: 'Aucune gêne', mild: 'Gêne légère et brève', moderate: 'Gêne modérée ou persistante', strong: 'Réaction importante' },
@@ -82,7 +82,7 @@
     resumeBtn: 'Reprendre mes soins ciblés',
     resumeNote: 'À faire seulement quand la peau est apaisée et après l\'avis d\'un professionnel de santé. Les soins reviennent un par un, à une semaine d\'intervalle.',
     suspended: 'Suspendu : réaction importante notée.',
-    finished: 'Programme terminé. Le bilan ci-dessous résume votre régularité et votre tolérance. Vous pouvez le recommencer ou faire une nouvelle analyse quand vous le souhaitez (facultatif : DERMAI n\'en lance jamais automatiquement).',
+    finished: 'Programme terminé. Le bilan ci-dessous résume votre régularité et votre tolérance. Vous pouvez le recommencer ou faire une nouvelle analyse quand vous le souhaitez (facultatif : DermAI n\'en lance jamais automatiquement).',
     weekTitle: n => n === 5 ? 'Bilan des jours 29 et 30' : 'Bilan de la semaine ' + n,
     regularity: { wait: 'Pas encore assez de jours écoulés pour juger la régularité.', none: 'Aucune action prévue sur cette période.', good: 'Régularité satisfaisante.', mid: 'Régularité partielle : ce n\'est pas grave, vous pouvez simplifier.', low: 'Régularité faible : vous pouvez simplifier en gardant seulement les étapes de base.' },
     noTolerance: 'Aucune tolérance notée : indiquez chaque jour comment votre peau réagit pour adapter le programme.',
@@ -94,7 +94,7 @@
     progressHint: 'Si la tolérance reste bonne, vous pouvez, sans précipitation et un seul changement à la fois, suivre la consigne de la fiche :',
     unscheduled: 'Fréquence non reconnue : ce soin n\'est pas planifié automatiquement. Suivez la consigne de sa fiche d\'actif ou demandez conseil à un pharmacien.',
     unscheduledNote: labels => 'Fréquence non reconnue pour : ' + labels + '. Ces soins ne sont pas planifiés automatiquement : suivez la consigne de leur fiche d\'actif ou demandez conseil à un pharmacien.',
-    tolNote: 'Ces notes sont les vôtres : DERMAI ne les interprète pas comme un avis médical.',
+    tolNote: 'Ces notes sont les vôtres : DermAI ne les interprète pas comme un avis médical.',
     newStep: (label, day) => label + ' est introduit à partir du jour ' + day + '.',
     final: 'Ce bilan décrit votre régularité et votre tolérance, pas l\'évolution de votre peau. Pour comparer, une nouvelle analyse est possible, mais facultative.'
   };

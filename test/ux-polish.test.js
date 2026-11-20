@@ -18,7 +18,7 @@ test('UX1 l\'illustration de l\'accueil est un fichier JPEG, plus une image int�
 });
 
 test('UX2 accueil réel : l\'illustration et l\'exemple sont identifiés comme fictifs ; le démo n\'est pas modifié', () => {
-  // la mention visible de la bannière a été retirée (son équivalent texte reste lu par les lecteurs d'écran, voir js/hero.js) ; celle de la section « Ce que DERMAI observe » reste
+  // la mention visible de la bannière a été retirée (son équivalent texte reste lu par les lecteurs d'écran, voir js/hero.js) ; celle de la section « Ce que DermAI observe » reste
   assert.equal((app.match(/Illustration : personne fictive, aucun résultat réel\./g) || []).length, 1);
   assert.match(app, /\$\{DEMO_MODE\?``:`<p class="muted"[^`]*Illustration : personne fictive/);
   assert.match(fs.readFileSync(path.join(__dirname, '../js/hero.js'), 'utf8'), /const SR_NOTE = 'Exemple illustratif : personne fictive/);
@@ -42,7 +42,7 @@ test('UX5 analyse réelle : une seule action principale par état, libellés cla
   assert.match(scan, /Ajouter une photo/);
   assert.match(scan, /Choisir une autre photo/);
   assert.match(scan, /\$\{DEMO_MODE\?`<div class="qual">/);                         // plus de pseudo-contrôle de lumière en mode réel
-  assert.match(scan, /DERMAI ne la conserve que si vous l'avez choisi\./);
+  assert.match(scan, /DermAI ne la conserve que si vous l'avez choisi\./);
   assert.match(scan, /Réessayer/);
   const an = between('V.analyzing=()=>', '/* Résultat */');
   assert.match(an, /Cela peut prendre un moment\. Gardez cette page ouverte\./);

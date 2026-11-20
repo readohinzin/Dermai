@@ -1,5 +1,5 @@
 'use strict';
-/* DERMAI Évolution dans le VRAI index.html / js/app.js, dans Chromium, réseau entièrement simulé (voir test/helpers/browser-harness.js).
+/* DermAI Évolution dans le VRAI index.html / js/app.js, dans Chromium, réseau entièrement simulé (voir test/helpers/browser-harness.js).
    Prouve, avec l'application réelle : le bilan s'affiche AVANT les graphiques et tableaux ; classement des variations ; raccourcis (première analyse, début du programme) ;
    analyses non enregistrées exclues ; photos côte à côte (liens temporaires jamais stockés) ; consulter ou comparer n'appelle ni /api/skin-analysis, ni Perfect Corp,
    ni Supabase ; isolation entre comptes ; rendu à 420 px sans débordement. Ignoré si Playwright / Chromium sont absents. */

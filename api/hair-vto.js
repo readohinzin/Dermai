@@ -80,7 +80,7 @@ async function handler(req, res) {
     user = await auth.verifyUser(req, process.env, { budget });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: err });
-    console.warn('[DERMAI] Hair refused:', e.code);
+    console.warn('[DermAI] Hair refused:', e.code);
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });
   }
@@ -91,13 +91,13 @@ async function handler(req, res) {
     return send(res, 200, { ok: true, available, features: available ? features.map(f => ({ id: f.id, label: f.label, units: f.units, version: f.version, templates: !!f.templatesPath })) : [] });
   }
   /* Verrou et liste d'utilisateurs autorisés : désactivés par défaut, aucune photo n'est lue ni envoyée sinon. */
-  if (!isHairEnabled()) { console.warn('[DERMAI] Hair refused: DERMAI_HAIR_ENABLED is off'); return send(res, 503, { ok: false, error: toUserMessage('HR_DISABLED') }); }
-  if (!isHairAllowed(user.id)) { console.warn('[DERMAI] Hair refused: user not allowed'); return send(res, 403, { ok: false, error: toUserMessage('HR_DISABLED') }); }
+  if (!isHairEnabled()) { console.warn('[DermAI] Hair refused: DERMAI_HAIR_ENABLED is off'); return send(res, 503, { ok: false, error: toUserMessage('HR_DISABLED') }); }
+  if (!isHairAllowed(user.id)) { console.warn('[DermAI] Hair refused: user not allowed'); return send(res, 403, { ok: false, error: toUserMessage('HR_DISABLED') }); }
   try {
     const feature = featureOf(req);
     if (isList) return await listTemplates(req, res, feature, budget);
     const cfg = hair.parseConfig(feature.id, paramOf(req, 'cfg'));
-    console.log('[DERMAI] Hair started');
+    console.log('[DermAI] Hair started');
     const readWindowMs = budget.remaining() - (TIME_BUDGET.minStartMs + quota.TIMEOUT_MS);
     if (readWindowMs <= 0) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant la lecture de la photo (${budget.elapsed()} ms écoulées)` });
     const body = await readBody(req, undefined, { timeoutMs: readWindowMs });
@@ -105,13 +105,13 @@ async function handler(req, res) {
     if (!budget.canStart(TIME_BUDGET.minStartMs + quota.TIMEOUT_MS)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant le quota (${budget.elapsed()} ms écoulées)` });
     if (!perfectcorp.isConfigured()) throw new AnalysisError('HR_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });
     await quota.reserveHair(auth.bearerToken(req), feature.units, process.env, { budget });
-    console.log('[DERMAI] Hair quota reserved');
+    console.log('[DermAI] Hair quota reserved');
     const out = await provider.tryOn({ feature, buffer: images.buffer, refBuffer: images.refBuffer, mime: images.mime, config: cfg }, { budget });
     /* Le navigateur ne reçoit que l'image : ni enveloppe, ni task_id, ni clé. */
     return send(res, 200, { ok: true, hair: { feature: feature.id, image: out.image } });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('UNKNOWN', { cause: err });
-    console.error('[DERMAI] Hair failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
+    console.error('[DermAI] Hair failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
     if (e.status === 429 && e.retryAfter) res.setHeader('Retry-After', String(e.retryAfter));
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });

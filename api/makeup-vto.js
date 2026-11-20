@@ -43,18 +43,18 @@ async function handler(req, res) {
     user = await auth.verifyUser(req, process.env, { budget });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: err });
-    console.warn('[DERMAI] Makeup refused:', e.code);
+    console.warn('[DermAI] Makeup refused:', e.code);
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });
   }
   const available = isMakeupEnabled() && isMakeupAllowed(user.id) && perfectcorp.isConfigured();
   if (req.method === 'GET') return send(res, 200, { ok: true, available });
   /* Verrou et liste d'utilisateurs autorisés : désactivés par défaut, aucune photo n'est lue ni envoyée sinon. */
-  if (!isMakeupEnabled()) { console.warn('[DERMAI] Makeup refused: DERMAI_MAKEUP_ENABLED is off'); return send(res, 503, { ok: false, error: toUserMessage('MK_DISABLED') }); }
-  if (!isMakeupAllowed(user.id)) { console.warn('[DERMAI] Makeup refused: user not allowed'); return send(res, 403, { ok: false, error: toUserMessage('MK_DISABLED') }); }
+  if (!isMakeupEnabled()) { console.warn('[DermAI] Makeup refused: DERMAI_MAKEUP_ENABLED is off'); return send(res, 503, { ok: false, error: toUserMessage('MK_DISABLED') }); }
+  if (!isMakeupAllowed(user.id)) { console.warn('[DermAI] Makeup refused: user not allowed'); return send(res, 403, { ok: false, error: toUserMessage('MK_DISABLED') }); }
   try {
     const selection = makeup.parseConfig(cfgOf(req));
-    console.log('[DERMAI] Makeup started');
+    console.log('[DermAI] Makeup started');
     const readWindowMs = budget.remaining() - (TIME_BUDGET.minStartMs + quota.TIMEOUT_MS);
     if (readWindowMs <= 0) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant la lecture de la photo (${budget.elapsed()} ms écoulées)` });
     const body = await readBody(req, undefined, { timeoutMs: readWindowMs });
@@ -63,13 +63,13 @@ async function handler(req, res) {
     if (!budget.canStart(TIME_BUDGET.minStartMs + quota.TIMEOUT_MS)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant le quota (${budget.elapsed()} ms écoulées)` });
     if (!perfectcorp.isConfigured()) throw new AnalysisError('MK_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });
     await quota.reserveMakeup(auth.bearerToken(req), process.env, { budget });
-    console.log('[DERMAI] Makeup quota reserved');
+    console.log('[DermAI] Makeup quota reserved');
     const out = await studio.tryOn({ buffer: image.buffer, mime: image.mime, config: selection }, { budget });
     /* Le navigateur ne reçoit que l'image : ni enveloppe, ni task_id, ni clé. */
     return send(res, 200, { ok: true, makeup: { image: out.image } });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('UNKNOWN', { cause: err });
-    console.error('[DERMAI] Makeup failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
+    console.error('[DermAI] Makeup failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
     if (e.status === 429 && e.retryAfter) res.setHeader('Retry-After', String(e.retryAfter));
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });

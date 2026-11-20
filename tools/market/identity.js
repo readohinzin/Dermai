@@ -66,7 +66,7 @@ function validVolume(v, where, e) {
   if (!isText(v.unit) || !N.normalizeUnit(v.value, v.unit).ok) e.push(where + ' : unité inconnue');
   else if (v.normalized != null) { const r = N.normalizeUnit(v.value, v.unit); if (!r.normalized || r.normalized.value !== v.normalized.value || r.normalized.unit !== v.normalized.unit) e.push(where + ' : valeur normalisée incohérente'); }
 }
-/* validateIdentity(identité, { activeIds }) : liste d'erreurs (vide = valide). `activeIds` : actifs DERMAI existants (jamais de nouvel actif). */
+/* validateIdentity(identité, { activeIds }) : liste d'erreurs (vide = valide). `activeIds` : actifs DermAI existants (jamais de nouvel actif). */
 function validateIdentity(id, ctx) {
   const e = [], activeIds = new Set(ctx && Array.isArray(ctx.activeIds) ? ctx.activeIds : []);
   if (!isObj(id)) return ['identité absente'];
@@ -80,12 +80,12 @@ function validateIdentity(id, ctx) {
   if (id.variant !== null && !(isObj(id.variant) && A.VARIANT_IDS.includes(id.variant.id) && isText(id.variant.raw) && EXACTNESS.includes(id.variant.exactness) && isText(id.variant.source))) e.push('variante invalide (id connu, texte, exactitude, source)');
   if (!isObj(id.attributes) || !Array.isArray(id.attributes.actives) || !Array.isArray(id.attributes.concentrations)) e.push('attributes invalide');
   else {
-    for (const a of id.attributes.actives) if (!isObj(a) || !activeIds.has(a.activeId) || typeof a.label !== 'string') e.push('actif inconnu de DERMAI : ' + (isObj(a) ? a.activeId : a));
+    for (const a of id.attributes.actives) if (!isObj(a) || !activeIds.has(a.activeId) || typeof a.label !== 'string') e.push('actif inconnu de DermAI : ' + (isObj(a) ? a.activeId : a));
     for (const c of id.attributes.concentrations) {
       if (!isObj(c) || !(typeof c.percentage === 'number' && c.percentage > 0 && c.percentage <= 100)) e.push('pourcentage invalide');
       else {
         if (c.ingredient !== null && !isText(c.ingredient)) e.push('ingrédient invalide');
-        if (c.activeId !== null && !activeIds.has(c.activeId)) e.push('concentration : actif inconnu de DERMAI : ' + c.activeId);
+        if (c.activeId !== null && !activeIds.has(c.activeId)) e.push('concentration : actif inconnu de DermAI : ' + c.activeId);
         if (!Array.isArray(c.sources) || !c.sources.length || c.sources.some(s => !isText(s))) e.push('concentration sans source');
         if (!Array.isArray(c.qualifiers) || c.qualifiers.some(q => !QUALIFIER_IDS.includes(q))) e.push('réserve de concentration inconnue');
       }

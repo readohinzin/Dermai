@@ -76,10 +76,10 @@ test('C1 (17, 19, 20, 21) cas réel de référence : acné favorable sans priori
   assert.equal(st.pores.state, 'support'); assert.equal(st.hydration.state, 'support'); assert.equal(st.texture.state, 'descriptive');
   assert.equal(st.acne.text, 'Cet indicateur n\'est pas une priorité dans cette analyse. Votre routine de base suffit à l\'entretenir.');
   assert.equal(st.acne.level, 'À entretenir');
-  assert.match(r.synthesis.sections.retained, /^Aucun indicateur ne ressort comme priorité forte\. En revanche, DERMAI retient deux axes à soutenir : hydratation \(70\) et pores \(70\)\./);
+  assert.match(r.synthesis.sections.retained, /^Aucun indicateur ne ressort comme priorité forte\. En revanche, DermAI retient deux axes à soutenir : hydratation \(70\) et pores \(70\)\./);
   assert.match(r.synthesis.strategy.text, /^Stratégie : soutenir hydratation \(70\) et pores \(70\) avec 1 soin ciblé/);
   assert.equal(r.productMatches.length, 1); assert.equal(r.productMatches[0].stepId, 'morning:treatment:niacinamide');
-  assert.match(r.synthesis.products['morning:treatment:niacinamide'].text, /^Proposé par DERMAI\. Choisi parce qu'il contient l'actif recherché pour cet axe : niacinamide\./);
+  assert.match(r.synthesis.products['morning:treatment:niacinamide'].text, /^Proposé par DermAI\. Choisi parce qu'il contient l'actif recherché pour cet axe : niacinamide\./);
 });
 
 test('C2 (1) raw présent → décision raw : les ui_score (non communiqués pour ce cas) ne changent aucune décision', () => {
@@ -141,7 +141,7 @@ test('C6 trois niveaux distincts : favorable / axe à soutenir / priorité de so
   assert.deepEqual([st.hydration.state, st.pores.state, st.acne.state, st.texture.state, st.firmness.state], ['priority', 'support', 'accompaniment', 'descriptive', 'descriptive']);   // étape 27 : l'acné « good » ressort de ce lot, donc accompagnée
   assert.deepEqual([st.hydration.level, st.pores.level, st.acne.level], ['Priorité de soin', 'Axe à soutenir', 'Accompagnement léger']);
   assert.ok(!tids(r).some(id => r.activePlan.treatments.find(t => t.activeId === id).indicators.some(x => x === 'texture' || x === 'firmness')), 'texture et fermeté : aucun actif');
-  assert.match(r.synthesis.sections.retained, /^DERMAI retient une priorité de soin : hydratation \(60\), et un axe à soutenir : pores \(70\)\./);
+  assert.match(r.synthesis.sections.retained, /^DermAI retient une priorité de soin : hydratation \(60\), et un axe à soutenir : pores \(70\)\./);
   // texture raw < 50 (cas réel) : descriptive, jamais d'actif, même avec l'objectif texture
   const t = realCase({}, { goals: ['texture'] });
   assert.equal(t.synthesis.indicators.texture.state, 'descriptive');
@@ -169,7 +169,7 @@ test('C8 (4, 5, 8, 9, 10) carte : un indicateur à la fois, ses seuls masques r�
   assert.match(html('pores'), /data-facemap data-key="pores"/);
   assert.match(html('acne'), /Des éléments associés aux imperfections ont été détectés sur votre photo\./);
   assert.match(html('acne'), /Acné · 70\/100 · À entretenir\.<\/b> Cet indicateur n'est pas une priorité dans cette analyse\./);
-  assert.match(html('pores'), /Pores · 70\/100 · Axe à soutenir\.<\/b> DERMAI retient cet indicateur comme axe à soutenir/);
+  assert.match(html('pores'), /Pores · 70\/100 · Axe à soutenir\.<\/b> DermAI retient cet indicateur comme axe à soutenir/);
   const none = html('hydration');
   assert.match(none, /data-facemap data-key=""/, 'hydratation sans masque : aucun calque');
   assert.match(none, /Localisation visuelle indisponible pour cet indicateur\./);
@@ -202,9 +202,9 @@ test('C10 (13, 14) pays : ne touche ni la carte ni la décision', () => {
 test('C11 textes : résultats les moins élevés descriptifs ; routine et produits justifiés ; hydratation sans « déshydratée » ; aucun mot médical', () => {
   const r = realCase(), y = r.synthesis;
   assert.match(y.sections.lowest, /Vos résultats les moins élevés correspondent à une comparaison entre les indicateurs analysés\. Un résultat plus bas ne constitue pas automatiquement une priorité de soin\./);
-  assert.equal(y.steps['morning:treatment:niacinamide'], 'Pores (70) : axe retenu selon les règles DERMAI. Actif recherché pour cet axe : niacinamide.');
+  assert.equal(y.steps['morning:treatment:niacinamide'], 'Pores (70) : axe retenu selon les règles DermAI. Actif recherché pour cet axe : niacinamide.');
   assert.match(realCase({}, { goals: ['oil_pores'] }).synthesis.steps['morning:treatment:niacinamide'], /Il rejoint votre objectif « niveau d'huile et pores »\.$/);
-  assert.match(y.steps['morning:moisturize'], /DERMAI retient l'hydratation comme axe de soin dans cette analyse\. L'objectif est de soutenir le confort et l'hydratation de la peau\./);
+  assert.match(y.steps['morning:moisturize'], /DermAI retient l'hydratation comme axe de soin dans cette analyse\. L'objectif est de soutenir le confort et l'hydratation de la peau\./);
   const all = JSON.stringify([y, r.explanations.map(e => e.text), r.personalization]);
   assert.doesNotMatch(all, /déshydrat|diagnostic|maladie|gravité|pathologi|traitement/i);
   assert.doesNotMatch(all, /Aucune priorité forte ne ressort/, 'jamais « aucune priorité forte » seul quand des axes sont retenus');

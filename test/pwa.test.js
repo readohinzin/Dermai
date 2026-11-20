@@ -26,7 +26,7 @@ test('PW1 manifeste : installable sur Android (192 et 512 réelles, maskable sé
   assert.ok(manifest.icons.every(i => i.purpose !== 'any maskable'), '« any maskable » combinés : refusé, on déclare deux icônes distinctes');
   assert.ok(manifest.shortcuts.length >= 2 && manifest.shortcuts.every(s => s.url.startsWith('/') && s.name && s.icons[0].src.startsWith('/')));
   assert.deepEqual(png('apple-touch-icon.png').w, 180, 'icône iPhone 180 x 180');
-  assert.doesNotMatch(read('manifest.json'), /DERMAI|Dermai/);
+  assert.doesNotMatch(read('manifest.json'), /DERM\u0041I|\bDermai\b/);
 });
 
 test('PW2 index.html : manifeste, couleurs, balises iPhone et Android, icônes ; plus de code d\'installation en ligne', () => {
@@ -150,7 +150,7 @@ test('PW9 Android : l\'invitation du navigateur est retenue, le bandeau l\'ouvre
 });
 
 test('PW10 textes : DermAI, tutoiement exclu, aucun tiret cadratin ; module sans réseau ni donnée de personne', () => {
-  for (const t of Object.values(P.TEXT)) { assert.ok(!/[—–]/.test(t), t); assert.doesNotMatch(t, /DERMAI|Dermai/, t); }
+  for (const t of Object.values(P.TEXT)) { assert.ok(!/[—–]/.test(t), t); assert.doesNotMatch(t, /DERM\u0041I|\bDermai\b/, t); }
   assert.doesNotMatch(read('js/pwa-install.js').replace(/\/\*[\s\S]*?\*\//g, ''), /fetch\(|XMLHttpRequest|sendBeacon|sessionStorage|indexedDB|cookie/);
   assert.match(read('js/pwa-install.js'), /dermai\.pwa\.dismissed/);
 });

@@ -91,12 +91,12 @@ test('AU4 solde : total « Api » annoncé avec sa source, catégories telles qu
   const odd = setup({ overrides: { credit: json(200, { ok: true, credit: { status: 'unavailable', reason: '<script>x</script>', fetchedAt: NOW } }) } }); assert.match(txt(await open(odd)), new RegExp(AD.REASONS.unavailable), 'cause inconnue : message générique, rien d\'injecté');
 });
 
-test('AU5 coûts : groupes par fonction DERMAI, lignes telles que reçues, montant absent = « Indisponible », « non rapprochés » à part, jamais un coût unique par catégorie ; descriptions échappées', async () => {
+test('AU5 coûts : groupes par fonction DermAI, lignes telles que reçues, montant absent = « Indisponible », « non rapprochés » à part, jamais un coût unique par catégorie ; descriptions échappées', async () => {
   const c = setup(); const h = txt(await open(c));
   for (const g of ['Analyse cutanée', 'Simulation', 'Maquillage', 'Coiffure et couleur de cheveux']) assert.match(h, new RegExp(`<h3 class="c-ad-h">${g}</h3>`));
   assert.ok(!/<b>4 unit<\/b>/.test('') && /<b>4 unit<\/b>/.test(h), 'coût officiel de l\'analyse tel que reçu'); assert.match(h, /Skin &lt;b&gt;analysis&lt;\/b&gt;/); assert.ok(!/<b>analysis<\/b>/.test(h));
   assert.match(h, /<code>hair-color<\/code>[\s\S]{0,80}<b>Indisponible<\/b>/, 'montant absent : indisponible, pas 0'); assert.match(h, /Aucun coût officiel rapproché de cette fonction \(identifiants attendus : <code>skin-simulation<\/code>/);
-  assert.match(h, /Non rapprochés d'une fonction DERMAI \(1\)/); assert.match(h, /<code>face-attr-analysis<\/code>/); assert.match(h, /Ce n'est pas la consommation réelle observée/); assert.match(h, /aucun coût unique n'est attribué à une catégorie/);
+  assert.match(h, /Non rapprochés d'une fonction DermAI \(1\)/); assert.match(h, /<code>face-attr-analysis<\/code>/); assert.match(h, /Ce n'est pas la consommation réelle observée/); assert.match(h, /aucun coût unique n'est attribué à une catégorie/);
   assert.match(h, /3 lignes sur 1 page\./); assert.match(h, /mémorisé par le serveur/);
   const tr = setup({ overrides: { costs: json(200, { ok: true, costs: Object.assign({}, BODY.costs.costs, { truncated: true }) }) } }); assert.match(txt(await open(tr)), /Liste tronquée/);
   const bad = setup({ overrides: { costs: json(200, { ok: true, costs: { status: 'unavailable', reason: 'malformed', fetchedAt: NOW } }) } }); const hb = txt(await open(bad)); assert.match(hb, /forme inconnue/); assert.ok(!/c-ad-group/.test(hb), 'aucun groupe inventé');

@@ -81,7 +81,7 @@ const SIM_PATHS = {
   task: '/s2s/v2.0/task/skin-simulation',                                  // NON CONFIRMÉ — POST : création
   taskStatus: id => `/s2s/v2.0/task/skin-simulation/${encodeURIComponent(id)}`   // NON CONFIRMÉ — GET : statut
 };
-/* Préoccupations proposées : clé DERMAI → paramètre Perfect Corp. `oiliness` est volontairement ABSENT : son intensité AJOUTE de la brillance
+/* Préoccupations proposées : clé DermAI → paramètre Perfect Corp. `oiliness` est volontairement ABSENT : son intensité AJOUTE de la brillance
    (sens inverse des autres) ; ce ne serait pas une amélioration. Une seule préoccupation par demande. */
 const SIM_CONCERNS = {
   wrinkle: 'wrinkle', radiance: 'radiance', acne: 'acne', eye_bags: 'eye_bags', dark_circle: 'dark_circle',

@@ -31,7 +31,7 @@ test('SU1 textes : nécessaire à toutes les peaux, « le soleil fonce les marqu
   assert.match(T.criteria.join(' '), /Indice 30 au minimum, de préférence 50/); assert.match(T.criteria.join(' '), /UVA et les UVB/); assert.match(T.criteria.join(' '), /sans trace blanche/);
   assert.match(T.criteria.join(' '), /liste d'ingrédients lisible/); assert.match(T.criteria.join(' '), /chaque matin, même par temps couvert/); assert.match(T.criteria.join(' '), /ne remplace pas l'ombre/);
   assert.match(T.criteria[1], /souvent un voile blanc sur peau foncée, sauf s'ils sont teintés/, 'hedge : « souvent », pas « toujours »');
-  assert.match(T.selection, /DERMAI ne l'a pas mesurée/);
+  assert.match(T.selection, /DermAI ne l'a pas mesurée/);
   for (const t of [T.title, T.rule, T.criteriaTitle, T.selection, T.none, ...T.criteria]) { for (const re of FORBIDDEN) assert.doesNotMatch(t, re, t); assert.ok(!/[—–]/.test(t), t); }
 });
 
@@ -69,7 +69,7 @@ test('SU4 sélection : « sans trace blanche » (mention du fabricant) passe en 
   const A = valid('a-solaire', SUN('50+', false)), B = valid('b-solaire', SUN('50+', true)), low = valid('c-solaire', SUN('15', true)), noList = valid('d-solaire', SUN('50', true), { inci: null });
   const r = spfMatch(go([A, B]));
   assert.equal(r.productId, 'b-solaire', 'la mention passe avant l\'ordre du catalogue'); assert.equal(r.selection.rule, 'white_cast');
-  assert.match(P.whyOf(r), /ne laisse pas de trace blanche \(mention du fabricant, non mesurée par DERMAI\)/);
+  assert.match(P.whyOf(r), /ne laisse pas de trace blanche \(mention du fabricant, non mesurée par DermAI\)/);
   assert.equal(spfMatch(go([B, A])).productId, 'b-solaire');
   assert.equal(spfMatch(go([A])).productId, 'a-solaire', 'sans autre choix, un produit sain est proposé');
   assert.equal(spfMatch(go([low, noList])), undefined, 'indice 15 ou composition non vérifiable : rien');

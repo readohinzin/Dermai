@@ -2,7 +2,7 @@
    distinctes, jamais confondues :
      1. shows    « Ce que l'analyse montre »        : les résultats, tels qu'affichés (score affiché, ui_score) ;
      2. lowest   « Vos résultats les moins élevés » : comparaison RELATIVE entre vos propres résultats, jamais un problème ;
-     3. retained « Ce que DERMAI retient »          : seulement les besoins retenus par une règle DERMAI (priorities.js) ;
+     3. retained « Ce que DermAI retient »          : seulement les besoins retenus par une règle DermAI (priorities.js) ;
      4. strategy « Votre stratégie »                : la conséquence sur la routine.
 
    Elle ne décide RIEN de nouveau : elle lit l'interprétation, les priorités, les objectifs, la routine et les produits déjà calculés.
@@ -116,7 +116,7 @@
     return parts.join(' ');
   }
 
-  /* Statut DERMAI de chaque indicateur affiché (carte du visage, page d'un indicateur). Lecture des décisions déjà prises : le masque
+  /* Statut DermAI de chaque indicateur affiché (carte du visage, page d'un indicateur). Lecture des décisions déjà prises : le masque
      de localisation n'entre jamais ici. */
   function statuses(interp, prios, profile, acc) {
     const goals = profile.goals || [], kept = new Map(prios.items.map(p => [p.indicator, p])), accOf = new Map(((acc && acc.recommendations) || []).map(r => [r.indicator, r]));
@@ -214,7 +214,7 @@
     return out;
   }
 
-  /* 6. Pourquoi ce produit (ou pourquoi aucun) pour chaque étape. Un produit est toujours « proposé par DERMAI ». */
+  /* 6. Pourquoi ce produit (ou pourquoi aucun) pour chaque étape. Un produit est toujours « proposé par DermAI ». */
   function products(h, routine, matches, catalogList, productsApi) {
     const out = {};
     for (const st of [...routine.slots.morning, ...routine.slots.evening]) {

@@ -39,7 +39,7 @@ const clean = env => {
   assert.deepEqual(env.stats.escaped.filter(u => !/fonts\.(googleapis|gstatic)\.com/.test(u)), []);
   assert.ok(!env.stats.escaped.some(u => /perfectcorp|youcam|yce|makeupar/i.test(u)));
 };
-const TARGETS = [['Tableau de bord', 'home'], ['Analyser ma peau', 'scan'], ['Mes analyses', 'analyses'], ['DERMAI Évolution', 'progress'], ['Programme de soins', 'program'], ['Vérif\'Routine', 'verif'], ['Ma routine', 'routine'], ['Profil et paramètres', 'profile']];
+const TARGETS = [['Tableau de bord', 'home'], ['Analyser ma peau', 'scan'], ['Mes analyses', 'analyses'], ['DermAI Évolution', 'progress'], ['Programme de soins', 'program'], ['Vérif\'Routine', 'verif'], ['Ma routine', 'routine'], ['Profil et paramètres', 'profile']];
 const visible = (page, sel) => page.locator(sel).first().isVisible();
 const wait = page => page.waitForTimeout(350);        // durée de la transition du panneau (0,22 s)
 const hOverflow = page => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -95,7 +95,7 @@ test('SBB2 chaque entrée ouvre la bonne vraie vue, avec la bonne adresse et la 
   await page.evaluate(() => go('privacy'));
   assert.ok((await page.locator('#sidebar [aria-current="page"]').innerText()).startsWith('Profil et paramètres'));
   // l'entrée « Évolution » ouvre le vrai écran (bilan puis comparatif)
-  await page.locator('#sidebar .sidebar__link', { hasText: 'DERMAI Évolution' }).click();
+  await page.locator('#sidebar .sidebar__link', { hasText: 'DermAI Évolution' }).click();
   const t = await page.locator('main.main').innerText();
   assert.match(t, /Votre évolution/); assert.match(t, /Bilan de votre évolution/);
   await page.locator('#sidebar .sidebar__link', { hasText: 'Programme de soins' }).click();
@@ -240,7 +240,7 @@ test('SBB9 les écrans existants fonctionnent avec la nouvelle navigation : menu
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   seed(env); await boot(env);
   const { page } = env;
-  for (const [label, route] of [['Ma routine', 'routine'], ['DERMAI Évolution', 'progress'], ['Profil et paramètres', 'profile'], ['Tableau de bord', 'home']]) {
+  for (const [label, route] of [['Ma routine', 'routine'], ['DermAI Évolution', 'progress'], ['Profil et paramètres', 'profile'], ['Tableau de bord', 'home']]) {
     await page.click('.sidebar__toggle'); await wait(page);
     await page.locator('#sidebar .sidebar__link', { hasText: label }).click();
     await page.waitForFunction(r => state.route === r, route);
@@ -275,7 +275,7 @@ test('SBB11 simulation ouverte pour le compte : l\'entrée apparaît (ordinateur
   await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(150);
   const entry = page.locator('#sidebar .sidebar__link', { hasText: 'Simulation cosmétique' });
   await entry.waitFor({ state: 'visible', timeout: 10000 });
-  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres', 'Se déconnecter']);
+  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DermAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres', 'Se déconnecter']);
   assert.equal(await page.locator('.sidebar__badge').count(), 1, 'le badge reste réservé à Évolution');
   await entry.click();
   await page.waitForFunction(() => state.route === 'simulation');

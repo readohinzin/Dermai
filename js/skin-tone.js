@@ -1,4 +1,4 @@
-/* DERMAI : teint de peau choisi par la personne (échelle Monk Skin Tone, 10 teintes). FACULTATIF, ESTIMATION.
+/* DermAI : teint de peau choisi par la personne (échelle Monk Skin Tone, 10 teintes). FACULTATIF, ESTIMATION.
 
    Pourquoi : les repères d'une analyse de peau sont pensés pour des peaux claires. Savoir que la peau est foncée permet d'adapter ce qui peut l'être
    sans inventer de mesure : dire la limite d'une mesure, masquer la mesure de rougeur (une irritation se voit brune, violacée ou grise, pas rouge),
@@ -10,7 +10,7 @@
    - C'est une estimation faite par la personne : l'écran peut fausser les couleurs (phrase affichée avec le choix).
    - Le masquage ne touche JAMAIS les données enregistrées : `view()` renvoie une COPIE pour l'affichage et pour le moteur ; l'historique garde la
      valeur reçue du fournisseur. Rien n'est inventé : une mesure masquée vaut null (« donnée indisponible »).
-   - Seuil « teint foncé » : DEEP_FROM, repère éditorial DERMAI (teintes 6 à 10), ajustable en une ligne. REDNESS_FOR_DEEP : 'mask' masque la mesure
+   - Seuil « teint foncé » : DEEP_FROM, repère éditorial DermAI (teintes 6 à 10), ajustable en une ligne. REDNESS_FOR_DEEP : 'mask' masque la mesure
      de rougeur, 'note' la garde en ajoutant seulement l'avertissement.
    Module partagé navigateur / Node (stockage injecté : testable sans navigateur). */
 (function (root, factory) {
@@ -33,7 +33,7 @@
     title: 'Mon teint de peau',
     hint: 'Facultatif. Touchez la pastille la plus proche de la peau de votre visage, à la lumière du jour.',
     estimate: 'C\'est une estimation : l\'écran de votre téléphone peut fausser les couleurs.',
-    privacy: 'Ce choix reste sur votre appareil. DERMAI ne l\'envoie à personne : il sert seulement à adapter les textes et les alertes.',
+    privacy: 'Ce choix reste sur votre appareil. DermAI ne l\'envoie à personne : il sert seulement à adapter les textes et les alertes.',
     chosen: n => 'Teint ' + n + ' sur 10 choisi.',
     unset: 'Aucun teint choisi.',
     clear: 'Retirer mon choix',
@@ -41,7 +41,7 @@
     alertTitle: 'Pour votre teint',
     alert: 'Sur une peau foncée, un bouton ou une irritation peut laisser une tache qui met longtemps à partir. Introduisez les soins un par un, ne grattez pas et ne percez pas les boutons, et protégez votre peau du soleil chaque matin : il fonce les marques.',
     maskedTitle: 'Rougeurs non affichées',
-    masked: 'Pour un teint foncé, la mesure de rougeur est peu fiable : une irritation se voit plutôt brune, violacée ou grise. DERMAI préfère ne pas l\'afficher plutôt que de vous donner un chiffre qui peut tromper.',
+    masked: 'Pour un teint foncé, la mesure de rougeur est peu fiable : une irritation se voit plutôt brune, violacée ou grise. DermAI préfère ne pas l\'afficher plutôt que de vous donner un chiffre qui peut tromper.',
     maskedLink: 'Changer mon teint'
   };
 

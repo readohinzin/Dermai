@@ -1,10 +1,10 @@
-/* Alias INCI : correspondances EXPLICITES entre le nom d'un ingrédient, tel qu'il s'écrit sur une étiquette, et un actif des fiches DERMAI (actives.js).
+/* Alias INCI : correspondances EXPLICITES entre le nom d'un ingrédient, tel qu'il s'écrit sur une étiquette, et un actif des fiches DermAI (actives.js).
    Aucune logique ici (voir ../verif.js). Règle de conception : une correspondance n'existe que si elle est justifiée et sa provenance est écrite. Jamais de ressemblance
    de nom : « Ethylhexylglycerin » n'est pas de la glycérine, « Sodium Hyaluronate Crosspolymer » n'est reconnu que parce que le catalogue le relie à l'acide hyaluronique.
    Les clés sont déjà normalisées (minuscules, sans accents, sans pourcentage) : voir normalizeName dans verif.js, vérifié par test.
 
    validation (niveau de justification, jamais une preuve d'efficacité) :
-     catalogue : l'ingrédient figure dans la liste INCI d'un produit de catalogue.js dont la fiche le relie à cet actif (lien déjà validé par DERMAI) ;
+     catalogue : l'ingrédient figure dans la liste INCI d'un produit de catalogue.js dont la fiche le relie à cet actif (lien déjà validé par DermAI) ;
      lexique   : correspondance déjà portée par le lexique FR/EN du projet (outillage de rapprochement de produits, hors navigateur) ;
      a_relire  : nom INCI exact d'une substance sans ambiguïté, mais SANS attestation dans les données du projet : relecture par un cosmétologue requise avant lancement public.
    Un ingrédient absent de cette table reste « non reconnu » : aucune fonction, aucun risque, aucune efficacité ne lui est attribuée. */
@@ -73,7 +73,7 @@
     { id: 'kojic_acid', names: ['kojic acid', 'kojic dipalmitate'] },
     { id: 'glutathione', names: ['glutathione'] },
     { id: 'corticoids', names: ['hydrocortisone', 'hydrocortisone acetate', 'clobetasol propionate', 'betamethasone', 'betamethasone valerate', 'betamethasone dipropionate', 'dexamethasone', 'triamcinolone acetonide', 'fluocinonide', 'clobetasol', 'mometasone furoate', 'halobetasol propionate', 'fluocinolone acetonide', 'desonide', 'prednisolone', 'methylprednisolone', 'fluticasone propionate'] }
-  ].map(e => Object.assign(e, { validation: 'a_relire', source: INCI + ' ; liste EXCLUDED du moteur DERMAI' }));
+  ].map(e => Object.assign(e, { validation: 'a_relire', source: INCI + ' ; liste EXCLUDED du moteur DermAI' }));
 
   return { ALIASES, EXCLUDED_NAMES };
 });

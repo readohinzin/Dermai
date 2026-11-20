@@ -1,6 +1,6 @@
 'use strict';
 /* 6D : preuves, sécurité des actifs irritants et combinaisons. Trois niveaux distincts : (A) mesure Perfect Corp, (B) preuve cosmétique,
-   (C) règle DERMAI. Aucune source n'est inventée : les URL citées doivent être dans la liste des pages réellement consultées. */
+   (C) règle DermAI. Aucune source n'est inventée : les URL citées doivent être dans la liste des pages réellement consultées. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { M, run, randomCase, withStatus } = require('./helpers/engine.js');
@@ -35,7 +35,7 @@ test('EV1 chaque actif porte une preuve structurée cohérente avec ses cibles ;
     const e = a.evidence;
     assert.ok(e && ['sourced', 'partial', 'to_add'].includes(e.sourceStatus), a.id);
     const all = [...e.direct, ...e.indirect, ...e.editorial].sort();
-    assert.deepEqual(all, [...a.targets].sort(), a.id + ' : chaque cible est classée (direct, indirect ou règle DERMAI)');
+    assert.deepEqual(all, [...a.targets].sort(), a.id + ' : chaque cible est classée (direct, indirect ou règle DermAI)');
     for (const r of e.refs) { assert.ok(CONSULTED.has(r.url), a.id + ' : URL non consultée ' + r.url); assert.ok(r.label && r.supports && r.quality, a.id); }
     if (e.sourceStatus === 'to_add') assert.match(a.source, /SOURCE À AJOUTER/, a.id);
     else assert.ok(e.refs.length > 0 && e.direct.length + e.indirect.length > 0, a.id + ' : une source doit soutenir au moins une cible');
@@ -54,8 +54,8 @@ test('EV2 les actifs « à_valider » n\'ont aucune source retenue et ne sont ja
   }
 });
 
-test('EV3 les cibles « règle DERMAI » ne sont jamais présentées comme une relation établie ; rien n\'est attribué à Perfect Corp', () => {
-  const r = run({ redness: 40 });   // rougeurs → niacinamide : règle DERMAI (texture, autrefois utilisée ici, est descriptive depuis l'étape 25)
+test('EV3 les cibles « règle DermAI » ne sont jamais présentées comme une relation établie ; rien n\'est attribué à Perfect Corp', () => {
+  const r = run({ redness: 40 });   // rougeurs → niacinamide : règle DermAI (texture, autrefois utilisée ici, est descriptive depuis l'étape 25)
   const step = r.routinePlan.slots.evening.concat(r.routinePlan.slots.morning).find(s => s.kind === 'treatment' && s.activeId === 'niacinamide');
   assert.match(step.reason, /option cosmétique courante/);
   const solid = run({ acne: 30 }).routinePlan.slots.evening.find(s => s.kind === 'treatment');

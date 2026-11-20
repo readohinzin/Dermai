@@ -99,7 +99,7 @@ test('PB2 parcours : routine → programme → commencer → cocher → recharge
   // fin de programme
   await page.clock.setFixedTime(at(40));
   await page.reload(); await page.waitForFunction(() => state.history.status === 'ready'); await page.evaluate(() => go('program'));
-  t = await text(page); assert.match(t, /Programme terminé/); assert.match(t, /Bilan des jours 29 et 30/); assert.match(t, /DERMAI n'en lance jamais automatiquement/);
+  t = await text(page); assert.match(t, /Programme terminé/); assert.match(t, /Bilan des jours 29 et 30/); assert.match(t, /DermAI n'en lance jamais automatiquement/);
   assert.equal(env.stats.skin.length, 1, 'une seule analyse (simulée) pendant tout le parcours');
   assert.ok(!env.stats.supabase.some(s => /care|program/i.test(s)), 'le suivi ne part pas vers le serveur');
   const bodies = await page.evaluate(() => performance.getEntriesByType('resource').map(r => r.name).filter(n => /care|program/i.test(n) && !/\.js(\?|$)/.test(n)));

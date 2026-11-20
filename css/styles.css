@@ -1,4 +1,4 @@
-/* DERMAI : point d'entrée CSS (Design System v1).
+/* DermAI : point d'entrée CSS (Design System v1).
    L'ordre des couches fixe la priorité : la dernière gagne. `legacy` est la feuille historique
    de la maquette, la plus faible. Les nouveaux composants (préfixe c-) et utilitaires (u-)
    vivent dans les couches suivantes. Aucune règle ici ne cible les classes historiques. */

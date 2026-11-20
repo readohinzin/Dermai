@@ -30,7 +30,7 @@ test('PV1 liste d\'exclusion : les six éclaircissants y sont, avec leurs noms I
   assert.deepEqual(PV.LIGHTENING_IDS.filter(id => !ACT.EXCLUDED.includes(id)), []);
   for (const id of ['benzoyl_peroxide', 'adapalene', 'tretinoin']) assert.equal(PV.isLightening(id), false, id + ' : message neutre, ce n\'est pas un éclaircissant');
   for (const id of ACT.EXCLUDED.filter(PV.isLightening)) assert.ok(PV.messageOf(id), 'un message pour ' + id);
-  assert.equal(ACT.ACTIVES.filter(a => ACT.EXCLUDED.includes(a.id)).length, 0, 'aucun actif DERMAI n\'est une substance exclue');
+  assert.equal(ACT.ACTIVES.filter(a => ACT.EXCLUDED.includes(a.id)).length, 0, 'aucun actif DermAI n\'est une substance exclue');
 });
 
 test('PV2 détection : nom INCI exact seulement (casse, accents, pourcentage ignorés), jamais par ressemblance', () => {
@@ -89,10 +89,10 @@ test('PV6 Vérif\'Routine : un message de prévention précis par éclaircissant
     assert.equal(r.length, 1, inci); assert.equal(r[0].level, 'prudence'); assert.match(r[0].title, /^Produit éclaircissant : prudence avec « Crème »$/); assert.match(r[0].text, re);
     assert.match(r[0].text, /parlez-en/); assert.doesNotMatch(r[0].text, /(?<![\p{L}])(?:recommandons|conseillons)(?![\p{L}])/u);
   }
-  assert.match(points([mk('n', 'Gel', 'serum', ['Aqua', 'Benzoyl Peroxide'])], 'EXCLUDED')[0].text, /fait partie des substances sur lesquelles DERMAI ne donne pas de conseil/);
+  assert.match(points([mk('n', 'Gel', 'serum', ['Aqua', 'Benzoyl Peroxide'])], 'EXCLUDED')[0].text, /fait partie des substances sur lesquelles DermAI ne donne pas de conseil/);
   const unk = points([mk('u', 'Sans liste', 'other', [])], 'R4')[0];
   assert.equal(unk.title, 'Composition non vérifiable : « Sans liste »');
-  assert.match(unk.text, /DERMAI ne le recommande jamais/); assert.match(unk.text, /promettent d'éclaircir la peau/); assert.match(unk.text, /mercure, de l'hydroquinone ou des corticoïdes sans l'indiquer/);
+  assert.match(unk.text, /DermAI ne le recommande jamais/); assert.match(unk.text, /promettent d'éclaircir la peau/); assert.match(unk.text, /mercure, de l'hydroquinone ou des corticoïdes sans l'indiquer/);
   assert.equal(points([mk('c', 'Propre', 'serum', ['Aqua', 'Niacinamide'])], 'EXCLUDED').length, 0, 'aucun faux positif');
 });
 
@@ -105,7 +105,7 @@ test('PV7 chaque message est un AVERTISSEMENT : il dit d\'éviter ou de demander
     assert.ok(!/[—–]/.test(t), 'pas de tiret cadratin : ' + t);
   }
   for (const id of ['hydroquinone', 'mercury', 'corticoids', 'arbutin', 'kojic_acid', 'glutathione']) assert.match(PV.MESSAGES[id], /(pharmacien|médecin|dermatologue)/, id);
-  assert.match(PV.GENERAL.text, /Les soins que DERMAI propose visent les taches, pas la couleur de votre peau/);
+  assert.match(PV.GENERAL.text, /Les soins que DermAI propose visent les taches, pas la couleur de votre peau/);
   /* ce qui est conservé : atténuer / unifier, jamais éclaircir */
   for (const id of ['azelaic', 'niacinamide', 'vitamin_c', 'aha_pha']) assert.doesNotMatch(ACT.ACTIVES.find(a => a.id === id).description, /[ée]claircir|d[ée]pigment|blanch/i, id);
 });

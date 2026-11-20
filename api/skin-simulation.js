@@ -40,19 +40,19 @@ async function handler(req, res) {
     user = await auth.verifyUser(req, process.env, { budget });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: err });
-    console.warn('[DERMAI] Simulation refused:', e.code);
+    console.warn('[DermAI] Simulation refused:', e.code);
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });
   }
   const available = isSimulationEnabled() && isSimulationAllowed(user.id) && perfectcorp.isConfigured();
   if (req.method === 'GET') return send(res, 200, { ok: true, available });
   /* Verrou et liste d'utilisateurs autorisés : désactivés par défaut, aucune photo n'est lue ni envoyée sinon. */
-  if (!isSimulationEnabled()) { console.warn('[DERMAI] Simulation refused: DERMAI_SIMULATION_ENABLED is off'); return send(res, 503, { ok: false, error: toUserMessage('SIM_DISABLED') }); }
-  if (!isSimulationAllowed(user.id)) { console.warn('[DERMAI] Simulation refused: user not allowed'); return send(res, 403, { ok: false, error: toUserMessage('SIM_DISABLED') }); }
+  if (!isSimulationEnabled()) { console.warn('[DermAI] Simulation refused: DERMAI_SIMULATION_ENABLED is off'); return send(res, 503, { ok: false, error: toUserMessage('SIM_DISABLED') }); }
+  if (!isSimulationAllowed(user.id)) { console.warn('[DermAI] Simulation refused: user not allowed'); return send(res, 403, { ok: false, error: toUserMessage('SIM_DISABLED') }); }
   try {
     const concern = concernOf(req);
     if (!simulation.concernParam(concern)) throw new AnalysisError('SIM_INVALID_CONCERN', { status: 400, detail: 'zone absente, multiple ou hors liste blanche' });
-    console.log('[DERMAI] Simulation started');
+    console.log('[DermAI] Simulation started');
     const readWindowMs = budget.remaining() - (TIME_BUDGET.minStartMs + quota.TIMEOUT_MS);
     if (readWindowMs <= 0) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant la lecture de la photo (${budget.elapsed()} ms écoulées)` });
     const body = await readBody(req, undefined, { timeoutMs: readWindowMs });
@@ -60,7 +60,7 @@ async function handler(req, res) {
     if (!budget.canStart(TIME_BUDGET.minStartMs + quota.TIMEOUT_MS)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant le quota (${budget.elapsed()} ms écoulées)` });
     if (!perfectcorp.isConfigured()) throw new AnalysisError('SIM_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });
     await quota.reserveSimulation(auth.bearerToken(req), process.env, { budget });
-    console.log('[DERMAI] Simulation quota reserved');
+    console.log('[DermAI] Simulation quota reserved');
     const intensity = simulationIntensity();
     const out = await simulation.simulate({ buffer: image.buffer, mime: image.mime, concern, intensity }, { budget });
     /* Le navigateur ne reçoit que l'image et la zone : ni enveloppe, ni task_id, ni URL du fournisseur. */
@@ -69,7 +69,7 @@ async function handler(req, res) {
     return send(res, 200, payload);
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('UNKNOWN', { cause: err });
-    console.error('[DERMAI] Simulation failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
+    console.error('[DermAI] Simulation failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
     if (e.status === 429 && e.retryAfter) res.setHeader('Retry-After', String(e.retryAfter));
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });

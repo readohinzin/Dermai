@@ -27,7 +27,7 @@ async function createMakeupTask({ fileId, effects }, env) {
   } catch (err) { throw refine(err); }
   const taskId = json && json.data && json.data.task_id;
   if (!taskId) throw new AnalysisError('MK_RESULT_INVALID', { status: 502, detail: 'makeup task : task_id absent de la réponse' });
-  console.log('[DERMAI] Makeup task created');
+  console.log('[DermAI] Makeup task created');
   return taskId;
 }
 
@@ -46,7 +46,7 @@ async function pollMakeupTask(taskId, env) {
     if (env.now() - start >= totalTimeoutMs) break;
     const json = await getMakeupTask(taskId, env);
     const status = json && json.data && json.data.task_status;
-    if (status === 'success') { console.log('[DERMAI] Makeup task completed'); return json; }
+    if (status === 'success') { console.log('[DermAI] Makeup task completed'); return json; }
     if (status === 'error') {
       const d = json.data || {};
       const detail = `makeup task error : ${JSON.stringify({ error: d.error, error_message: d.error_message })}`.slice(0, 500);

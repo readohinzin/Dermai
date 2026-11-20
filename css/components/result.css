@@ -30,6 +30,7 @@
 .c-insight{margin-bottom:8px}
 .c-insight__text{color:var(--ink);margin:0 0 14px;line-height:1.55}
 .c-insight__group{margin-top:12px}
+.c-brand{text-transform:none}
 .c-insight__label{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3,#6E5E64);margin:0 0 8px}
 .c-insight .chips{flex-wrap:wrap;gap:8px}
 .c-insight__group+.c-insight__group{margin-top:18px}

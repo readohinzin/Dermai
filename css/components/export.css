@@ -1,4 +1,4 @@
-/* DERMAI : barre d'export du résultat (js/export-view.js) : trois icônes (copier, partager, télécharger) et une petite case « Inclure ma photo ».
+/* DermAI : barre d'export du résultat (js/export-view.js) : trois icônes (copier, partager, télécharger) et une petite case « Inclure ma photo ».
    Sous l'en-tête des écrans Résultat, Routine et Produits. Tokens du design system uniquement ; cibles tactiles de 44 px. */
 .c-export{margin:0 0 var(--s-4)}
 .c-export__row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-1) var(--s-2)}

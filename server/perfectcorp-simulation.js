@@ -31,7 +31,7 @@ async function createSimulationTask({ fileId, param, intensity }, env) {
   }, readJson, env.budget.minTaskMs);
   const taskId = json && json.data && json.data.task_id;
   if (!taskId) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: 'simulation task : task_id absent de la réponse' });
-  console.log('[DERMAI] Simulation task created');
+  console.log('[DermAI] Simulation task created');
   return taskId;
 }
 
@@ -48,7 +48,7 @@ async function pollSimulationTask(taskId, env) {
     if (env.now() - start >= totalTimeoutMs) break;
     const json = await getSimulationTask(taskId, env);
     const status = json && json.data && json.data.task_status;
-    if (status === 'success') { console.log('[DERMAI] Simulation task completed'); return json; }
+    if (status === 'success') { console.log('[DermAI] Simulation task completed'); return json; }
     if (status === 'error') {
       const d = json.data || {};
       const detail = `simulation task error : ${JSON.stringify({ error: d.error, error_message: d.error_message })}`.slice(0, 500);
@@ -84,7 +84,7 @@ function extractResultUrl(envelope) {
 }
 
 /* Orchestration : fichier → tâche de simulation → polling → URL de l'image. Une seule tâche par appel. Renvoie { image (URL https), envelope }.
-   `concern` : clé DERMAI déjà validée par le handler (revérifiée ici). */
+   `concern` : clé DermAI déjà validée par le handler (revérifiée ici). */
 async function simulate({ buffer, mime, concern, intensity = SIM_INTENSITY }, opts = {}) {
   const param = concernParam(concern);
   if (!param) throw new AnalysisError('SIM_INVALID_CONCERN', { status: 400 });
@@ -97,7 +97,7 @@ async function simulate({ buffer, mime, concern, intensity = SIM_INTENSITY }, op
   /* Structure seulement (chemins et types, jamais de valeur ni d'URL) : si le chemin du résultat n'est pas celui attendu, ce journal est la seule
      trace exploitable de l'essai réel, qui ne doit pas être répété pour la retrouver. */
   const structure = JSON.stringify(describeStructure(envelope)).slice(0, 2000);
-  console.log('[DERMAI] Simulation result structure', structure);
+  console.log('[DermAI] Simulation result structure', structure);
   const url = extractResultUrl(envelope);
   if (!url) throw new AnalysisError('SIM_RESULT_INVALID', { status: 502, detail: 'simulation : aucune URL de résultat reconnue dans la réponse ; structure ' + structure });
   return { image: url, envelope };

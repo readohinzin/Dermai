@@ -1,12 +1,12 @@
 'use strict';
-/* DERMAI, application web (interface). 0. Configuration  1. Données fictives  2. Fournisseurs d'analyse  3. Composants  4. Écrans  5. Navigation
-   Frontend -> Backend DERMAI -> SkinAnalysisProvider -> Perfect Corp -> Normalizer -> moteur (priorités, routine) -> produits.
+/* DermAI, application web (interface). 0. Configuration  1. Données fictives  2. Fournisseurs d'analyse  3. Composants  4. Écrans  5. Navigation
+   Frontend -> Backend DermAI -> SkinAnalysisProvider -> Perfect Corp -> Normalizer -> moteur (priorités, routine) -> produits.
    La clé API du fournisseur ne doit JAMAIS apparaître ici : elle reste côté serveur. */
 
 /* ---------- 0. CONFIGURATION ---------- */
 /* Mode démo : vrai par défaut. Seul /api/config-js (servi par Vercel selon DERMAI_DEMO_MODE) peut le passer à faux, et uniquement
    avec demoMode === false explicite. Si config.js est absent ou illisible, on reste en démo. */
-const DEMO_MODE = !(window.DERMAI_CONFIG && window.DERMAI_CONFIG.demoMode === false);   // true : données et photo fictives. false : appelle le backend DERMAI.
+const DEMO_MODE = !(window.DERMAI_CONFIG && window.DERMAI_CONFIG.demoMode === false);   // true : données et photo fictives. false : appelle le backend DermAI.
 /* Mode réel : une seule photo frontale, réduite en JPEG côté navigateur, gardée en mémoire uniquement. */
 const REAL_PHOTO = {maxSide:1600,maxBytes:4*1024*1024,quality:.9};   // maxBytes : même limite que le backend
 const SCAN_ERR_GENERIC = `Nous n'avons pas pu analyser cette photo. Veuillez réessayer.`;
@@ -81,7 +81,7 @@ class MockProvider extends SkinAnalysisProvider{
   }
 }
 class PerfectCorpProvider extends SkinAnalysisProvider{
-  /* Backend DERMAI seulement (jamais Perfect Corp). `blob` : le JPEG de l'utilisateur, jamais une photo de démonstration. */
+  /* Backend DermAI seulement (jamais Perfect Corp). `blob` : le JPEG de l'utilisateur, jamais une photo de démonstration. */
   async analyzeSkin(blob,{onStatus=()=>{}}={}){
     if(!(blob instanceof Blob)||!blob.size)throw userError(`Aucune photo à analyser. Veuillez prendre une photo.`);
     if(blob.type!==`image/jpeg`)throw userError(`Format de photo non pris en charge. Utilisez une photo JPEG.`);
@@ -111,7 +111,7 @@ function postJpeg(blob,onStatus,token){
     x.onload=()=>{
       let j=null;try{j=JSON.parse(x.responseText)}catch(e){}
       if(x.status>=200&&x.status<300&&j&&j.ok)return resolve(j);
-      const nv=!(j&&typeof j.ok===`boolean`);   // pas de réponse DERMAI : issue incertaine
+      const nv=!(j&&typeof j.ok===`boolean`);   // pas de réponse DermAI : issue incertaine
       if(x.status===401)return reject(Object.assign(userError(AUTH_NEEDED),{authRequired:true}));
       if(x.status===429)return reject(Object.assign(userError(j&&typeof j.error===`string`&&j.error?j.error:SCAN_ERR_GENERIC),{quota:true}));
       reject(Object.assign(userError(j&&typeof j.error===`string`&&j.error?j.error:x.status===413?`La photo est trop volumineuse. Veuillez en choisir une plus légère.`:SCAN_ERR_GENERIC),{noVerdict:nv}));
@@ -413,11 +413,11 @@ async function logout(){
   resetPrivateState();go(`landing`,null,{reset:true});toast(`Vous êtes déconnecté.`);
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':`&amp;`,'<':`&lt;`,'>':`&gt;`,'"':`&quot;`}[c]));
-/* Logo DERMAI : le mot « dermai. » (en-têtes, écrans de connexion) et le « d » seul (accueil de bienvenue). Fichiers du projet, fond transparent ; le bouton garde son nom
-   accessible « DERMAI, page d'accueil » (l'image est décorative, alt vide). Dimensions fixes : aucun décalage de mise en page au chargement. */
+/* Logo DermAI : le mot « dermai. » (en-têtes, écrans de connexion) et le « d » seul (accueil de bienvenue). Fichiers du projet, fond transparent ; le bouton garde son nom
+   accessible « DermAI, page d'accueil » (l'image est décorative, alt vide). Dimensions fixes : aucun décalage de mise en page au chargement. */
 const BRAND_AR=360/125,MARK_AR=261/320;
-const brandBtn=h=>`<button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil"><img class="brand-logo" src="img/brand/dermai-logo-360.webp" width="${Math.round(h*BRAND_AR)}" height="${h}" alt="" decoding="async"></button>`;
-const markBtn=h=>`<button class="brand brand--mark" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil" style="margin-bottom:28px"><img class="brand-logo" src="img/brand/dermai-mark-256.webp" width="${Math.round(h*MARK_AR)}" height="${h}" alt="" decoding="async"></button>`;
+const brandBtn=h=>`<button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DermAI, page d'accueil"><img class="brand-logo" src="img/brand/dermai-logo-360.webp" width="${Math.round(h*BRAND_AR)}" height="${h}" alt="" decoding="async"></button>`;
+const markBtn=h=>`<button class="brand brand--mark" type="button" data-go="landing" data-reset="1" aria-label="DermAI, page d'accueil" style="margin-bottom:28px"><img class="brand-logo" src="img/brand/dermai-mark-256.webp" width="${Math.round(h*MARK_AR)}" height="${h}" alt="" decoding="async"></button>`;
 const NB=`\u00a0`;
 const fmt=n=>n.toLocaleString(`fr-FR`).replace(/[\u202f\u00a0\s]/g,NB)+NB+`FCFA`;
 const ICONS={
@@ -523,8 +523,8 @@ const skinLabelOf=s=>{const r=viewOf(s);return r.skinType?r.skinType.label:null}
 const skinLabel=r=>r.skinType?r.skinType.label:`Type de peau indisponible`;
 const scoreHtml=(v,size)=>v.score===null?`<span class="c-score c-score--${size} c-score--null"><span class="c-score__value">–</span></span>`
   :`<span class="c-score c-score--${size} c-score--${v.band}"><span class="c-score__value">${v.score}</span><span class="c-score__unit">/100</span></span>`;
-/* Badges et barres : bande du score AFFICHÉ (ui). Un besoin retenu par le moteur (décision sur raw) porte « Retenu par DERMAI », jamais une bande. */
-const KEPT=`<span class="c-badge c-badge--mid">Retenu par DERMAI</span>`,axeBadge=m=>`<span class="c-badge c-badge--${m.band===`low`?`low`:`mid`}">${Engine.copy.SYNTH.LEVELS[m.band===`low`?`priority`:`support`]}</span>`,asShown=m=>Object.assign({},m,{band:m.uiBand,bandLabel:m.uiBandLabel});
+/* Badges et barres : bande du score AFFICHÉ (ui). Un besoin retenu par le moteur (décision sur raw) porte « Retenu par DermAI », jamais une bande. */
+const KEPT=`<span class="c-badge c-badge--mid">Retenu par DermAI</span>`,axeBadge=m=>`<span class="c-badge c-badge--${m.band===`low`?`low`:`mid`}">${Engine.copy.SYNTH.LEVELS[m.band===`low`?`priority`:`support`]}</span>`,asShown=m=>Object.assign({},m,{band:m.uiBand,bandLabel:m.uiBandLabel});
 const bandBadge=v=>v.band?`<span class="c-badge c-badge--${v.band}">${v.bandLabel}</span>`:`<span class="c-badge c-badge--outline">Donnée indisponible</span>`;
 const barHtml=v=>v.score===null?``:`<span class="c-bar c-bar--${v.band}" role="img" aria-label="${v.score} sur 100" style="--value:${v.score}"><span class="c-bar__fill"></span></span>`;
 /* Points du score global : seules les analyses ayant un score global valide (jamais de 0 ni de point inventé). */
@@ -554,12 +554,12 @@ function shell(inner,{title=``,back=false}={}){
 }
 const V={};
 
-/* Landing : bannière en carrousel (js/hero.js). Les actifs montrés sont des actifs DERMAI validés, avec leur résumé réel (jamais un texte inventé). */
+/* Landing : bannière en carrousel (js/hero.js). Les actifs montrés sont des actifs DermAI validés, avec leur résumé réel (jamais un texte inventé). */
 const HERO_ACTIVES=[`niacinamide`,`azelaic`,`vitamin_c`,`hyaluronic`,`ceramides`];
 const heroActives=()=>HERO_ACTIVES.map(id=>Engine.actives.byId(id)).filter(Boolean).map(x=>({label:x.label,summary:x.summary}));
 /* Trio de visages (personnes fictives, fournies pour l'application) : la diversité des peaux, sans scores ni diagnostic. Image décorative, décrite une seule fois pour les lecteurs d'écran. */
 const faces=ids=>`<div class="faces" role="img" aria-label="Trois portraits fictifs de femmes, aux peaux et aux cheveux différents">${ids.map((n,i)=>`<span class="fc fc--${i+1}" aria-hidden="true"><img src="${DermaiHero.personSrc(n)}" width="504" height="504" alt="" loading="lazy" decoding="async"></span>`).join(``)}</div>`;
-/* Bandeau défilant des quinze indicateurs (décor animé : les mêmes noms sont listés dans « Ce que DERMAI observe », donc masqué aux lecteurs d'écran). */
+/* Bandeau défilant des quinze indicateurs (décor animé : les mêmes noms sont listés dans « Ce que DermAI observe », donc masqué aux lecteurs d'écran). */
 const marquee=()=>{const row=SkinModel.METRIC_KEYS.map(k=>`<span>${esc(SkinModel.METRIC_LABELS[k])}</span><i>●</i>`).join(``);return `<div class="mq" aria-hidden="true"><div class="mq-track"><div class="mq-row">${row}</div><div class="mq-row">${row}</div></div></div>`};
 let heroCtl=null,motionCtl=null;
 const stopHero=()=>{if(heroCtl){heroCtl.stop();heroCtl=null}};
@@ -574,14 +574,14 @@ V.landing=()=>{
     <h2>Comment ça marche</h2>
     <div class="steps3">
       <div class="s"><span class="num">1</span><div>${DEMO_MODE?`<h3>Trois photos</h3><p>De face, puis de profil, à la lumière naturelle. Environ une minute.</p>`:`<h3>Une photo</h3><p>Un portrait de face, à la lumière naturelle. C'est tout ce qu'il faut.</p>`}</div></div>
-      <div class="s"><span class="num">2</span><div><h3>Une analyse visuelle</h3><p>DERMAI repère les préoccupations visibles de votre peau et les classe par priorité.</p></div></div>
+      <div class="s"><span class="num">2</span><div><h3>Une analyse visuelle</h3><p>DermAI repère les préoccupations visibles de votre peau et les classe par priorité.</p></div></div>
       <div class="s"><span class="num">3</span><div><h3>Une routine à votre mesure</h3><p>Des actifs, des gestes et des produits, dans l'ordre où les utiliser.</p></div></div>
     </div>
   </div></section>
 
   <section class="sec" id="observe"><div class="wrap two">
     <div>
-      <h2>Ce que DERMAI observe</h2>
+      <h2>Ce que DermAI observe</h2>
       <p style="margin-top:14px">Quinze indicateurs visibles, lus sur l'ensemble du visage.</p>
       <div class="plist">
         ${SkinModel.METRIC_KEYS.map(k=>`<div><b>${SkinModel.METRIC_LABELS[k]}</b><span>${Engine.copy.INDICATOR_NOTES[k]||``}</span></div>`).join(``)}
@@ -620,7 +620,7 @@ V.landing=()=>{
 
   <section class="sec alt" id="evolve"><div class="wrap two rev">
     <div class="c-card"><p class="kicker">Score global</p>${gchart(LANDING_EXAMPLE)}<p class="muted" style="margin-top:6px">Exemple illustratif, données fictives.</p></div>
-    <div><h2>Votre peau évolue.</h2><p style="margin-top:14px;max-width:30em">Refaites une analyse quand vous voulez. DERMAI la compare à vos observations précédentes.</p></div>
+    <div><h2>Votre peau évolue.</h2><p style="margin-top:14px;max-width:30em">Refaites une analyse quand vous voulez. DermAI la compare à vos observations précédentes.</p></div>
   </div></section>
 
   <section class="sec"><div class="wrap two">
@@ -633,7 +633,7 @@ V.landing=()=>{
   </div></section>
 
   <section class="sec alt" style="text-align:center"><div class="wrap"><h2>Commencez par une analyse</h2><div class="cta-row" style="justify-content:center;margin-top:26px"><button class="c-btn c-btn--primary" data-go="signup">Analyser ma peau</button></div></div></section>
-  <footer class="foot"><div class="wrap">DERMAI fournit une analyse cosmétique visuelle et des recommandations de soin. Il ne remplace pas l'avis d'un professionnel de santé.</div></footer>`;
+  <footer class="foot"><div class="wrap">DermAI fournit une analyse cosmétique visuelle et des recommandations de soin. Il ne remplace pas l'avis d'un professionnel de santé.</div></footer>`;
 };
 
 /* Inscription */
@@ -686,9 +686,9 @@ V.reset=()=>{
     <button class="c-btn c-btn--primary c-btn--block" type="submit" style="margin-top:6px">Enregistrer</button>
   </form></div></div>`;
 };
-V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button>${brandBtn(40)}</div><div class="body"><h1>Bienvenue sur DERMAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
+V.signup=()=>DEMO_MODE?demoSignup():accountOn()?authForm(`signup`):`<div class="flow"><div class="flowtop"><button class="iconbtn c-icon-btn" data-go="landing" aria-label="Retour">${ic(`back`)}</button>${brandBtn(40)}</div><div class="body"><h1>Bienvenue sur DermAI</h1><p style="margin:10px 0 26px">Trois questions pour personnaliser votre expérience, puis votre première analyse.</p><button class="c-btn c-btn--primary c-btn--block" data-go="welcome">Commencer</button></div></div>`;
 V.login=()=>accountOn()?authForm(`login`):V.signup();
-V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center">${markBtn(132)}<h1>Bienvenue sur DERMAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
+V.welcome=()=>`<div class="flow" style="justify-content:center;text-align:center;align-items:center">${markBtn(132)}<h1>Bienvenue sur DermAI${state.user.name?`, ${esc(state.user.name)}`:``}</h1><p style="margin:16px 0 34px;max-width:24em">Trois questions pour mieux vous connaître, puis votre première analyse.</p><button class="c-btn c-btn--primary" data-go="onb:1">Commencer</button></div>`;
 
 /* Onboarding */
 V.onb=n=>{
@@ -715,7 +715,7 @@ V.home=()=>{
     <section class="skin-now${!DEMO_MODE&&!s.photo?` nophoto`:``}">${!DEMO_MODE&&!s.photo?``:`<div class="mf">${portrait({photo:s.photo})}</div>`}
       <div class="txt"><p class="kicker">Profil cutané</p><p class="big" style="font-size:${stype.length>16?`1.9rem`:`2.9rem`};margin:6px 0 10px">${stype}</p>${g.score===null?`<p class="muted">Score global indisponible</p>`:`<p class="muted">Score global <b style="color:var(--ink)">${g.score}/100</b></p><p style="margin-top:6px">${bandBadge(g)}</p>`}${top2.length?`<p class="muted" style="margin-top:6px">Axes retenus : ${top2.join(` et `)}.</p>`:`<p class="muted" style="margin-top:6px">Routine d'entretien.</p>`}</div>
       <button class="c-btn c-btn--primary c-btn--sm" data-go="result" data-act="setview" data-v="${state.latest}">Voir mon analyse</button></section>
-    <section><div class="hd"><h2 class="h3">Vos axes de soin</h2></div>${P.items.length?`<p class="muted" style="margin-bottom:8px">Les besoins que DERMAI retient, d'après votre analyse.</p><ul class="c-list">${P.items.map(asShown).map(m=>`<li><button class="c-list-row" data-go="concern:${m.indicator}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${axeBadge(P.items.find(p=>p.indicator===m.indicator))}${ic(`chev`)}</button></li>`).join(``)}</ul>`:`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}</section>
+    <section><div class="hd"><h2 class="h3">Vos axes de soin</h2></div>${P.items.length?`<p class="muted" style="margin-bottom:8px">Les besoins que DermAI retient, d'après votre analyse.</p><ul class="c-list">${P.items.map(asShown).map(m=>`<li><button class="c-list-row" data-go="concern:${m.indicator}"><span class="c-list-row__main"><span class="c-list-row__title">${m.label}</span></span>${scoreHtml(m,`s`)}${axeBadge(P.items.find(p=>p.indicator===m.indicator))}${ic(`chev`)}</button></li>`).join(``)}</ul>`:`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}</section>
     <section><div class="hd"><h2 class="h3">Explorer</h2></div>
       <button class="rowlink" data-go="actives" style="border-top:1px solid var(--line)"><div class="grow"><b>Mes actifs</b><span class="s">Ceux de votre plan, et pourquoi</span></div>${ic(`chev`)}</button>
       <button class="rowlink" data-go="products"><div class="grow"><b>${DEMO_MODE?`Exemples de produits`:`Produits pour ma routine`}</b><span class="s">${DEMO_MODE?`Exemples de démonstration`:Engine.products.usable(catalogNow()).length?`Pour chaque étape de votre routine`:`Catalogue en préparation`}</span></div>${ic(`chev`)}</button></section>
@@ -745,7 +745,7 @@ const photoNotice=()=>{
 V.scan=()=>{
   const st=state.scanStep;
   const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn c-icon-btn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
-  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}${TN.picker()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve que si vous l'avez choisi.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
+  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}${TN.picker()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DermAI ne la conserve que si vous l'avez choisi.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
   if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}${touchUi()?`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Prendre une autre photo</button><button class="c-btn c-btn--ghost c-btn--block" data-act="gallery">Choisir dans ma galerie</button>`:`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Choisir une autre photo</button>`}</div>`}
    ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:state.scanError===DermaiAnalysisFlow.MSG.uncertain?`Réponse non reçue`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:photoNotice()}
    ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:state.photoCheck&&state.photoCheck.level===`block`&&!state.scanError?``:`<button class="c-btn ${state.photoCheck&&state.photoCheck.level===`warn`&&!state.scanError?`c-btn--secondary`:`c-btn--primary`} c-btn--block" data-act="analyze">${state.scanError?`Réessayer`:state.photoCheck&&state.photoCheck.level===`warn`?`Analyser quand même`:`Analyser ma peau`}</button>`}</div></div>`;
@@ -766,7 +766,7 @@ V.analyzing=()=>`<div class="an"><p class="pill-up">Analyse en cours</p><div cla
 
 /* Résultat */
 /* Écran Résultat : lit uniquement SkinModel.toResultView(normalized) (échelle 0-100, 100 = meilleur). Aucun repli, aucune zone du visage. */
-/* Les fréquences sont une suggestion de départ DERMAI (introduction progressive, selon la tolérance), jamais une recommandation du fournisseur d'analyse. */
+/* Les fréquences sont une suggestion de départ DermAI (introduction progressive, selon la tolérance), jamais une recommandation du fournisseur d'analyse. */
 const startHint=i=>`Suggestion de départ : ${i.frequency?i.frequency.charAt(0).toLowerCase()+i.frequency.slice(1):`selon votre tolérance`}.${i.note?` ${i.note}`:``} À adapter selon la tolérance de votre peau.`;
 const SCORE_SENTENCE={good:`Votre analyse indique un état apparent plutôt favorable.`,mid:`Votre analyse indique quelques repères à soutenir.`,low:`Votre analyse indique plusieurs repères plus faibles.`};
 /* Indicateurs informatifs (contour des yeux) : jamais de bande d'alerte ni d'incitation à l'action, un libellé neutre à la place. */
@@ -814,20 +814,20 @@ V.result=()=>{
    <div class="col sticky-d">${hero}${type}</div>
    <div class="col">
     ${fmKeys.length?faceMapHtml(s,fmKeys,eng.synthesis):``}${DermaiInsight.detections(eng.synthesis.detections)}${H?``:DermaiDeclared.top(eng,s)}
-    <section><p class="kicker">Ce que DERMAI retient</p><div class="hd"><h2 class="h3">${H?`Axes retenus à cette date`:`Vos axes de soin`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
-      ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DERMAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.${s.noRaw?` ${Engine.copy.SYNTH.compat}`:``}`:`Les besoins que DERMAI retient d'après les données de votre analyse.`} Le score affiché va de 0 à 100, 100 = meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
+    <section><p class="kicker">Ce que DermAI retient</p><div class="hd"><h2 class="h3">${H?`Axes retenus à cette date`:`Vos axes de soin`}</h2></div>${(H?s.rec.priorities.length:P.items.length)
+      ?`<p class="muted" style="margin-bottom:14px">${H?`Ce que DermAI avait relevé à cette date. Ces repères ne sont pas recalculés avec vos préférences ou les règles d'aujourd'hui.${s.noRaw?` ${Engine.copy.SYNTH.compat}`:``}`:`Les besoins que DermAI retient d'après les données de votre analyse.`} Le score affiché va de 0 à 100, 100 = meilleur état. Le score global est une information séparée : il ne détermine pas ces priorités.</p><div class="stack" style="gap:12px">${prio}</div>`
       :`<div class="c-notice c-notice--success">${ic(`check`)}<div><span class="c-notice__title">${Engine.copy.MAINTENANCE.title}</span>${Engine.copy.MAINTENANCE.text}</div></div>`}
     ${!H&&P.eyeInfo?`<div class="c-notice u-my-5">${ic(`info`)}<div>${P.eyeInfo}</div></div>`:``}</section>
     <section id="indicateurs"><div class="hd"><h2 class="h3">Autres indicateurs</h2></div><ul class="c-indicators">${others}</ul>${eyeRows?`<div class="c-indicators-group"><h3 class="c-indicators-group__title">${Engine.copy.EYE_GROUP_TITLE}</h3><ul class="c-indicators">${eyeRows}</ul></div>`:``}</section>
     ${H?`<section><p class="kicker">Ce que vous souhaitiez travailler</p><div class="hd"><h2 class="h3">Vos objectifs à cette date</h2></div>
       ${s.rec.goals.length?`<div class="chips" style="margin-bottom:10px">${s.rec.goals.map(id=>`<span class="c-badge">${Engine.copy.GOAL_LABELS[id]}</span>`).join(``)}</div>`:`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi à cette date.</p>`}</section>
-    <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine actuelle</h2></div>
+    <section><p class="kicker">Ce que DermAI recommande</p><div class="hd"><h2 class="h3">Votre routine actuelle</h2></div>
       <p class="muted" style="margin-bottom:14px">La routine affichée dans l'application correspond à votre analyse la plus récente.</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine actuelle</button></section>`:`    <section><p class="kicker">Ce que vous souhaitez travailler</p><div class="hd"><h2 class="h3">Vos objectifs</h2></div>
       ${eng.personalization.goals.length?`${goalBadges()}<p class="muted" style="margin-bottom:10px">${goalCount()}. Un objectif indique ce que vous souhaitez travailler, pas un constat sur votre peau.</p><ul class="l-list" style="margin-top:0">${eng.synthesis.goals.items.map(g=>`<li>${ic(`check`)}<span>${g.text}</span></li>`).join(``)}</ul>`
         :`<p class="muted" style="margin-bottom:10px">Aucun objectif choisi. Les objectifs sont facultatifs. ${eng.synthesis.goals.text}</p>`}
       <button class="link" data-go="profile">${eng.personalization.goals.length?`Modifier mes objectifs`:`Choisir mes objectifs`}</button></section>
-    <section><p class="kicker">Ce que DERMAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
+    <section><p class="kicker">Ce que DermAI recommande</p><div class="hd"><h2 class="h3">Votre routine personnalisée</h2></div>
       <p style="color:var(--ink);margin-bottom:14px">${eng.synthesis.strategy.text}</p>
       <button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></section>`}
     ${H?``:SIM.entry(s)}${H?``:DermaiInsight.limits(eng)}<div class="stack"><button class="c-btn c-btn--secondary c-btn--block" data-go="scan">Faire une nouvelle analyse</button><button class="c-btn c-btn--ghost c-btn--block" data-go="analyses">Mes analyses</button></div>
@@ -894,7 +894,7 @@ V.routine=()=>{
     const m=pm[st.id],p=m&&Engine.products.byId(m.productId,catalogNow());
     return `<div class="c-routine-step"><span class="c-routine-step__ord">${pad(i+1)}</span><div class="c-routine-step__body"><div class="c-routine-step__meta">${Engine.copy.STEP_LABELS[st.origin===`accompaniment`?`accompaniment`:st.kind]}</div><div class="c-routine-step__name">${stepName(st)}</div><p class="c-routine-step__role">${Y.steps[st.id]||st.reason}</p>
       ${st.kind===`treatment`?`<p class="c-routine-step__role">${startHint(st.introduction)}${st.slowDown?` ${Engine.copy.SLOW}`:``}</p>${whyBlock(st)}<button class="link" data-go="active:${st.activeId}">Découvrir cet actif</button>`:``}
-      ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Proposé par DERMAI : `}${esc(p.name)}</button>`:Y.products[st.id]&&!DEMO_MODE&&(slot===`morning`||!R.slots.morning.some(x=>x.kind===st.kind&&x.activeId===st.activeId))?`<p class="c-routine-step__role muted">${Y.products[st.id].text}</p>`:``}</div>
+      ${p?`<button class="link" data-act="product" data-v="${p.id}">${p.demo?`Exemple (démonstration) : `:`Proposé par DermAI : `}${esc(p.name)}</button>`:Y.products[st.id]&&!DEMO_MODE&&(slot===`morning`||!R.slots.morning.some(x=>x.kind===st.kind&&x.activeId===st.activeId))?`<p class="c-routine-step__role muted">${Y.products[st.id].text}</p>`:``}</div>
       <button class="c-check" data-act="tick" data-v="${key+i}" aria-pressed="${!!state.done[key+i]}" aria-label="Marquer ${stepName(st)} comme fait">${ic(`check`)}</button></div>`}).join(``)}</div></section>`;
   const cautions=[...new Set(R.slots.morning.concat(R.slots.evening).filter(s=>s.kind===`treatment`).flatMap(s=>s.cautions))];
   return shell(`<div class="pagehead"><h1>Ma routine</h1><p>${R.summary}</p></div>
@@ -914,7 +914,7 @@ V.verif=()=>shell(VR.page(),{title:`Vérif'Routine`});
 V.studio=()=>shell(ST.page(),{title:`Studio Beauté`});
 V.admin=()=>shell(AD.page());
 
-/* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DERMAI » = choisis par le moteur pour chaque étape ; « Autres produits » = le reste du
+/* Produits : conséquence de la routine (jamais l'inverse). « Proposés par DermAI » = choisis par le moteur pour chaque étape ; « Autres produits » = le reste du
    catalogue, avec la raison du moteur. Aucun score. Prix, vendeur, lien : affichés seulement s'ils existent et sont sourcés, sinon « Données à venir ». Catalogue réel vide : aucun produit fictif. */
 const SKIN_FR={all:`tous types de peau`,normal:`peau normale`,oily:`peau grasse`,dry:`peau sèche`,combination:`peau mixte`};
 const CAT_FILTERS=[[`all`,`Tous`],[`cleanser`,`Nettoyants`],[`serum`,`Soins ciblés`],[`moisturizer`,`Hydratants`],[`spf`,`Protection solaire`]];
@@ -997,8 +997,8 @@ const marketBar=()=>{
 };
 V.products=()=>{
   const f=state.filter,list=Engine.products.usable(catalogNow()),inF=p=>f===`all`||p.category===f;
-  const head=`<div class="pagehead"><h1>${DEMO_MODE?`Exemples de produits`:`Produits pour ma routine`}</h1><p>${DEMO_MODE?`Un catalogue de démonstration, qui n'est pas personnalisé. Ceux de votre routine sont repérés.`:`DERMAI choisit d'abord les actifs de votre routine, puis les produits qui les contiennent.`}</p></div>`;
-  if(!DEMO_MODE&&!list.length)return shell(`${head}<div class="c-card c-card--empty"><div class="c-empty">${ic(`layers`)}<h2 class="c-empty__title">Les produits arrivent bientôt</h2><p class="c-empty__text">DERMAI prépare son catalogue de produits. En attendant, votre routine indique déjà les types de soins et les actifs à chercher.</p><button class="c-btn c-btn--primary c-btn--block" data-go="${noReal()?`scan`:`routine`}">${noReal()?`Analyser ma peau`:`Voir ma routine`}</button></div></div><div style="margin-top:24px;max-width:520px">${disc()}</div>`,{back:true,title:`Produits`});
+  const head=`<div class="pagehead"><h1>${DEMO_MODE?`Exemples de produits`:`Produits pour ma routine`}</h1><p>${DEMO_MODE?`Un catalogue de démonstration, qui n'est pas personnalisé. Ceux de votre routine sont repérés.`:`DermAI choisit d'abord les actifs de votre routine, puis les produits qui les contiennent.`}</p></div>`;
+  if(!DEMO_MODE&&!list.length)return shell(`${head}<div class="c-card c-card--empty"><div class="c-empty">${ic(`layers`)}<h2 class="c-empty__title">Les produits arrivent bientôt</h2><p class="c-empty__text">DermAI prépare son catalogue de produits. En attendant, votre routine indique déjà les types de soins et les actifs à chercher.</p><button class="c-btn c-btn--primary c-btn--block" data-go="${noReal()?`scan`:`routine`}">${noReal()?`Analyser ma peau`:`Voir ma routine`}</button></div></div><div style="margin-top:24px;max-width:520px">${disc()}</div>`,{back:true,title:`Produits`});
   const chips=`<div class="chips" style="margin-bottom:24px">${CAT_FILTERS.map(([v,name])=>`<button class="c-chip" data-act="filter" data-v="${v}" aria-pressed="${f===v}">${name}</button>`).join(``)}</div>`;
   const note=marketBar()+(DEMO_MODE?`<div class="note" style="padding-top:0">${ic(`info`)}<span>Produits fictifs de démonstration. Le catalogue réel (Bénin et Afrique francophone) sera branché plus tard.</span></div>`:``);
   const foot=`<div style="margin-top:32px;max-width:520px">${disc()}<button class="c-btn c-btn--primary c-btn--block" data-go="progress">Suivre ma progression</button></div>`;
@@ -1009,7 +1009,7 @@ V.products=()=>{
   const rec=view.recommended.map(r=>({p:Engine.products.byId(r.productId,catalogNow()),r})).filter(x=>inF(x.p));
   const oth=view.others.map(o=>({p:Engine.products.byId(o.productId,catalogNow()),o})).filter(x=>inF(x.p));
   return shell(`${head}${DermaiExport.card(eng,SCANS[state.latest],{demo:DEMO_MODE,catalog:catalogNow()})}${note}${chips}
-   <section><div class="hd"><h2 class="h3">Proposés par DERMAI pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit proposé dans cette catégorie.`:Engine.copy.SYNTH.productsNone}</p>`}</section>
+   <section><div class="hd"><h2 class="h3">Proposés par DermAI pour votre routine</h2></div>${rec.length?`<div class="pgrid">${rec.map(x=>productCard(x.p,{inPlan:true,slots:slotsOf(x.r.steps),role:roleOf(x.r.steps)})).join(``)}</div>`:`<p class="muted">${view.recommended.length?`Aucun produit proposé dans cette catégorie.`:Engine.copy.SYNTH.productsNone}</p>`}</section>
    ${oth.length?`<section style="margin-top:34px"><div class="hd"><h2 class="h3">Autres produits</h2></div><div class="pgrid">${oth.map(x=>productCard(x.p,{reason:x.o.text})).join(``)}</div></section>`:``}${foot}`,{back:true,title:`Produits`});
 };
 /* Identité vérifiée d'un produit réel : INCI (avec ses divergences éventuelles) et source fabricant datée. Jamais d'INCI inventé : sans liste, aucune ligne. */
@@ -1115,7 +1115,7 @@ V.profile=()=>{
    ${DEMO_MODE?`<button class="rowlink" data-act="pick-photo">${ic(`image`)}<div class="grow"><b>Photo de démonstration</b><span class="s">${photoSrc()?`Importée. Touchez pour la remplacer.`:`Importer une image générée par IA (personne fictive)`}</span></div>${ic(`chev`)}</button>${state.photo?`<button class="rowlink" data-act="clear-photo">${ic(`trash`)}<div class="grow"><b>Retirer la photo de démonstration</b></div></button>`:``}`:``}
    ${accountOn()?``:`<button class="rowlink" data-act="confirm" data-v="account">${ic(`trash`)}<div class="grow"><b>Supprimer mon compte</b><span class="s">Action définitive</span></div></button>
    <button class="rowlink" data-go="landing" data-reset="1">${ic(`out`)}<div class="grow"><b>Se déconnecter</b></div></button>`}</section>
-   <p class="muted">${DEMO_MODE?`DERMAI, mode démonstration. Données fictives.`:`DERMAI : analyse cosmétique visuelle, pas un diagnostic médical.`}</p>
+   <p class="muted">${DEMO_MODE?`DermAI, mode démonstration. Données fictives.`:`DermAI : analyse cosmétique visuelle, pas un diagnostic médical.`}</p>
   </div></div>`);
 };
 V.privacy=()=>shell(DermaiPhotos.privacy({demo:DEMO_MODE,signedIn:signedIn(),photos:state.photos,busy:state.photoBusy,ic,sw}),{back:true,title:`Confidentialité`});

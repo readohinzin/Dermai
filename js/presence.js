@@ -1,4 +1,4 @@
-/* DERMAI : présence « en ligne ». Tant qu'un compte est connecté ET que la page est visible, un battement part toutes les 30 secondes vers la fonction touch_presence de la base (via js/account.js) :
+/* DermAI : présence « en ligne ». Tant qu'un compte est connecté ET que la page est visible, un battement part toutes les 30 secondes vers la fonction touch_presence de la base (via js/account.js) :
    elle n'enregistre qu'UNE date par compte (dernière activité). Rien d'autre n'est envoyé ni lu : ni page visitée, ni appareil, ni position. Le fondateur voit « en ligne » pour un compte dont la date a
    moins de 75 secondes (page d'administration).
    Aucun message à l'utilisatrice, jamais d'erreur affichée : un échec est silencieux et n'est pas rejoué en rafale (le prochain battement est dans 30 s). Fonction absente de la base (proposition SQL non

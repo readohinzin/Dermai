@@ -1,4 +1,4 @@
-/* DERMAI : « Simuler une amélioration » (aperçu cosmétique avant/après). Chargé avant app.js.
+/* DermAI : « Simuler une amélioration » (aperçu cosmétique avant/après). Chargé avant app.js.
    C'est une ILLUSTRATION générée par ordinateur, pas une prédiction, pas une promesse de résultat, pas un résultat médical : l'écran le dit.
 
    Ce module parle à /api/skin-simulation (jamais à Perfect Corp, jamais à /api/skin-analysis) et ne lance JAMAIS d'analyse.
@@ -27,7 +27,7 @@
     generic: 'La simulation n\'a pas pu être terminée.',
     badImage: 'L\'image reçue n\'est pas utilisable. Cette simulation a peut-être été comptée dans votre quota.',
     imageLoad: 'L\'image simulée n\'a pas pu être chargée. Cette simulation est comptée dans votre quota.',
-    gone: 'La photo de cette analyse n\'est plus disponible dans DERMAI.'
+    gone: 'La photo de cette analyse n\'est plus disponible dans DermAI.'
   };
   const PENDING = 'dermai.sim.pending.';
   const TIMEOUT_MS = 65000;
@@ -128,7 +128,7 @@
       const pending = marker.get() && !busy && ui.status !== 'done';
       const chips = CONCERNS.map(([k, l]) => `<button class="c-chip" data-sim="pick" data-c="${k}" aria-pressed="${ui.concern === k}"${busy ? ' disabled' : ''}>${esc(l)}</button>`).join('');
       const picker = `<div style="margin-top:10px"><input type="file" accept="image/*" data-sim="file" aria-label="Choisir une photo de face"${busy || ui.photoBusy ? ' disabled' : ''}></div>`;
-      const askPhoto = mustAsk ? `<div class="c-notice u-my-5">${ic('info')}<div><span class="c-notice__title">Une photo est nécessaire</span>${esc(MSG.gone)} La simulation modifie une photo de votre visage. DERMAI ne garde pas la photo de vos analyses, sauf si vous l'avez choisi : vous devez donc en choisir une de face, bien éclairée. Elle sert uniquement à créer l'image simulée. Aucune nouvelle analyse n'est lancée.${picker}</div></div>`
+      const askPhoto = mustAsk ? `<div class="c-notice u-my-5">${ic('info')}<div><span class="c-notice__title">Une photo est nécessaire</span>${esc(MSG.gone)} La simulation modifie une photo de votre visage. DermAI ne garde pas la photo de vos analyses, sauf si vous l'avez choisi : vous devez donc en choisir une de face, bien éclairée. Elle sert uniquement à créer l'image simulée. Aucune nouvelle analyse n'est lancée.${picker}</div></div>`
         : ui.photo ? `<div class="c-notice u-my-5">${ic('check')}<div><span class="c-notice__title">Photo prête</span>Cette photo servira uniquement à la simulation. Aucune analyse n'est lancée.${picker}</div></div>` : '';
       const notice = ui.error ? `<div class="c-notice c-notice--error u-my-5" role="alert">${ic('info')}<div><span class="c-notice__title">${ui.unsure ? 'Réponse non reçue' : 'Simulation impossible'}</span>${esc(ui.error)}</div></div>` : '';
       const ack = pending && !ui.acked ? `<div class="c-notice u-my-5" role="status">${ic('info')}<div><span class="c-notice__title">Une simulation précédente est restée sans réponse</span>Elle a peut-être été comptée dans votre quota. Relancer en consomme une autre.
@@ -136,11 +136,11 @@
       const disclaimer = `<div class="c-notice u-my-5">${ic('info')}<div><span class="c-notice__title">Une illustration, pas une prédiction</span>Cette image est générée par ordinateur sur une seule zone. Elle ne prédit pas l'effet de vos soins, ne promet aucun résultat et n'a aucune valeur médicale. Vos vrais résultats dépendent de nombreux facteurs.</div></div>`;
       const ready = !!ui.concern && !busy && !mustAsk && (!pending || ui.acked);
       const result = ui.status === 'done' && ui.image ? beforeAfter(scan) : '';
-      return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone : DERMAI génère une image illustrative de cette zone améliorée, à comparer avec votre photo.</p></div>
+      return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone : DermAI génère une image illustrative de cette zone améliorée, à comparer avec votre photo.</p></div>
         ${disclaimer}
         <section><div class="hd"><h2 class="h3">Quelle zone ?</h2></div><div class="chips" style="margin-bottom:14px">${chips}</div></section>
         ${askPhoto}${ack}${notice}
-        <p class="muted" style="margin-bottom:12px">Chaque simulation compte dans votre quota de simulations, même si elle échoue, et reste indépendante de vos analyses. L'image simulée n'est pas conservée par DERMAI.</p>
+        <p class="muted" style="margin-bottom:12px">Chaque simulation compte dans votre quota de simulations, même si elle échoue, et reste indépendante de vos analyses. L'image simulée n'est pas conservée par DermAI.</p>
         <button class="c-btn c-btn--primary c-btn--block" data-sim="run"${ready ? '' : ' disabled'} aria-busy="${busy}">${ui.status === 'fetching' ? 'Préparation de la photo…' : ui.status === 'running' ? 'Simulation en cours…' : 'Lancer la simulation'}</button>
         ${result}
         <div class="stack" style="margin-top:16px"><button class="link" data-sim="back">Retour à mon analyse</button></div>`;

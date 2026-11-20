@@ -57,7 +57,7 @@ test('TT4 sélecteur : dix pastilles accessibles, phrase d\'estimation, mention 
   assert.equal((h.match(/aria-checked="false"/g) || []).length, 10);
   for (let i = 1; i <= 10; i++) assert.ok(h.includes('data-tone="' + i + '"') && h.includes('aria-label="Teint ' + i + ' sur 10"'));
   assert.match(h, /C'est une estimation : l'écran de votre téléphone peut fausser les couleurs\./);
-  assert.match(h, /Ce choix reste sur votre appareil\. DERMAI ne l'envoie à personne/);
+  assert.match(h, /Ce choix reste sur votre appareil\. DermAI ne l'envoie à personne/);
   assert.match(h, /role="radiogroup"/); assert.match(h, /aria-live="polite"/);
   assert.match(h, /data-tone-clear hidden/, 'rien à retirer tant qu\'aucun teint n\'est choisi');
   const sel = T.picker(8);

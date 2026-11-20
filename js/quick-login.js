@@ -1,4 +1,4 @@
-/* DERMAI : « Recevoir un lien de connexion par e-mail » (lien magique), sans mot de passe à créer. Chargé avant app.js, après js/account.js.
+/* DermAI : « Recevoir un lien de connexion par e-mail » (lien magique), sans mot de passe à créer. Chargé avant app.js, après js/account.js.
    L'adresse saisie reçoit un e-mail avec un lien ; ouvrir le lien connecte la personne (un compte est créé au premier passage). Même réponse que l'adresse
    existe ou non (aucune énumération). La session revient dans l'adresse du site et est lue par le code existant de retour de lien (js/account.js) : vérifiée
    auprès de Supabase, puis effacée de la barre d'adresse. Ce module ne contacte jamais le réseau lui-même et ne garde aucun jeton, mot de passe ni secret. */

@@ -28,7 +28,7 @@ const WORDS = {
 };
 const STOPWORDS = new Set(['the', 'le', 'la', 'les', 'de', 'du', 'des', 'd', 'l', 'et', 'and', 'of']);
 
-/* Ingrédients reconnus, en anglais, avec l'actif DERMAI qu'ils représentent quand le catalogue actuel les relie (jamais un nouvel actif).
+/* Ingrédients reconnus, en anglais, avec l'actif DermAI qu'ils représentent quand le catalogue actuel les relie (jamais un nouvel actif).
    [écriture normalisée, ingrédient canonique, activeId | null]. Les écritures les plus longues sont essayées d'abord. */
 const INGREDIENTS = [
   ['hyaluronic acid', 'hyaluronic acid', 'hyaluronic'], ['sodium hyaluronate', 'sodium hyaluronate', 'hyaluronic'], ['ha', 'hyaluronic acid', 'hyaluronic'],

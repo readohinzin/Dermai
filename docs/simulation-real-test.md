@@ -95,7 +95,7 @@ Le quota (1 par 24 h) refuse toute seconde demande. Ne pas le relever pour conto
 7. Consigner dans un seul compte rendu : solde avant et après, unités, FCFA, durée, erreurs, structure de la réponse. Si le solde ne permet pas de conclure (arrondi, différé, partagé), le dire tel quel et ne lancer aucune autre requête pour « mesurer ».
 
 ## 8. Résultat ambigu : conduite à tenir
-Sont ambigus : pas de réponse, réseau coupé, délai dépassé (504), page rechargée pendant l'attente, réponse illisible, image refusée par DERMAI (`La simulation n'a pas pu être terminée`) alors que les journaux montrent « Simulation task completed ».
+Sont ambigus : pas de réponse, réseau coupé, délai dépassé (504), page rechargée pendant l'attente, réponse illisible, image refusée par DermAI (`La simulation n'a pas pu être terminée`) alors que les journaux montrent « Simulation task completed ».
 - **Ne rien relancer**, ni depuis l'interface, ni en `curl`. L'application demande d'ailleurs une confirmation avant toute nouvelle demande après une réponse manquante : ne pas confirmer.
 - La simulation est comptée dans le quota même si elle échoue, par prudence (aucun remboursement automatique). Ne pas supprimer la ligne de `simulation_usage` ni relever le quota.
 - Attendre 10 minutes, relever le solde de la console : une baisse indique que la tâche a été facturée.

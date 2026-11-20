@@ -67,7 +67,7 @@ test('R7 radiance : information seulement, sauf objectif explicite + règle expl
   const low = { radiance: 60 }, raw = { rawMap: { radiance: 30 } };
   const none = run(low, raw);
   assert.deepEqual(prio(none), []); assert.deepEqual(tids(none), []);
-  assert.match(none.synthesis.sections.retained, /Radiance \(60\) : information seulement\. DERMAI n'y associe un soin que si vous choisissez l'objectif « teint et taches »\./);
+  assert.match(none.synthesis.sections.retained, /Radiance \(60\) : information seulement\. DermAI n'y associe un soin que si vous choisissez l'objectif « teint et taches »\./);
   const tone = run(low, raw, { goals: ['tone'] });
   assert.deepEqual(prio(tone), ['radiance']);
   assert.deepEqual(tids(tone), ['vitamin_c'], 'règle existante (préférence validée), aucun nouvel actif');
@@ -89,7 +89,7 @@ test('R8 hydratation : peut agir (règle existante), avec les ingrédients de so
   assert.deepEqual(prio(r), ['hydration']);
   const sup = r.activePlan.supports.map(s => s.activeId);
   assert.ok(sup.includes('hyaluronic'), sup.join());
-  assert.match(r.synthesis.steps['morning:moisturize'], /^Cette étape fait partie de l'entretien de base\. DERMAI retient l'hydratation comme axe de soin dans cette analyse\. L'objectif est de soutenir le confort et l'hydratation de la peau\. Ingrédients recherchés dans l'hydratant : .+\.$/);
+  assert.match(r.synthesis.steps['morning:moisturize'], /^Cette étape fait partie de l'entretien de base\. DermAI retient l'hydratation comme axe de soin dans cette analyse\. L'objectif est de soutenir le confort et l'hydratation de la peau\. Ingrédients recherchés dans l'hydratant : .+\.$/);
   assert.doesNotMatch(r.synthesis.steps['morning:moisturize'], /déshydrat/i);
 });
 
@@ -120,14 +120,14 @@ test('R11 pays différent → moteur identique (le pays ne sert qu\'aux offres)'
     assert.doesNotMatch(read(f).replace(/\/\*[\s\S]*?\*\//g, ''), /market|country|pays|offer/i, f);
 });
 
-test('R12 produit sans justification → aucun produit par défaut ; un produit proposé l\'est « par DERMAI »', () => {
+test('R12 produit sans justification → aucun produit par défaut ; un produit proposé l\'est « par DermAI »', () => {
   const r = run({}, { rawFill: 85 });
   assert.deepEqual(r.productMatches, []);
   const v = P.catalogView(r.routinePlan, r.productMatches, REAL);
   assert.equal(v.others.find(o => o.productId === 'lrp-cicaplast-baume-b5-plus').reason, 'not_justified');
   const act = run({ pores: 64 }, { rawMap: { pores: 30 } });
-  for (const m of act.productMatches) assert.match(act.synthesis.products[m.stepId].text, /^Proposé par DERMAI\. /);
-  assert.equal(copy.MARKET_TEXTS.recommended, 'Proposé par DERMAI');
+  for (const m of act.productMatches) assert.match(act.synthesis.products[m.stepId].text, /^Proposé par DermAI\. /);
+  assert.equal(copy.MARKET_TEXTS.recommended, 'Proposé par DermAI');
   assert.doesNotMatch(JSON.stringify(copy), /Perfect ?Corp[^"]*recommand|recommand[^"]*Perfect ?Corp/i);
 });
 
@@ -159,13 +159,13 @@ test('R14 aucune localisation déduite d\'un score : le moteur ne lit ni ne prod
     assert.doesNotMatch(read(f).replace(/\/\*[\s\S]*?\*\//g, ''), /mask|localization|zone/i, f);
 });
 
-test('R15 repères DERMAI provisoires : isolés dans une configuration identifiable, distincts de 61 / 31', () => {
+test('R15 repères DermAI provisoires : isolés dans une configuration identifiable, distincts de 61 / 31', () => {
   assert.equal(DEC.PROVISIONAL, true);
   assert.equal(DEC.PREFERRED_BASIS, 'raw');
   assert.deepEqual(DEC.RAW_BANDS.map(b => [b.key, b.min]), [['good', 50], ['mid', 25], ['low', 0]]);
   assert.deepEqual(DEC.LEGACY_UI_BANDS.map(b => b.min), [61, 31, 0], 'compatibilité seulement');
   const src = read('js/engine/data/decision.js');
-  assert.match(src, /repères DERMAI provisoires/);
+  assert.match(src, /repères DermAI provisoires/);
   assert.match(src, /rien de cela n'est fourni ni validé par Perfect Corp/);
   // aucun seuil ailleurs dans le moteur
   for (const f of ['js/engine/interpret.js', 'js/engine/priorities.js', 'js/engine/synthesis.js', 'js/engine/personalization.js'])
@@ -182,18 +182,18 @@ test('R15 repères DERMAI provisoires : isolés dans une configuration identifia
   assert.equal(run({ pores: 64 }, { rawMap: { pores: 24.9 } }).priorities.items[0].band, 'low');
 });
 
-test('R16 affichage : score affiché /100, phrase d\'explication, aucun score brut ; « Vos résultats les moins élevés » ; « priorité » réservé à DERMAI', () => {
+test('R16 affichage : score affiché /100, phrase d\'explication, aucun score brut ; « Vos résultats les moins élevés » ; « priorité » réservé à DermAI', () => {
   const { DermaiInsight } = require('../js/insight-view.js');
   const r = run({ hydration: 67, pores: 64, texture: 67 }, { rawMap: { hydration: 42.08343029022217, pores: 41.18226081132889, texture: 49.07534718513489 } });
   const html = DermaiInsight.found(r.synthesis);
-  for (const t of ['Ce que l\'analyse montre', 'Vos résultats les moins élevés', 'Ce que DERMAI retient', 'Votre stratégie']) assert.ok(html.includes(t), t);
-  assert.ok(html.includes('Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DERMAI utilisent séparément les données brutes de l\'analyse.'));
+  for (const t of ['Ce que l\'analyse montre', 'Vos résultats les moins élevés', 'Ce que DermAI retient', 'Votre stratégie']) assert.ok(html.replace(/<span class="c-brand">DermAI<\/span>/g, 'DermAI').includes(t), t);   // la marque est enveloppée dans les étiquettes en majuscules
+  assert.ok(html.includes('Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DermAI utilisent séparément les données brutes de l\'analyse.'));
   assert.doesNotMatch(html, /42[.,]08|41[.,]18|49[.,]07|raw|brut[^e]/i);
   assert.doesNotMatch(html, /axes? d'attention|Vos points forts/);
   const app = read('js/app.js'), iv = read('js/insight-view.js');
   assert.doesNotMatch(app + iv, /axes? d'attention/i);
-  assert.match(app, /Retenu par DERMAI/);
-  assert.match(app, /Proposés par DERMAI pour votre routine/);
+  assert.match(app, /Retenu par DermAI/);
+  assert.match(app, /Proposés par DermAI pour votre routine/);
   assert.doesNotMatch(app, /Recommandés pour votre routine|Produit recommandé/);
   assert.match(app, /<span class="c-score__unit">\/100<\/span>/);
 });

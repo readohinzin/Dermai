@@ -227,8 +227,8 @@ test('PC11 « pourquoi ce produit » : rôle et actif de l\'étape, sans promess
     if (s.kind === 'treatment') assert.ok(s.activeIds.length === 1 && s.why.toLowerCase().includes(actives.byId(s.activeIds[0]).label.toLowerCase()), s.why);
     assert.doesNotMatch(s.why, /va traiter|guérit|élimine|corrige|efface|100 ?%|garanti/i);
   }
-  assert.equal(copy.productWhy('cleanse', []), 'Proposé par DERMAI. Nettoyant doux pour l\'étape de nettoyage de votre routine.');
-  for (const k of ['treatment', 'moisturize', 'cleanse', 'spf']) assert.match(copy.productWhy(k, ['Niacinamide']), /^Proposé par DERMAI\. /, k);
+  assert.equal(copy.productWhy('cleanse', []), 'Proposé par DermAI. Nettoyant doux pour l\'étape de nettoyage de votre routine.');
+  for (const k of ['treatment', 'moisturize', 'cleanse', 'spf']) assert.match(copy.productWhy(k, ['Niacinamide']), /^Proposé par DermAI\. /, k);
   assert.match(copy.productWhy('spf', []), /Protection solaire/);
 });
 

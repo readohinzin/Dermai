@@ -1,4 +1,4 @@
-/* DERMAI : Studio Beauté, volet CAPILLAIRE (coiffure, couleur, extensions, franges, ondulations, volume, via /api/hair-vto). Chargé avant js/makeup-studio.js, qui l'intègre dans le MÊME écran
+/* DermAI : Studio Beauté, volet CAPILLAIRE (coiffure, couleur, extensions, franges, ondulations, volume, via /api/hair-vto). Chargé avant js/makeup-studio.js, qui l'intègre dans le MÊME écran
    (même photo, mêmes règles) : ce module n'a ni entrée de menu ni route propres.
    L'image obtenue est une ILLUSTRATION générée par ordinateur ; chaque écran dit la nature exacte de la transformation (une extension n'est pas une perruque, le volume n'est pas un diagnostic).
 
@@ -289,7 +289,7 @@
         <section class="c-ms-go"><div class="hd"><h2 class="h3">Essayer</h2></div>
           ${pending ? `<div class="c-notice u-my-5" role="status"><div><span class="c-notice__title">Un essai précédent est resté sans réponse</span>Il a peut-être été compté dans votre quota. Relancer en consomme peut-être un autre.<div style="margin-top:10px"><button class="c-btn c-btn--secondary" data-hs="ack" data-f="${fid}">Je comprends, continuer</button></div></div></div>` : ''}
           ${s.error ? note(s.error, 'c-notice--error', 'alert') : ''}
-          <p class="muted" style="margin-bottom:12px">Cet essai consomme ${esc(units)} chez le fournisseur (valeur annoncée par sa documentation, non mesurée par DERMAI) et compte dans votre quota d'essais capillaires, même s'il échoue. Il est indépendant du maquillage, de vos analyses et de la simulation. Changer de modèle ne lance rien.</p>
+          <p class="muted" style="margin-bottom:12px">Cet essai consomme ${esc(units)} chez le fournisseur (valeur annoncée par sa documentation, non mesurée par DermAI) et compte dans votre quota d'essais capillaires, même s'il échoue. Il est indépendant du maquillage, de vos analyses et de la simulation. Changer de modèle ne lance rien.</p>
           ${run}${busy ? '<p class="muted" role="status"><span class="c-spinner" aria-hidden="true"></span> Cela peut prendre une minute. Ne quittez pas la page.</p>' : ''}</section>
         ${resultView(fid)}`;
     }

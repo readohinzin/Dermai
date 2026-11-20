@@ -132,7 +132,7 @@ test('HS6 coiffure par photo de référence : référence en mémoire, UNE deman
 
 test('HS7 sous-onglets « Boucles et volume » : une fonction à la fois, chacune avec ses unités et sa mention ; extensions ≠ perruque ; coût annoncé avant l\'essai, sans prétendre à une mesure', async () => {
   const c = setup(); const doc = await open(c, 'curls'); let h = txt(c);
-  assert.match(h, /Boucles et ondulations/); assert.match(h, /Volume/); assert.match(h, /ne couvre pas forcément toutes les textures ni tous les styles afro/); assert.match(h, /consomme 1 unité chez le fournisseur/); assert.match(h, /non mesurée par DERMAI/);
+  assert.match(h, /Boucles et ondulations/); assert.match(h, /Volume/); assert.match(h, /ne couvre pas forcément toutes les textures ni tous les styles afro/); assert.match(h, /consomme 1 unité chez le fournisseur/); assert.match(h, /non mesurée par DermAI/);
   hs(doc, 'sub', { 'data-t': 'curls', 'data-f': 'volume' }); await tick(); h = txt(c); assert.match(h, /consomme 2 unités/); assert.match(h, /ni un diagnostic de chute de cheveux ni une solution médicale/);
   await tick(); assert.deepEqual(tplCalls(c).map(x => x.url.match(/templates=([a-z]+)/)[1]).sort(), ['volume', 'wavy'], 'chaque liste est lue une fois, à l\'affichage de la fonction');
   const ex = setup(); await open(ex, 'extensions'); assert.match(txt(ex), /ne remplacent pas votre coiffure/); assert.match(txt(ex), /pas l'essai d'une perruque complète/);

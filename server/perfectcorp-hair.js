@@ -40,7 +40,7 @@ async function createTask(feature, body, env) {
   } catch (err) { throw refine(err); }
   const taskId = json && json.data && json.data.task_id;
   if (!taskId) throw new AnalysisError('HR_RESULT_INVALID', { status: 502, detail: `${feature.id} : task_id absent de la réponse` });
-  console.log('[DERMAI] Hair task created');
+  console.log('[DermAI] Hair task created');
   return taskId;
 }
 
@@ -58,7 +58,7 @@ async function pollTask(feature, taskId, env) {
     if (env.now() - start >= totalTimeoutMs) break;
     const json = await getTask(feature, taskId, env);
     const status = json && json.data && json.data.task_status;
-    if (status === 'success') { console.log('[DERMAI] Hair task completed'); return json; }
+    if (status === 'success') { console.log('[DermAI] Hair task completed'); return json; }
     if (status === 'error') {
       const d = json.data || {};
       const detail = `${feature.id} task error : ${JSON.stringify({ error: d.error, error_message: d.error_message })}`.slice(0, 500);

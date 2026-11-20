@@ -415,7 +415,7 @@ test('ACC31 axe identifié sans soin : dit comme tel, la routine reste simple, j
   const r = go({ acne: 76 }), y = r.synthesis;
   assert.deepEqual([y.indicators.acne.state, y.indicators.acne.level], ['accompaniment', 'Accompagnement léger']);
   assert.match(y.indicators.acne.text, /^Cet indicateur n'est pas une priorité dans cette analyse\. Il ressort néanmoins suffisamment par rapport aux autres résultats pour justifier un accompagnement cosmétique léger\. Un accompagnement cosmétique léger peut être proposé \(niacinamide\), sans être ajouté à votre routine pour l'instant\.$/);
-  assert.match(y.sections.accompaniment, /^Acné \(84\) : n'est pas une priorité dans cette analyse, mais ressort suffisamment par rapport à vos autres résultats pour justifier un accompagnement cosmétique léger\. Un accompagnement cosmétique léger peut être proposé pour acné \(84\) \(niacinamide\), mais DERMAI ne l'ajoute pas à votre routine pour l'instant\.$/);
+  assert.match(y.sections.accompaniment, /^Acné \(84\) : n'est pas une priorité dans cette analyse, mais ressort suffisamment par rapport à vos autres résultats pour justifier un accompagnement cosmétique léger\. Un accompagnement cosmétique léger peut être proposé pour acné \(84\) \(niacinamide\), mais DermAI ne l'ajoute pas à votre routine pour l'instant\.$/);
   assert.match(y.strategy.text, /^Stratégie : entretien de base \(nettoyage doux, hydratation, protection solaire\), adapté à votre profil \(peau normale\)\. Un accompagnement cosmétique léger est possible pour acné \(84\), sans soin ajouté pour l'instant\.$/);
   assert.doesNotMatch(y.strategy.text, /Aucun soin ciblé n'est ajouté/, 'pas de contradiction avec l\'accompagnement possible');
   assert.deepEqual(y.tiers.accompaniment.map(i => i.id), ['acne']);
@@ -459,8 +459,8 @@ test('ACC33 objectifs : statut « accompanied » quand un indicateur du domaine 
 test('ACC34 débordement : un axe prioritaire écarté par le plafond de 3 est dit accompagné, plus « en attente », quand un soin doux existe', () => {
   const r = go({ acne: 40, pores: 41, redness: 42, pigmentation: 43 }, { level: 'full' }), y = r.synthesis;
   assert.equal(y.indicators.pigmentation.state, 'accompaniment');
-  assert.doesNotMatch(y.sections.retained, /Pigmentation \(\d+\) : aussi sous les repères DERMAI, mais la routine se limite à trois axes/);
-  assert.match(y.sections.accompaniment, /Pigmentation \(\d+\) : est sous les repères DERMAI, mais la routine se limite à trois axes prioritaires ; un soin doux peut l'accompagner\./);
+  assert.doesNotMatch(y.sections.retained, /Pigmentation \(\d+\) : aussi sous les repères DermAI, mais la routine se limite à trois axes/);
+  assert.match(y.sections.accompaniment, /Pigmentation \(\d+\) : est sous les repères DermAI, mais la routine se limite à trois axes prioritaires ; un soin doux peut l'accompagner\./);
   assert.doesNotMatch(accTexts(r), FORBIDDEN);
 });
 
@@ -499,7 +499,7 @@ test('ACC37 interface : la synthèse a une section « Accompagnement léger » d
   const r = go({ hydration: 30, acne: 70, pores: 70 }), html = DermaiInsight.found(r.synthesis);
   assert.match(html, /<h3 class="c-insight__label">Accompagnement léger<\/h3><p class="c-insight__text">Acné \(78\) et pores \(78\) : ne sont pas des priorités dans cette analyse/);
   assert.match(html, /<span class="c-badge c-badge--outline">Acné · 78<\/span><span class="c-badge c-badge--outline">Pores · 78<\/span>/);
-  assert.ok(html.indexOf('Ce que DERMAI retient') < html.indexOf('Accompagnement léger') && html.indexOf('Accompagnement léger') < html.indexOf('Votre stratégie'), 'ordre : priorités, accompagnement, stratégie');
+  assert.ok(html.indexOf('Ce que DermAI retient') < html.indexOf('Accompagnement léger') && html.indexOf('Accompagnement léger') < html.indexOf('Votre stratégie'), 'ordre : priorités, accompagnement, stratégie');
   assert.ok(!DermaiInsight.found(go({ acne: 76, pores: 77, hydration: 76, texture: 75, oiliness: 78, redness: 78, pigmentation: 79, wrinkles: 80, firmness: 77, radiance: 76 }).synthesis).includes('Accompagnement léger'), 'sans accompagnement, aucune section');
   assert.match(appSrc, /const accBadge=m=>\{const d=eng\.synthesis\.indicators\[m\.id\];return d&&d\.state===`accompaniment`/);
   assert.match(appSrc, /\$\{accBadge\(m\)\}<\/span>\$\{barHtml\(m\)\}<\/li>`;\s*\n\s*\/\* Les indicateurs du contour des yeux/, 'le badge est utilisé par la ligne des indicateurs');
@@ -524,7 +524,7 @@ test('ACC39 produits : un produit d\'accompagnement est présenté comme tel, sa
   const P = require('../js/engine/products.js'), r = go({ acne: 70, pores: 70 });
   const m = r.productMatches.find(x => /niacinamide/.test(x.stepId));
   assert.equal(m.origin, 'accompaniment');
-  assert.match(P.whyOf(m), /^Proposé par DERMAI\. Choisi parce qu'il contient l'actif doux recherché pour l'accompagnement : niacinamide\./);
+  assert.match(P.whyOf(m), /^Proposé par DermAI\. Choisi parce qu'il contient l'actif doux recherché pour l'accompagnement : niacinamide\./);
   const view = P.catalogView(r.routinePlan, r.productMatches, C.PRODUCTS);
   assert.deepEqual(view.recommended.map(x => [x.productId, x.steps.map(s => s.kind)]), [['to-niacinamide-10-zinc-1', ['accompaniment']]]);
   assert.match(copy.productRole('accompaniment', ['Niacinamide']), /^Produit proposé pour le soin d'accompagnement de votre routine \(actif : niacinamide\)\.$/);

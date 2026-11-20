@@ -533,7 +533,7 @@ test('W4 le résultat reçu est gardé même après un changement d\'écran : au
   assert.match(run, /if\(state\.route!==`analyzing`\)\{toast\(msg\);return\}/);
 });
 
-test('W5 postJpeg : coupure, délai dépassé et réponse sans JSON DERMAI = noVerdict ; 401 et 429 inchangés', () => {
+test('W5 postJpeg : coupure, délai dépassé et réponse sans JSON DermAI = noVerdict ; 401 et 429 inchangés', () => {
   const post = between('function postJpeg', 'function normalizeSkinResult').slice(0, 2600);
   assert.match(post, /x\.timeout=65000/);
   assert.match(post, /x\.onerror=\(\)=>reject\(Object\.assign\(userError\([^\n]*\{noVerdict:true\}\)\)/);

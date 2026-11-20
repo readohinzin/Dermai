@@ -1,7 +1,7 @@
-/* DERMAI : carte du visage. Superpose sur la VRAIE photo analysée les masques RÉELS renvoyés par Perfect Corp (server/masks.js).
+/* DermAI : carte du visage. Superpose sur la VRAIE photo analysée les masques RÉELS renvoyés par Perfect Corp (server/masks.js).
 
    Un seul indicateur à la fois : seuls ses masques réels sont superposés. Aucune étiquette, aucun trait, aucun contour n'est ajouté par
-   DERMAI : le seul dessin est le masque du fournisseur (remplissage selon son opacité relative, liseré clair au bord de sa zone à
+   DermAI : le seul dessin est le masque du fournisseur (remplissage selon son opacité relative, liseré clair au bord de sa zone à
    mi-hauteur de son propre maximum). Lecture des masques semi-transparents : voir interpretMask.
 
    Règle absolue : aucune zone n'est jamais inventée. Ce module ne connaît ni les scores, ni les priorités, ni le type de peau, ni le
@@ -19,7 +19,7 @@
   'use strict';
   const DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/;
   const MAX_PER_KEY = 4, MAX_LEN = 2.2 * 1024 * 1024;
-  const COLOR = [224, 112, 143];          // rose-corail DERMAI (remplissage)
+  const COLOR = [224, 112, 143];          // rose-corail DermAI (remplissage)
   const EDGE_COLOR = [255, 246, 248];     // liseré clair, lisible sur toutes les carnations
   const FILL = 0.42, EDGE = 0.95;         // opacités fixes (jamais liées au score)
 

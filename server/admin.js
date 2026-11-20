@@ -77,15 +77,15 @@ function quotaRows(env = process.env) {
   ];
 }
 
-/* Identifiants techniques (derniers segments de chemin /task/<fonction>) que DERMAI appelle réellement, par catégorie. Sert UNIQUEMENT à rapprocher un coût officiel d'une fonction réelle. */
+/* Identifiants techniques (derniers segments de chemin /task/<fonction>) que DermAI appelle réellement, par catégorie. Sert UNIQUEMENT à rapprocher un coût officiel d'une fonction réelle. */
 const slugOf = p => { const m = /\/task\/([a-z0-9-]+)\/?$/i.exec(String(p || '')); return m ? m[1].toLowerCase() : null; };
 function dermaiSlugs() {
   const out = new Map();
   const add = (slug, cat, note) => { if (slug && !out.has(slug)) out.set(slug, { category: cat, note: note || null }); };
   add(slugOf(config.PERFECT_CORP_PATHS.skinTask), 'Analyse cutanée');
-  add(slugOf(config.SIM_PATHS.task), 'Simulation', 'chemin appelé par DERMAI non confirmé par la documentation');
+  add(slugOf(config.SIM_PATHS.task), 'Simulation', 'chemin appelé par DermAI non confirmé par la documentation');
   add(slugOf(config.MAKEUP_PATHS.task), 'Maquillage');
-  for (const id of hair.IDS) add(slugOf(hair.FEATURES[id].taskPath), 'Coiffure et couleur de cheveux', hair.FEATURES[id].pathConfirmed ? null : 'chemin appelé par DERMAI non confirmé');
+  for (const id of hair.IDS) add(slugOf(hair.FEATURES[id].taskPath), 'Coiffure et couleur de cheveux', hair.FEATURES[id].pathConfirmed ? null : 'chemin appelé par DermAI non confirmé');
   return out;
 }
 const CATEGORIES = ['Analyse cutanée', 'Simulation', 'Maquillage', 'Coiffure et couleur de cheveux'];

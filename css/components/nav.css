@@ -20,7 +20,7 @@
 .c-sheet{position:relative;max-height:88vh;max-height:88dvh;overflow:auto;padding:var(--s-4) var(--s-5) calc(var(--s-6) + env(safe-area-inset-bottom,0px));background:var(--bg);border-radius:var(--r-lg) var(--r-lg) 0 0}
 .c-sheet::before{content:"";display:block;width:44px;height:4px;margin:0 auto var(--s-4);border-radius:var(--r-pill);background:var(--line-strong);opacity:.5}
 
-/* Logo DERMAI : bouton vers la page d'accueil (apparence du texte, zone tactile 44 px). */
+/* Logo DermAI : bouton vers la page d'accueil (apparence du texte, zone tactile 44 px). */
 button.brand{appearance:none;background:none;border:0;cursor:pointer;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s-2);color:var(--ink)}
 button.brand:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--r-sm,8px)}
 

@@ -33,7 +33,7 @@ function safeUrl(u) {
   return p.toString();
 }
 
-/* Références de masques par clé DERMAI, telles que renvoyées (ordre conservé). Aucune autre source. */
+/* Références de masques par clé DermAI, telles que renvoyées (ordre conservé). Aucune autre source. */
 function maskRefs(envelope) {
   const out = envelope && envelope.data && envelope.data.results && envelope.data.results.output;
   if (!Array.isArray(out)) return [];
@@ -73,7 +73,7 @@ async function download(url, budget, timeoutMs = LIMITS.timeoutMs) {
   } finally { clearTimeout(timer); }
 }
 
-/* { <clé DERMAI>: [dataURL, …] } ; seules les métriques avec au moins un masque téléchargé et reconnu y figurent.
+/* { <clé DermAI>: [dataURL, …] } ; seules les métriques avec au moins un masque téléchargé et reconnu y figurent.
    stats : nombres seulement, pour les logs (jamais d'URL). */
 async function collect(envelope, { budget: clock } = {}) {
   /* Budget de temps global (server/budget.js) : les masques sont facultatifs. Trop peu de temps restant → aucune requête, aucune localisation ;

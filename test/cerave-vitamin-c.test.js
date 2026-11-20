@@ -32,7 +32,7 @@ test('C1 1. produit valide au catalogue réel, réel (demo = false), validé, ac
   assert.ok(/^[a-z0-9][a-z0-9_-]{1,40}$/.test(prod.id));
 });
 
-test('C2 2, 3, 4. actif principal vitamin_c ; aucun autre actif DERMAI ; ni rétinoïde, ni salicylique, ni exfoliant ; catégorie « soin ciblé »', () => {
+test('C2 2, 3, 4. actif principal vitamin_c ; aucun autre actif DermAI ; ni rétinoïde, ni salicylique, ni exfoliant ; catégorie « soin ciblé »', () => {
   assert.equal(prod.primaryActiveId, 'vitamin_c'); assert.equal(P.primaryActive(prod), 'vitamin_c');
   assert.deepEqual(P.ids(prod), ['vitamin_c'], 'céramides, acide hyaluronique, panthénol : descriptifs seulement, aucun nouvel actif relié');
   const A = require('../js/engine/actives.js');
@@ -60,7 +60,7 @@ test('C4 INCI : exactement la liste publiée (26 ingrédients, ordre conservé),
   const src = prod.sources.find(s => s.kind === 'manufacturer');
   assert.equal(src.url, 'https://www.cerave.com/skincare/facial-serums/skin-renewing-vitamin-c-serum'); assert.match(src.method, /non rouverte depuis l'environnement d'intégration/);
   assert.match(prod.inciNote, /met à jour régulièrement/); assert.match(prod.inciNote, /vérifier l'emballage/); assert.doesNotMatch(prod.inciNote, /définitiv|toujours|éternel/i);
-  assert.match(prod.inciNote, /ne créent aucun actif DERMAI/);
+  assert.match(prod.inciNote, /ne créent aucun actif DermAI/);
   assert.match(read('js/app.js'), /La composition peut varier selon le pays : vérifiez l'emballage/, 'rappel affiché sous la source de chaque fiche');
 });
 
@@ -94,7 +94,7 @@ test('C6 8, 9, 10. offres rattachées au bon produit, devise du pays, prix tels 
 
 test('C7 confiance commerciale : relevé ≠ vérification ; unknown = « Voir l\'offre », jamais « Acheter » ; aucune garantie de prix ou de stock', () => {
   for (const x of prod.offers) { assert.ok(x.checkedAt); if (['Clicks', 'Cosmetics Kenya', 'Konga'].includes(x.retailer) && ['ZA', 'KE', 'NG'].includes(x.market)) { assert.equal(x.checkedAt, '2026-10-07'); assert.equal(x.verifiedAt, undefined, 'aucune vérification indépendante déclarée'); } }   // relevés enregistrés de l\'étape 17
-  assert.match(read('js/engine/data/catalog.js'), /checkedAt` est la date du RELEVÉ \(recherche\), pas une vérification indépendante par DERMAI/);
+  assert.match(read('js/engine/data/catalog.js'), /checkedAt` est la date du RELEVÉ \(recherche\), pas une vérification indépendante par DermAI/);
   assert.match(read('js/engine/data/catalog.js'), /À revérifier avant tout lancement public/);
   for (const x of P.offersOf(prod).filter(o => o.availability === 'unknown')) { assert.equal(x.buyable, false); assert.equal(x.linkOnly, true); }
   const clicksZa = P.offersOf(prod).find(o => o.market === 'ZA' && o.retailer === 'Clicks'); if (clicksZa) assert.equal(clicksZa.buyable, true, 'in_stock + lien https : achat possible selon les règles existantes');

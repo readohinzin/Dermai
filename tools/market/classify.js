@@ -47,7 +47,7 @@ const REASONS = {
   W_COUNTRY_HINTS_IGNORED: 'des indices de pays (devise, domaine...) ont été ignorés'
 };
 
-/* Le pays du vendeur appartient-il à la zone « régionale » du pays cible ? Par défaut : les deux sont des pays africains du référentiel DERMAI (O.MARKETS).
+/* Le pays du vendeur appartient-il à la zone « régionale » du pays cible ? Par défaut : les deux sont des pays africains du référentiel DermAI (O.MARKETS).
    Ce n'est PAS une zone économique : une règle simple, déclarée, remplaçable (opts.isRegional(vendeur, cible)). */
 const defaultIsRegional = (seller, target) => seller !== target && Object.prototype.hasOwnProperty.call(O.MARKETS, seller) && Object.prototype.hasOwnProperty.call(O.MARKETS, target);
 

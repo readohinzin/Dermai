@@ -1,4 +1,4 @@
-/* Motion design de DERMAI : un petit moteur d'animations déclaratives, sans bibliothèque. Après chaque rendu, `scan()` repère les éléments à animer par SÉLECTEUR
+/* Motion design de DermAI : un petit moteur d'animations déclaratives, sans bibliothèque. Après chaque rendu, `scan()` repère les éléments à animer par SÉLECTEUR
    (table RULES, par page) et les révèle quand ils entrent dans l'écran : apparitions en cascade, compteurs, courbes qui se dessinent, barres qui se remplissent,
    zones du visage qui s'allument. S'y ajoutent des effets continus : barre de progression de lecture, en-tête qui réagit au défilement, parallaxe de la bannière
    (pointeur et défilement), bouton « magnétique », ondulation au clic.

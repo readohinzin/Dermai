@@ -22,12 +22,12 @@
   const MAX_PRODUCTS = 20, MAX_INCI = 150, MAX_NAME = 80, MAX_TOKEN = 80;
   const SLOTS = ['morning', 'evening'];
   const SLOT_LABEL = { morning: 'le matin', evening: 'le soir' };
-  /* Ordre d'affichage : celui de la routine DERMAI (nettoyant, soin ciblé, hydratant, protection solaire) ; « Autre » : ordre selon la notice du produit. */
+  /* Ordre d'affichage : celui de la routine DermAI (nettoyant, soin ciblé, hydratant, protection solaire) ; « Autre » : ordre selon la notice du produit. */
   const CATEGORIES = [['cleanser', 'Nettoyant'], ['serum', 'Sérum ou soin ciblé'], ['moisturizer', 'Hydratant'], ['spf', 'Protection solaire'], ['other', 'Autre']];
   const CATEGORY_KEYS = CATEGORIES.map(c => c[0]);
   const LEVEL_LABEL = { prudence: 'Prudence', precaution: 'Précaution', to_validate: 'À valider', info: 'Information', missing: 'Information manquante' };
   const LEVEL_RANK = { prudence: 0, precaution: 1, to_validate: 2, info: 3, missing: 4 };
-  const DISCLAIMER = 'Repères d\'information cosmétique, fondés uniquement sur les fiches et les règles DERMAI et sur les compositions que vous avez confirmées. Ce n\'est pas un avis médical, et DERMAI ne promet pas qu\'un produit soit sûr ou efficace.';
+  const DISCLAIMER = 'Repères d\'information cosmétique, fondés uniquement sur les fiches et les règles DermAI et sur les compositions que vous avez confirmées. Ce n\'est pas un avis médical, et DermAI ne promet pas qu\'un produit soit sûr ou efficace.';
 
   const activeById = id => data.ACTIVES.find(a => a.id === id) || null;
   const ruleById = id => data.CONFLICT_RULES.find(r => r.id === id) || null;
@@ -88,7 +88,7 @@
 
   const cautionsOf = a => (a.cautions || []).filter(c => c && !/^Aucune précaution/i.test(c));
 
-  /* Analyse d'un produit : ce que DERMAI reconnaît, ce qu'il ne reconnaît pas, les précautions des fiches, le repère de fréquence (un seul actif ciblé validé). */
+  /* Analyse d'un produit : ce que DermAI reconnaît, ce qu'il ne reconnaît pas, les précautions des fiches, le repère de fréquence (un seul actif ciblé validé). */
   function analyzeProduct(p) {
     const tokens = p.inci.map(recognize);
     const ids = [...new Set(tokens.filter(t => t.kind === 'active').map(t => t.activeId))];
@@ -125,15 +125,15 @@
     for (const p of list) for (const ex of an.get(p.id).excluded) {
       const light = PV.isLightening(ex.id);   // éclaircissant / dépigmentant : message de prévention précis (data/prevention.js) ; sinon message neutre
       points.push(point(`EXCL:${p.id}:${ex.id}`, 'EXCLUDED', 'prudence', light ? PV.TITLES.lightening(p.name) : PV.TITLES.neutral(p.name),
-        light ? `« ${ex.raw} » : ${PV.messageOf(ex.id)}` : `« ${ex.raw} » fait partie des substances sur lesquelles DERMAI ne donne pas de conseil. Demandez l'avis d'un professionnel (pharmacien, médecin).`, [p.id],
-        { rule: light ? PV.RULE : 'Liste EXCLUDED du moteur DERMAI : substances pour lesquelles DERMAI ne conseille pas.',
-          source: 'js/engine/data/actives.js (EXCLUDED)' + (light ? ' et js/engine/data/prevention.js' : '') + ' ; correspondance par nom INCI exact', validation: 'Liste de prudence DERMAI ; correspondance des noms à relire par un professionnel' }));
+        light ? `« ${ex.raw} » : ${PV.messageOf(ex.id)}` : `« ${ex.raw} » fait partie des substances sur lesquelles DermAI ne donne pas de conseil. Demandez l'avis d'un professionnel (pharmacien, médecin).`, [p.id],
+        { rule: light ? PV.RULE : 'Liste EXCLUDED du moteur DermAI : substances pour lesquelles DermAI ne conseille pas.',
+          source: 'js/engine/data/actives.js (EXCLUDED)' + (light ? ' et js/engine/data/prevention.js' : '') + ' ; correspondance par nom INCI exact', validation: 'Liste de prudence DermAI ; correspondance des noms à relire par un professionnel' }));
     }
     /* Information saisie par l'utilisateur : produit qui l'a déjà irrité. Aucune conclusion sur la cause. */
     for (const p of list.filter(x => x.irritated)) {
       points.push(point(`IRR:${p.id}`, 'USER', 'prudence', `« ${p.name} » vous a déjà irrité(e)`,
         `Vous avez indiqué que ce produit vous a déjà irrité(e). En cas de gêne persistante, arrêtez de l'utiliser et demandez conseil à un professionnel de santé.`, [p.id],
-        { rule: 'Information saisie par vous : DERMAI ne cherche pas la cause et ne tire aucune conclusion.', source: 'Votre saisie (stockée dans ce navigateur)', validation: 'Information déclarative, sans validation' }));
+        { rule: 'Information saisie par vous : DermAI ne cherche pas la cause et ne tire aucune conclusion.', source: 'Votre saisie (stockée dans ce navigateur)', validation: 'Information déclarative, sans validation' }));
     }
 
     /* R2 : un seul exfoliant ou rétinoïde par soir (règle strong_evening, utilisée seulement si elle est « validated », comme dans le moteur). Compte les PRODUITS du soir. */
@@ -143,9 +143,9 @@
       if (evening.length > strong.max) {
         const labels = [...new Set(evening.flatMap(p => an.get(p.id).actives.filter(a => (a.groups || []).includes(strong.group)).map(a => a.label)))];
         points.push(point('R2', 'R2', 'precaution', 'Plusieurs exfoliants ou rétinoïdes le même soir',
-          `Le soir, ${evening.length} de vos produits contiennent un exfoliant ou un rétinoïde reconnu (${labels.join(', ')}) : ${names(evening)}. Règle DERMAI : « ${strong.text} » Vous pouvez en garder un seul pour le soir ou les utiliser des soirs différents ; suivez aussi la notice de chaque produit.`,
+          `Le soir, ${evening.length} de vos produits contiennent un exfoliant ou un rétinoïde reconnu (${labels.join(', ')}) : ${names(evening)}. Règle DermAI : « ${strong.text} » Vous pouvez en garder un seul pour le soir ou les utiliser des soirs différents ; suivez aussi la notice de chaque produit.`,
           evening.map(p => p.id),
-          { rule: strong.text, source: 'Règle strong_evening du moteur DERMAI (js/engine/data/actives.js)', validation: 'Règle validée (statut « validated »)' }));
+          { rule: strong.text, source: 'Règle strong_evening du moteur DermAI (js/engine/data/actives.js)', validation: 'Règle validée (statut « validated »)' }));
       }
     }
 
@@ -159,8 +159,8 @@
       const ids = list.filter(p => sunProducts.has(p.id)).map(p => p.id);
       const evid = sunItems.map(i => `${i.label} : ${evidenceLabel(activeById(i.activeId))}`).join(' ; ');
       points.push(point('R3', 'R3', 'precaution', 'Protection solaire non indiquée pour le matin',
-        `Selon les fiches DERMAI : ${sunItems.map(i => `${i.label} (« ${i.text} »)`).join(' ; ')}. Aucun produit de protection solaire n'est indiqué pour le matin dans votre routine. Si vous en utilisez un, ajoutez-le ici : DERMAI ne peut pas juger une protection qu'il ne connaît pas.`,
-        ids, { rule: 'Précaution reprise telle quelle de la fiche de l\'actif ; affichée seulement si aucun produit déclaré « Protection solaire » n\'est placé le matin. DERMAI ne suppose pas qu\'un autre produit protège du soleil.', source: 'Fiches DERMAI des actifs (champ cautions)', validation: `Niveau des fiches : ${evid}` }));
+        `Selon les fiches DermAI : ${sunItems.map(i => `${i.label} (« ${i.text} »)`).join(' ; ')}. Aucun produit de protection solaire n'est indiqué pour le matin dans votre routine. Si vous en utilisez un, ajoutez-le ici : DermAI ne peut pas juger une protection qu'il ne connaît pas.`,
+        ids, { rule: 'Précaution reprise telle quelle de la fiche de l\'actif ; affichée seulement si aucun produit déclaré « Protection solaire » n\'est placé le matin. DermAI ne suppose pas qu\'un autre produit protège du soleil.', source: 'Fiches DermAI des actifs (champ cautions)', validation: `Niveau des fiches : ${evid}` }));
     }
 
     /* R5 : vitamine C et rétinoïde au même moment. Règle à valider : aucune conclusion. */
@@ -170,8 +170,8 @@
       if (vc.length && rt.length) {
         const involved = [...new Map([...vc, ...rt].map(p => [p.id, p])).values()], validated = vcr.status === 'validated';
         points.push(point(`R5:${slot}`, 'R5', validated ? 'precaution' : 'to_validate', `Vitamine C et rétinoïde ${SLOT_LABEL[slot]}`,
-          `${SLOT_LABEL[slot][0].toUpperCase() + SLOT_LABEL[slot].slice(1)}, votre routine réunit de la vitamine C et un rétinoïde (${names(involved)}). ${validated ? vcr.text : 'Cette association est débattue : DERMAI n\'a pas validé de règle à ce sujet et n\'en tire aucune conclusion.'} En cas de doute, suivez la notice des produits ou demandez conseil à un professionnel.`,
-          involved.map(p => p.id), { rule: vcr.text, source: 'Règle vitamin_c_retinoid du moteur DERMAI (js/engine/data/actives.js)', validation: validated ? 'Règle validée' : 'À valider : statut « à_valider », non établie' }));
+          `${SLOT_LABEL[slot][0].toUpperCase() + SLOT_LABEL[slot].slice(1)}, votre routine réunit de la vitamine C et un rétinoïde (${names(involved)}). ${validated ? vcr.text : 'Cette association est débattue : DermAI n\'a pas validé de règle à ce sujet et n\'en tire aucune conclusion.'} En cas de doute, suivez la notice des produits ou demandez conseil à un professionnel.`,
+          involved.map(p => p.id), { rule: vcr.text, source: 'Règle vitamin_c_retinoid du moteur DermAI (js/engine/data/actives.js)', validation: validated ? 'Règle validée' : 'À valider : statut « à_valider », non établie' }));
       }
     }
 
@@ -181,26 +181,26 @@
     for (const [id, ps] of byActive) if (ps.length >= 2) {
       const a = activeById(id);
       points.push(point(`R1:${id}`, 'R1', 'info', `${a.label} dans ${ps.length} produits`,
-        `${a.label} figure dans : ${names(ps)}. Ce n'est pas une incompatibilité : DERMAI signale seulement ce cumul pour que vous vérifiiez qu'il est voulu.`, ps.map(p => p.id),
-        { rule: 'Règle d\'information R1 : un actif ciblé présent dans plusieurs produits est signalé, sans jugement ni conclusion.', source: 'Fiches DERMAI des actifs et compositions que vous avez confirmées', validation: 'Information neutre, aucune règle de sécurité' }));
+        `${a.label} figure dans : ${names(ps)}. Ce n'est pas une incompatibilité : DermAI signale seulement ce cumul pour que vous vérifiiez qu'il est voulu.`, ps.map(p => p.id),
+        { rule: 'Règle d\'information R1 : un actif ciblé présent dans plusieurs produits est signalé, sans jugement ni conclusion.', source: 'Fiches DermAI des actifs et compositions que vous avez confirmées', validation: 'Information neutre, aucune règle de sécurité' }));
     }
 
     /* R4 : composition inconnue ou sans aucun ingrédient reconnu : vérification impossible ou limitée. */
     for (const p of list) {
       const x = an.get(p.id);
       if (!x.known) points.push(point(`R4:${p.id}`, 'R4', 'missing', PV.UNVERIFIABLE.title(p.name),
-        `La composition de « ${p.name} » est inconnue : DERMAI ne peut rien vérifier pour ce produit. Saisissez la liste INCI figurant sur l'emballage pour la vérifier. ${PV.UNVERIFIABLE.warn}`, [p.id],
-        { rule: 'DERMAI ne déduit jamais la composition d\'un produit à partir de son nom.', source: 'Produit enregistré sans liste INCI', validation: 'Vérification impossible' }));
+        `La composition de « ${p.name} » est inconnue : DermAI ne peut rien vérifier pour ce produit. Saisissez la liste INCI figurant sur l'emballage pour la vérifier. ${PV.UNVERIFIABLE.warn}`, [p.id],
+        { rule: 'DermAI ne déduit jamais la composition d\'un produit à partir de son nom.', source: 'Produit enregistré sans liste INCI', validation: 'Vérification impossible' }));
       else if (!x.tokens.some(t => t.kind !== 'unknown')) points.push(point(`R4:${p.id}`, 'R4', 'missing', `Aucun ingrédient reconnu : « ${p.name} »`,
-        `Aucun ingrédient de « ${p.name} » n'est reconnu par DERMAI : la vérification est limitée à ce que DERMAI documente. Les ingrédients non reconnus ne sont ni bons ni mauvais : DERMAI n'a simplement pas de fiche.`, [p.id],
-        { rule: 'Un ingrédient absent des alias DERMAI reste « non reconnu » : aucune fonction ni aucun risque ne lui est attribué.', source: 'Alias INCI DERMAI (js/engine/data/inci-aliases.js)', validation: 'Vérification limitée' }));
+        `Aucun ingrédient de « ${p.name} » n'est reconnu par DermAI : la vérification est limitée à ce que DermAI documente. Les ingrédients non reconnus ne sont ni bons ni mauvais : DermAI n'a simplement pas de fiche.`, [p.id],
+        { rule: 'Un ingrédient absent des alias DermAI reste « non reconnu » : aucune fonction ni aucun risque ne lui est attribué.', source: 'Alias INCI DermAI (js/engine/data/inci-aliases.js)', validation: 'Vérification limitée' }));
     }
 
     points.sort((x, y) => LEVEL_RANK[x.level] - LEVEL_RANK[y.level]);
     return { products: list.map(p => an.get(p.id)), points };
   }
 
-  /* Vue matin / soir : produits d'un créneau dans l'ordre DERMAI des catégories ; « Autre » à la fin (ordre selon la notice). */
+  /* Vue matin / soir : produits d'un créneau dans l'ordre DermAI des catégories ; « Autre » à la fin (ordre selon la notice). */
   function bySlot(products, slot) {
     const rank = c => CATEGORY_KEYS.indexOf(c);
     return (products || []).filter(p => p.slots.includes(slot)).map((p, i) => ({ p, i })).sort((x, y) => rank(x.p.category) - rank(y.p.category) || x.i - y.i).map(x => x.p);

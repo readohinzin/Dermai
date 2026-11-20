@@ -8,7 +8,7 @@
    vide tant qu'aucune donnée vérifiée n'existe). L'appelant choisit le catalogue ; sans choix, le moteur utilise la démonstration (tests).
 
    MODÈLE D'UN PRODUIT (voir validateProduct) :
-     éditorial (décidé par DERMAI) : id, name, brand, category, ingredients [{ activeId | null, label }], skinTypes, targets, description, active, demo, editorialPriority (facultatif)
+     éditorial (décidé par DermAI) : id, name, brand, category, ingredients [{ activeId | null, label }], skinTypes, targets, description, active, demo, editorialPriority (facultatif)
      Départage entre produits compatibles avec le même actif : actifs recherchés présents, type de peau, `editorialPriority[actif]` explicite (1 = d'abord), puis ordre du catalogue en repli. Indépendant du marché.
      identité vérifiée (produits réels) : status ('validated' | 'to_verify'), format, inci, sources [{ kind, label, url, checkedAt, method }], verification
      commercial, produits RÉELS : `offers` [{ market, retailer, type, currency, price, availability, url, source, checkedAt, shipping }]. UN produit, PLUSIEURS offres,
@@ -86,7 +86,7 @@
     for (const [k, max] of [['seller', 80], ['city', 60], ['stockNote', 100]]) if (o[k] != null && !text(o[k], max)) e.push('offre : ' + k + ' invalide');
     if (!text(o.source, 160)) e.push('offre : source manquante');
     if (!isDate(o.checkedAt)) e.push('offre : date de vérification manquante');
-    /* checkedAt = date du RELEVÉ (source, recherche). verifiedAt = date d'une vérification indépendante par DERMAI, absente tant qu'aucune n'a eu lieu : un relevé n'est pas une vérification. */
+    /* checkedAt = date du RELEVÉ (source, recherche). verifiedAt = date d'une vérification indépendante par DermAI, absente tant qu'aucune n'a eu lieu : un relevé n'est pas une vérification. */
     if (o.verifiedAt != null && !isDate(o.verifiedAt)) e.push('offre : date de vérification indépendante invalide');
     if (o.url != null && !isRealLink(o.url)) e.push('offre : lien d\'achat invalide (https réel obligatoire)');
     if (o.price != null) {
@@ -128,7 +128,7 @@
     if (!Array.isArray(p.targets) || p.targets.some(t => !dep.skin.METRIC_KEYS.includes(t))) e.push('indicateurs ciblés invalides');
     if (p.category === 'serum' && Array.isArray(p.ingredients) && !p.ingredients.some(i => i && i.activeId)) e.push('un soin ciblé doit être relié à un actif');
     if (p.primaryActiveId != null && !(Array.isArray(p.ingredients) && p.ingredients.some(i => i && i.activeId === p.primaryActiveId))) e.push('actif principal absent des ingrédients');
-    /* editorialPriority : { activeId: entier ≥ 1 } — ordre éditorial voulu par DERMAI entre produits compatibles avec le MÊME actif (1 = d'abord). Valeur relative, sans calcul, jamais affichée. */
+    /* editorialPriority : { activeId: entier ≥ 1 } — ordre éditorial voulu par DermAI entre produits compatibles avec le MÊME actif (1 = d'abord). Valeur relative, sans calcul, jamais affichée. */
     if (p.editorialPriority != null) {
       const ep = p.editorialPriority;
       if (typeof ep !== 'object' || Array.isArray(ep)) e.push('editorialPriority doit être un objet { actif: rang }');

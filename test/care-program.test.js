@@ -455,7 +455,7 @@ test('CP7 avec le temps : jour affiché, jours précédents modifiables, program
   e.today = day(3); let h = e.page(); assert.match(h, /Jour 3 sur 30/); assert.match(h, /data-cp="day" data-d="1"/);
   e.care.handle('day', { d: '1' }); assert.match(e.page(), /Jour 1 : 0 sur/); e.care.handle('tick', { d: '1', s: 'morning:cleanse' }); assert.deepEqual(e.saved().checks, { 1: ['morning:cleanse'] });
   e.care.handle('day', { d: '9' }); assert.match(e.page(), /Jour 1 : /, 'jour à venir refusé : on reste sur le jour choisi');
-  e.today = day(45); h = e.page(); assert.match(h, /Programme terminé/); assert.match(h, /facultatif : DERMAI n'en lance jamais automatiquement/); assert.match(h, /Bilan des jours 29 et 30/);
+  e.today = day(45); h = e.page(); assert.match(h, /Programme terminé/); assert.match(h, /facultatif : DermAI n'en lance jamais automatiquement/); assert.match(h, /Bilan des jours 29 et 30/);
   e.today = '2026-09-01'; h = e.page(); assert.match(h, /antérieure au départ/); assert.match(h, /Jour 1 sur 30/);
 });
 

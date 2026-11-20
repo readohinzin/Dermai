@@ -6,7 +6,7 @@
    LOT 6 (peaux foncées) : « photo à refaire » plutôt qu'un résultat quand la qualité rend l'analyse peu fiable. Bloquent (niveau « block », titre « Photo à refaire », aucun envoi) :
    trop petite, format panoramique, presque noire ou blanche, TROP sombre, TROP surexposée, TROP floue, visage en grande partie dans l'ombre. Avertissent seulement (l'utilisatrice décide) : un peu
    sombre, un peu surexposée, un peu floue, contre-jour probable, lumière inégale, petite taille, visage absent, multiple ou petit. Le visage détecté ne bloque JAMAIS : un détecteur peut se tromper
-   plus souvent sur une peau foncée, et un refus à tort bloquerait justement les personnes que DERMAI cherche à bien servir. Sur iPhone (Safari), aucun détecteur de visage n'existe : le visage est alors
+   plus souvent sur une peau foncée, et un refus à tort bloquerait justement les personnes que DermAI cherche à bien servir. Sur iPhone (Safari), aucun détecteur de visage n'existe : le visage est alors
    confirmé par le service d'analyse, après l'envoi.
    LIMITES : tous les seuils sont PROVISOIRES, réglés sur des échantillons synthétiques, jamais sur de vraies photos (à calibrer avec le jeu de photos consenties, tâche 7). Un filtre « beauté »
    ou un éclairage jaune d'intérieur ne se détectent pas de façon fiable à partir de la seule luminosité : ils sont déconseillés (conseils), pas contrôlés.

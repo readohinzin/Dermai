@@ -35,17 +35,17 @@ async function handler(req, res) {
     await auth.verifyUser(req, process.env, { budget });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: err });
-    console.warn('[DERMAI] Skin analysis refused:', e.code);
+    console.warn('[DermAI] Skin analysis refused:', e.code);
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });
   }
   /* Verrou : désactivé par défaut, aucune photo n'est lue ni envoyée tant qu'il n'est pas activé. */
   if (!isAnalysisEnabled()) {
-    console.warn('[DERMAI] Skin analysis refused: DERMAI_ANALYSIS_ENABLED is off');
+    console.warn('[DermAI] Skin analysis refused: DERMAI_ANALYSIS_ENABLED is off');
     return send(res, 503, { ok: false, error: toUserMessage('ANALYSIS_DISABLED') });
   }
   try {
-    console.log('[DERMAI] Skin analysis started');
+    console.log('[DermAI] Skin analysis started');
     /* Lecture de la photo bornée : au plus le temps qui sépare l'instant présent du seuil exigé avant la réservation du crédit (au-delà, le contrôle
        ci-dessous refuserait de toute façon). Aucun temps disponible : refus sans lire la photo. Aucun crédit n'est réservé avant la fin de la lecture. */
     const readWindowMs = budget.remaining() - (TIME_BUDGET.minStartMs + quota.TIMEOUT_MS);
@@ -60,10 +60,10 @@ async function handler(req, res) {
        fonction indisponible) = aucun appel au fournisseur. Les photos invalides ci-dessus ne consomment rien. */
     if (!perfectcorp.isConfigured()) throw new AnalysisError('SERVICE_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });   // rien n'est réservé si le service ne peut pas répondre
     await quota.reserve(auth.bearerToken(req), process.env, { budget });
-    console.log('[DERMAI] Analysis quota reserved');
+    console.log('[DermAI] Analysis quota reserved');
     const envelope = await perfectcorp.analyzeSkin(image, { budget });
     /* Log de la structure seulement (noms de champs et types) : jamais de valeurs, d'URL ni de photo. */
-    console.log('[DERMAI] Perfect Corp result structure', JSON.stringify(describeStructure(envelope)));
+    console.log('[DermAI] Perfect Corp result structure', JSON.stringify(describeStructure(envelope)));
     for (const line of diagnosticLines(envelope)) console.log(line);   // DIAGNOSTIC TEMPORAIRE : valeurs de skin_type, all, skin_age
     const repetitions = repetitionLine(envelope);                       // DIAGNOSTIC TEMPORAIRE : occurrences par type (noms et nombres)
     if (repetitions) console.log(repetitions);
@@ -80,7 +80,7 @@ async function handler(req, res) {
     }
     /* Noms de types seulement (identifiants Perfect Corp), jamais de valeurs. Les types ignorés révéleront la représentation
        éventuelle de skin_type / all dans le tableau, aujourd'hui non établie. */
-    console.log('[DERMAI] Perfect Corp result path:', out.path, '| types lus :', out.types.join(','), '| types ignorés :', out.ignoredTypes.join(',') || 'aucun');
+    console.log('[DermAI] Perfect Corp result path:', out.path, '| types lus :', out.types.join(','), '| types ignorés :', out.ignoredTypes.join(',') || 'aucun');
     const result = { schemaVersion: skinModel.SCHEMA_VERSION, normalized: out.normalized };
     /* Localisation : uniquement les masques réellement renvoyés par Perfect Corp. Facultative : un échec ne bloque jamais l'analyse.
        Les URL d'origine ne quittent pas le serveur ; rien n'est stocké. Clé absente quand aucun masque n'est exploitable. */
@@ -88,9 +88,9 @@ async function handler(req, res) {
     try {
       const m = await masks.collect(envelope, { budget });
       localization = m.localization;
-      if (m.stats.skipped) console.log('[DERMAI] Localization skipped: time budget');
-      else console.log('[DERMAI] Localization: metrics', m.stats.metrics, '| listed', m.stats.listed, '| kept', m.stats.kept);
-    } catch (e) { console.warn('[DERMAI] Localization unavailable'); }
+      if (m.stats.skipped) console.log('[DermAI] Localization skipped: time budget');
+      else console.log('[DermAI] Localization: metrics', m.stats.metrics, '| listed', m.stats.listed, '| kept', m.stats.kept);
+    } catch (e) { console.warn('[DermAI] Localization unavailable'); }
     const payload = { ok: true, result };
     if (Object.keys(localization).length) payload.localization = localization;
     /* L'enveloppe brute ne part au navigateur que sur diagnostic explicite (DERMAI_DEBUG_RAW). */
@@ -98,7 +98,7 @@ async function handler(req, res) {
     return send(res, 200, payload);
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('UNKNOWN', { cause: err });
-    console.error('[DERMAI] Skin analysis failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
+    console.error('[DermAI] Skin analysis failed:', e.code, e.detail || (e.cause && e.cause.message) || '');
     if (e.status === 401) res.setHeader('WWW-Authenticate', 'Bearer');
     if (e.status === 429 && e.retryAfter) res.setHeader('Retry-After', String(e.retryAfter));
     return send(res, e.status, { ok: false, error: toUserMessage(e.code) });

@@ -28,7 +28,7 @@ retour réel).
 
 ## `perfectcorp-score-info.json` : référence du format ZIP
 Contenu de `skinanalysisResult/score_info.json` (format ZIP) : objet indexé par métrique, avec `all.score`, `skin_age`, `skin_type`
-(`whole`, `t_zone`, `u_zone`). **DERMAI ne le parse pas** (le format ZIP n'est jamais demandé). Il sert uniquement de référence de
+(`whole`, `t_zone`, `u_zone`). **DermAI ne le parse pas** (le format ZIP n'est jamais demandé). Il sert uniquement de référence de
 valeurs pour les 15 métriques.
 
 Valeur à vérifier : `droopy_upper_eyelid.raw_score` = 79.99314036947925 dans ces fixtures (une recopie antérieure donnait

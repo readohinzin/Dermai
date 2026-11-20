@@ -18,7 +18,7 @@ const REF_O = { skin: 'Oily', global: 75, age: 29 };
 const texts = y => [...Object.values(y.sections), y.goals.text, y.strategy.skinContext || '', y.scoreNote, ...Object.values(y.steps), ...Object.values(y.products).map(p => p.text)].join(' ');
 const BASE = 'Cette étape fait partie de l\'entretien de base.';
 
-/* Étape 25 : quatre parties distinctes (ce que l'analyse montre / vos résultats les moins élevés / ce que DERMAI retient / votre
+/* Étape 25 : quatre parties distinctes (ce que l'analyse montre / vos résultats les moins élevés / ce que DermAI retient / votre
    stratégie). Le cas de référence n'a pas de rawScore (seul l'écran a été relevé) : il est lu en compatibilité, rien n'est inventé. */
 test('S0 scénario de référence (dernier résultat réel, sans rawScore) : quatre parties, aucun besoin inventé, aucun lien causal', () => {
   const r = run(REF, REF_O), y = r.synthesis;
@@ -28,16 +28,16 @@ test('S0 scénario de référence (dernier résultat réel, sans rawScore) : qua
   assert.deepEqual(ids(y.tiers.lowest), ['radiance', 'oiliness', 'hydration']);
   assert.deepEqual(ids(y.tiers.strength), ['redness', 'pores', 'wrinkles']);
   assert.deepEqual(ids(y.tiers.other), ['texture', 'acne', 'pigmentation', 'firmness']);
-  assert.deepEqual(y.titles, { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DERMAI retient', accompaniment: 'Accompagnement léger', strategy: 'Votre stratégie' });
+  assert.deepEqual(y.titles, { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DermAI retient', accompaniment: 'Accompagnement léger', strategy: 'Votre stratégie' });
   assert.equal(y.sections.shows, 'Votre analyse donne 10 indicateurs principaux, de 65 à 99 sur 100. Vos résultats les plus élevés : rougeurs (99), pores (81) et rides (79). Profil de peau indiqué par l\'analyse : peau grasse.');
   assert.equal(y.sections.lowest, 'Radiance (65), niveau d\'huile (67) et hydratation (67). Vos résultats les moins élevés correspondent à une comparaison entre les indicateurs analysés. Un résultat plus bas ne constitue pas automatiquement une priorité de soin.');
-  assert.match(y.sections.retained, /^DERMAI ne retient ni priorité de soin ni axe à soutenir : aucun indicateur sur lequel DERMAI peut agir n'est sous ses repères\. Votre routine reste une routine d'entretien\./);
+  assert.match(y.sections.retained, /^DermAI ne retient ni priorité de soin ni axe à soutenir : aucun indicateur sur lequel DermAI peut agir n'est sous ses repères\. Votre routine reste une routine d'entretien\./);
   assert.match(y.sections.retained, /Niveau d'huile \(67\) : résultat décrit sans soin ciblé automatique/);
-  assert.match(y.sections.retained, /Analyse historique : données brutes non disponibles\. DERMAI applique ses repères au score affiché, sans rien reconstruire\./);
+  assert.match(y.sections.retained, /Analyse historique : données brutes non disponibles\. DermAI applique ses repères au score affiché, sans rien reconstruire\./);
   assert.doesNotMatch(y.sections.retained, /radiance/i, 'une radiance favorable ne devient jamais un problème');
   assert.equal(y.sections.strategy, 'Stratégie : entretien de base (nettoyage doux, hydratation, protection solaire), adapté à votre profil (peau grasse). Aucun soin ciblé n\'est ajouté.');
-  assert.equal(y.goals.text, 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule.');
-  assert.equal(y.scoreNote, 'Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DERMAI utilisent séparément les données brutes de l\'analyse.');
+  assert.equal(y.goals.text, 'Vous n\'avez pas indiqué d\'objectif : DermAI s\'appuie sur votre analyse seule.');
+  assert.equal(y.scoreNote, 'Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DermAI utilisent séparément les données brutes de l\'analyse.');
   // étapes de base : dites telles quelles, sans lien causal avec un score
   for (const id of ['morning:cleanse', 'morning:moisturize', 'morning:spf', 'evening:cleanse', 'evening:moisturize']) assert.ok(y.steps[id].startsWith(BASE), id);
   assert.equal(y.steps['morning:spf'], BASE);
@@ -61,14 +61,14 @@ test('S1 cas 1 profil globalement favorable → entretien, rien ne se détache',
   assert.deepEqual(y.tiers.lowest, []);
   assert.match(y.sections.lowest, /très proches les uns des autres : aucun ne se détache/);
   assert.match(y.strategy.text, /^Stratégie : entretien de base/);
-  assert.match(y.sections.retained, /^DERMAI ne retient ni priorité de soin ni axe à soutenir/);
+  assert.match(y.sections.retained, /^DermAI ne retient ni priorité de soin ni axe à soutenir/);
 });
 
-test('S2 cas 2 un résultat sous les repères, avec une règle DERMAI → besoin retenu', () => {
+test('S2 cas 2 un résultat sous les repères, avec une règle DermAI → besoin retenu', () => {
   const y = run({ hydration: 40 }).synthesis;
   assert.deepEqual(ids(y.tiers.priority), ['hydration']);
-  assert.match(y.sections.retained, /^Aucun indicateur ne ressort comme priorité forte\. En revanche, DERMAI retient un axe à soutenir : hydratation \(40\)\. D'après les données de l'analyse, ce résultat est sous les repères DERMAI/);
-  assert.match(run({ hydration: 20, pores: 40 }).synthesis.sections.retained, /^DERMAI retient une priorité de soin : hydratation \(20\), et un axe à soutenir : pores \(40\)\./);
+  assert.match(y.sections.retained, /^Aucun indicateur ne ressort comme priorité forte\. En revanche, DermAI retient un axe à soutenir : hydratation \(40\)\. D'après les données de l'analyse, ce résultat est sous les repères DermAI/);
+  assert.match(run({ hydration: 20, pores: 40 }).synthesis.sections.retained, /^DermAI retient une priorité de soin : hydratation \(20\), et un axe à soutenir : pores \(40\)\./);
   assert.equal(y.strategy.mode, 'action');
 });
 
@@ -86,15 +86,15 @@ test('S4 / S5 / S7 objectifs : même analyse, objectifs différents → stratég
   assert.deepEqual(pores.strategy.focus, ['pores', 'hydration'], 'l\'objectif départage dans le même repère');
   assert.deepEqual(tone.strategy.focus, ['radiance', 'hydration', 'pores'], 'objectif « teint » + radiance sous les repères : règle explicite ouverte');
   assert.notEqual(none.strategy.text, pores.strategy.text); assert.notEqual(none.strategy.text, tone.strategy.text);
-  assert.match(none.sections.retained, /Radiance \(45\) : information seulement\. DERMAI n'y associe un soin que si vous choisissez l'objectif « teint et taches »\./);
-  assert.match(pores.goals.items[0].text, /^Niveau d'huile et pores : rejoint un besoin retenu par DERMAI \(pores \(55\)\)/);
+  assert.match(none.sections.retained, /Radiance \(45\) : information seulement\. DermAI n'y associe un soin que si vous choisissez l'objectif « teint et taches »\./);
+  assert.match(pores.goals.items[0].text, /^Niveau d'huile et pores : rejoint un besoin retenu par DermAI \(pores \(55\)\)/);
   // objectif « éclat / teint » avec une radiance favorable : aucun problème créé
   const fav = run(MIX, { fill: 86 }, { goals: ['tone'] }), y = fav.synthesis;
   assert.deepEqual(fav.priorities.items, []);
   /* Étape 27 : l'objectif ouvre l'accompagnement de la pigmentation (soin doux), pas un besoin ; la radiance reste une information. */
   assert.equal(y.goals.items[0].status, 'accompanied');
   assert.match(y.goals.items[0].text, /^Teint et taches : pigmentation \(72\) n'est pas une priorité, mais peut être accompagné par un soin doux\.$/);
-  assert.doesNotMatch(texts(y), /radiance \(65\)[^.]*(besoin à soutenir|sous les repères DERMAI :)/);
+  assert.doesNotMatch(texts(y), /radiance \(65\)[^.]*(besoin à soutenir|sous les repères DermAI :)/);
   // objectif sur un résultat élevé : on le dit, sans inventer de besoin
   const strong = run(Object.assign({ redness: 97 }, MIX), { fill: 86 }, { goals: ['redness_comfort'] }).synthesis;
   assert.equal(strong.goals.items[0].status, 'accompanied', 'objectif choisi : accompagnement doux possible, jamais une priorité');
@@ -133,7 +133,7 @@ test('S11 produit sans justification : jamais proposé ni présenté comme adapt
       assert.ok(m.activeIds.length > 0, 'tout produit réel proposé contient ce que son étape recherche (' + m.productId + ')');
       assert.ok(st.kind === 'treatment' ? m.activeIds.includes(st.activeId) : m.activeIds.every(id => st.supportIds.includes(id)));
       assert.ok(['only', 'more_actives', 'skin', 'editorial', 'order'].includes(m.selection.rule));
-      assert.match(r.synthesis.products[m.stepId].text, /^Proposé par DERMAI\. Choisi parce qu'il contient (l'actif recherché pour cet axe|les ingrédients recherchés pour l'hydratation|l'actif doux recherché pour l'accompagnement) : .*(seul produit|Parmi \d+ produits)/);
+      assert.match(r.synthesis.products[m.stepId].text, /^Proposé par DermAI\. Choisi parce qu'il contient (l'actif recherché pour cet axe|les ingrédients recherchés pour l'hydratation|l'actif doux recherché pour l'accompagnement) : .*(seul produit|Parmi \d+ produits)/);
     }
   }
   // le Cicaplast reste proposé quand sa composition répond à un besoin réel (soutien retenu), avec la raison
@@ -147,7 +147,7 @@ test('S12 aucun objectif : la stratégie vient de l\'analyse seule, sans objecti
   const y = run(MIX, { fill: 86 }).synthesis;
   assert.equal(y.goals.mode, 'none');
   assert.deepEqual(y.goals.items, []);
-  assert.equal(y.goals.text, 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule.');
+  assert.equal(y.goals.text, 'Vous n\'avez pas indiqué d\'objectif : DermAI s\'appuie sur votre analyse seule.');
   assert.doesNotMatch(y.strategy.text, /objectif/);
 });
 

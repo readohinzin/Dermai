@@ -20,7 +20,7 @@
   /* Version des règles cosmétiques (priorités, personnalisation, actifs, routine). Enregistrée avec chaque analyse de l'historique pour que
      l'on sache avec quelles règles elle a été produite. À changer dès qu'une règle modifie une priorité ou une recommandation. */
   const VERSION = '1.4.0';   // 1.1.0 : un produit réel n'est plus proposé sans justification (étape 22)
-                             // 1.2.0 : décisions sur raw_score (repères DERMAI provisoires), rôles des indicateurs, ui_score pour l'affichage seulement
+                             // 1.2.0 : décisions sur raw_score (repères DermAI provisoires), rôles des indicateurs, ui_score pour l'affichage seulement
                              // 1.3.0 : accompagnement des indicateurs « good » (deuxième voie après les priorités ; les priorités LOW/MID sont inchangées)
                              // 1.4.0 : profil.marks (peau qui marque, déduit du teint choisi sur l'appareil) : introduction plus lente des soins qui irritent. Sans `marks`, sorties identiques à 1.3.0.
 

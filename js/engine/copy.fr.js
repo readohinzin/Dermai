@@ -31,12 +31,12 @@
   /* ---- priorités ---- */
   function priorityReason({ band, objectiveMatch }) {
     const base = band === 'low'
-      ? 'D\'après les données de l\'analyse, ce résultat est nettement sous les repères DERMAI : DERMAI le retient comme priorité de soin.'
-      : 'D\'après les données de l\'analyse, ce résultat est sous les repères DERMAI : DERMAI le retient comme axe à soutenir.';
+      ? 'D\'après les données de l\'analyse, ce résultat est nettement sous les repères DermAI : DermAI le retient comme priorité de soin.'
+      : 'D\'après les données de l\'analyse, ce résultat est sous les repères DermAI : DermAI le retient comme axe à soutenir.';
     return objectiveMatch ? base + ' Il correspond à votre objectif.' : base;
   }
   const MAINTENANCE = {
-    title: 'DERMAI ne retient aucun besoin particulier.',
+    title: 'DermAI ne retient aucun besoin particulier.',
     text: 'Votre routine reste une routine d\'entretien de base : nettoyage doux, hydratation et protection solaire.'
   };
   const eyeInfo = labels => 'Votre analyse montre un indicateur plus faible au niveau du contour des yeux (' + joinList(labels.map(lower)) +
@@ -60,7 +60,7 @@
   const EYE_NOTE = 'Cet indicateur est donné à titre d\'information : aucun actif n\'est proposé automatiquement.';
 
   /* ---- actifs ---- */
-  /* `editorial` : libellés d'indicateurs pour lesquels le choix de l'actif est une règle DERMAI prudente, sans source directe retenue.
+  /* `editorial` : libellés d'indicateurs pour lesquels le choix de l'actif est une règle DermAI prudente, sans source directe retenue.
      Ils sont signalés comme « option courante » : jamais présentés comme une relation établie, ni attribués au fournisseur d'analyse. */
   const activeReason = (labels, fallbackSoft, editorial) => 'Choisi pour : ' +
     joinList(labels.map(l => lower(l) + ((editorial || []).includes(l) ? ' (option cosmétique courante)' : ''))) + '.' +
@@ -112,14 +112,14 @@
   const accompanimentReason = origin => ({
     distinct: 'Cet indicateur n\'est pas une priorité dans cette analyse. Il ressort néanmoins suffisamment par rapport aux autres résultats pour justifier un accompagnement cosmétique léger.',
     objective: 'Cet axe correspond à votre objectif et peut être accompagné par un soin doux.',
-    overflow: 'Cet indicateur est sous les repères DERMAI, mais la routine se limite à trois axes prioritaires : un soin doux peut l\'accompagner.'
+    overflow: 'Cet indicateur est sous les repères DermAI, mais la routine se limite à trois axes prioritaires : un soin doux peut l\'accompagner.'
   })[origin] || '';
   const accompanimentSummary = labels => 'Un soin doux d\'accompagnement s\'y ajoute pour : ' + joinList(labels.map(lower)) + '.';
   const accompanimentStep = (active, labels) => 'Soin d\'accompagnement léger : ' + lower(active) + ' peut accompagner ' + joinList(labels.map(lower)) + ', sans que ce soit une priorité de cette analyse.';
   const productBecause = labels => 'Contient : ' + joinList(labels.map(lower)) + '.';
   /* Pourquoi CE produit : le rôle qu'il joue dans une étape déjà définie par la routine, jamais une promesse ni un langage médical. */
   const PRODUCT_CATEGORY_LABELS = { cleanser: 'Nettoyant', serum: 'Soin ciblé', moisturizer: 'Hydratant', spf: 'Protection solaire' };
-  const productWhy = (kind, labels) => 'Proposé par DERMAI. ' + productWhyBody(kind, labels);
+  const productWhy = (kind, labels) => 'Proposé par DermAI. ' + productWhyBody(kind, labels);
   const productWhyBody = (kind, labels) => {
     const l = joinList((labels || []).map(lower));
     if (kind === 'treatment') return 'Choisi parce qu\'il contient l\'actif recherché pour cet axe : ' + l + '.';
@@ -154,7 +154,7 @@
   const OFFER_TEXTS = {
     neutral: 'Options d\'achat en ligne. La disponibilité et la livraison dépendent de votre pays.',
     international: 'Livraison internationale annoncée par le vendeur : livraison selon votre pays, à vérifier lors de la commande (frais et douane possibles).',
-    marketplace: 'Annonce d\'une place de marché : le vendeur est un tiers, DERMAI ne garantit pas l\'authenticité du produit.',
+    marketplace: 'Annonce d\'une place de marché : le vendeur est un tiers, DermAI ne garantit pas l\'authenticité du produit.',
     none: 'Aucune offre vérifiée pour le moment.',
     priceToCheck: 'Prix à vérifier'
   };
@@ -164,7 +164,7 @@
     question: 'Où souhaitez-vous acheter vos produits ?',
     prompt: 'Sélectionnez votre pays pour voir les options disponibles.',
     placeholder: 'Choisir un pays',
-    help: 'Ce choix sert uniquement à afficher les offres d\'achat. Il ne change ni votre analyse, ni vos priorités, ni votre routine. Il reste sur cet appareil : DERMAI n\'utilise ni votre position ni votre adresse IP.',
+    help: 'Ce choix sert uniquement à afficher les offres d\'achat. Il ne change ni votre analyse, ni vos priorités, ni votre routine. Il reste sur cet appareil : DermAI n\'utilise ni votre position ni votre adresse IP.',
     saved: 'Pays enregistré sur cet appareil.',
     noLocal: 'Aucune offre vérifiée pour ce pays pour le moment.',
     noLocalCard: 'Aucune offre vérifiée pour votre pays pour le moment.',
@@ -178,7 +178,7 @@
     shipDeclared: 'Livraison internationale annoncée par le vendeur : livraison selon le pays sélectionné, à vérifier lors de la commande.',
     allKnown: 'Voir toutes les offres connues, par pays',
     priceLabel: 'Prix relevé',
-    recommended: 'Proposé par DERMAI',
+    recommended: 'Proposé par DermAI',
     summary: {
       ready: 'Offre locale : stock et prix indiqués au relevé',
       partial: 'Offre locale à vérifier : stock, prix ou lien non confirmé',
@@ -243,9 +243,9 @@
     accompanimentWhy: labels => 'Il accompagne ' + joinList(labels.map(lower)) + ' : ' + plural(labels.length, 'cet indicateur n\'est pas une priorité', 'ces indicateurs ne sont pas des priorités') + ' de cette analyse, c\'est un soin doux d\'accompagnement.',
     accompaniment: labels => 'Accompagnement léger : ' + joinList(labels.map(lower)) + '.',
     trend: { up: 'Amélioration', stable: 'Stable', down: 'Baisse' },
-    approachNote: 'DERMAI privilégie ici une routine plus progressive.',
+    approachNote: 'DermAI privilégie ici une routine plus progressive.',
     notRetained: reason => 'Non retenu actuellement : ' + reason + '.',
-    notValidated: 'Non retenu actuellement : cet actif n\'est pas validé pour la recommandation automatique de DERMAI.',
+    notValidated: 'Non retenu actuellement : cet actif n\'est pas validé pour la recommandation automatique de DermAI.',
     result: labels => 'Nous avons donc privilégié : ' + joinList(labels.map(lower)) + '.',
     resultNone: 'Nous avons donc gardé une routine simple : nettoyage, hydratation et protection solaire.',
     evolution: {
@@ -264,10 +264,10 @@
   const BASE_STEP = 'Cette étape fait partie de l\'entretien de base.';
   const SYNTH = {
     li,
-    TITLES: { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DERMAI retient', accompaniment: 'Accompagnement léger', strategy: 'Votre stratégie' },
+    TITLES: { shows: 'Ce que l\'analyse montre', lowest: 'Vos résultats les moins élevés', retained: 'Ce que DermAI retient', accompaniment: 'Accompagnement léger', strategy: 'Votre stratégie' },
     /* Explication globale, discrète : score affiché ≠ donnée de décision. Aucun score brut n'est jamais affiché. */
-    scoreNote: 'Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DERMAI utilisent séparément les données brutes de l\'analyse.',
-    productsNone: 'Aucun produit du catalogue DERMAI n\'est relié à vos besoins actuels. Votre routine repose sur des produits de base de votre choix : un nettoyant doux, un hydratant que votre peau apprécie et une protection solaire.',
+    scoreNote: 'Le score affiché est le repère utilisateur fourni par l\'analyse. Les décisions de personnalisation de DermAI utilisent séparément les données brutes de l\'analyse.',
+    productsNone: 'Aucun produit du catalogue DermAI n\'est relié à vos besoins actuels. Votre routine repose sur des produits de base de votre choix : un nettoyant doux, un hydratant que votre peau apprécie et une protection solaire.',
     TIER_LABELS: { priority: 'Besoin retenu', lowest: 'Résultat moins élevé', strength: 'Résultat plus élevé', other: 'Autre résultat' },
     /* 1. Ce que l'analyse montre (scores affichés) */
     range: (n, min, max) => 'Votre analyse donne ' + n + ' indicateur' + plural(n, '', 's') + ' principa' + plural(n, 'l', 'ux') + (n > 1 ? ', de ' + min + ' à ' + max + ' sur 100.' : ' : ' + min + ' sur 100.'),
@@ -277,64 +277,64 @@
     lowest: inds => cap(inds) + '.',
     lowestNote: 'Vos résultats les moins élevés correspondent à une comparaison entre les indicateurs analysés. Un résultat plus bas ne constitue pas automatiquement une priorité de soin.',
     homogeneous: 'Vos indicateurs principaux sont très proches les uns des autres : aucun ne se détache.',
-    /* 3. Ce que DERMAI retient (seulement une règle DERMAI justifiée) */
+    /* 3. Ce que DermAI retient (seulement une règle DermAI justifiée) */
     /* Trois niveaux, jamais confondus : priorité de soin (repère nettement moins élevé), axe à soutenir (repère moins élevé), favorable.
-       Les deux premiers ne concernent que des indicateurs sur lesquels DERMAI a une règle d'action (rôle) et un actif validé. */
+       Les deux premiers ne concernent que des indicateurs sur lesquels DermAI a une règle d'action (rôle) et un actif validé. */
     retained: (strong, support) => {
       const n = (k, one, many) => (k === 1 ? one : (NUM[k] || k) + ' ' + many);
       const ps = strong.length ? n(strong.length, 'une priorité de soin', 'priorités de soin') + ' : ' + li(strong) : '';
       const as = support.length ? n(support.length, 'un axe à soutenir', 'axes à soutenir') + ' : ' + li(support) : '';
-      if (ps && as) return 'DERMAI retient ' + ps + ', et ' + as + '.';
-      if (ps) return 'DERMAI retient ' + ps + '.';
-      return 'Aucun indicateur ne ressort comme priorité forte. En revanche, DERMAI retient ' + as + '.';
+      if (ps && as) return 'DermAI retient ' + ps + ', et ' + as + '.';
+      if (ps) return 'DermAI retient ' + ps + '.';
+      return 'Aucun indicateur ne ressort comme priorité forte. En revanche, DermAI retient ' + as + '.';
     },
-    retainedWhy: n => 'D\'après les données de l\'analyse, ' + plural(n, 'ce résultat est', 'ces résultats sont') + ' sous les repères DERMAI, et un soin cosmétique validé existe pour ' + plural(n, 'lui.', 'eux.'),
-    /* Accompagnement léger : des indicateurs qui ne sont PAS des priorités mais que DERMAI peut accompagner par un soin doux. Trois états : axe identifié,
+    retainedWhy: n => 'D\'après les données de l\'analyse, ' + plural(n, 'ce résultat est', 'ces résultats sont') + ' sous les repères DermAI, et un soin cosmétique validé existe pour ' + plural(n, 'lui.', 'eux.'),
+    /* Accompagnement léger : des indicateurs qui ne sont PAS des priorités mais que DermAI peut accompagner par un soin doux. Trois états : axe identifié,
        recommandation (l'actif doux), soin ajouté à la routine ou non. Jamais « favorable, donc aucun soin », jamais de promesse. */
     accompaniment: {
       distinct: inds => cap(inds) + ' : ' + plural(inds.length, 'n\'est pas une priorité dans cette analyse, mais ressort', 'ne sont pas des priorités dans cette analyse, mais ressortent') + ' suffisamment par rapport à vos autres résultats pour justifier un accompagnement cosmétique léger.',
       objective: inds => cap(inds) + ' : ' + plural(inds.length, 'correspond à votre objectif et peut être accompagné', 'correspondent à votre objectif et peuvent être accompagnés') + ' par un soin doux.',
-      overflow: inds => cap(inds) + ' : ' + plural(inds.length, 'est sous les repères DERMAI, mais la routine se limite', 'sont sous les repères DERMAI, mais la routine se limite') + ' à trois axes prioritaires ; un soin doux peut l\'accompagner.',
+      overflow: inds => cap(inds) + ' : ' + plural(inds.length, 'est sous les repères DermAI, mais la routine se limite', 'sont sous les repères DermAI, mais la routine se limite') + ' à trois axes prioritaires ; un soin doux peut l\'accompagner.',
       added: (active, inds) => 'Un soin doux d\'accompagnement est ajouté à votre routine : ' + lower(active) + ' pour ' + li(inds) + '.',
       covered: (active, inds) => cap(inds) + ' : déjà accompagné par ' + lower(active) + ', présent dans votre routine. Aucune étape n\'est ajoutée.',
-      identified: (active, inds) => 'Un accompagnement cosmétique léger peut être proposé pour ' + li(inds) + ' (' + lower(active) + '), mais DERMAI ne l\'ajoute pas à votre routine pour l\'instant.'
+      identified: (active, inds) => 'Un accompagnement cosmétique léger peut être proposé pour ' + li(inds) + ' (' + lower(active) + '), mais DermAI ne l\'ajoute pas à votre routine pour l\'instant.'
     },
-    noNeed: 'DERMAI ne retient ni priorité de soin ni axe à soutenir : aucun indicateur sur lequel DERMAI peut agir n\'est sous ses repères. Votre routine reste une routine d\'entretien.',
-    beyondCap: inds => cap(inds) + ' : aussi sous les repères DERMAI, mais la routine se limite à trois axes, introduits un à un.',
-    noLever: inds => cap(inds) + ' : sous les repères DERMAI, mais DERMAI n\'a pas encore de soin ciblé validé pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
-    descriptive: inds => cap(inds) + ' : ' + plural(inds.length, 'résultat décrit', 'résultats décrits') + ' sans soin ciblé automatique, car DERMAI n\'a pas de règle d\'action fiable pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
-    gated: (inds, goals) => cap(inds) + ' : information seulement. DERMAI n\'y associe un soin que si vous choisissez l\'objectif ' + joinList(goals.map(g => '« ' + lower(g) + ' »')) + '.',
-    compat: 'Analyse historique : données brutes non disponibles. DERMAI applique ses repères au score affiché, sans rien reconstruire.',
+    noNeed: 'DermAI ne retient ni priorité de soin ni axe à soutenir : aucun indicateur sur lequel DermAI peut agir n\'est sous ses repères. Votre routine reste une routine d\'entretien.',
+    beyondCap: inds => cap(inds) + ' : aussi sous les repères DermAI, mais la routine se limite à trois axes, introduits un à un.',
+    noLever: inds => cap(inds) + ' : sous les repères DermAI, mais DermAI n\'a pas encore de soin ciblé validé pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
+    descriptive: inds => cap(inds) + ' : ' + plural(inds.length, 'résultat décrit', 'résultats décrits') + ' sans soin ciblé automatique, car DermAI n\'a pas de règle d\'action fiable pour ' + plural(inds.length, 'cet indicateur.', 'ces indicateurs.'),
+    gated: (inds, goals) => cap(inds) + ' : information seulement. DermAI n\'y associe un soin que si vous choisissez l\'objectif ' + joinList(goals.map(g => '« ' + lower(g) + ' »')) + '.',
+    compat: 'Analyse historique : données brutes non disponibles. DermAI applique ses repères au score affiché, sans rien reconstruire.',
     /* Carte du visage : détection (masque) ≠ décision (score). Le masque ne sert qu'à localiser ; il ne crée, ne modifie ni ne classe rien. */
     map: {
-      note: 'Une zone peut être détectée sur votre photo sans devenir une priorité de soin. La carte montre où l\'analyse a repéré des éléments ; les axes retenus par DERMAI dépendent du score de l\'indicateur, jamais du nombre ou de la taille des zones.',
+      note: 'Une zone peut être détectée sur votre photo sans devenir une priorité de soin. La carte montre où l\'analyse a repéré des éléments ; les axes retenus par DermAI dépendent du score de l\'indicateur, jamais du nombre ou de la taille des zones.',
       detected: (id, label) => id === 'acne' ? 'Des éléments associés aux imperfections ont été détectés sur votre photo.' : 'Des zones associées à l\'indicateur « ' + lower(label) + ' » ont été détectées sur votre photo.',
       unavailable: 'Localisation visuelle indisponible pour cet indicateur.',
       empty: 'Aucune zone localisée pour cet indicateur sur cette photo.'
     },
-    /* Statut DERMAI de chaque indicateur (lu par la carte du visage et la page d'un indicateur). */
+    /* Statut DermAI de chaque indicateur (lu par la carte du visage et la page d'un indicateur). */
     LEVELS: { priority: 'Priorité de soin', support: 'Axe à soutenir', accompaniment: 'Accompagnement léger', maintain: 'À entretenir', beyond: 'Axe en attente', descriptive: 'Indicateur observé', informative: 'Information', noLever: 'Sans soin validé' },
     status: {
-      priority: 'DERMAI retient cet indicateur comme priorité de soin dans cette analyse.',
-      support: 'DERMAI retient cet indicateur comme axe à soutenir dans cette analyse.',
-      beyond: 'Cet indicateur est sous les repères DERMAI, mais la routine se limite à trois axes : il reste pour une prochaine étape.',
+      priority: 'DermAI retient cet indicateur comme priorité de soin dans cette analyse.',
+      support: 'DermAI retient cet indicateur comme axe à soutenir dans cette analyse.',
+      beyond: 'Cet indicateur est sous les repères DermAI, mais la routine se limite à trois axes : il reste pour une prochaine étape.',
       maintain: 'Cet indicateur n\'est pas une priorité dans cette analyse. Votre routine de base suffit à l\'entretenir.',
       accompaniment: (origin, st, active) => accompanimentReason(origin) + (({
         added: ' Un soin doux (' + lower(active) + ') est ajouté à votre routine.',
         covered: ' Le soin déjà présent dans votre routine (' + lower(active) + ') l\'accompagne : aucune étape n\'est ajoutée.',
         identified: ' Un accompagnement cosmétique léger peut être proposé (' + lower(active) + '), sans être ajouté à votre routine pour l\'instant.'
       })[st] || ''),
-      descriptive: 'Cet indicateur est décrit sans soin ciblé automatique : DERMAI n\'a pas de règle d\'action fiable pour lui.',
+      descriptive: 'Cet indicateur est décrit sans soin ciblé automatique : DermAI n\'a pas de règle d\'action fiable pour lui.',
       informative: goal => 'Cet indicateur est donné à titre d\'information : il n\'appelle pas de soin automatique' + (goal ? ', sauf si vous choisissez l\'objectif « ' + lower(goal) + ' »' : '') + '.',
-      noLever: 'Cet indicateur est sous les repères DERMAI, mais DERMAI n\'a pas encore de soin ciblé validé pour lui.'
+      noLever: 'Cet indicateur est sous les repères DermAI, mais DermAI n\'a pas encore de soin ciblé validé pour lui.'
     },
     /* Objectifs */
-    noGoal: 'Vous n\'avez pas indiqué d\'objectif : DERMAI s\'appuie sur votre analyse seule.',
+    noGoal: 'Vous n\'avez pas indiqué d\'objectif : DermAI s\'appuie sur votre analyse seule.',
     goal: {
       accompanied: (g, inds) => g + ' : ' + li(inds) + ' ' + plural(inds.length, 'n\'est pas une priorité, mais peut', 'ne sont pas des priorités, mais peuvent') + ' être ' + plural(inds.length, 'accompagné', 'accompagnés') + ' par un soin doux.',
-      priority: (g, inds) => g + ' : rejoint un besoin retenu par DERMAI (' + li(inds) + '). Il passe en tête de votre routine.',
-      beyond_cap: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' est', ' sont') + ' sous les repères DERMAI, mais la routine se limite à trois besoins : ' + plural(inds.length, 'il reste', 'ils restent') + ' pour une prochaine étape.',
-      no_signal: (g, inds) => g + ' : ' + li(inds) + ' ne ' + plural(inds.length, 'fait', 'font') + ' pas ressortir de besoin selon les repères DERMAI : aucun soin ciblé n\'est ajouté à ce titre.',
+      priority: (g, inds) => g + ' : rejoint un besoin retenu par DermAI (' + li(inds) + '). Il passe en tête de votre routine.',
+      beyond_cap: (g, inds) => g + ' : ' + li(inds) + plural(inds.length, ' est', ' sont') + ' sous les repères DermAI, mais la routine se limite à trois besoins : ' + plural(inds.length, 'il reste', 'ils restent') + ' pour une prochaine étape.',
+      no_signal: (g, inds) => g + ' : ' + li(inds) + ' ne ' + plural(inds.length, 'fait', 'font') + ' pas ressortir de besoin selon les repères DermAI : aucun soin ciblé n\'est ajouté à ce titre.',
       descriptive: (g, inds) => g + ' : ' + li(inds) + ', ' + plural(inds.length, 'résultat décrit', 'résultats décrits') + ' sans règle d\'action automatique : aucun soin ciblé n\'est ajouté à ce titre.',
       unavailable: g => g + ' : aucun indicateur correspondant n\'est disponible dans cette analyse.',
       maintenance: (g, action) => g + (action ? ' : votre routine garde une base d\'entretien, en plus des besoins retenus.' : ' : c\'est précisément ce que propose votre routine.')
@@ -354,28 +354,28 @@
       base: BASE_STEP,
       cleanse: { oily: ' Avec un profil gras, un nettoyage doux matin et soir, sans frotter, suffit.', dry: ' Avec un profil sec, un nettoyant doux évite de tirailler la peau.',
         combination: ' Avec un profil mixte, un même nettoyant doux convient à l\'ensemble du visage.', normal: '', unknown: '' },
-      moistKept: ' DERMAI retient l\'hydratation comme axe de soin dans cette analyse. L\'objectif est de soutenir le confort et l\'hydratation de la peau.',
+      moistKept: ' DermAI retient l\'hydratation comme axe de soin dans cette analyse. L\'objectif est de soutenir le confort et l\'hydratation de la peau.',
       moistSupports: (labels, inds) => ' Ingrédients recherchés dans l\'hydratant : ' + joinList(labels.map(lower)) + (inds.length ? ', retenu' + plural(labels.length, '', 's') + ' aussi pour ' + li(inds) : '') + '.',
       moistDry: ' Avec un profil sec, une texture plus riche est souvent plus confortable.',
       spfExfoliant: ' Elle compte d\'autant plus avec un exfoliant dans la routine.',
       accompaniment: (active, inds, goal) => cap(inds) + ' : accompagnement léger, ' + plural(inds.length, 'pas une priorité', 'pas des priorités') + ' de cette analyse. Actif doux recherché : ' + lower(active) + '.' + (goal ? ' ' + plural(inds.length, 'Il rejoint', 'Ils rejoignent') + ' votre objectif « ' + lower(goal) + ' ».' : ''),
-      treatment: (active, inds, goal) => cap(inds) + ' : ' + plural(inds.length, 'axe retenu', 'axes retenus') + ' selon les règles DERMAI. Actif recherché pour ' + plural(inds.length, 'cet axe', 'ces axes') + ' : ' + lower(active) + '.' + (goal ? ' ' + plural(inds.length, 'Il rejoint', 'Ils rejoignent') + ' votre objectif « ' + lower(goal) + ' ».' : ''),
+      treatment: (active, inds, goal) => cap(inds) + ' : ' + plural(inds.length, 'axe retenu', 'axes retenus') + ' selon les règles DermAI. Actif recherché pour ' + plural(inds.length, 'cet axe', 'ces axes') + ' : ' + lower(active) + '.' + (goal ? ' ' + plural(inds.length, 'Il rejoint', 'Ils rejoignent') + ' votre objectif « ' + lower(goal) + ' ».' : ''),
       owned: 'Vous utilisez déjà un produit pour cette étape : gardez-le s\'il vous convient.'
     },
     product: {
-      none: { moisturize: 'Aucun hydratant du catalogue DERMAI n\'est relié à vos besoins actuels : un hydratant que votre peau apprécie convient.',
-        cleanse: 'Le catalogue DERMAI ne propose pas encore de nettoyant.', spf: 'Le catalogue DERMAI ne propose pas encore de protection solaire.',
-        treatment: 'Aucun produit du catalogue DERMAI ne contient cet actif pour le moment.' },
+      none: { moisturize: 'Aucun hydratant du catalogue DermAI n\'est relié à vos besoins actuels : un hydratant que votre peau apprécie convient.',
+        cleanse: 'Le catalogue DermAI ne propose pas encore de nettoyant.', spf: 'Le catalogue DermAI ne propose pas encore de protection solaire.',
+        treatment: 'Aucun produit du catalogue DermAI ne contient cet actif pour le moment.' },
       targets: labels => ' La marque le présente pour : ' + joinList(labels.map(lower)) + '.'
     }
   };
   /* Pourquoi CE produit plutôt qu'un autre (règle de départage réellement appliquée par products.match). */
   const SELECTION = {
-    only: 'C\'est le seul produit du catalogue DERMAI qui remplit ces critères.',
+    only: 'C\'est le seul produit du catalogue DermAI qui remplit ces critères.',
     more_actives: n => 'Parmi ' + n + ' produits possibles, c\'est celui qui contient le plus d\'ingrédients recherchés.',
     skin: n => 'Parmi ' + n + ' produits possibles, c\'est celui dont la fiche correspond à votre type de peau.',
-    white_cast: n => 'Parmi ' + n + ' protections solaires possibles, il est retenu de préférence : le fabricant indique qu\'il ne laisse pas de trace blanche (mention du fabricant, non mesurée par DERMAI).',
-    editorial: n => 'Parmi ' + n + ' produits possibles, il passe en premier selon le classement éditorial DERMAI pour cet actif.',
+    white_cast: n => 'Parmi ' + n + ' protections solaires possibles, il est retenu de préférence : le fabricant indique qu\'il ne laisse pas de trace blanche (mention du fabricant, non mesurée par DermAI).',
+    editorial: n => 'Parmi ' + n + ' produits possibles, il passe en premier selon le classement éditorial DermAI pour cet actif.',
     order: n => 'Parmi ' + n + ' produits équivalents, il est retenu selon l\'ordre du catalogue.'
   };
   const selectionText = sel => (!sel ? '' : sel.rule === 'only' ? SELECTION.only : SELECTION[sel.rule] ? SELECTION[sel.rule](sel.candidates) : '');

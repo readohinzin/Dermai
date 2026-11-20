@@ -1,4 +1,4 @@
-/* Couche PRIORITÉS : quels besoins DERMAI retient, et pourquoi. Déterministe, sans coefficient. Ne lit que la DÉCISION de
+/* Couche PRIORITÉS : quels besoins DermAI retient, et pourquoi. Déterministe, sans coefficient. Ne lit que la DÉCISION de
    l'interprétation (`value`, `band`, `role`), jamais le score affiché.
    Étapes : (1) validité (score absent = absent, jamais 0) ; (2) éligibilité : repère « mid » ou « low » (data/decision.js), rôle
    « actionable » (ou « goal_gated » avec l'objectif correspondant choisi), levier cosmétique validé ; (3) ordre : repère le plus bas

@@ -1,7 +1,7 @@
 /* Prévention : produits éclaircissants et produits à composition non vérifiable. Données et textes seulement, aucune décision du moteur.
 
    RÈGLES (décidées avec le propriétaire du produit)
-   - DERMAI ne recommande JAMAIS un produit qui éclaircit ou dépigmente la peau entière. Interdits : hydroquinone, mercure, corticoïdes, arbutine, acide kojique,
+   - DermAI ne recommande JAMAIS un produit qui éclaircit ou dépigmente la peau entière. Interdits : hydroquinone, mercure, corticoïdes, arbutine, acide kojique,
      glutathion (liste EXCLUDED du moteur, data/actives.js ; noms INCI exacts, data/inci-aliases.js) et tout produit qui PROMET d'éclaircir la peau (CLAIMS ci-dessous).
    - Sont conservés, avec les mots « atténuer les taches » et « unifier le teint » : azélaïque, niacinamide, vitamine C, mandélique (elles visent des taches, pas la couleur de la peau).
    - Un produit sans liste d'ingrédients lisible est « composition non vérifiable » : jamais recommandé. Dans le catalogue réel, un produit sans liste INCI ne peut pas être
@@ -21,35 +21,35 @@
   'use strict';
 
   /* Substances de la liste EXCLUDED qui servent à éclaircir ou dépigmenter la peau : elles reçoivent un message de prévention précis. Les autres (peroxyde de benzoyle,
-     adapalène, trétinoïne) gardent le message neutre « sans conseil DERMAI ». */
+     adapalène, trétinoïne) gardent le message neutre « sans conseil DermAI ». */
   const LIGHTENING_IDS = ['hydroquinone', 'mercury', 'corticoids', 'arbutin', 'kojic_acid', 'glutathione'];
 
-  const GENERIC = 'DERMAI ne conseille pas les produits qui visent à éclaircir la peau entière : leurs effets à long terme sont mal connus et ils peuvent irriter.';
+  const GENERIC = 'DermAI ne conseille pas les produits qui visent à éclaircir la peau entière : leurs effets à long terme sont mal connus et ils peuvent irriter.';
   const ASK = 'Évitez-les et parlez-en à un dermatologue ou à un pharmacien.';
   const MESSAGES = {
-    hydroquinone: 'L\'hydroquinone est une substance utilisée pour dépigmenter la peau. Employée sans suivi, ou longtemps, elle peut irriter la peau et la marquer davantage. DERMAI ne conseille pas les produits qui en contiennent. ' + ASK,
+    hydroquinone: 'L\'hydroquinone est une substance utilisée pour dépigmenter la peau. Employée sans suivi, ou longtemps, elle peut irriter la peau et la marquer davantage. DermAI ne conseille pas les produits qui en contiennent. ' + ASK,
     mercury: 'Le mercure est toxique, notamment pour les reins et le système nerveux. Il est interdit dans les cosmétiques par de nombreux pays, mais on le trouve encore dans certains produits éclaircissants non contrôlés. N\'utilisez pas ce produit et parlez-en vite à un pharmacien ou à un médecin.',
-    corticoids: 'Les corticoïdes sont des médicaments, pas des cosmétiques. Sur le visage, sans avis médical, ils peuvent amincir et fragiliser la peau, provoquer des boutons et des vergetures. DERMAI ne conseille pas les produits qui en contiennent. Évitez-les et parlez-en à un médecin ou à un pharmacien.',
+    corticoids: 'Les corticoïdes sont des médicaments, pas des cosmétiques. Sur le visage, sans avis médical, ils peuvent amincir et fragiliser la peau, provoquer des boutons et des vergetures. DermAI ne conseille pas les produits qui en contiennent. Évitez-les et parlez-en à un médecin ou à un pharmacien.',
     arbutin: 'L\'arbutine est utilisée dans des produits pour éclaircir la peau. ' + GENERIC + ' Pour des taches, parlez-en à un dermatologue ou à un pharmacien.',
     kojic_acid: 'L\'acide kojique est utilisé dans des produits pour éclaircir la peau. ' + GENERIC + ' Pour des taches, parlez-en à un dermatologue ou à un pharmacien.',
     glutathione: 'Le glutathion est utilisé dans des produits pour éclaircir la peau. ' + GENERIC + ' Pour des taches, parlez-en à un dermatologue ou à un pharmacien.'
   };
-  const TITLES = { lightening: name => 'Produit éclaircissant : prudence avec « ' + name + ' »', neutral: name => 'Substance sans conseil DERMAI dans « ' + name + ' »' };
-  const RULE = 'Liste EXCLUDED du moteur DERMAI : DERMAI ne recommande jamais de produit qui éclaircit ou dépigmente la peau entière.';
-  const BADGE = { lightening: 'Substance de produit éclaircissant : prudence', neutral: 'Substance sans conseil DERMAI' };
+  const TITLES = { lightening: name => 'Produit éclaircissant : prudence avec « ' + name + ' »', neutral: name => 'Substance sans conseil DermAI dans « ' + name + ' »' };
+  const RULE = 'Liste EXCLUDED du moteur DermAI : DermAI ne recommande jamais de produit qui éclaircit ou dépigmente la peau entière.';
+  const BADGE = { lightening: 'Substance de produit éclaircissant : prudence', neutral: 'Substance sans conseil DermAI' };
 
   /* Produit sans liste d'ingrédients lisible. */
   const UNVERIFIABLE = {
     title: name => 'Composition non vérifiable : « ' + name + ' »',
     badge: 'Composition non vérifiable',
-    warn: 'Sans liste d\'ingrédients lisible, personne ne peut savoir ce que contient un produit : DERMAI ne le recommande jamais. Méfiez-vous surtout des produits sans liste d\'ingrédients qui promettent d\'éclaircir la peau : certains contiennent du mercure, de l\'hydroquinone ou des corticoïdes sans l\'indiquer.'
+    warn: 'Sans liste d\'ingrédients lisible, personne ne peut savoir ce que contient un produit : DermAI ne le recommande jamais. Méfiez-vous surtout des produits sans liste d\'ingrédients qui promettent d\'éclaircir la peau : certains contiennent du mercure, de l\'hydroquinone ou des corticoïdes sans l\'indiquer.'
   };
-  UNVERIFIABLE.text = 'DERMAI ne peut pas vérifier ce produit. ' + UNVERIFIABLE.warn;
+  UNVERIFIABLE.text = 'DermAI ne peut pas vérifier ce produit. ' + UNVERIFIABLE.warn;
 
   /* Rappel général, montré à qui veut atténuer des taches ou unifier le teint (les plus exposées aux produits éclaircissants). */
   const GENERAL = {
     title: 'Pour les taches, évitez les produits éclaircissants',
-    text: 'Pour atténuer des taches ou unifier le teint, évitez les produits qui promettent d\'éclaircir la peau entière, surtout sans liste d\'ingrédients : certains contiennent du mercure, de l\'hydroquinone ou des corticoïdes sans l\'indiquer, ce qui peut abîmer la peau et la santé. Les soins que DERMAI propose visent les taches, pas la couleur de votre peau.'
+    text: 'Pour atténuer des taches ou unifier le teint, évitez les produits qui promettent d\'éclaircir la peau entière, surtout sans liste d\'ingrédients : certains contiennent du mercure, de l\'hydroquinone ou des corticoïdes sans l\'indiquer, ce qui peut abîmer la peau et la santé. Les soins que DermAI propose visent les taches, pas la couleur de votre peau.'
   };
 
   /* Promesses d'éclaircissement de la peau entière (nom, description, libellés d'un produit). « Brightening » seul n'en est pas une (marketing courant de la vitamine C). */

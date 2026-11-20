@@ -1,4 +1,4 @@
-/* DERMAI : « Ce que vous signalez ». Affichage SEUL, aucune décision.
+/* DermAI : « Ce que vous signalez ». Affichage SEUL, aucune décision.
    Problème traité : une personne indique ce qui la préoccupe (par exemple l'acné), l'analyse ne le retient pas, et l'écran lui dit en substance
    « ce n'est pas une priorité ». Elle repart avec l'impression que sa préoccupation n'existe pas.
 
@@ -6,7 +6,7 @@
    statut de chaque indicateur, mode) et ajoute un encart qui dit, honnêtement :
      1. ce que l'analyse en dit sur cette photo (sans note chiffrée : un « 78 » à côté d'« Acné » se lit comme une bonne note) ;
      2. que cela ne veut pas dire que la préoccupation n'existe pas : une seule photo, repères provisoires, marques ou cicatrices non mesurées ;
-     3. ce que DERMAI fait malgré tout dans la routine (soin doux ajouté, ou routine de base seulement) ;
+     3. ce que DermAI fait malgré tout dans la routine (soin doux ajouté, ou routine de base seulement) ;
      4. quand parler à un dermatologue ou à un pharmacien (durée, produits sans effet). Aucun diagnostic, aucune interprétation.
    Ce que la personne signale n'est JAMAIS présenté comme une mesure. Une métrique absente reste absente : rien n'est inventé.
 
@@ -35,14 +35,14 @@
     intro: 'Vous avez indiqué ce que vous souhaitez travailler. Voici ce que cette analyse en dit, et ce qu\'elle ne peut pas dire.',
     measured: label => 'Sur cette photo, l\'analyse ne retient pas « ' + label.toLowerCase() + ' » comme axe prioritaire.',
     described: label => 'L\'analyse décrit « ' + label.toLowerCase() + ' » sans en tirer de conseil automatique.',
-    unavailable: label => 'L\'analyse n\'a renvoyé aucune mesure pour « ' + label.toLowerCase() + ' » sur cette photo. DERMAI n\'en tire aucune conclusion.',
+    unavailable: label => 'L\'analyse n\'a renvoyé aucune mesure pour « ' + label.toLowerCase() + ' » sur cette photo. DermAI n\'en tire aucune conclusion.',
     limits: 'Cela ne veut pas dire que ce que vous voyez sur votre peau n\'existe pas. L\'analyse repose sur une seule photo et peut passer à côté de boutons, de marques qui restent après un bouton, de taches ou de cicatrices.',
     provisional: ' Ses repères sont provisoires : ils n\'ont pas encore été calibrés avec des photos réelles de différents teints.',
     added: label => 'Votre routine garde cet objectif : un soin doux (' + label.toLowerCase() + ') y est ajouté.',
     baseOnly: 'Votre routine de base (nettoyage doux, hydratation, protection solaire) reste en place. Aucun soin ciblé n\'est ajouté pour cet objectif pour l\'instant.',
-    persistent: 'Si cela dure depuis plusieurs semaines, ou si plusieurs produits n\'ont rien changé, parlez-en à un dermatologue ou à un pharmacien. DERMAI ne peut ni examiner votre peau ni poser de diagnostic.',
+    persistent: 'Si cela dure depuis plusieurs semaines, ou si plusieurs produits n\'ont rien changé, parlez-en à un dermatologue ou à un pharmacien. DermAI ne peut ni examiner votre peau ni poser de diagnostic.',
     noGoalTitle: 'Une préoccupation qui n\'apparaît pas ici ?',
-    noGoal: 'L\'analyse ne retient aucune priorité sur cette photo. Si vous voyez ou ressentez quelque chose qu\'elle ne montre pas (boutons, taches, peau terne), indiquez-le dans vos objectifs : cela ne change pas la mesure, mais cela change ce que DERMAI vous propose. Et si cela dure ou si rien ne marche, un dermatologue peut examiner votre peau.',
+    noGoal: 'L\'analyse ne retient aucune priorité sur cette photo. Si vous voyez ou ressentez quelque chose qu\'elle ne montre pas (boutons, taches, peau terne), indiquez-le dans vos objectifs : cela ne change pas la mesure, mais cela change ce que DermAI vous propose. Et si cela dure ou si rien ne marche, un dermatologue peut examiner votre peau.',
     noGoalButton: 'Choisir mes objectifs'
   };
 

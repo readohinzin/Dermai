@@ -148,7 +148,7 @@ test('SB7 photo d\'origine indisponible (rechargement, photos non gardées) : on
   await page.evaluate(() => { state.view = 0; go('result'); });
   await openSim(page);
   let t = await text(page);
-  assert.match(t, /Une photo est nécessaire/); assert.match(t, /La photo de cette analyse n'est plus disponible dans DERMAI/); assert.match(t, /Aucune nouvelle analyse n'est lancée/);
+  assert.match(t, /Une photo est nécessaire/); assert.match(t, /La photo de cette analyse n'est plus disponible dans DermAI/); assert.match(t, /Aucune nouvelle analyse n'est lancée/);
   await page.click('[data-sim=pick][data-c=redness]');
   assert.equal(await page.isDisabled('[data-sim=run]'), true, 'pas de simulation sans photo');
   await page.setInputFiles('[data-sim=file]', { name: 'p.jpg', mimeType: 'image/jpeg', buffer: await H.makeJpeg(page) });

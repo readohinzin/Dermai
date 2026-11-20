@@ -286,7 +286,7 @@ select.sel{min-height:44px;border-radius:99px;border:1px solid var(--line);backg
 .next .cal small{font-size:12px;color:var(--ink-3)}
 
 /* =========================================================
-   DERMAI v2 : identité rose poudré, portrait, animations
+   DermAI v2 : identité rose poudré, portrait, animations
    ========================================================= */
 h1,h2,h3,.h3{font-family:var(--serif);font-weight:400}
 h1{font-size:clamp(2.1rem,8vw,3.1rem);line-height:1.08}
