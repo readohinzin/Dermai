@@ -732,7 +732,7 @@ V.home=()=>{
 };
 
 /* Scan */
-const TIPS=[[`glasses`,`Retirez vos lunettes`,`Pour voir le contour des yeux.`],[`sparkle`,`Évitez les filtres`,`Votre peau doit apparaître telle qu'elle est.`],[`sun`,`Placez-vous face à une lumière naturelle`,`Près d'une fenêtre, sans contre-jour.`],[`face`,`Gardez votre visage neutre`,`Sans sourire, cheveux dégagés.`]];
+const TIPS=DermaiPhotoCheck.TIPS;   // conseils de prise de photo : textes dans js/photo-check.js
 const tipsHtml=()=>TIPS.map(t=>`<div class="tip"><span class="ico">${ic(t[0])}</span><div><b>${t[1]}</b><p class="muted">${t[2]}</p></div></div>`).join(``);
 const SHOT=[[`De face`,0],[`Profil gauche`,-7],[`Profil droit`,7]];
 /* Résultat de la vérification locale de la photo : utilisable / à vérifier (l'utilisatrice décide) / inutilisable (pas d'envoi). Sans vérification possible : message neutre. */
@@ -1238,7 +1238,7 @@ function realInput(camera){
   return inp;
 }
 function pickRealPhoto(kind){state.scanStatus=`capturing`;realInput(kind===`camera`&&touchUi()).click()}
-/* Vérification locale de la photo (js/photo-check.js) : taille, luminosité, netteté, visage. Aucun envoi, aucune conservation. null = impossible. */
+/* Vérification locale de la photo (js/photo-check.js) : taille, luminosité, netteté, lumière du visage, visage. Photo à refaire (niveau block) : aucun envoi, aucun résultat ; doute (warn) : l'utilisatrice décide. Aucun envoi, aucune conservation. null = vérification impossible. Seuils provisoires, à régler avec de vraies photos de teints variés (tâche 7 du brief).      */
 async function inspectPhoto(blob){
   try{
     const url=URL.createObjectURL(blob),im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
