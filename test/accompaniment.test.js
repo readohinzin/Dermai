@@ -467,7 +467,7 @@ test('ACC34 débordement : un axe prioritaire écarté par le plafond de 3 est d
 test('ACC35 vocabulaire : aucun mot médical, aucune promesse, aucun « favorable » dans les textes d\'accompagnement, sur 1500 profils ; plus de « Favorable » comme statut', () => {
   const S = require('../js/engine/copy.fr.js').SYNTH;
   assert.deepEqual(Object.values(S.LEVELS), ['Priorité de soin', 'Axe à soutenir', 'Accompagnement léger', 'À entretenir', 'Axe en attente', 'Indicateur observé', 'Information', 'Sans soin validé']);
-  assert.equal(M.INDICATOR_BAND_LABELS.good, 'Niveau élevé');
+  assert.equal(M.INDICATOR_BAND_LABELS.good, 'Score élevé');
   let seen = 0;
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });

@@ -59,7 +59,7 @@
   /* Scores d'exemple (diapositive 2) : bulle (x, y en millièmes du CADRE), point d'ancrage sur le visage défini par rapport aux yeux ou à la bouche. */
   const BUBBLES = [
     { k: 'hydration', v: 64, x: 120, y: 270, from: 'eL', a: -0.06, b: 0.135 }, { k: 'pores', v: 58, x: 95, y: 500, from: 'eL', a: -0.15, b: 0.62 }, { k: 'texture', v: 76, x: 150, y: 730, from: 'm', a: -0.25, b: 0.19 },
-    { k: 'pigmentation', v: 52, x: 880, y: 270, from: 'eR', a: 0.08, b: 0.1 }, { k: 'redness', v: 81, x: 905, y: 500, from: 'eR', a: 0.19, b: 0.63 }, { k: 'oiliness', v: 69, x: 850, y: 730, from: 'm', a: 0.33, b: 0.19 }
+    { k: 'pigmentation', v: 52, x: 880, y: 270, from: 'eR', a: 0.08, b: 0.1 }, { k: 'acne', v: 66, x: 905, y: 500, from: 'eR', a: 0.19, b: 0.63 }, { k: 'oiliness', v: 69, x: 850, y: 730, from: 'm', a: 0.33, b: 0.19 }
   ];
   const band = v => (v >= 70 ? 'good' : v >= 55 ? 'mid' : 'low');
   const PROGRESS = { from: 58, to: 72, points: [58, 61, 60, 66, 69, 72] };

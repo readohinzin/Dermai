@@ -95,8 +95,10 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
 /* Empreinte des sorties du moteur (décisions ET textes) sur 1500 profils. Étape 27 : `overflow` (priorities) et `origin` (étapes de routine) sont des clés
    AJOUTÉES, pas des décisions ; `uiBandLabel` est un LIBELLÉ d'affichage renommé (« Favorable » devient « Niveau élevé », il contredisait un accompagnement) : remappé ici à son ancienne valeur. Le libellé du domaine « Imperfections » est devenu « Acné et imperfections » (texte seulement, pour que les personnes retrouvent le mot « acné ») : remappé de même.
    Clés ajoutées exclues, libellé remappé : l'empreinte d'avant l'accompagnement est retrouvée octet pour octet. */
+/* Lot 2 (peaux foncées) : badges « Score élevé / intermédiaire / plus bas » (« Niveau élevé » se lisait comme beaucoup d'acné) : remappés à leur ancienne valeur, comme à l'étape 27. */
+const UX7_OLD_BAND = { 'Score élevé': 'Favorable', 'Score intermédiaire': 'Intermédiaire', 'Score plus bas': 'Plus bas' };
 function ux7Fingerprint() {
-  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || k === 'origin' || (k === 'reason' && this.slot && this.kind)) ? undefined : (k === 'uiBandLabel' && v === 'Niveau élevé' ? 'Favorable' : (typeof v === 'string' ? v.replace(/([Aa])cné et imperfections/g, (m, c) => (c === 'A' ? 'Imperfections' : 'imperfections')) : v)); };
+  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || k === 'origin' || (k === 'reason' && this.slot && this.kind)) ? undefined : (k === 'uiBandLabel' && v in UX7_OLD_BAND ? UX7_OLD_BAND[v] : (typeof v === 'string' ? v.replace(/([Aa])cné et imperfections/g, (m, c) => (c === 'A' ? 'Imperfections' : 'imperfections')) : v)); };
   const out = [];
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });

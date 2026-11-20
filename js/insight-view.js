@@ -22,6 +22,7 @@
     <figcaption class="c-facemap__status" data-fm-status role="status" aria-live="polite">${has ? '' : S.map.unavailable}</figcaption></figure>
    ${has ? `<button class="link c-facemap__toggle" data-act="facemap-hide" aria-pressed="${!!state.faceHide}">${state.faceHide ? 'Afficher les zones' : 'Voir la photo sans les zones'}</button>` : ''}
    <div class="c-facemap__read">${has ? `<p data-fm-detect>${S.map.detected(sel, M.METRIC_LABELS[sel])}</p>` : ''}${info ? `<p><b>${info.label} · ${info.score}/100 · ${info.level}.</b> ${info.text}</p>` : ''}
+   ${sel === 'redness' && EN().copy.REDNESS_NOTE ? `<p class="c-disclaimer" data-redness-note>${EN().copy.REDNESS_NOTE.text}</p>` : ''}
    <p class="c-disclaimer">${S.map.note}</p></div></section>`;
   }
 

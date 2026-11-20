@@ -97,7 +97,7 @@
       id: 'vitamin_c', label: 'Vitamine C', kind: 'treatment', role: 'antioxidant_tone', irritation: 'moderate', groups: [],
       targets: ['pigmentation', 'radiance', 'wrinkles', 'firmness'], objectives: ['tone', 'aging'],
       confidence: 'medium', status: 'validated', source: srcText(EV.vitamin_c), evidence: EV.vitamin_c,
-      summary: 'Éclat et uniformité', description: 'Aide à rendre le teint plus lumineux et plus uniforme, et accompagne la protection de la peau.',
+      summary: 'Atténue les taches', description: 'Antioxydant qui aide à unifier le teint et à atténuer l\'aspect des taches, et accompagne la protection de la peau.',
       cautions: ['Peut piquer sur peau sensible.', 'Conservez le produit à l\'abri de la lumière et de la chaleur.', MARKS],
       when: 'morning', defaultSlot: 'morning',
       introduction: { frequency: 'Un matin sur deux au début', note: 'Appliquez avant la protection solaire.' }
@@ -115,7 +115,7 @@
       id: 'aha_pha', label: 'Exfoliants chimiques AHA ou PHA', kind: 'treatment', role: 'exfoliation', irritation: 'moderate', groups: ['evening_strong'],
       targets: ['texture', 'radiance', 'pigmentation'], objectives: ['texture', 'tone'],
       confidence: 'medium', status: 'validated', source: srcText(EV.aha_pha), evidence: EV.aha_pha,
-      summary: 'Affine le grain de peau', description: 'Exfoliants qui aident à lisser le grain de peau et à raviver l\'éclat.',
+      summary: 'Affine le grain de peau', description: 'Exfoliants qui aident à lisser le grain de peau et à unifier l\'aspect du teint.',
       cautions: ['Protection solaire indispensable.', 'Peuvent irriter : espacez en cas de tiraillement.', PREGNANCY, MARKS],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Un soir par semaine au début', note: 'Augmentez très progressivement.' }

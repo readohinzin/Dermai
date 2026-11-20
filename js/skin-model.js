@@ -212,9 +212,9 @@
   };
   const PRIORITY_COUNT = 3;
   /* Libellés des badges d'un INDICATEUR (même bande, même seuil 61 / 31 que ci-dessus : seule la formulation change). « Bien » était trop
-     absolu à côté d'une carte de détection ; ces libellés ne reprennent jamais le vocabulaire des décisions DERMAI (axe à soutenir,
+     absolu à côté d'une carte de détection ; « Niveau élevé » à côté de « Acné » se lisait comme beaucoup d'acné : le libellé parle donc du SCORE (100 = meilleur état), jamais de la chose mesurée, et ne dit pas « favorable » (contradiction avec un accompagnement, étape 27) ; ces libellés ne reprennent jamais le vocabulaire des décisions DERMAI (axe à soutenir,
      priorité de soin), qui vient du moteur. Le score global garde les libellés de BANDS. */
-  const INDICATOR_BAND_LABELS = { good: 'Niveau élevé', mid: 'Intermédiaire', low: 'Plus bas' };
+  const INDICATOR_BAND_LABELS = { good: 'Score élevé', mid: 'Score intermédiaire', low: 'Score plus bas' };
 
   /* Score affichable : entier de 0 à 100, ou null. */
   function displayScore(v) {

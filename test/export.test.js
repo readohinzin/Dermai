@@ -125,7 +125,7 @@ test('EXP6 analyse plus ancienne : priorités enregistrées à sa date, ni strat
   assert.equal(m.H, true); assert.equal(m.routine, null); assert.equal(m.strategy, ''); assert.equal(m.accompaniment, '');
   assert.deepEqual(m.priorities.map(x => [x.label, x.score, x.level]), [['Hydratation', 38, 'Retenu par DERMAI']]);
   assert.deepEqual(m.goals, [copy.GOAL_LABELS.hydration]);
-  assert.equal(m.indicators.find(i => i.id === 'acne').level, 'Niveau élevé', 'bandes d\'affichage de l\'analyse, pas les statuts d\'aujourd\'hui');
+  assert.equal(m.indicators.find(i => i.id === 'acne').level, 'Score élevé', 'bandes d\'affichage de l\'analyse, pas les statuts d\'aujourd\'hui');
   assert.ok(p.text.includes('Analyse du 10 octobre 2026 · analyse précédente') && p.text.includes('Axes retenus à cette date'));
   assert.ok(p.text.includes('la routine de l\'application correspond à votre analyse la plus récente'));
   assert.ok(!p.text.includes('Votre routine\n'));

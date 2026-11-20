@@ -124,14 +124,14 @@ test('C4 (3, 16) un seul ui_score par indicateur, partout : résultat, synthèse
   assert.doesNotMatch(code('js/engine/synthesis.js') + code('js/insight-view.js'), /Math\.round|toFixed/);
 });
 
-test('C5 badges des indicateurs : « Niveau élevé » / « Intermédiaire » / « Plus bas » (mêmes seuils d\'affichage ; « Favorable » contredisait un accompagnement) ; le score global garde les siens', () => {
+test('C5 badges des indicateurs : « Score élevé » / « Score intermédiaire » / « Score plus bas » (lot 2 : « Niveau élevé » à côté d\'« Acné » se lisait comme beaucoup d\'acné ; mêmes seuils d\'affichage ; « Favorable » contredisait un accompagnement) ; le score global garde les siens', () => {
   const v = M.toResultView(norm({ acne: 79, pores: 45, hydration: 20 }));
   const by = k => v.priorities.concat(v.others).find(m => m.key === k);
-  assert.deepEqual([by('acne').bandLabel, by('pores').bandLabel, by('hydration').bandLabel], ['Niveau élevé', 'Intermédiaire', 'Plus bas']);
+  assert.deepEqual([by('acne').bandLabel, by('pores').bandLabel, by('hydration').bandLabel], ['Score élevé', 'Score intermédiaire', 'Score plus bas']);
   assert.deepEqual([by('acne').band, by('pores').band, by('hydration').band], ['good', 'mid', 'low'], 'mêmes bandes (61 / 31)');
   assert.equal(M.scoreBand(75).label, 'Bien', 'score global : libellés inchangés');
   const i = Engine.run(norm({ acne: 79 }), {}).interpretation.indicators.find(x => x.id === 'acne');
-  assert.equal(i.uiBandLabel, 'Niveau élevé');
+  assert.equal(i.uiBandLabel, 'Score élevé');
   for (const l of Object.values(M.INDICATOR_BAND_LABELS)) assert.doesNotMatch(l, /priorit|soutenir|surveiller|bien/i, 'jamais le vocabulaire des décisions');
 });
 

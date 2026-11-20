@@ -39,9 +39,9 @@ const demoScan=(id,date,short,day,globalScore,ui)=>({id,date,short,day,
   normalized:SkinModel.sanitizeNormalized({schemaVersion:SkinModel.SCHEMA_VERSION,normalized:Object.assign({globalScore,skinType:{whole:`Combination`}},
     Object.fromEntries(Object.entries(ui).map(([k,uiScore])=>[k,{uiScore}])))})});
 const SCANS=[
-  demoScan(0,`29 septembre`,`29 SEPT`,1,61,{pigmentation:22,pores:36,hydration:52,acne:63,oiliness:42,redness:69,texture:56,wrinkles:78}),
-  demoScan(1,`30 octobre`,`30 OCT`,30,64,{pigmentation:39,pores:43,hydration:73,acne:76,oiliness:51,redness:74,texture:64,wrinkles:79}),
-  demoScan(2,`30 novembre`,`30 NOV`,60,68,{pigmentation:48,pores:49,hydration:79,acne:82,oiliness:56,redness:78,texture:70,wrinkles:80})
+  demoScan(0,`29 septembre`,`29 SEPT`,1,61,{pigmentation:22,pores:36,hydration:52,acne:34,oiliness:42,redness:69,texture:44,wrinkles:78}),
+  demoScan(1,`30 octobre`,`30 OCT`,30,64,{pigmentation:39,pores:43,hydration:73,acne:42,oiliness:51,redness:74,texture:52,wrinkles:79}),
+  demoScan(2,`30 novembre`,`30 NOV`,60,68,{pigmentation:48,pores:49,hydration:79,acne:51,oiliness:56,redness:78,texture:58,wrinkles:80})
 ];
 /* Contenu éditorial statique de 4 indicateurs (conseils généraux). Aucun score ici. */
 const CONCERNS={
@@ -59,7 +59,7 @@ const CIDS=[`pigmentation`,`pores`,`hydration`,`acne`];
 const LANDING_EXAMPLE=(()=>{const g=SkinModel.globalSeries([61,64,68].map(v=>({globalScore:v})));return [`29 SEPT`,`30 OCT`,`30 NOV`].map((label,i)=>({v:g[i],label})).filter(p=>p.v!==null)})();
 const CATS=[[`cleanser`,`Nettoyant`],[`serum`,`Sérum`],[`moisturizer`,`Hydratant`],[`spf`,`Protection solaire`],[`exfoliant`,`Exfoliant`],[`mask`,`Masque`]];
 const state={route:`landing`,param:null,stack:[],user:DEMO_MODE?{name:`Amina`,email:`amina@exemple.com`}:{name:``,email:``},
-  goals:DEMO_MODE?[`tone`,`oil_pores`,`hydration`]:[],noGoal:false,level:DEMO_MODE?`simple`:``,cats:DEMO_MODE?[`cleanser`,`moisturizer`]:[],
+  goals:DEMO_MODE?[`tone`,`blemishes`,`hydration`]:[],noGoal:false,level:DEMO_MODE?`simple`:``,cats:DEMO_MODE?[`cleanser`,`moisturizer`]:[],
   scanStep:0,shots:[false,false,false],retake:false,run:0,latest:0,view:0,tab:`am`,done:{},filter:`all`,
   gentle:false,exclusions:[],cmpA:0,cmpB:1,prefs:{reminder:true,tips:true,keep:false},photo:``,
   scanStatus:`idle`,scanError:``,realBlob:null,realPreview:``,photoCheck:null};   // scanStatus : idle | capturing | uploading | processing | success | error

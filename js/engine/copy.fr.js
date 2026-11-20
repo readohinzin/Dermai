@@ -47,9 +47,15 @@
   const INFO_TEXT = 'Cet indicateur est donné à titre d\'information. Il n\'appelle pas de recommandation automatique.';
   const INDICATOR_NOTES = {
     acne: 'Imperfections visibles', pigmentation: 'Taches et uniformité du teint', pores: 'Visibilité des pores', oiliness: 'Niveau d\'huile de la peau',
-    hydration: 'Hydratation apparente', redness: 'Rougeurs visibles', texture: 'Texture globale', wrinkles: 'Rides et ridules', firmness: 'Fermeté apparente',
+    hydration: 'Hydratation apparente', redness: 'Rougeurs visibles (peut être moins fiable sur peau foncée)', texture: 'Texture globale', wrinkles: 'Rides et ridules', firmness: 'Fermeté apparente',
     radiance: 'Éclat visible', eyeBag: 'Poches sous les yeux', tearTrough: 'Creux sous les yeux', darkCircle: 'Cernes',
     droopyUpperEyelid: 'Paupière supérieure', droopyLowerEyelid: 'Paupière inférieure'
+  };
+  /* Rougeurs : la mesure du fournisseur repère le ROUGE. On ne la rebaptise pas : on dit sa limite. Sur peau foncée, une irritation se voit plutôt brune, violacée ou grise. */
+  const REDNESS_NOTE = {
+    short: 'Peut être moins fiable sur peau foncée.',
+    title: 'À savoir sur la mesure des rougeurs',
+    text: 'Cette mesure repère la rougeur. Elle peut être moins fiable sur peau foncée, où une irritation se voit plutôt brune, violacée ou grise. Un score élevé ne garantit donc pas l\'absence d\'irritation.'
   };
   const EYE_NOTE = 'Cet indicateur est donné à titre d\'information : aucun actif n\'est proposé automatiquement.';
 
@@ -375,6 +381,6 @@
   return {
     LEVEL_LABELS, LEVEL_SHORT, PERSONAL,
     DOMAIN_LABELS, GOAL_LABELS, GOAL_HINTS, NO_GOAL, GOAL_LIMIT, SLOT_LABELS, STEP_LABELS, joinList, lower,
-    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, accompanimentReason, accompanimentStep, accompanimentSummary, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
+    priorityReason, MAINTENANCE, eyeInfo, EYE_NOTE, EYE_GROUP_TITLE, INFO_LABEL, INFO_TEXT, INDICATOR_NOTES, REDNESS_NOTE, activeReason, supportReason, DEFERRED, TEXTURE, stepReason, NOTES, SLOW, summary, productBecause, accompanimentReason, accompanimentStep, accompanimentSummary, productWhy, productRole, SYNTH, SELECTION, selectionText, PRODUCT_REASONS, PRODUCT_CATEGORY_LABELS, MARKET_TEXTS, AVAILABILITY_LABELS, OFFER_AVAILABILITY_LABELS, OFFER_TYPE_LABELS, OFFER_TEXTS
   };
 });
