@@ -74,7 +74,7 @@ test('SB2 parcours complet (analyse en mémoire) : bouton, zone, photo réutilis
   assert.match(t, /Avant \/ après simulation : Rides/); assert.match(t, /Simulation cosmétique générée par ordinateur, à titre d'illustration seulement/); assert.match(t, /ni une promesse de résultat ni un avis médical/);
   assert.equal(await page.getAttribute('[data-sim=after]', 'src'), PNG);
   await page.fill('[data-sim=range]', '20').catch(() => {}); await page.$eval('[data-sim=range]', el => { el.value = '20'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-  assert.match(await page.$eval('[data-sim=after]', el => el.style.clipPath), /20%/);
+  assert.match(await page.$eval('[data-sim=after]', el => el.style.clipPath), /80%/, 'curseur à 20 : 20 % de l\'image simulée visible, depuis le bord droit');
   assert.equal(env.stats.skin.length, 1, 'aucune nouvelle analyse');
   assert.equal(await page.evaluate(() => JSON.stringify(Object.keys(localStorage)).includes('data:image') || Object.values(localStorage).some(v => String(v).includes('data:image'))), false, 'l\'image simulée n\'est jamais stockée');
   assert.equal(await page.evaluate(() => sessionStorage.length && Object.keys(sessionStorage).filter(k => /dermai\.sim\.pending/.test(k)).length), 0, 'réponse reçue : aucune demande « sans réponse »');
@@ -203,4 +203,47 @@ test('SB10 image simulée renvoyée par une URL https temporaire (cas réel) : a
   assert.equal(env.stats.sim.length, 1, 'aucune relance');
   assert.deepEqual(env.stats.serverApi, []); assert.deepEqual(env.errors, []);
   await env.close();
+});
+
+const goodMulti = list => ({ status: 200, body: { ok: true, simulation: { concern: list[0], concerns: list, intensity: 0.8, image: PNG } } });
+test('SB-M1 plusieurs zones : case « Sélectionner plusieurs zones », choix libre, une seule demande, une seule image ; décocher garde la première zone choisie', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true, behaviors: [goodMulti(['wrinkle', 'dark_circle', 'pores'])] } });
+  const { page } = env;
+  await analyse(env); await openSim(page);
+  assert.match(await text(page), /Sélectionner plusieurs zones/); assert.match(await text(page), /Quelle zone \?/);
+  const box = page.locator('[data-sim=multi]'); assert.equal(await box.isChecked(), false);
+  /* case décochée : un seul choix à la fois, comme avant */
+  await page.click('[data-sim=pick][data-c=wrinkle]'); await page.click('[data-sim=pick][data-c=pores]');
+  assert.deepEqual(await page.$$eval('[data-sim=pick][aria-pressed=true]', els => els.map(e => e.dataset.c)), ['pores']);
+  /* case cochée : on choisit toutes les zones voulues, on peut en retirer */
+  await box.check(); assert.match(await text(page), /Quelles zones \?/);
+  assert.deepEqual(await page.$$eval('[data-sim=pick][aria-pressed=true]', els => els.map(e => e.dataset.c)), ['pores'], 'le choix en cours est conservé');
+  for (const c of ['wrinkle', 'dark_circle', 'acne']) await page.click('[data-sim=pick][data-c=' + c + ']');
+  await page.click('[data-sim=pick][data-c=acne]');
+  assert.deepEqual((await page.$$eval('[data-sim=pick][aria-pressed=true]', els => els.map(e => e.dataset.c))).sort(), ['dark_circle', 'pores', 'wrinkle']);
+  assert.equal(await page.isDisabled('[data-sim=run]'), false); assert.equal(env.stats.sim.length, 0, 'choisir ne déclenche rien');
+  await page.click('[data-sim=run]'); await page.waitForSelector('[data-sim=after]');
+  assert.equal(env.stats.sim.length, 1, 'une seule demande pour plusieurs zones');
+  assert.match(env.stats.sim[0].url, /\/api\/skin-simulation\?concern=wrinkle,dark_circle,pores$/, 'zones dans l\'ordre de la liste');
+  assert.match(await text(page), /Avant \/ après simulation : Rides, Cernes, Pores/); assert.match(await text(page), /une seule simulation/);
+  /* décocher : une seule zone est gardée (la première choisie par la personne : ici « Pores »), le résultat précédent est effacé */
+  await page.locator('[data-sim=multi]').uncheck();
+  assert.deepEqual(await page.$$eval('[data-sim=pick][aria-pressed=true]', els => els.map(e => e.dataset.c)), ['pores']); assert.equal(await page.locator('[data-sim=after]').count(), 0);
+  assert.equal(env.stats.skin.length, 1, 'aucune nouvelle analyse'); clean(env); await env.close();
+});
+
+test('SB-M2 curseur avant / après : tout à gauche = photo d\'origine, tout à droite = image simulée ; « Avant » à gauche, « Après » à droite', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true, behaviors: [GOOD] } });
+  const { page } = env;
+  await analyse(env); await openSim(page);
+  await page.click('[data-sim=pick][data-c=wrinkle]'); await page.click('[data-sim=run]'); await page.waitForSelector('[data-sim=after]');
+  const clip = async v => { await page.$eval('[data-sim=range]', (el, x) => { el.value = x; el.dispatchEvent(new Event('input', { bubbles: true })); }, v); return page.$eval('[data-sim=after]', el => el.style.clipPath.replace(/px/g, '')); };
+  assert.match(await clip(0), /inset\(0 0 0 100%\)/, 'curseur tout à gauche : l\'image simulée est entièrement masquée (on voit la photo d\'origine)');
+  assert.match(await clip(100), /inset\(0 0 0 0%\)/, 'curseur tout à droite : l\'image simulée est entièrement visible');
+  assert.match(await clip(50), /inset\(0 0 0 50%\)/);
+  const pos = await page.evaluate(() => { const f = document.querySelector('[data-sim=frame]').getBoundingClientRect(), sp = [...document.querySelectorAll('[data-sim=frame] span')].map(s => ({ t: s.textContent, x: s.getBoundingClientRect().left + s.getBoundingClientRect().width / 2 - f.left, w: f.width }));
+    const ends = [...document.querySelectorAll('.c-sim-ends span')].map(s => ({ t: s.textContent, x: s.getBoundingClientRect().left })); return { sp, ends, init: document.querySelector('[data-sim=range]').getAttribute('value') }; });
+  const av = pos.sp.find(s => s.t === 'Avant'), ap = pos.sp.find(s => /^Après/.test(s.t)); assert.ok(av && ap && av.x < av.w / 2 && ap.x > ap.w / 2, 'étiquettes : Avant à gauche, Après à droite');
+  assert.match(ap.t, /simulation/, 'l\'image reste présentée comme une simulation'); assert.ok(pos.ends.length === 2 && pos.ends[0].t === 'Avant' && pos.ends[1].t === 'Après' && pos.ends[0].x < pos.ends[1].x, 'sous le curseur : Avant à gauche, Après à droite');
+  clean(env); await env.close();
 });

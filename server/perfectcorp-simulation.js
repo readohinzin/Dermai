@@ -15,10 +15,21 @@ const { call, readJson, authHeaders, requireKey, budgetExhausted } = pc.shared;
 /* Une seule préoccupation, dans la liste blanche. Renvoie le paramètre Perfect Corp, ou null. */
 const concernParam = key => (typeof key === 'string' && Object.prototype.hasOwnProperty.call(SIM_CONCERNS, key) ? SIM_CONCERNS[key] : null);
 
-/* NON CONFIRMÉ — forme du corps de création. D'après le schéma de l'outil officiel : l'image (src_file_id) et UNE intensité 0..1 sous le nom du
-   paramètre de la préoccupation ; les autres intensités restent absentes (valeur par défaut du fournisseur = pas d'effet demandé). */
+/* Plusieurs zones : liste de clés DermAI, toutes dans la liste blanche, sans doublon, 1 à SIM_MAX_ZONES. Renvoie la liste (ordre d'entrée) ou null. */
+const concernList = list => {
+  if (!Array.isArray(list) || list.length < 1 || list.length > Object.keys(SIM_CONCERNS).length) return null;
+  if (new Set(list).size !== list.length) return null;
+  return list.every(k => concernParam(k)) ? list.slice() : null;
+};
+
+/* NON CONFIRMÉ — forme du corps de création. D'après le schéma de l'outil officiel : l'image (src_file_id) et une intensité 0..1 sous le nom du
+   paramètre de CHAQUE préoccupation demandée ; les autres intensités restent absentes (valeur par défaut du fournisseur = pas d'effet demandé).
+   Plusieurs zones = plusieurs paramètres dans la MÊME tâche (une image, un seul crédit) : cette forme n'a été essayée en réel qu'avec une zone. */
 function buildTaskBody(fileId, param, intensity = SIM_INTENSITY) {
-  return { src_file_id: fileId, [param]: intensity };
+  const params = Array.isArray(param) ? param : [param];
+  const body = { src_file_id: fileId };
+  for (const p of params) body[p] = intensity;
+  return body;
 }
 
 /* NON CONFIRMÉ — création de la tâche. Le seuil de temps est celui de l'analyse (crédit engagé : de quoi interroger au moins une fois). */
@@ -84,10 +95,11 @@ function extractResultUrl(envelope) {
 }
 
 /* Orchestration : fichier → tâche de simulation → polling → URL de l'image. Une seule tâche par appel. Renvoie { image (URL https), envelope }.
-   `concern` : clé DermAI déjà validée par le handler (revérifiée ici). */
-async function simulate({ buffer, mime, concern, intensity = SIM_INTENSITY }, opts = {}) {
-  const param = concernParam(concern);
-  if (!param) throw new AnalysisError('SIM_INVALID_CONCERN', { status: 400 });
+   `concern` (une clé) ou `concerns` (liste) : clés DermAI déjà validées par le handler (revérifiées ici). */
+async function simulate({ buffer, mime, concern, concerns, intensity = SIM_INTENSITY }, opts = {}) {
+  const keys = concernList(concerns !== undefined ? concerns : [concern]);
+  if (!keys) throw new AnalysisError('SIM_INVALID_CONCERN', { status: 400 });
+  const param = keys.map(concernParam);
   const env = pc.makeEnv(opts);
   requireKey(env);
   const up = await pc.requestUploadUrl({ size: buffer.length, mime }, env);       // API fichier, la même que pour l'analyse
@@ -103,4 +115,4 @@ async function simulate({ buffer, mime, concern, intensity = SIM_INTENSITY }, op
   return { image: url, envelope };
 }
 
-module.exports = { simulate, concernParam, buildTaskBody, extractResultUrl, createSimulationTask, pollSimulationTask };
+module.exports = { simulate, concernParam, concernList, buildTaskBody, extractResultUrl, createSimulationTask, pollSimulationTask };

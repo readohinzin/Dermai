@@ -163,10 +163,10 @@ test('SIM-S8 clé fournisseur absente : 503 générique sans détail, aucun quot
   } finally { process.env.PERFECT_CORP_API_KEY = saved; }
 });
 
-test('SIM-S9 succès : image + zone + intensité seulement ; ni clé, ni task_id, ni URL du fournisseur, ni enveloppe ; la clé n\'est envoyée qu\'à Perfect Corp', async () => {
+test('SIM-S9 succès : image + zone(s) + intensité seulement ; ni clé, ni task_id, ni URL du fournisseur, ni enveloppe ; la clé n\'est envoyée qu\'à Perfect Corp', async () => {
   const r = await run({}, () => call('POST', { query: 'concern=radiance' }));
   assert.equal(r.status, 200); assert.equal(r.body.ok, true);
-  assert.deepEqual(Object.keys(r.body), ['ok', 'simulation']); assert.deepEqual(Object.keys(r.body.simulation), ['concern', 'intensity', 'image']);
+  assert.deepEqual(Object.keys(r.body), ['ok', 'simulation']); assert.deepEqual(Object.keys(r.body.simulation), ['concern', 'concerns', 'intensity', 'image']); assert.deepEqual(r.body.simulation.concerns, ['radiance']);
   assert.equal(r.body.simulation.concern, 'radiance'); assert.equal(r.body.simulation.intensity, config.SIM_INTENSITY);
   assert.equal(r.body.simulation.image, 'https://cdn.example-pc.com/out/sim1.png', 'l\'URL temporaire du résultat (champ data.results.url, confirmé par le premier essai réel) est renvoyée telle quelle');
   assert.ok(!r.raw.includes(KEY) && !/t-sim-1|file-1|upload\.example-pc|Bearer|task_id/.test(r.raw), 'aucune fuite');
@@ -177,6 +177,22 @@ test('SIM-S9 succès : image + zone + intensité seulement ; ni clé, ni task_id
   assert.ok(rec.calls.filter(c => !c.auth).every(c => /upload\.example-pc/.test(c.url)), 'URL présignée : sans clé');
   assert.deepEqual(rpc(), ['reserve_simulation']);
   assert.equal(SB.simUsage.get(USER).length, 1); assert.equal(SB.usage.size, 0, 'le quota d\'analyses n\'est pas touché');
+});
+
+test('SIM-S9b plusieurs zones : une seule tâche, une seule image, un seul quota ; liste blanche, doublons et virgules vides refusés avant la photo, le quota et le fournisseur', async () => {
+  const r = await run({}, () => call('POST', { query: 'concern=wrinkle,acne,dark_circle' }));
+  assert.equal(r.status, 200); assert.deepEqual(r.body.simulation.concerns, ['wrinkle', 'acne', 'dark_circle']); assert.equal(r.body.simulation.concern, 'wrinkle');
+  const P = config.SIM_CONCERNS, I = config.SIM_INTENSITY;
+  assert.deepEqual(mock.taskBody, { src_file_id: 'file-1', [P.wrinkle]: I, [P.acne]: I, [P.dark_circle]: I }, 'une intensité par zone, dans la MÊME tâche');
+  assert.equal(providerCalls().filter(x => x.method === 'POST' && x.url === BASE + config.SIM_PATHS.task).length, 1, 'une seule tâche');
+  assert.deepEqual(rpc(), ['reserve_simulation']); assert.equal(SB.simUsage.get(USER).length, 1, 'plusieurs zones = une seule simulation comptée');
+  const all = Object.keys(P).join(','); const a = await run({}, () => call('POST', { query: 'concern=' + all })); assert.equal(a.status, 200, 'les neuf zones ensemble sont acceptées');
+  for (const q of ['concern=wrinkle,wrinkle', 'concern=wrinkle,', 'concern=,wrinkle', 'concern=,', 'concern=wrinkle,oiliness', 'concern=wrinkle,__proto__', 'concern=wrinkle,%20acne', 'concern=wrinkle&concern=acne']) {
+    const x = await run({}, () => call('POST', { query: q }));
+    assert.equal(x.status, 400, q); assert.equal(x.body.error, errors.MESSAGES.SIM_INVALID_CONCERN); assert.equal(rec.calls.length, 0, q); assert.deepEqual(rpc(), [], q);
+  }
+  assert.deepEqual(sim.concernList(['acne', 'pores']), ['acne', 'pores']); assert.equal(sim.concernList([]), null); assert.equal(sim.concernList(['acne', 'acne']), null); assert.equal(sim.concernList('acne'), null);
+  assert.deepEqual(sim.buildTaskBody('f', 'acne', 0.7), { src_file_id: 'f', acne: 0.7 }, 'une zone : même corps qu\'avant');
 });
 
 test('SIM-S10 requête fournisseur : API fichier, UNE tâche de simulation avec UNE préoccupation, jamais l\'API d\'analyse', async () => {
@@ -323,7 +339,7 @@ test('SIM-S20 source : ordre des garde-fous, aucune référence à l\'analyse de
   const h = read('api/skin-simulation.js');
   const at = s => { const i = h.indexOf(s); assert.ok(i > 0, s); return i; };
   assert.ok(at('auth.verifyUser') < at('if (!isSimulationEnabled())') && at('if (!isSimulationEnabled())') < at('if (!isSimulationAllowed(user.id))'));
-  assert.ok(at('if (!isSimulationAllowed(user.id))') < at('simulation.concernParam(concern)') && at('simulation.concernParam(concern)') < at('await readBody('));
+  assert.ok(at('if (!isSimulationAllowed(user.id))') < at('const concerns = concernsOf(req)') && at('const concerns = concernsOf(req)') < at('await readBody('));
   assert.ok(at('await readBody(') < at('validateImage(body') && at('validateImage(body') < at('quota.reserveSimulation') && at('quota.reserveSimulation') < at('simulation.simulate('));
   const code = (h + read('server/perfectcorp-simulation.js')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   assert.doesNotMatch(code, /analyzeSkin|createSkinAnalysisTask|pollSkinAnalysisTask|skinTask|PERFECT_CORP_PATHS\.skin|quota\.reserve\(|reserve_analysis/, 'jamais l\'API d\'analyse ni le quota d\'analyses');
