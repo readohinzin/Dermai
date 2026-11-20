@@ -176,7 +176,14 @@ const isAdminAllowed = (userId, env = process.env) => {
   return list.ok && list.ids.has(userId.toLowerCase());
 };
 
+/* Comptes du fondateur (liste DERMAI_ADMIN_USER_IDS) : AUCUNE limite de quota, pour toutes les fonctions (analyse, simulation, Studio maquillage, cheveux).
+   Actif par défaut ; DERMAI_ADMIN_QUOTA_EXEMPT=0 (ou false, off, no) le coupe sans toucher au code. Liste absente ou mal formée : personne n'est exempté (échec fermé).
+   Sans réservation, la demande n'est pas comptée dans les tableaux d'utilisation. Les verrous (DERMAI_*_ENABLED) et les listes d'utilisateurs autorisés restent inchangés. */
+const adminQuotaExemptEnabled = (env = process.env) => (env.DERMAI_ADMIN_QUOTA_EXEMPT === undefined || String(env.DERMAI_ADMIN_QUOTA_EXEMPT).trim() === '' ? true : flag(env.DERMAI_ADMIN_QUOTA_EXEMPT));
+const isQuotaExempt = (userId, env = process.env) => adminQuotaExemptEnabled(env) && isAdminAllowed(userId, env);
+
 module.exports = {
+  isQuotaExempt, adminQuotaExemptEnabled,
   analysisQuota, QUOTA_DEFAULTS, isDemoMode, publicSupabase, isAnalysisEnabled, isDebugRawEnabled, PERFECT_CORP_BASE_URL, PERFECT_CORP_PATHS, PERFECT_CORP_SKIN_ACTIONS, IMAGE, POLLING, TIME_BUDGET,
   SIM_PATHS, SIM_CONCERNS, SIM_INTENSITY, simulationIntensity, SIM_QUOTA_DEFAULTS, isSimulationEnabled, simulationAllowList, isSimulationAllowed, simulationQuota,
   MAKEUP_PATHS, MAKEUP_QUOTA_DEFAULTS, isMakeupEnabled, makeupAllowList, isMakeupAllowed, makeupQuota,

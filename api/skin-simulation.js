@@ -60,8 +60,8 @@ async function handler(req, res) {
     const image = validateImage(body, req.headers['content-type']);
     if (!budget.canStart(TIME_BUDGET.minStartMs + quota.TIMEOUT_MS)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant le quota (${budget.elapsed()} ms écoulées)` });
     if (!perfectcorp.isConfigured()) throw new AnalysisError('SIM_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });
-    await quota.reserveSimulation(auth.bearerToken(req), process.env, { budget });
-    console.log('[DermAI] Simulation quota reserved');
+    if (quota.isExempt(user.id)) console.log('[DermAI] Simulation quota skipped (founder account)');
+    else { await quota.reserveSimulation(auth.bearerToken(req), process.env, { budget }); console.log('[DermAI] Simulation quota reserved'); }
     const intensity = simulationIntensity();
     const out = await simulation.simulate({ buffer: image.buffer, mime: image.mime, concerns, intensity }, { budget });
     /* Le navigateur ne reçoit que l'image et les zones : ni enveloppe, ni task_id, ni URL du fournisseur. */

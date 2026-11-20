@@ -31,8 +31,9 @@ async function handler(req, res) {
   }
   /* Authentification d'abord : seule une session Supabase valide (vérifiée auprès de Supabase) peut déclencher une analyse. Refus AVANT toute lecture
      du corps, toute validation de photo et tout appel à Perfect Corp, y compris verrou ouvert. L'état du verrou n'est donc jamais révélé à un anonyme. */
+  let user;
   try {
-    await auth.verifyUser(req, process.env, { budget });
+    user = await auth.verifyUser(req, process.env, { budget });
   } catch (err) {
     const e = err instanceof AnalysisError ? err : new AnalysisError('AUTH_UNAVAILABLE', { status: 503, cause: err });
     console.warn('[DermAI] Skin analysis refused:', e.code);
@@ -59,8 +60,8 @@ async function handler(req, res) {
     /* Quota : réservation atomique côté base, avec l'identité du jeton. Dernier contrôle avant Perfect Corp : refus (quota atteint, base ou
        fonction indisponible) = aucun appel au fournisseur. Les photos invalides ci-dessus ne consomment rien. */
     if (!perfectcorp.isConfigured()) throw new AnalysisError('SERVICE_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });   // rien n'est réservé si le service ne peut pas répondre
-    await quota.reserve(auth.bearerToken(req), process.env, { budget });
-    console.log('[DermAI] Analysis quota reserved');
+    if (quota.isExempt(user.id)) console.log('[DermAI] Analysis quota skipped (founder account)');
+    else { await quota.reserve(auth.bearerToken(req), process.env, { budget }); console.log('[DermAI] Analysis quota reserved'); }
     const envelope = await perfectcorp.analyzeSkin(image, { budget });
     /* Log de la structure seulement (noms de champs et types) : jamais de valeurs, d'URL ni de photo. */
     console.log('[DermAI] Perfect Corp result structure', JSON.stringify(describeStructure(envelope)));
