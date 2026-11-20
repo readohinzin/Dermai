@@ -22,7 +22,7 @@
    un ingrédient. L'outil de recommandation de produits de Perfect Corp apparie les résultats au catalogue configuré par la marque ou le revendeur : Perfect Corp n'a pas de catalogue universel.
    « retinoid » regroupe le rétinol et les rétinoïdes : il reste « à valider » dans DERMAI et n'est jamais recommandé automatiquement, quelle que soit la ligne ci-dessous.
 
-   ACTIFS CANDIDATS (status: 'candidate_not_enabled') : benzoyl_peroxide, tea_tree, alpha_arbutin ont été trouvés pendant la recherche mais ne sont PAS des actifs DERMAI. Leur ajout au référentiel
+   ACTIFS CANDIDATS (status: 'candidate_not_enabled') : benzoyl_peroxide et tea_tree ont été trouvés pendant la recherche mais ne sont PAS des actifs DERMAI. (L'alpha-arbutine, un éclaircissant, a été retirée : DERMAI ne recommande jamais d'éclaircissant, liste EXCLUDED, data/prevention.js.) Leur ajout au référentiel
    d'actifs aura des conséquences sur les mappings, les recommandations, la sécurité, les produits, les tests et les routines : il fera l'objet d'une décision séparée. Ils sont documentés ici
    pour conserver la recherche ; validateMap refuse qu'une ligne « candidate_not_enabled » porte un actif déjà actif, et qu'une ligne normale porte un actif inconnu. */
 (function (root, factory) {
@@ -39,7 +39,7 @@
   const SOURCE_KINDS = ['official_blog', 'official_product_page', 'official_api', 'official_documentation', 'patent', 'market_source', 'internal_rule'];
   const CONSULTED = ['search_excerpt', 'page_read', 'none'];
   const STATUSES = ['candidate_not_enabled'];                                   // absent = lien documenté sur un actif DERMAI existant
-  const CANDIDATE_ACTIVES = ['benzoyl_peroxide', 'tea_tree', 'alpha_arbutin'];  // jamais utilisables par le moteur tant qu'une décision séparée ne les ajoute pas à data/actives.js
+  const CANDIDATE_ACTIVES = ['benzoyl_peroxide', 'tea_tree'];  // jamais utilisables par le moteur tant qu'une décision séparée ne les ajoute pas à data/actives.js
 
   const D = '2026-10-08';
   const PC = 'https://www.perfectcorp.com/';
@@ -105,9 +105,6 @@
     inferred('pigmentation', 'niacinamide', 'Aucun passage Perfect Corp trouvé pour les taches.'),
     inferred('pigmentation', 'azelaic', 'Aucun passage Perfect Corp trouvé pour les taches.'),
     inferred('pigmentation', 'aha_pha', 'Aucun passage Perfect Corp trouvé pour les taches.'),
-    { indicator: 'pigmentation', activeId: 'alpha_arbutin', evidenceLevel: 'market_only', sourceKind: 'market_source', source: 'Fiche revendeur (Dr. Nutrition, Nigeria) : positionnement du produit The Ordinary Alpha Arbutin 2% + HA',
-      sourceUrl: 'https://drnutrition.com/en-ng/the-ordinary-alpha-arbutin-2-ha-serum-30-ml', checkedAt: D, consulted: 'search_excerpt',
-      notes: 'Positionnement commercial seulement (teint inégal, taches). Aucune source Perfect Corp. Actif non DERMAI : noté ici seulement, inutilisable par le moteur (décision séparée).', status: 'candidate_not_enabled' },
 
     // ÉCLAT
     inferred('radiance', 'vitamin_c', 'Aucun passage Perfect Corp trouvé pour l\'éclat.'),

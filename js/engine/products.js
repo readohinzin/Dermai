@@ -22,8 +22,8 @@
   const isNode = typeof module === 'object' && module.exports;
   const E = root.DermaiEngine || {};
   const dep = isNode
-    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js'), markets: require('./data/markets.js') }
-    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel, markets: E.marketsData };
+    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js'), markets: require('./data/markets.js'), prevention: require('./data/prevention.js') }
+    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel, markets: E.marketsData, prevention: E.preventionData };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); NS.products = api; }
@@ -60,7 +60,9 @@
   const strong = id => { const a = actives.byId(id); return !!a && a.groups.length > 0; };
   const skinOk = (p, base) => !base || p.skinTypes.includes('all') || p.skinTypes.includes(base);
   /* Un produit désactivé (`active: false`) n'est ni recommandé ni listé. */
-  const usable = catalog => (catalog || PRODUCTS).filter(p => p && p.active !== false && p.status !== 'to_verify');
+  /* Un produit n'est JAMAIS sélectionné s'il contient une substance exclue (hydroquinone, mercure, corticoïdes, arbutine, acide kojique, glutathion…) ou s'il promet d'éclaircir la peau.
+     Un produit réel sans liste INCI (composition non vérifiable) est refusé à la validation du catalogue et ne peut pas être actif : data/prevention.js. */
+  const usable = catalog => (catalog || PRODUCTS).filter(p => p && p.active !== false && p.status !== 'to_verify' && !dep.prevention.blocked(p));
 
   /* ---------- Validation du modèle ---------- */
   const isHttps = u => { try { const x = new URL(u); return x.protocol === 'https:' && u.length <= 500; } catch (e) { return false; } };
@@ -202,6 +204,10 @@
         if (!isRealLink(p.image.sourceUrl) || !isDate(p.image.checkedAt) || !text(p.image.credit, 80)) e.push('image réelle : page d\'origine (https), date et crédit obligatoires');
       }
     }
+    const sf = dep.prevention.check(p);
+    if (sf.excluded.length) e.push('substance exclue (' + sf.excluded.join(', ') + ') : jamais dans le catalogue');
+    if (sf.claims.length) e.push('promesse d\'éclaircissement (« ' + sf.claims[0] + ' ») : jamais dans le catalogue');
+    if (sf.unverifiable && p.status === 'validated') e.push('composition non vérifiable : un produit validé exige sa liste INCI');
     return e;
   }
   function validateCatalog(list) {

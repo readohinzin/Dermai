@@ -25,18 +25,18 @@
     full: 'Votre routine contient déjà 20 produits, le maximum de cette version. Supprimez-en un pour en ajouter.',
     catalogDemo: 'Le catalogue vérifié n\'est pas affiché en démonstration. Vous pouvez saisir un produit à la main.',
     catalogNone: 'Aucun produit du catalogue ne correspond. Le catalogue vérifié est volontairement petit : vous pouvez saisir la liste INCI à la main.',
-    unknownBadge: 'Composition inconnue',
+    unknownBadge: 'Composition non vérifiable',
     originCatalog: 'Catalogue DERMAI sourcé',
     originUser: 'Saisi par vous',
     orderNote: 'Ordre indicatif DERMAI : nettoyant, soin ciblé, hydratant, protection solaire. Les produits « Autre » : suivez la notice.',
     freqNote: 'Ce repère concerne l\'actif reconnu seulement. Il dépend de la concentration et de la formule du produit : suivez la notice du fabricant.',
     freqMultiple: 'Ce produit contient plusieurs actifs ciblés : DERMAI ne propose pas de fréquence globale. Consultez la notice du produit.',
-    freqUnknown: 'Composition inconnue : DERMAI ne propose aucune fréquence. Consultez la notice du produit.',
+    freqUnknown: 'Composition non vérifiable : DERMAI ne propose aucune fréquence. Consultez la notice du produit.',
     freqUnvalidated: 'La fiche de cet actif est encore à valider : DERMAI ne propose pas de repère de fréquence. Consultez la notice du produit.',
     noInci: 'Aucune liste INCI enregistrée pour ce produit. Utilisez « Modifier » pour la saisir : DERMAI ne peut rien vérifier tant qu\'elle manque.',
     unknownNote: 'Non reconnu : DERMAI n\'a pas de fiche pour cet ingrédient. Ce n\'est ni bon ni mauvais, simplement non documenté ici.',
     reviewIntro: 'Vérifiez et corrigez chaque ingrédient avant d\'enregistrer. Rien n\'est enregistré tant que vous n\'avez pas confirmé.',
-    reviewEmpty: 'Aucune liste INCI saisie : le produit sera enregistré avec une « composition inconnue ». DERMAI ne pourra rien vérifier pour lui tant que vous n\'aurez pas saisi sa liste.',
+    reviewEmpty: 'Aucune liste INCI saisie : le produit sera enregistré avec une « composition non vérifiable ». DERMAI ne pourra rien vérifier pour lui tant que vous n\'aurez pas saisi sa liste.',
     pointsEmpty: 'Aucun point d\'attention avec les produits et les règles actuels. Cela ne veut pas dire que la routine est adaptée : DERMAI ne vérifie que ce qui est documenté.'
   };
 
@@ -227,14 +227,14 @@
         <div class="c-field"><label class="c-field__label" for="vr-cat">Catégorie</label><select class="sel" id="vr-cat">${E.CATEGORIES.map(c => `<option value="${c[0]}"${(dr.category || 'serum') === c[0] ? ' selected' : ''}>${esc(c[1])}</option>`).join('')}</select></div>
         ${slotBoxes(dr.slots || [])}
         <div class="c-field"><label class="c-field__label" for="vr-inci">Liste INCI (facultative)</label><textarea class="c-input" id="vr-inci" rows="6" autocomplete="off" spellcheck="false" placeholder="Aqua, Glycerin, Niacinamide, …">${esc(dr.raw || '')}</textarea>
-        <p class="c-field__hint">Recopiez la liste écrite sur l'emballage, séparée par des virgules. Sans liste, le produit est enregistré avec une composition inconnue.</p></div>
+        <p class="c-field__hint">Recopiez la liste écrite sur l'emballage, séparée par des virgules. Sans liste, le produit est enregistré avec une composition non vérifiable.</p></div>
         <div class="stack" style="gap:8px"><button class="c-btn c-btn--primary c-btn--block" data-vr="form-next">Continuer</button><button class="link" data-vr="${dr.id ? 'view' : 'add'}" data-id="${esc(dr.id || '')}">Annuler</button></div>`;
     }
 
     const rowHtml = (t, i) => { const r = E.recognize(t); return `<div class="c-vr-row"><label class="sr" for="vr-r${i}">Ingrédient ${i + 1}</label><input class="c-input" id="vr-r${i}" data-vr-row maxlength="${E.MAX_TOKEN}" value="${esc(t)}" autocomplete="off" spellcheck="false"><span class="c-vr-row__state" data-vr-state>${stateBadge(r)}</span><button class="c-btn c-btn--ghost c-btn--sm" data-vr="row-del" data-i="${i}" aria-label="Retirer l'ingrédient ${i + 1}">Retirer</button></div>`; };
     function stateBadge(r) {
       if (r.kind === 'active') { const a = E.activeById(r.activeId); return badge(`Reconnu : ${a ? a.label : r.activeId}`, 'c-badge--good'); }
-      if (r.kind === 'excluded') return badge('Substance sans conseil DERMAI', 'c-badge--error');
+      if (r.kind === 'excluded') { const PV = root.DermaiEngine ? root.DermaiEngine.preventionData : require('./engine/data/prevention.js'); return badge(PV.isLightening(r.excludedId) ? PV.BADGE.lightening : PV.BADGE.neutral, 'c-badge--error'); }
       return badge('Non reconnu', 'c-badge--outline');
     }
     function reviewView() {

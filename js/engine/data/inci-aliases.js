@@ -68,8 +68,11 @@
     { id: 'tretinoin', names: ['tretinoin'] },
     { id: 'adapalene', names: ['adapalene'] },
     { id: 'benzoyl_peroxide', names: ['benzoyl peroxide'] },
-    { id: 'mercury', names: ['mercury', 'mercuric chloride', 'mercurous chloride', 'ammoniated mercury'] },
-    { id: 'corticoids', names: ['hydrocortisone', 'hydrocortisone acetate', 'clobetasol propionate', 'betamethasone', 'betamethasone valerate', 'betamethasone dipropionate', 'dexamethasone', 'triamcinolone acetonide', 'fluocinonide'] }
+    { id: 'mercury', names: ['mercury', 'mercuric chloride', 'mercurous chloride', 'ammoniated mercury', 'mercuric oxide', 'mercuric iodide'] },
+    { id: 'arbutin', names: ['arbutin', 'alpha-arbutin', 'alpha arbutin', 'beta-arbutin', 'deoxyarbutin'] },
+    { id: 'kojic_acid', names: ['kojic acid', 'kojic dipalmitate'] },
+    { id: 'glutathione', names: ['glutathione'] },
+    { id: 'corticoids', names: ['hydrocortisone', 'hydrocortisone acetate', 'clobetasol propionate', 'betamethasone', 'betamethasone valerate', 'betamethasone dipropionate', 'dexamethasone', 'triamcinolone acetonide', 'fluocinonide', 'clobetasol', 'mometasone furoate', 'halobetasol propionate', 'fluocinolone acetonide', 'desonide', 'prednisolone', 'methylprednisolone', 'fluticasone propionate'] }
   ].map(e => Object.assign(e, { validation: 'a_relire', source: INCI + ' ; liste EXCLUDED du moteur DERMAI' }));
 
   return { ALIASES, EXCLUDED_NAMES };

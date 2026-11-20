@@ -116,13 +116,13 @@ test('VB3 nom seul : enregistré en composition inconnue, aucune analyse invent�
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   await boot(env); const { page } = env;
   await addManual(page, { name: 'Sérum Acide Salicylique Rétinol 10 % Hydroquinone', slots: ['morning', 'evening'] });
-  assert.match(await text(page), /Aucune liste INCI saisie : le produit sera enregistré avec une « composition inconnue »/); assert.equal(await page.locator('input[data-vr-row]').count(), 0);
+  assert.match(await text(page), /Aucune liste INCI saisie : le produit sera enregistré avec une « composition non vérifiable »/); assert.equal(await page.locator('input[data-vr-row]').count(), 0);
   await page.click('[data-vr=review-save]');
   const t = await text(page);
-  assert.match(t, /Composition inconnue/); assert.match(t, /La composition de « Sérum Acide Salicylique Rétinol 10 % Hydroquinone » est inconnue : DERMAI ne peut rien vérifier/);
+  assert.match(t, /Composition non vérifiable/); assert.match(t, /La composition de « Sérum Acide Salicylique Rétinol 10 % Hydroquinone » est inconnue : DERMAI ne peut rien vérifier/);
   assert.equal(await page.locator('.c-vr-point').count(), 1, 'un seul point : l\'information manquante'); assert.ok(!/Précaution|Prudence|Substance sans conseil|exfoliant/.test(await page.locator('.c-vr-points').innerText()));
   await page.click('[data-vr=view]'); const d = await text(page);
-  assert.match(d, /Aucune liste INCI enregistrée pour ce produit/); assert.match(d, /Composition inconnue : DERMAI ne propose aucune fréquence/); assert.equal((d.match(/DERMAI ne propose aucune fréquence/g) || []).length, 1); assert.ok(!/Repère DERMAI|Précautions des fiches/.test(d));
+  assert.match(d, /Aucune liste INCI enregistrée pour ce produit/); assert.match(d, /Composition non vérifiable : DERMAI ne propose aucune fréquence/); assert.equal((d.match(/DERMAI ne propose aucune fréquence/g) || []).length, 1); assert.ok(!/Repère DERMAI|Précautions des fiches/.test(d));
   assert.deepEqual((await stored(page)).products[0].inci, []);
   clean(env); await env.close();
 });
@@ -138,8 +138,8 @@ test('VB4 points d\'attention : R1 à R5, prudence et irritation avec leur « Po
   assert.equal(by(/Plusieurs exfoliants ou rétinoïdes/).level, 'Précaution'); assert.match(by(/Plusieurs exfoliants ou rétinoïdes/).text, /Un seul exfoliant ou rétinoïde par soir\./);
   assert.equal(by(/Protection solaire non indiquée/).level, 'Précaution'); assert.match(by(/Protection solaire non indiquée/).text, /Protection solaire indispensable\./);
   assert.equal(by(/Vitamine C et rétinoïde le soir/).level, 'À valider'); assert.match(by(/Vitamine C et rétinoïde le soir/).text, /n'a pas validé de règle à ce sujet/);
-  assert.equal(by(/Composition inconnue/).level, 'Information manquante');
-  assert.equal(by(/Substance sans conseil DERMAI/).level, 'Prudence'); assert.match(by(/Substance sans conseil DERMAI/).text, /Demandez l'avis d'un professionnel \(pharmacien, médecin\)/);
+  assert.equal(by(/Composition non vérifiable/).level, 'Information manquante');
+  assert.equal(by(/Produit éclaircissant : prudence/).level, 'Prudence'); assert.match(by(/Produit éclaircissant : prudence/).text, /DERMAI ne conseille pas les produits qui en contiennent/); assert.match(by(/Produit éclaircissant : prudence/).text, /parlez-en à un dermatologue ou à un pharmacien/);
   assert.equal(by(/vous a déjà irrité/).level, 'Prudence');
   for (const p of pts) { assert.match(p.why, /Règle :/); assert.match(p.why, /Source :/); assert.match(p.why, /Validation :/); }
   const order = ['Prudence', 'Précaution', 'À valider', 'Information', 'Information manquante']; const lv = pts.map(p => order.indexOf(p.level)); assert.deepEqual(lv, [...lv].sort((a, b) => a - b), 'classés par niveau');

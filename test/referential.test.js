@@ -58,13 +58,13 @@ test('REF-A la carte des preuves est valide, couvre les 15 indicateurs et classe
   for (const x of EV.ENTRIES.filter(y => y.evidenceLevel === 'dermAI_inference')) assert.ok((AD.PREFERENCE[x.indicator] || []).includes(x.activeId), 'PREFERENCE : ' + x.indicator + '/' + x.activeId);
 });
 
-test('REF-A2 trois actifs candidats : documentés, jamais activés', () => {
-  assert.deepEqual(EV.CANDIDATE_ACTIVES, ['benzoyl_peroxide', 'tea_tree', 'alpha_arbutin']);
+test('REF-A2 deux actifs candidats : documentés, jamais activés (l\'alpha-arbutine, un éclaircissant, n\'en fait plus partie : lot 4)', () => {
+  assert.deepEqual(EV.CANDIDATE_ACTIVES, ['benzoyl_peroxide', 'tea_tree']);
   const cands = EV.ENTRIES.filter(x => x.status === 'candidate_not_enabled');
-  assert.deepEqual(cands.map(x => x.activeId).sort(), ['alpha_arbutin', 'benzoyl_peroxide', 'tea_tree']);
+  assert.deepEqual(cands.map(x => x.activeId).sort(), ['benzoyl_peroxide', 'tea_tree']);
+  assert.ok(!EV.ENTRIES.some(x => x.activeId === 'alpha_arbutin'), 'aucune ligne sur un éclaircissant');
   assert.equal(entry('acne', 'benzoyl_peroxide').evidenceLevel, 'explicit_perfectcorp');
   assert.equal(entry('acne', 'tea_tree').evidenceLevel, 'not_documented');
-  assert.equal(entry('pigmentation', 'alpha_arbutin').evidenceLevel, 'market_only');
   const ids = AD.ACTIVES.map(a => a.id);
   for (const c of EV.CANDIDATE_ACTIVES) {
     assert.ok(!ids.includes(c), c + ' n\'est pas un actif DERMAI');

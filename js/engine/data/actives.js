@@ -201,8 +201,9 @@
     { id: 'vitamin_c_retinoid', status: 'à_valider', pair: ['vitamin_c', 'retinoid'], text: 'Vitamine C et rétinoïde au même moment (association débattue).' }
   ];
 
-  /* Exclus du périmètre cosmétique : jamais recommandés, jamais présents dans le catalogue de produits. */
-  const EXCLUDED = ['hydroquinone', 'corticoids', 'mercury', 'benzoyl_peroxide', 'adapalene', 'tretinoin'];
+  /* Exclus du périmètre cosmétique : jamais recommandés, jamais présents dans le catalogue de produits. Éclaircissants / dépigmentants (data/prevention.js, LIGHTENING_IDS) :
+     hydroquinone, corticoïdes, mercure, arbutine, acide kojique, glutathion. Les noms INCI exacts sont dans inci-aliases.js (EXCLUDED_NAMES). */
+  const EXCLUDED = ['hydroquinone', 'corticoids', 'mercury', 'benzoyl_peroxide', 'adapalene', 'tretinoin', 'arbutin', 'kojic_acid', 'glutathione'];
 
   /* Plafonds de routine par niveau déclaré : choix UX / éditorial DERMAI (garder une routine courte et tolérable), PAS une règle scientifique.
      Même nature : MAX_SUPPORTS (actives.js), « un seul actif par rôle » (anti-doublon, UX) et « un seul exfoliant ou rétinoïde par soir »

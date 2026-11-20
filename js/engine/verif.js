@@ -11,14 +11,14 @@
      instruction du fabricant. */
 (function (root, factory) {
   const isNode = typeof module === 'object' && module.exports;
-  const dep = isNode ? { data: require('./data/actives.js'), aliases: require('./data/inci-aliases.js') }
-    : { data: (root.DermaiEngine || {}).activesData, aliases: (root.DermaiEngine || {}).inciAliases };
+  const dep = isNode ? { data: require('./data/actives.js'), aliases: require('./data/inci-aliases.js'), prevention: require('./data/prevention.js') }
+    : { data: (root.DermaiEngine || {}).activesData, aliases: (root.DermaiEngine || {}).inciAliases, prevention: (root.DermaiEngine || {}).preventionData };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const E = (root.DermaiEngine = root.DermaiEngine || {}); E.verif = api; }
 })(typeof self !== 'undefined' ? self : this, function (dep) {
   'use strict';
-  const data = dep.data, AL = dep.aliases;
+  const data = dep.data, AL = dep.aliases, PV = dep.prevention;
   const MAX_PRODUCTS = 20, MAX_INCI = 150, MAX_NAME = 80, MAX_TOKEN = 80;
   const SLOTS = ['morning', 'evening'];
   const SLOT_LABEL = { morning: 'le matin', evening: 'le soir' };
@@ -123,9 +123,11 @@
 
     /* Prudence : substances de la liste EXCLUDED (message neutre, aucune recommandation supplémentaire). */
     for (const p of list) for (const ex of an.get(p.id).excluded) {
-      points.push(point(`EXCL:${p.id}:${ex.id}`, 'EXCLUDED', 'prudence', `Substance sans conseil DERMAI dans « ${p.name} »`,
-        `« ${ex.raw} » fait partie des substances sur lesquelles DERMAI ne donne pas de conseil. Demandez l'avis d'un professionnel (pharmacien, médecin).`, [p.id],
-        { rule: 'Liste EXCLUDED du moteur DERMAI : substances pour lesquelles DERMAI ne conseille pas.', source: 'js/engine/data/actives.js (EXCLUDED) ; correspondance par nom INCI exact', validation: 'Liste de prudence DERMAI ; correspondance des noms à relire par un professionnel' }));
+      const light = PV.isLightening(ex.id);   // éclaircissant / dépigmentant : message de prévention précis (data/prevention.js) ; sinon message neutre
+      points.push(point(`EXCL:${p.id}:${ex.id}`, 'EXCLUDED', 'prudence', light ? PV.TITLES.lightening(p.name) : PV.TITLES.neutral(p.name),
+        light ? `« ${ex.raw} » : ${PV.messageOf(ex.id)}` : `« ${ex.raw} » fait partie des substances sur lesquelles DERMAI ne donne pas de conseil. Demandez l'avis d'un professionnel (pharmacien, médecin).`, [p.id],
+        { rule: light ? PV.RULE : 'Liste EXCLUDED du moteur DERMAI : substances pour lesquelles DERMAI ne conseille pas.',
+          source: 'js/engine/data/actives.js (EXCLUDED)' + (light ? ' et js/engine/data/prevention.js' : '') + ' ; correspondance par nom INCI exact', validation: 'Liste de prudence DERMAI ; correspondance des noms à relire par un professionnel' }));
     }
     /* Information saisie par l'utilisateur : produit qui l'a déjà irrité. Aucune conclusion sur la cause. */
     for (const p of list.filter(x => x.irritated)) {
@@ -186,8 +188,8 @@
     /* R4 : composition inconnue ou sans aucun ingrédient reconnu : vérification impossible ou limitée. */
     for (const p of list) {
       const x = an.get(p.id);
-      if (!x.known) points.push(point(`R4:${p.id}`, 'R4', 'missing', `Composition inconnue : « ${p.name} »`,
-        `La composition de « ${p.name} » est inconnue : DERMAI ne peut rien vérifier pour ce produit. Saisissez la liste INCI figurant sur l'emballage pour la vérifier.`, [p.id],
+      if (!x.known) points.push(point(`R4:${p.id}`, 'R4', 'missing', PV.UNVERIFIABLE.title(p.name),
+        `La composition de « ${p.name} » est inconnue : DERMAI ne peut rien vérifier pour ce produit. Saisissez la liste INCI figurant sur l'emballage pour la vérifier. ${PV.UNVERIFIABLE.warn}`, [p.id],
         { rule: 'DERMAI ne déduit jamais la composition d\'un produit à partir de son nom.', source: 'Produit enregistré sans liste INCI', validation: 'Vérification impossible' }));
       else if (!x.tokens.some(t => t.kind !== 'unknown')) points.push(point(`R4:${p.id}`, 'R4', 'missing', `Aucun ingrédient reconnu : « ${p.name} »`,
         `Aucun ingrédient de « ${p.name} » n'est reconnu par DERMAI : la vérification est limitée à ce que DERMAI documente. Les ingrédients non reconnus ne sont ni bons ni mauvais : DERMAI n'a simplement pas de fiche.`, [p.id],
