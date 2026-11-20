@@ -233,7 +233,7 @@ test('PC11 « pourquoi ce produit » : rôle et actif de l\'étape, sans promess
 test('PC12 K/L : mode réel = catalogue réel seulement ; démonstration séparée ; aucune donnée commerciale de démonstration montrée', () => {
   const app = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
   assert.match(app, /const catalogNow=\(\)=>DEMO_MODE\?Engine\.products\.PRODUCTS:Engine\.catalogData\.PRODUCTS/);
-  assert.match(app, /Object\.assign\(\{catalog:catalogNow\(\)\}/);
+  assert.match(app, /Object\.assign\(\{catalog:catalogNow\(\)[,}]/);   // le commit « masks » (27 oct.) a ajouté une clé après catalog : l'invariant reste « le catalogue vient de catalogNow() »
   assert.doesNotMatch(app.replace(/\/\*[\s\S]*?\*\//g, ''), /Engine\.products\.PRODUCTS(?!:Engine)/.source ? /Engine\.products\.PRODUCTS\.(filter|map|find)/ : /x/, 'aucune lecture directe du catalogue de démonstration');
   assert.match(app, /p\.demo\?bottle\(p\.type,p\.color\)/);                                    // illustration réservée à la démonstration
   assert.match(app, /Image à venir/);

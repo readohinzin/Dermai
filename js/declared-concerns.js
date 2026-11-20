@@ -17,8 +17,8 @@
 (function (root, factory) {
   const isNode = typeof module === 'object' && module.exports;
   const dep = isNode
-    ? { insight: require('./insight-view.js').DermaiInsight, actives: require('./engine/actives.js'), decision: require('./engine/data/decision.js'), copy: require('./engine/copy.fr.js') }
-    : { insight: root.DermaiInsight, actives: (root.DermaiEngine || {}).actives, decision: (root.DermaiEngine || {}).decisionData, copy: (root.DermaiEngine || {}).copy };
+    ? { insight: require('./insight-view.js').DermaiInsight, actives: require('./engine/actives.js'), decision: require('./engine/data/decision.js'), copy: require('./engine/copy.fr.js'), tone: require('./skin-tone.js') }
+    : { insight: root.DermaiInsight, actives: (root.DermaiEngine || {}).actives, decision: (root.DermaiEngine || {}).decisionData, copy: (root.DermaiEngine || {}).copy, tone: root.DermaiTone };
   const api = factory(dep);
   if (isNode) module.exports = api; else root.DermaiDeclared = api;
 })(typeof self !== 'undefined' ? self : this, function (dep) {
@@ -100,8 +100,11 @@
     return '<div class="c-notice u-my-5" data-redness-note><div><span class="c-notice__title">' + esc(n.title) + '</span>' + esc(n.text) + '</div></div>';
   }
 
-  /* Point d'entrée de l'écran Résultat : l'encart, la note sur les rougeurs, puis la synthèse existante, inchangée. */
-  const top = eng => html(eng) + rednessNote(eng) + dep.insight.found(eng.synthesis);
+  /* Teint choisi (sur l'appareil) : avertissement « peau qui marque » et, si la mesure est masquée, la raison. Sans teint : rien. */
+  const toneHtml = tone => (dep.tone ? dep.tone.alertHtml(tone) + dep.tone.maskedHtml(tone) : '');
 
-  return { view, html, rednessNote, top, TEXT, HANDLED, PERSISTENT };
+  /* Point d'entrée de l'écran Résultat : l'encart, l'avertissement lié au teint, la note sur les rougeurs, puis la synthèse existante, inchangée. */
+  const top = (eng, tone) => html(eng) + toneHtml(tone) + rednessNote(eng) + dep.insight.found(eng.synthesis);
+
+  return { view, html, rednessNote, toneHtml, top, TEXT, HANDLED, PERSISTENT };
 });

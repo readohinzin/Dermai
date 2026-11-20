@@ -17,6 +17,8 @@
 })(typeof self !== 'undefined' ? self : this, function (root) {
   'use strict';
   const skin = () => (typeof module === 'object' && module.exports ? require('./skin-model.js') : root.SkinModel);
+  /* Teint foncé : la mesure de rougeur est masquée à l'affichage (copie, jamais la donnée enregistrée). */
+  const shown = n => (root.DermaiTone && root.DermaiTone.view ? root.DermaiTone.view(n) : n);
   const NEUTRAL = ['oiliness', 'texture', 'radiance'];                                   // direction non documentée par le fournisseur
   const EYE = ['eyeBag', 'tearTrough', 'darkCircle', 'droopyUpperEyelid', 'droopyLowerEyelid'];   // information indicative seulement
   const DAY_MS = 86400000;
@@ -56,7 +58,7 @@
 
   /* Forme neutre d'une analyse chargée (entrée SCANS de l'application) : { saved, at, scores, global }. Rien n'est déduit : un score invalide donne null. */
   function fromScan(scan) {
-    const M = skin(), n = scan && scan.normalized;
+    const M = skin(), n = scan && shown(scan.normalized);
     if (!scan || !n) return null;
     const scores = {};
     M.METRIC_KEYS.forEach(k => { const v = M.displayScore(n[k] && n[k].uiScore); scores[k] = isScore(v) ? v : null; });

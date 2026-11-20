@@ -147,14 +147,14 @@ const provider=DEMO_MODE?new MockProvider():new PerfectCorpProvider();
 const Engine=window.DermaiEngine;
 /* Pays d'achat (js/market.js) : choisi volontairement, conservé seulement dans ce navigateur, lu uniquement par l'affichage des offres. Jamais envoyé, jamais mêlé au profil, à une analyse
    ni au moteur cosmétique. Mode démonstration : aucune offre réelle, donc aucun sélecteur. */
-const MK=window.DermaiMarket,MT=Engine.copy.MARKET_TEXTS;
+const MK=window.DermaiMarket,MT=Engine.copy.MARKET_TEXTS,TN=window.DermaiTone;
 const marketStore=()=>{try{return window.localStorage}catch(e){return null}};
 state.market=DEMO_MODE?null:MK.read(marketStore());state.marketEdit=false;state.sheetProduct=null;
 /* Profil courant → moteur. Rien n'est mis en cache : toute modification (objectifs, niveau, confort) recalcule la routine à l'affichage suivant.
    L'analyse précédente (si elle existe) sert seulement à comparer, jamais de référence courante. */
 /* Catalogue de produits : DÉMONSTRATION en mode démo, RÉEL (js/engine/data/catalog.js, vide tant qu'aucune donnée vérifiée n'existe) en mode réel. Jamais mélangés. */
 const catalogNow=()=>DEMO_MODE?Engine.products.PRODUCTS:Engine.catalogData.PRODUCTS;
-const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(s.normalized,{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions},Object.assign({catalog:catalogNow(),masks:(s&&s.maskCoverage)||null},prev?{previous:prev.normalized}:{}))};
+const engineFor=s=>{const i=SCANS.indexOf(s),prev=i>0?SCANS[i-1]:null;return Engine.run(TN.view(s.normalized),{goals:s.rec&&i!==state.latest?s.rec.goals:state.goals,level:state.level,cats:state.cats,comfort:{preferGentle:state.gentle},exclusions:state.exclusions,marks:TN.marks()},Object.assign({catalog:catalogNow(),masks:(s&&s.maskCoverage)||null},prev?{previous:TN.view(prev.normalized)}:{}))};
 /* Mode réel : tant qu'aucune vraie analyse n'existe, les analyses fictives de SCANS ne sont jamais montrées comme celles de l'utilisateur. */
 const noReal=()=>!DEMO_MODE&&!SCANS.some(s=>s.real);
 if(!DEMO_MODE){SCANS.length=0;state.cmpA=0;state.cmpB=1}   // mode réel : aucune analyse fictive n'existe, même en mémoire (la démo seule les utilise)
@@ -276,7 +276,7 @@ async function loadMoreHistory(){
   const k=older.length;state.latest+=k;state.view+=k;state.cmpA+=k;state.cmpB+=k;
   H.hasMore=r.hasMore;render(true);attachPhotos();
 }
-/* Enregistrement (js/analysis-flow.js) : le résultat est mis de côté dans ce navigateur, lié à son compte, puis envoyé avec un identifiant propre à l'analyse. Jamais de doublon, jamais de nouvelle analyse. */
+/* Enregistrement (js/analysis-flow.js) : résultat mis de côté dans ce navigateur, lié au compte, envoyé avec un identifiant propre. Jamais de doublon. */
 const F=DermaiAnalysisFlow.create({storage:()=>window.sessionStorage,userId:()=>ACCOUNT&&ACCOUNT.user?ACCOUNT.user.id:null,save:(r,u)=>ACCOUNT.saveAnalysis(r,u),
   confirm:m=>window.confirm(m),toast:m=>toast(m),timer:(f,t)=>setTimeout(f,t),untimer:h=>clearTimeout(h),onExpired:()=>expireSession(),
   onChange:()=>{if([`result`,`home`,`analyses`].includes(state.route))render(true)},
@@ -306,7 +306,7 @@ async function deleteHistory(){
   state.history={status:`ready`,hasMore:false,loadingMore:false,error:``,moreError:``};
   toast(`Historique supprimé.`);if(state.route===`privacy`||state.route===`analyses`)render(true);
 }
-/* Photos de scan (js/photos-view.js, js/account.js) : gardées seulement si l'utilisatrice l'a choisi, dans le Storage privé de son compte ; jamais dans le navigateur. Liens d'affichage temporaires. */
+/* Photos de scan (js/photos-view.js, js/account.js) : gardées seulement au choix, dans le Storage privé du compte ; jamais dans le navigateur. Liens temporaires. */
 async function keepPhoto(sc){
   if(state.photos===false)sc.blob=null;
   if(state.photos!==true||!sc.blob||!sc.saved||!signedIn())return;
@@ -515,7 +515,7 @@ const emptyScan=(title,msg,opt={})=>{
 };
 const EMPTY_MSG=[`Aucune analyse pour le moment`,`Faites votre première analyse pour voir vos résultats ici.`];
 /* Scores : toute l'interface lit SkinModel (normalized → uiScore / globalScore, échelle 0-100, 100 = meilleur). Aucun calcul de score ici. */
-const viewOf=s=>SkinModel.toResultView(s.normalized);
+const viewOf=s=>SkinModel.toResultView(TN.view(s.normalized));
 /* Date lisible d'une analyse. Si plusieurs analyses tombent le même jour, l'heure (locale, celle réellement enregistrée) les distingue ; sinon la date seule suffit. */
 const timeOf=s=>{const t=Date.parse(s.rec?s.rec.analyzedAt:s.analyzedAt);return Number.isNaN(t)?null:new Date(t).toLocaleTimeString(`fr-FR`,{hour:`2-digit`,minute:`2-digit`})};
 const dateLabel=s=>{const t=!DEMO_MODE&&SCANS.filter(x=>x.date===s.date).length>1?timeOf(s):null;return t?`${s.date} · ${t}`:s.date};
@@ -745,7 +745,7 @@ const photoNotice=()=>{
 V.scan=()=>{
   const st=state.scanStep;
   const head=`<div class="flowtop" style="margin-bottom:10px"><button class="iconbtn c-icon-btn" data-act="scan-back" aria-label="Retour">${ic(`back`)}</button><b>${st===0?`Nouvelle analyse`:st===4?(DEMO_MODE?`Vos trois photos`:`Votre photo`):(DEMO_MODE?`Photo ${st} sur 3`:`Photo de face`)}</b></div>`;
-  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve que si vous l'avez choisi.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
+  if(st===0) return `<div class="scan">${head}<div class="scan-grid" style="max-width:560px;margin:0 auto"><div><h1>Avant de commencer</h1><p style="margin:10px 0 8px">${DEMO_MODE?`Trois photos suffisent pour voir toutes les zones de votre visage, joues et côtés compris.`:`Une photo de face, bien éclairée, suffit pour analyser votre peau.`}</p>${tipsHtml()}${TN.picker()}<button class="c-btn c-btn--primary c-btn--block" data-act="scan-start" style="margin-top:26px">${DEMO_MODE?`Commencer le scan`:`Commencer`}</button><p class="muted" style="margin-top:14px;text-align:center">${DEMO_MODE?`Vos photos servent à analyser votre peau.`:`Votre photo est envoyée à notre service d'analyse pour obtenir vos résultats. DERMAI ne la conserve que si vous l'avez choisi.`}</p>${DEMO_MODE?`<p style="text-align:center;margin-top:10px">${demoTag()}</p>`:``}</div></div></div>`;
   if(st===4) return `<div class="scan">${head}<div style="max-width:560px;margin:0 auto">${DEMO_MODE?`<div class="thumbs">${SHOT.map((s,i)=>`<div class="thumb"><div class="tf">${portrait({shift:s[1]})}</div><small>${s[0]}</small><button class="link" data-act="retake" data-v="${i}" style="min-height:36px;font-size:14px">Refaire</button></div>`).join(``)}</div>`:`<div class="c-preview">${portrait({})}${touchUi()?`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Prendre une autre photo</button><button class="c-btn c-btn--ghost c-btn--block" data-act="gallery">Choisir dans ma galerie</button>`:`<button class="c-btn c-btn--ghost c-btn--block" data-act="retake" data-v="0">Choisir une autre photo</button>`}</div>`}
    ${DEMO_MODE?`<div class="c-notice c-notice--success u-my-5">${ic(`check`)}<div><span class="c-notice__title">Qualité de l'image : excellente</span>Lumière et cadrage corrects sur les trois photos.</div></div>`:state.scanError?`<div class="c-notice c-notice--error u-my-5" role="alert">${ic(`info`)}<div><span class="c-notice__title">${state.scanQuota?`Analyses momentanément indisponibles`:state.scanError===DermaiAnalysisFlow.MSG.uncertain?`Réponse non reçue`:`Analyse impossible`}</span>${esc(state.scanError)}</div></div>`:photoNotice()}
    ${state.scanQuota?`<button class="c-btn c-btn--primary c-btn--block" data-go="home" data-reset="1">Retour à l'accueil</button>`:state.photoCheck&&state.photoCheck.level===`block`&&!state.scanError?``:`<button class="c-btn ${state.photoCheck&&state.photoCheck.level===`warn`&&!state.scanError?`c-btn--secondary`:`c-btn--primary`} c-btn--block" data-act="analyze">${state.scanError?`Réessayer`:state.photoCheck&&state.photoCheck.level===`warn`?`Analyser quand même`:`Analyser ma peau`}</button>`}</div></div>`;
@@ -935,7 +935,7 @@ function setMarket(code,focusId){
   render(true);toast(saved?MT.saved:`Pays retenu pour cette visite.`);
   const el=focusId&&(document.getElementById(focusId)||document.querySelector(`[data-act="market-edit"][data-v="${focusId}"]`));if(el)el.focus();   // le clavier reste là où il était
 }
-/* Une offre. tier : local | regional | international (rien : liste groupée par pays). Le prix est celui de l'offre, dans SA devise, jamais converti ; l'absence de prix s'écrit « Prix à vérifier ». */
+/* Une offre. tier : local | regional | international (rien : groupée par pays). Prix dans SA devise, jamais converti ; sans prix : « Prix à vérifier ». Aucun prix déduit d'une autre offre, ni d'une autre devise.  */
 const offerRow=(o,tier)=>{
   const note=tier===`regional`?`<p class="muted s">${MT.regional} ${MT.shipCheck}</p>`:tier===`international`?`<p class="muted s">${o.shipping===`international`?MT.shipDeclared:MT.shipCheck}</p>`:o.shipping===`international`?`<p class="muted s">${Engine.copy.OFFER_TEXTS.international}</p>`:``;
   const tag=tier===`local`?`<span class="c-badge c-badge--good">${MT.local}</span>`:tier?`<span class="c-badge c-badge--outline">${MT.internationalTag}</span>`:``;
@@ -948,7 +948,7 @@ const offerRow=(o,tier)=>{
   ${o.buyable?`<a class="c-btn c-btn--primary c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Acheter en ligne</a>`:o.linkOnly?`<a class="c-btn c-btn--block" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Voir l'offre</a>`:``}</div>`;
 };
 const byCountry=list=>{const by=new Map();list.forEach(o=>{if(!by.has(o.market))by.set(o.market,[]);by.get(o.market).push(o)});return [...by.values()].map(l=>`<div class="ofc"><h4>${esc(l[0].country)}</h4>${l.map(o=>offerRow(o)).join(``)}</div>`).join(``)};
-/* Options d'achat d'un produit réel. Pays choisi : ses offres d'abord (vendeur local), puis les offres régionales que le vendeur déclare, puis, repliées, les offres d'autres pays (achat en ligne, livraison à vérifier).
+/* Options d'achat d'un produit réel : offres du pays choisi, puis régionales (déclarées par le vendeur), puis, repliées, celles d'autres pays (livraison à vérifier).
    Aucun pays choisi : invitation à le choisir, offres connues repliées, groupées par pays. Aucune offre : « Aucune offre vérifiée », jamais « indisponible ». */
 const offersBlock=(p,c)=>{
   const v=Engine.products.marketView(p,state.market),head=`<h3 class="h3" style="margin-bottom:6px">Options d'achat</h3>`;
@@ -964,7 +964,7 @@ const offerSummary=c=>{
   const names=[...new Set(c.offers.map(o=>o.country))];
   return `<span class="c-badge c-badge--outline">${c.offers.length} offre${c.offers.length>1?`s`:``}</span><span class="muted">${names.length>2?`${names.length} pays`:esc(names.join(`, `))}</span>`;
 };
-/* Ligne commerciale d'une carte produit. Pays choisi : la meilleure offre du pays (disponibilité, prix, vendeur, pays) ou « Aucune offre vérifiée pour votre pays ». Sinon : résumé neutre. */
+/* Ligne commerciale d'une carte produit : meilleure offre du pays choisi, ou « Aucune offre vérifiée pour votre pays ». Sans pays : résumé neutre. */
 const cardOffer=(p,c)=>{
   if(!state.market)return {html:offerSummary(c),buy:null};
   const v=Engine.products.marketView(p,state.market),mine=v.local.concat(v.regional),o=mine.find(x=>x.buyable)||mine[0];
@@ -987,7 +987,7 @@ function productCard(p,o={}){
    <div class="pr">${p.demo?`${availBadge(c)}<span>${priceLine(p)}</span>`:co.html}</div>${o.reason?`<p class="why muted">${o.reason}</p>`:``}${o.role?`<p class="role-why muted">${o.role}</p>`:``}</div></button>
    ${co&&co.buy&&(o.inPlan||noReal())?`<a class="c-btn c-btn--primary c-btn--block pbuy" href="${esc(co.buy)}" target="_blank" rel="noopener noreferrer">Acheter en ligne</a>`:``}</div>`;
 }
-/* Barre « pays d'achat » de la page Produits. Pas de pays : invitation, jamais de blocage (la page reste utilisable). Pays choisi : « Options d'achat pour le … », devise locale, Modifier. */
+/* Barre « pays d'achat » de la page Produits : sans pays, invitation sans blocage ; avec pays, « Options d'achat pour le … », devise locale, Modifier. */
 const marketBar=()=>{
   if(DEMO_MODE)return ``;
   if(!state.market)return `<section class="c-card mk-bar" aria-label="${MT.label}"><h2 class="h3">${MT.question}</h2><p class="muted" style="margin:4px 0 12px">${MT.prompt}</p>${marketSelect(`mk-prod`)}<p class="muted s" style="margin-top:8px">${MT.help}</p></section>`;
@@ -1048,7 +1048,7 @@ V.progress=()=>{
   if(!DEMO_MODE&&SCANS.length<2)return emptyScan(`Votre évolution`,SCANS[0].saved||state.account.status===`off`?[`Votre première analyse est enregistrée.`,`Faites une nouvelle analyse plus tard pour suivre votre évolution.`]:[`Votre première analyse n'est pas enregistrée.`,`Connectez-vous avant votre prochaine analyse : vous pourrez ensuite suivre votre évolution.`]);
   EVO.settle();const lastIdx=SCANS.length-1,A=SCANS[Math.min(state.cmpA,lastIdx)],B=SCANS[Math.min(state.cmpB,lastIdx)];
   const opt=(sel)=>SCANS.map(s=>`<option value="${s.id}" ${s.id===sel?`selected`:``}>${dateLabel(s)}</option>`).join(``);
-  const pts=globalPoints(),cmp=SkinModel.compareScans(A.normalized,B.normalized);
+  const pts=globalPoints(),cmp=SkinModel.compareScans(TN.view(A.normalized),TN.view(B.normalized));
   return shell(`<div class="pagehead"><h1>Votre évolution</h1><p>Vos scores sont comparés d'une analyse à l'autre. 100 correspond au meilleur état. Ce sont des indicateurs de suivi cosmétique.</p></div>
   ${EVO.card(A,B)}${EVO.priorities(engineFor(SCANS[SCANS.length-1]).personalization.evolution)}
   ${pts.length>=2?`<div class="c-card" style="margin-bottom:14px"><p class="kicker">Score global</p>${gchart(pts)}</div>`:`<div class="c-notice u-my-5">${ic(`info`)}<div>Pas assez de scores globaux valides pour tracer une courbe.</div></div>`}
@@ -1107,7 +1107,7 @@ V.profile=()=>{
      ${exclusionsSection()}
      <p class="muted" style="margin-top:12px">Ma routine est recalculée automatiquement lorsque je modifie ces préférences. ${signedIn()?`Elles sont enregistrées avec votre compte.`:state.account.status===`visitor`?`Créez un compte pour les retrouver sur vos prochains appareils.`:`Elles ne sont pas enregistrées définitivement pour l'instant.`}</p>
      ${none?``:`<div style="margin-top:12px"><p style="color:var(--ink);margin-bottom:10px">${engineFor(SCANS[state.latest]).routinePlan.summary}</p><button class="c-btn c-btn--primary c-btn--block" data-go="routine">Voir ma routine personnalisée</button></div>`}</section>
-   ${marketSection()}
+   ${TN.picker()}${marketSection()}
    ${DEMO_MODE?`<section><div class="hd"><h2 class="h3">Préférences</h2></div>${sw(`reminder`,`Rappel de scan`,`Un message une fois par mois`)}</section>`:``}
   </div><div class="col">
    <section><button class="rowlink" data-go="analyses" style="border-top:1px solid var(--line)">${ic(`layers`)}<div class="grow"><b>Historique des analyses</b><span class="s">${none?`Aucune analyse`:`${SCANS.length} analyse${SCANS.length>1?`s`:``}`}</span></div>${ic(`chev`)}</button>
@@ -1229,7 +1229,7 @@ function clearReal(){
   if(state.realPreview)URL.revokeObjectURL(state.realPreview);
   state.realBlob=null;state.realPreview=``;state.photoCheck=null;state.scanError=``;state.scanQuota=false;state.scanStatus=`idle`;
 }
-/* Deux façons d'ajouter la photo : l'appareil photo (capture=user, téléphones seulement) ou la galerie / les fichiers (aucun attribut capture : sur téléphone, le sélecteur propose alors la photothèque).
+/* Deux façons d'ajouter la photo : appareil photo (capture=user, téléphones) ou galerie / fichiers (sans capture : la photothèque s'ouvre).
    Sur ordinateur il n'y a qu'un seul choix, le sélecteur de fichiers. Dans les deux cas la photo reste sur l'appareil jusqu'au lancement de l'analyse. */
 const touchUi=()=>{try{return matchMedia(`(pointer:coarse)`).matches}catch(e){return false}};
 function realInput(camera){
@@ -1238,7 +1238,7 @@ function realInput(camera){
   return inp;
 }
 function pickRealPhoto(kind){state.scanStatus=`capturing`;realInput(kind===`camera`&&touchUi()).click()}
-/* Vérification locale de la photo choisie (js/photo-check.js) : taille, luminosité, netteté, et visage si le navigateur sait les détecter. Aucun envoi, aucune conservation. null = vérification impossible. */
+/* Vérification locale de la photo (js/photo-check.js) : taille, luminosité, netteté, visage. Aucun envoi, aucune conservation. null = impossible. */
 async function inspectPhoto(blob){
   try{
     const url=URL.createObjectURL(blob),im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});

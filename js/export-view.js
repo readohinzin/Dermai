@@ -45,7 +45,7 @@
   /* Modèle du document : uniquement des textes et des scores AFFICHÉS, déjà produits par le moteur. ctx : { eng, s, H, catalog }.
      H : analyse plus ancienne que la dernière : seules les priorités enregistrées à sa date sont montrées (comme l'écran), jamais recalculées. */
   function modelOf(ctx) {
-    const { eng, s, H, catalog } = ctx, M = SM(), E = EN(), S = E.copy.SYNTH, Y = eng.synthesis, r = M.toResultView(s.normalized), DEC = E.decisionData;
+    const { eng, s, H, catalog } = ctx, M = SM(), E = EN(), S = E.copy.SYNTH, Y = eng.synthesis, r = M.toResultView((root.DermaiTone ? root.DermaiTone.view(s.normalized) : s.normalized)), DEC = E.decisionData;
     const indicators = M.METRIC_KEYS.map(k => {
       const i = eng.interpretation.indicators.find(x => x.id === k), st = Y.indicators[k];
       const level = i.score === null ? TEXT.unavailable : DEC.isInformative(k) ? TEXT.info : (!H && st ? st.level : i.uiBandLabel) || '';
