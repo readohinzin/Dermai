@@ -1,7 +1,7 @@
 /* DermAI : bannière « Nouvelle version disponible ». Module partagé navigateur / Node (testé avec un faux navigateur).
    Dès qu'une nouvelle version est déployée, la page ouverte l'apprend et propose « Mettre à jour » : jamais de rechargement forcé (une analyse en cours ne doit pas être perdue).
-   Comment : la page lit /api/version (api/version.js) à l'ouverture (version de référence), puis toutes les 15 secondes tant qu'elle est visible, à chaque retour au premier plan ou
-   retour du réseau, et à chaque toucher dans l'application (donc où que la personne se trouve ; jamais plus d'un contrôle toutes les 5 secondes). Une version différente = bannière. Elle vérifie aussi le service worker (registration.update()) et réagit à son remplacement.
+   Comment : la page lit /api/version (api/version.js) à l'ouverture (version de référence), puis toutes les 5 secondes tant qu'elle est visible (rien tant que la page est cachée ou hors ligne), à chaque retour au premier plan ou
+   retour du réseau, et à chaque toucher dans l'application (donc où que la personne se trouve ; jamais plus d'un contrôle toutes les 4 secondes). Une version différente = bannière. Elle vérifie aussi le service worker (registration.update()) et réagit à son remplacement.
    Aucune donnée de personne : seulement l'identifiant public de version. Une erreur réseau, une réponse invalide ou l'absence de l'API (local) ne montrent rien et ne cassent rien. */
 (function (root, factory) {
   const api = factory();
@@ -11,8 +11,8 @@
   'use strict';
 
   const URL_VERSION = '/api/version';
-  const INTERVAL_MS = 15000;
-  const MIN_GAP_MS = 5000;           // deux contrôles ne se suivent pas de plus près (retour au premier plan, réseau…)
+  const INTERVAL_MS = 5000;
+  const MIN_GAP_MS = 4000;           // deux contrôles ne se suivent pas de plus près (retour au premier plan, réseau…) ; plus court que l'intervalle, pour qu'un léger retard du minuteur ne fasse jamais sauter un contrôle
   const SAFE = /^[A-Za-z0-9_.\-]{1,64}$/;
   const TEXT = {
     title: 'Nouvelle version disponible',
