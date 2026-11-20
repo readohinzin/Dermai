@@ -83,7 +83,11 @@ test('UB7 câblage : module chargé en dernier, textes sans tiret cadratin, aucu
   assert.match(U.TEXT.body, /DermAI vient d'être mis à jour/);
   assert.doesNotMatch(read('js/update-banner.js').replace(/\/\*[\s\S]*?\*\//g, ''), /localStorage|sessionStorage|indexedDB|cookie|sendBeacon|XMLHttpRequest/);
   assert.match(read('sw.js'), /url\.pathname\.startsWith\('\/api\/'\)/, 'le service worker ne touche pas à /api/version');
-  assert.match(read('css/components/pwa.css'), /\.update-banner\{position:fixed;[^}]*top:calc/, 'en haut : ne recouvre pas le bandeau d\'installation');
+  const pwaCss = read('css/components/pwa.css');
+  assert.match(pwaCss, /\.update-banner\{position:fixed;[^}]*bottom:calc\(12px \+ env\(safe-area-inset-bottom,0px\)\)/, 'en bas de l\'écran');
+  assert.doesNotMatch(pwaCss.match(/\.update-banner\{[^}]*\}/)[0], /top:/, 'plus en haut');
+  assert.match(pwaCss, /@media \(max-width:919\.98px\)\{body:has\(\.c-scanfab\) \.update-banner\{bottom:calc\(92px \+ env\(safe-area-inset-bottom,0px\)\)\}\}/, 'au-dessus du bouton rond d\'analyse sur téléphone');
+  assert.match(pwaCss, /body:has\(\.update-banner\) \.pwa-banner\{display:none\}/, 'ne recouvre pas le bandeau d\'installation : il s\'efface le temps de la mise à jour');
 });
 
 /* ---- Chromium : une version déployée pendant que la page est ouverte ---- */
@@ -110,7 +114,7 @@ test('UBB1 Chromium : la bannière apparaît toute seule quand la version change
     current = 'build-2';
     await page.waitForSelector('[data-update-banner]', { timeout: 10000 });
     assert.match(await page.locator('[data-update-banner]').innerText(), /Nouvelle version disponible/);
-    const box = await page.locator('[data-update-banner]').boundingBox(); assert.ok(box.y < 60, 'en haut de l\'écran');
+    const box = await page.locator('[data-update-banner]').boundingBox(), vh = await page.evaluate(() => innerHeight); assert.ok(box.y + box.height > vh - 100 && box.y + box.height <= vh, 'en bas de l\'écran : ' + JSON.stringify(box));
     await page.evaluate(() => { window.__marker = 'avant'; });
     await Promise.all([page.waitForNavigation({ timeout: 10000 }), page.locator('[data-update-apply]').click()]);
     assert.equal(await page.evaluate(() => window.__marker), undefined, 'la page a bien été rechargée');

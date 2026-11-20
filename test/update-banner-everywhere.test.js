@@ -32,8 +32,10 @@ test('UBE1 connecté : la bannière apparaît sur chaque écran de l\'applicatio
       await page.evaluate(() => window.__dermaiUpdate.check(true));
       await page.waitForSelector('[data-update-banner]', { timeout: 5000 });
       const top = await page.evaluate(() => { const b = document.querySelector('[data-update-banner]'), r = b.getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + 6);
-        return { inside: !!(e && b.contains(e)), y: Math.round(r.top), h: Math.round(r.height), w: Math.round(r.width), vw: innerWidth }; });
-      assert.ok(top.inside, r + ' : bannière recouverte : ' + JSON.stringify(top)); assert.ok(top.y >= 0 && top.y < 60 && top.w <= top.vw, r + ' : bannière visible : ' + JSON.stringify(top));
+        const f = document.querySelector('.c-scanfab'), fr = f && getComputedStyle(f).display !== 'none' ? f.getBoundingClientRect() : null;
+        return { inside: !!(e && b.contains(e)), y: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height), w: Math.round(r.width), vw: innerWidth, vh: innerHeight, fabTop: fr ? Math.round(fr.top) : null }; });
+      assert.ok(top.inside, r + ' : bannière recouverte : ' + JSON.stringify(top)); assert.ok(top.bottom <= top.vh && top.bottom > top.vh - 130 && top.y > 0 && top.w <= top.vw, r + ' : bannière en bas de l\'écran : ' + JSON.stringify(top));
+      if (top.fabTop !== null) assert.ok(top.bottom <= top.fabTop, r + ' : la bannière ne recouvre pas le bouton rond d\'analyse : ' + JSON.stringify(top));
       await page.click('[data-update-later]'); assert.equal(await page.locator('[data-update-banner]').count(), 0, r + ' : masquée');
     }
     /* menu latéral ouvert, puis feuille ouverte : la bannière reste au premier plan */
