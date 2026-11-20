@@ -34,7 +34,7 @@
   };
   const MAX_FILE = 10 * 1024 * 1024;
   /* Préréglage « Peau ultra lisse » : acné, taches, pores et texture ensemble (une seule demande). Quatre zones exactement : le fournisseur compte 4 unités pour 1 à 4 zones
-     et 6 pour 5 à 10 (docs.perfectcorp.com), donc le préréglage ne coûte pas plus qu'une zone seule. Les rougeurs n'y sont pas (mesure peu fiable sur peau foncée). */
+     et 6 pour 5 à 10, donc le préréglage ne coûte pas plus qu'une zone seule (référence du fournisseur, voir le README). Les rougeurs n'y sont pas (mesure peu fiable sur peau foncée). */
   const SMOOTH = ['acne', 'spots', 'pores', 'texture'];
   const PENDING = 'dermai.sim.pending.';
   const TIMEOUT_MS = 65000;
