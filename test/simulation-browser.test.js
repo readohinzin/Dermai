@@ -247,3 +247,47 @@ test('SB-M2 curseur avant / après : tout à gauche = photo d\'origine, tout à 
   assert.match(ap.t, /simulation/, 'l\'image reste présentée comme une simulation'); assert.ok(pos.ends.length === 2 && pos.ends[0].t === 'Avant' && pos.ends[1].t === 'Après' && pos.ends[0].x < pos.ends[1].x, 'sous le curseur : Avant à gauche, Après à droite');
   clean(env); await env.close();
 });
+
+test('SB-P1 « 1. Votre photo » (comme le Studio Beauté) : conseils, aperçu, choisir / remplacer, selfie, retirer, mention JPEG ou PNG ; la photo choisie est celle qui part', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true, behaviors: [GOOD] } });
+  const { page } = env;
+  await analyse(env); await openSim(page);
+  let t = await text(page);
+  assert.match(t, /1\. Votre photo/); assert.match(t, /2\. Quelle zone \?/);
+  for (const tip of ['Visage de face, regard vers l\'appareil.', 'Bien éclairé, avec une lumière douce.', 'Visage entièrement visible : cheveux, mains et lunettes écartés.', 'Assez proche : le visage doit remplir une bonne partie de la photo.']) assert.ok(t.includes(tip), tip);
+  assert.match(t, /JPEG ou PNG, moins de 10 Mo\. La photo est réduite sur votre appareil\./);
+  assert.equal(await page.locator('.c-ms-preview img').count(), 1, 'la photo de l\'analyse est montrée en aperçu');
+  assert.equal(await page.innerText('[data-sim=pick-file]'), 'Remplacer la photo'); assert.equal(await page.innerText('[data-sim=pick-selfie]'), 'Prendre un selfie');
+  assert.equal(await page.locator('#sim-selfie').getAttribute('capture'), 'user', 'selfie : caméra frontale'); assert.equal(await page.locator('[data-sim=photo-remove]').count(), 0, 'rien à retirer tant qu\'aucune autre photo n\'est choisie');
+  const before = await page.getAttribute('.c-ms-preview img', 'src');
+  /* une autre photo (par la galerie) remplace l'aperçu ; « Utiliser la photo de mon analyse » revient en arrière */
+  await page.setInputFiles('#sim-file', { name: 'autre.jpg', mimeType: 'image/jpeg', buffer: await H.makeJpeg(page) });
+  await page.waitForFunction(() => /Photo prête/.test(document.getElementById('app').innerText));
+  assert.notEqual(await page.getAttribute('.c-ms-preview img', 'src'), before, 'aperçu de la nouvelle photo');
+  assert.equal(await page.innerText('[data-sim=photo-remove]'), 'Utiliser la photo de mon analyse');
+  await page.click('[data-sim=photo-remove]'); assert.doesNotMatch(await text(page), /Photo prête/); assert.equal(await page.locator('.c-ms-preview img').count(), 1);
+  /* selfie : même chemin */
+  await page.setInputFiles('#sim-selfie', { name: 'selfie.jpg', mimeType: 'image/jpeg', buffer: await H.makeJpeg(page) });
+  await page.waitForFunction(() => /Photo prête/.test(document.getElementById('app').innerText));
+  /* format refusé et fichier trop lourd : message, rien ne part */
+  await page.setInputFiles('#sim-file', { name: 'x.gif', mimeType: 'image/gif', buffer: Buffer.from('GIF89a') });
+  assert.match(await text(page), /Format non pris en charge\. Choisissez une photo JPEG ou PNG\./);
+  await page.setInputFiles('#sim-file', { name: 'gros.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
+  assert.match(await text(page), /trop lourde \(10 Mo au maximum\)/); assert.equal(env.stats.sim.length, 0);
+  await page.click('[data-sim=pick][data-c=wrinkle]'); await page.click('[data-sim=run]'); await page.waitForSelector('[data-sim=after]');
+  assert.equal(env.stats.sim.length, 1); assert.equal(env.stats.skin.length, 1, 'aucune nouvelle analyse');
+  /* après un résultat, choisir une autre photo efface l'ancien avant / après (il ne la concerne plus) */
+  await page.setInputFiles('#sim-file', { name: 'encore.jpg', mimeType: 'image/jpeg', buffer: await H.makeJpeg(page) });
+  await page.waitForFunction(() => document.querySelector('[data-sim=after]') === null); clean(env); await env.close();
+});
+
+test('SB-P2 sans photo disponible : « Aucune photo choisie. » et les boutons « Choisir une photo » / « Prendre un selfie »', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true, behaviors: [good('redness')] } });
+  const { page } = env;
+  await analyse(env); await page.reload();
+  await page.waitForFunction(() => state.account.status === 'signedIn' && state.history.status === 'ready');
+  await page.evaluate(() => { state.view = 0; go('result'); }); await openSim(page);
+  const t = await text(page);
+  assert.match(t, /Aucune photo choisie\./); assert.equal(await page.innerText('[data-sim=pick-file]'), 'Choisir une photo'); assert.match(t, /Une photo est nécessaire/);
+  assert.equal(await page.locator('.c-ms-preview').count(), 0); clean(env); await env.close();
+});
