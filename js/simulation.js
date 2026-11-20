@@ -33,6 +33,9 @@
     tooBig: 'Cette photo est trop lourde (10 Mo au maximum). Choisissez-en une plus légère.'
   };
   const MAX_FILE = 10 * 1024 * 1024;
+  /* Préréglage « Peau ultra lisse » : acné, taches, pores et texture ensemble (une seule demande). Quatre zones exactement : le fournisseur compte 4 unités pour 1 à 4 zones
+     et 6 pour 5 à 10, donc le préréglage ne coûte pas plus qu'une zone seule (référence du fournisseur, voir le README). Les rougeurs n'y sont pas (mesure peu fiable sur peau foncée). */
+  const SMOOTH = ['acne', 'spots', 'pores', 'texture'];
   const PENDING = 'dermai.sim.pending.';
   const TIMEOUT_MS = 65000;
   const DATA_IMG = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -140,6 +143,7 @@
       const mustAsk = ui.needPhoto || !hasPhoto;
       const pending = marker.get() && !busy && ui.status !== 'done';
       const chips = CONCERNS.map(([k, l]) => `<button class="c-chip" data-sim="pick" data-c="${k}" aria-pressed="${ui.concerns.includes(k)}"${busy ? ' disabled' : ''}>${esc(l)}</button>`).join('');
+      const smoothBtn = `<button type="button" class="c-btn c-btn--secondary c-btn--block" data-sim="preset" data-p="smooth"${busy ? ' disabled' : ''}>Peau ultra lisse</button><p class="muted" style="margin:6px 0 14px">Choisit d'un geste Acné, Taches, Pores et Texture, pour un rendu le plus lisse possible. Une seule simulation.</p>`;
       const multiBox = `<label class="c-checkrow"><input type="checkbox" data-sim="multi"${ui.multi ? ' checked' : ''}${busy ? ' disabled' : ''}><span>Sélectionner plusieurs zones</span></label>`;
       const shownUrl = ui.photoUrl || autoUrl(scan) || urlOf(scan);
       const off = busy || ui.photoBusy ? ' disabled' : '';
@@ -166,7 +170,7 @@
       return `<div class="pagehead"><p class="kicker">Illustration</p><h1>Simulation cosmétique</h1><p>Choisissez une zone, ou plusieurs : DermAI génère une image illustrative de ces zones améliorées, à comparer avec votre photo.</p></div>
         ${disclaimer}
         ${photoSection}
-        <section><div class="hd"><h2 class="h3">${ui.multi ? '2. Quelles zones ?' : '2. Quelle zone ?'}</h2></div>${multiBox}<div class="chips" style="margin-bottom:14px">${chips}</div></section>
+        <section><div class="hd"><h2 class="h3">${ui.multi ? '2. Quelles zones ?' : '2. Quelle zone ?'}</h2></div>${smoothBtn}${multiBox}<div class="chips" style="margin-bottom:14px">${chips}</div></section>
         ${ack}${notice}
         <p class="muted" style="margin-bottom:12px">Chaque simulation compte dans votre quota de simulations, même si elle échoue, et reste indépendante de vos analyses. Plusieurs zones choisies ensemble donnent une seule image et comptent pour une seule simulation. L'image simulée n'est pas conservée par DermAI.</p>
         <button class="c-btn c-btn--primary c-btn--block" data-sim="run"${ready ? '' : ' disabled'} aria-busy="${busy}">${ui.status === 'fetching' ? 'Préparation de la photo…' : ui.status === 'running' ? 'Simulation en cours…' : 'Lancer la simulation'}</button>
@@ -281,6 +285,13 @@
             redraw();
           }
         }
+        else if (act === 'preset') {
+          if (ui.status !== 'running' && ui.status !== 'fetching' && el.getAttribute('data-p') === 'smooth') {
+            ui.multi = true; ui.concerns = SMOOTH.slice(); ui.concern = ui.concerns[0];
+            if (ui.status === 'done' || ui.status === 'error') { ui.status = 'idle'; ui.image = ''; ui.error = ''; revoke(); }
+            redraw();
+          }
+        }
         else if (act === 'ack') { ui.acked = true; redraw(); }
         else if (act === 'pick-file') { const f = doc.getElementById('sim-file'); if (f) f.click(); }
         else if (act === 'pick-selfie') { const f = doc.getElementById('sim-selfie'); if (f) f.click(); }
@@ -315,5 +326,5 @@
     return { entry, page, attach, reset, probe, state: () => ui, CONCERNS };
   }
 
-  return { create, CONCERNS, MSG, PENDING };
+  return { create, CONCERNS, MSG, PENDING, SMOOTH };
 });
