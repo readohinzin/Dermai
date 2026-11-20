@@ -11,7 +11,7 @@ const DEMO_MODE = !(window.DERMAI_CONFIG && window.DERMAI_CONFIG.demoMode === fa
 const REAL_PHOTO = {maxSide:1600,maxBytes:4*1024*1024,quality:.9};   // maxBytes : même limite que le backend
 const SCAN_ERR_GENERIC = `Nous n'avons pas pu analyser cette photo. Veuillez réessayer.`;
 const AUTH_NEEDED = `Connectez-vous pour analyser votre peau.`;   // une analyse exige un compte : le serveur refuse toute requête sans session valide
-/* Illustration de l'accueil et du mode démonstration : une personne fictive générée par IA, servie comme fichier (et non incluse dans le script) pour alléger le premier chargement. */
+/* Illustration de l'accueil et du mode démonstration : une personne fictive générée par IA, servie comme fichier (hors du script, pour alléger le chargement) */
 const PORTRAIT_SRC = `img/portrait.jpg`;       // Photo fictive de démonstration (personne générée par IA), intégrée. Remplaçable par un chemin, ex. `assets/portrait.jpg`.
 /* Zones du visage, en coordonnées 300 x 375 (cadre 4:5). À ajuster selon la photo utilisée. */
 const PORTRAIT_ZONES={
@@ -548,7 +548,7 @@ const stepSub=st=>st.kind===`moisturize`?st.texture:{cleanse:`Matin et soir`,spf
 function shell(inner,{title=``,back=false}={}){
   return `<div class="app">
     ${SB.html()}
-    <main class="main"><div class="m-brand">${SB.toggle()}${brandBtn(44)}</div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
+    <main class="main"><div class="m-brand">${DermaiTheme.toggle()}${SB.toggle()}${brandBtn(44)}</div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
     <button class="c-scanfab" data-go="scan" data-reset="1" aria-label="Analyser ma peau">${ic(`scan`)}</button>
   </div>`;
 }

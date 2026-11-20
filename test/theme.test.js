@@ -54,10 +54,11 @@ test('TH4 câblage : script posé dans <head> avant l\'affichage, métadonnées 
   assert.doesNotMatch(read('js/theme.js').replace(/\/\*[\s\S]*?\*\//g, ''), /fetch\(|XMLHttpRequest|sendBeacon|sessionStorage|indexedDB|cookie/);
 });
 
-test('TH5 logo lisible en sombre : plaque claire sous le logo (le dessin n\'est pas modifié) ; transparente en clair', () => {
-  const css = read('css/tokens.css'); assert.match(css, /--logo-plate:transparent; --logo-pad:0;/); assert.equal((css.match(/--logo-plate:#FFF9FA; --logo-pad:4px 10px;/g) || []).length, 2);
-  assert.match(read('css/components/nav.css'), /\.brand \.brand-logo\{[^}]*background:var\(--logo-plate\);padding:var\(--logo-pad\)/);
-  for (const f of ['img/brand/dermai-logo-360.webp', 'img/brand/dermai-mark-256.webp']) assert.ok(fs.existsSync(path.join(ROOT, f)), f);
+test('TH5 logo lisible en sombre : fin contour blanc qui suit le dessin (aucun fond) ; aucun contour en clair', () => {
+  const css = read('css/tokens.css'); assert.match(css, /--logo-edge:none;/); assert.equal((css.match(/--logo-edge:drop-shadow\(1\.5px 0 0 #fff\) drop-shadow\(-1\.5px 0 0 #fff\) drop-shadow\(0 1\.5px 0 #fff\) drop-shadow\(0 -1\.5px 0 #fff\);/g) || []).length, 2, 'même contour dans les deux écritures du thème sombre');
+  assert.ok(!/logo-plate|logo-pad/.test(css), 'plus de plaque blanche');
+  assert.match(read('css/components/nav.css'), /\.brand \.brand-logo\{[^}]*filter:var\(--logo-edge\)/);
+for (const f of ['img/brand/dermai-logo-360.webp', 'img/brand/dermai-mark-256.webp']) assert.ok(fs.existsSync(path.join(ROOT, f)), f);
 });
 
 test('TH6 icônes dans l\'en-tête du document : favicon multi-tailles, PNG 16, 32, 48, 192, 512, icône iPhone 180, tailles réelles = tailles déclarées', () => {

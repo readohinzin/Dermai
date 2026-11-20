@@ -59,12 +59,26 @@
       MODES.map(x => '<button type="button" class="c-theme__opt" role="radio" aria-checked="' + (m === x) + '" data-theme-set="' + x + '">' + esc(LABELS[x]) + '</button>').join('') + '</div></div>';
   }
 
+  /* Bouton de l'en-tête (mobile) : bascule entre clair et sombre en un geste. Les deux dessins (lune, soleil) sont dans le bouton ; la feuille de style montre celui du thème affiché (css/components/pwa.css). */
+  const TOGGLE = { label: 'Changer le mode d\'affichage (clair ou sombre)' };
+  const SVG = 'viewBox="0 0 24 24" aria-hidden="true" focusable="false"';
+  const toggle = () => '<button type="button" class="c-themebtn" data-theme-toggle aria-label="' + esc(TOGGLE.label) + '">' +
+    '<svg class="c-themebtn__moon" ' + SVG + '><path d="M20 14.5A8 8 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>' +
+    '<svg class="c-themebtn__sun" ' + SVG + '><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg></button>';
+
   function start(win, doc) {
     if (win.__dermaiTheme) return win.__dermaiTheme;
     const state = { bound: true };
     win.__dermaiTheme = state;
     apply(doc, win, get());
     doc.addEventListener('click', ev => {
+      const tg = ev.target && ev.target.closest ? ev.target.closest('[data-theme-toggle]') : null;
+      if (tg) {
+        const dark = !!(win.matchMedia && win.matchMedia('(prefers-color-scheme: dark)').matches), next = effective(get(), dark) === 'dark' ? 'light' : 'dark';
+        set(next, doc, win);
+        doc.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-checked', String(b.getAttribute('data-theme-set') === next)));
+        return;
+      }
       const el = ev.target && ev.target.closest ? ev.target.closest('[data-theme-set]') : null;
       if (!el) return;
       const mode = el.getAttribute('data-theme-set'); if (!isMode(mode)) return;
@@ -75,5 +89,5 @@
     return state;
   }
 
-  return { KEY, MODES, LABELS, BAR, TEXT, read, write, get, set, apply, effective, picker, compact, start };
+  return { KEY, MODES, LABELS, BAR, TEXT, read, write, get, set, apply, effective, picker, compact, toggle, TOGGLE, start };
 });

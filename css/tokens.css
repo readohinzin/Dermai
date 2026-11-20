@@ -21,7 +21,7 @@
   --info-ink:#542F3B; --info-bg:#F8E7EA;
 
   /* surface INVERSE (bandeaux d'installation et de mise à jour) et plaque claire sous le logo */
-  --inv-bg:#2B2118; --inv-ink:#FFFFFF; --logo-plate:transparent; --logo-pad:0;
+  --inv-bg:#2B2118; --inv-ink:#FFFFFF; --logo-edge:none;
 
   /* typographie */
   --font-serif:'DM Serif Display','Playfair Display',Georgia,serif;
@@ -63,7 +63,7 @@
     --low-ink:#F0B3C2; --low-bg:#3A2029; --low:#D97A93;
     --error-ink:#F4AEB0; --error-bg:#3A2022; --error:#E0777A; --on-error:#2A1219;
     --info-ink:#F0BBC7; --info-bg:#33262B;
-    --inv-bg:#F7EEF0; --inv-ink:#211B1D; --logo-plate:#FFF9FA; --logo-pad:4px 10px;
+    --inv-bg:#F7EEF0; --inv-ink:#211B1D; --logo-edge:drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff);
     --shadow-1:0 1px 2px rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.5);
     --shadow-2:0 18px 40px -20px rgba(0,0,0,.7);
     --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
@@ -80,7 +80,7 @@
   --low-ink:#F0B3C2; --low-bg:#3A2029; --low:#D97A93;
   --error-ink:#F4AEB0; --error-bg:#3A2022; --error:#E0777A; --on-error:#2A1219;
   --info-ink:#F0BBC7; --info-bg:#33262B;
-  --inv-bg:#F7EEF0; --inv-ink:#211B1D; --logo-plate:#FFF9FA; --logo-pad:4px 10px;
+  --inv-bg:#F7EEF0; --inv-ink:#211B1D; --logo-edge:drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff);
   --shadow-1:0 1px 2px rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.5);
   --shadow-2:0 18px 40px -20px rgba(0,0,0,.7);
   --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);

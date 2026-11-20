@@ -28,13 +28,14 @@ button.brand:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radi
    fond du thème légèrement transparent et flouté comme l'en-tête « retour ». Hauteur fixe : l'en-tête « retour », quand il existe, se fige juste en dessous (sa marge haute de -20 px était cachée sous le
    logo : elle est annulée sous .m-brand, qui garde 12 px de marge basse : le contenu commence là où il commençait). La colonne latérale du bureau porte déjà le logo et reste figée de son côté. */
 :root{--mbrand-h:56px}
-.m-brand{position:sticky;top:env(safe-area-inset-top,0px);z-index:var(--z-header);display:flex;align-items:center;justify-content:center;box-sizing:border-box;height:var(--mbrand-h);margin:-20px -20px 12px;padding:0 20px;background:color-mix(in srgb,var(--bg) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.m-brand{position:sticky;top:env(safe-area-inset-top,0px);z-index:var(--z-header);display:flex;align-items:center;justify-content:flex-end;box-sizing:border-box;height:var(--mbrand-h);margin:-20px -20px 12px;padding:0 20px;background:color-mix(in srgb,var(--bg) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 @media (min-width:920px){.m-brand{display:none}}
+.m-brand .brand{margin-right:calc(-1 * var(--s-2))}   /* le dessin du logo touche la marge de la page (le bouton garde sa zone de toucher de 44 px) */
 .m-brand+.top{margin-top:-12px;top:calc(env(safe-area-inset-top,0px) + var(--mbrand-h))}
 
 /* Logo image (étape 14B) : le bouton garde sa zone de toucher ; l'image ne déborde jamais et ne se déforme pas. */
-/* sombre : plaque claire sous le logo (le dessin du logo n'est pas modifié) ; transparente en clair */
-.brand .brand-logo{display:block;box-sizing:content-box;background:var(--logo-plate);padding:var(--logo-pad);border-radius:14px;max-width:100%;height:auto}
+/* sombre : fin contour blanc qui suit le dessin du logo (pas de fond : le logo reste lisible sur le fond sombre) ; aucun en clair */
+.brand .brand-logo{display:block;box-sizing:content-box;filter:var(--logo-edge);border-radius:14px;max-width:100%;height:auto}
 button.brand{display:inline-flex;align-items:center;justify-content:center;line-height:0}
 .rail .brand{align-self:flex-start;justify-content:flex-start;padding-left:var(--s-2);margin-bottom:var(--s-3)}
 

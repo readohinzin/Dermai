@@ -97,7 +97,7 @@ test('SB7 câblage : module et feuille chargés une fois, avant l\'application ;
   assert.match(read('css/styles.css'), /@import url\("components\/sidebar\.css"\) layer\(components\);/);
   assert.match(app, /const SB=DermaiSidebar\.create\(\{ic,brand:h=>brandBtn\(h\),route:\(\)=>state\.route,initial:\(\)=>initial\(\),signedIn:\(\)=>signedIn\(\),simulation:\(\)=>\{SIM\.probe\(\);return SIM\.state\(\)\.avail===`yes`&&!noReal\(\)\},studio:\(\)=>ST\.ready\(\),admin:\(\)=>AD\.ready\(\)\}\);SB\.attach\(document\);/);
   const shell = app.slice(app.indexOf('function shell('), app.indexOf('const V={}'));
-  assert.match(shell, /\$\{SB\.html\(\)\}/); assert.match(shell, /<div class="m-brand">\$\{SB\.toggle\(\)\}\$\{brandBtn\(44\)\}<\/div>/);
+  assert.match(shell, /\$\{SB\.html\(\)\}/); assert.match(shell, /<div class="m-brand">\$\{DermaiTheme\.toggle\(\)\}\$\{SB\.toggle\(\)\}\$\{brandBtn\(44\)\}<\/div>/);
   assert.doesNotMatch(shell, /<aside class="rail">/, 'l\'ancien rail à cinq entrées est remplacé');
   assert.match(shell, /<button class="c-scanfab" data-go="scan" data-reset="1" aria-label="Analyser ma peau">\$\{ic\(`scan`\)\}<\/button>/, 'seul reste de la barre du bas : le bouton d\'analyse, sans texte visible');
   assert.doesNotMatch(app, /c-bottomnav|navBtns|const NAV=|TAB_OF/, 'l\'ancienne barre à cinq onglets est supprimée');
