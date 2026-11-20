@@ -7,3 +7,8 @@ node_modules
 .DS_Store
 tmp/
 scratchpad/
+
+# Outil interne d'évaluation : photos, évaluations et exports ne vont JAMAIS dans git
+eval-data/
+tools/eval/data/
+*.local.json
