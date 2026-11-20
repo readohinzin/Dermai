@@ -291,3 +291,20 @@ test('SB-P2 sans photo disponible : « Aucune photo choisie. » et les boutons �
   assert.match(t, /Aucune photo choisie\./); assert.equal(await page.innerText('[data-sim=pick-file]'), 'Choisir une photo'); assert.match(t, /Une photo est nécessaire/);
   assert.equal(await page.locator('.c-ms-preview').count(), 0); clean(env); await env.close();
 });
+
+test('SB-M3 préréglage « Peau ultra lisse » : un geste coche Acné, Taches, Pores et Texture, une seule demande avec ces quatre zones (4 unités chez le fournisseur) ; la case « plusieurs zones » suit', opts, async () => {
+  const env = await H.open(browser, server, { user: { email: 'a@exemple.com' }, sim: { available: true, behaviors: [goodMulti(['acne', 'spots', 'pores', 'texture'])] } });
+  const { page } = env;
+  await analyse(env); await openSim(page);
+  assert.match(await text(page), /Peau ultra lisse/); assert.equal(await page.isDisabled('[data-sim=run]'), true, 'rien ne part tant que rien n\'est choisi');
+  await page.click('[data-sim=preset][data-p=smooth]');
+  assert.equal(await page.locator('[data-sim=multi]').isChecked(), true);
+  assert.deepEqual((await page.$$eval('[data-sim=pick][aria-pressed=true]', els => els.map(e => e.dataset.c))).sort(), ['acne', 'pores', 'spots', 'texture']);
+  assert.equal(env.stats.sim.length, 0, 'choisir ne lance rien');
+  await page.click('[data-sim=run]'); await page.waitForSelector('[data-sim=after]');
+  assert.equal(env.stats.sim.length, 1); assert.match(env.stats.sim[0].url, /\/api\/skin-simulation\?concern=acne,spots,pores,texture$/);
+  assert.match(await text(page), /Avant \/ après simulation : Acné, Taches, Pores, Texture/);
+  /* on peut ensuite retirer ou ajouter une zone à la main */
+  await page.click('[data-sim=pick][data-c=redness]'); assert.equal(await page.locator('[data-sim=pick][aria-pressed=true]').count(), 5); assert.equal(await page.locator('[data-sim=after]').count(), 0, 'nouveau choix : l\'ancien résultat est effacé');
+  assert.equal(env.stats.skin.length, 1); clean(env); await env.close();
+});
