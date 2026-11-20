@@ -104,8 +104,8 @@ async function handler(req, res) {
     const images = readImages(body, req, cfg, feature);
     if (!budget.canStart(TIME_BUDGET.minStartMs + quota.TIMEOUT_MS)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant le quota (${budget.elapsed()} ms écoulées)` });
     if (!perfectcorp.isConfigured()) throw new AnalysisError('HR_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });
-    await quota.reserveHair(auth.bearerToken(req), feature.units, process.env, { budget });
-    console.log('[DermAI] Hair quota reserved');
+    if (quota.isExempt(user.id)) console.log('[DermAI] Hair quota skipped (founder account)');
+    else { await quota.reserveHair(auth.bearerToken(req), feature.units, process.env, { budget }); console.log('[DermAI] Hair quota reserved'); }
     const out = await provider.tryOn({ feature, buffer: images.buffer, refBuffer: images.refBuffer, mime: images.mime, config: cfg }, { budget });
     /* Le navigateur ne reçoit que l'image : ni enveloppe, ni task_id, ni clé. */
     return send(res, 200, { ok: true, hair: { feature: feature.id, image: out.image } });

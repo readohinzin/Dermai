@@ -229,6 +229,22 @@ test('SIM-S11 quota PROPRE : le second appel est refusé (429, Retry-After), un 
   assert.equal((await run({ DERMAI_MAX_SIMULATIONS_PER_PERIOD: '0' }, () => call('POST'))).status, 429, 'limite 0 = aucune');
 });
 
+test('SIM-S11b compte du fondateur : aucune limite (la réservation n\'est même pas demandée) ; coupé par DERMAI_ADMIN_QUOTA_EXEMPT=0 ; un autre compte reste limité ; liste mal formée : personne exempté', async () => {
+  const lim = { DERMAI_MAX_SIMULATIONS_PER_PERIOD: '1' };
+  const free = await run(Object.assign({ DERMAI_ADMIN_USER_IDS: USER }, lim), async () => [await call('POST'), await call('POST'), await call('POST')]);
+  assert.deepEqual(free.map(r => r.status), [200, 200, 200], 'limite 1, trois simulations : toutes passent');
+  assert.deepEqual(rpc(), [], 'aucune réservation de quota pour le compte du fondateur');
+  const none = await run(Object.assign({ DERMAI_ADMIN_USER_IDS: USER, DERMAI_MAX_SIMULATIONS_PER_PERIOD: '0' }, {}), () => call('POST')); assert.equal(none.status, 200, 'même avec une limite de 0');
+  const off = await run(Object.assign({ DERMAI_ADMIN_USER_IDS: USER, DERMAI_ADMIN_QUOTA_EXEMPT: '0' }, lim), async () => [await call('POST'), await call('POST')]);
+  assert.deepEqual(off.map(r => r.status), [200, 429], 'interrupteur coupé : la limite s\'applique de nouveau'); assert.deepEqual(rpc(), ['reserve_simulation', 'reserve_simulation']);
+  const other = await run(Object.assign({ DERMAI_ADMIN_USER_IDS: OTHER }, lim), async () => [await call('POST'), await call('POST')]);
+  assert.deepEqual(other.map(r => r.status), [200, 429], 'un compte qui n\'est pas dans la liste reste limité');
+  const bad = await run(Object.assign({ DERMAI_ADMIN_USER_IDS: USER + ',pas-un-uuid' }, lim), async () => [await call('POST'), await call('POST')]);
+  assert.deepEqual(bad.map(r => r.status), [200, 429], 'liste mal formée : échec fermé, personne n\'est exempté');
+  const star = await run(Object.assign({ DERMAI_ADMIN_USER_IDS: '*' }, lim), async () => [await call('POST'), await call('POST')]);
+  assert.deepEqual(star.map(r => r.status), [200, 429], '« * » n\'exempte personne');
+});
+
 test('SIM-S12 requêtes simultanées : une seule passe le quota, un seul appel fournisseur', async () => {
   const rs = await run({ DERMAI_MAX_SIMULATIONS_PER_PERIOD: '1' }, () => Promise.all([call('POST'), call('POST'), call('POST')]));
   assert.deepEqual(rs.map(r => r.status).sort(), [200, 429, 429]);

@@ -76,3 +76,4 @@ module.exports = { reserve, api, TIMEOUT_MS };   // TIMEOUT_MS : délai maximal 
 module.exports.reserveSimulation = reserveSimulation;
 module.exports.reserveMakeup = reserveMakeup;
 module.exports.reserveHair = reserveHair;
+module.exports.isExempt = (userId, env = process.env) => require('./config').isQuotaExempt(userId, env);   // compte du fondateur : aucune réservation, aucune limite

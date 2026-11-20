@@ -62,8 +62,8 @@ async function handler(req, res) {
     makeup.checkImage(image.buffer);
     if (!budget.canStart(TIME_BUDGET.minStartMs + quota.TIMEOUT_MS)) throw new AnalysisError('TIME_BUDGET', { status: 504, detail: `budget de temps insuffisant avant le quota (${budget.elapsed()} ms écoulées)` });
     if (!perfectcorp.isConfigured()) throw new AnalysisError('MK_UNAVAILABLE', { status: 503, detail: 'PERFECT_CORP_API_KEY manquante' });
-    await quota.reserveMakeup(auth.bearerToken(req), process.env, { budget });
-    console.log('[DermAI] Makeup quota reserved');
+    if (quota.isExempt(user.id)) console.log('[DermAI] Makeup quota skipped (founder account)');
+    else { await quota.reserveMakeup(auth.bearerToken(req), process.env, { budget }); console.log('[DermAI] Makeup quota reserved'); }
     const out = await studio.tryOn({ buffer: image.buffer, mime: image.mime, config: selection }, { budget });
     /* Le navigateur ne reçoit que l'image : ni enveloppe, ni task_id, ni clé. */
     return send(res, 200, { ok: true, makeup: { image: out.image } });
