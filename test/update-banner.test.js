@@ -62,14 +62,14 @@ test('UB4 fiable : réseau coupé, API absente (local), réponse invalide ou dan
   const v = fake({ versions: ['v1', 'dev/../x'] }); const sv = w(v); await flush(); await sv.check(true); await flush(); assert.equal(v.body.children.length, 0, 'identifiant non sûr ignoré');
 });
 
-test('UB5 temps réel : contrôle toutes les 15 s seulement si la page est visible, au retour au premier plan, au retour du réseau et à chaque toucher dans l\'application ; pas plus d\'un contrôle toutes les 5 s', async () => {
-  assert.equal(U.INTERVAL_MS, 15000);
-  const f = fake({ versions: ['v1', 'v2'] }); f.t = 0; const s = U.watch(f.win, f.doc, { now: () => f.t }); await flush(); assert.equal(f.win.__ms, 15000);
+test('UB5 temps réel : contrôle toutes les 5 s seulement si la page est visible, au retour au premier plan, au retour du réseau et à chaque toucher dans l\'application ; pas plus d\'un contrôle toutes les 4 s', async () => {
+  assert.equal(U.INTERVAL_MS, 5000); assert.equal(U.MIN_GAP_MS, 4000); assert.ok(U.MIN_GAP_MS < U.INTERVAL_MS, 'un léger retard du minuteur ne fait pas sauter de contrôle');
+  const f = fake({ versions: ['v1', 'v2'] }); f.t = 0; const s = U.watch(f.win, f.doc, { now: () => f.t }); await flush(); assert.equal(f.win.__ms, 5000);
   f.doc.visibilityState = 'hidden'; f.t += 40000; f.win.__tick(); await flush(); assert.equal(f.calls.length, 1, 'page cachée : pas de contrôle');
   f.doc.visibilityState = 'visible'; f.t += 6000; f.listeners.focus(); await flush(); assert.equal(f.calls.length, 2); assert.equal(f.body.children.length, 1, 'retour au premier plan : nouvelle version vue tout de suite');
-  f.t += 1000; f.listeners.focus(); await flush(); assert.equal(f.calls.length, 2, 'moins de 5 s depuis le dernier contrôle : rien');
+  f.t += 1000; f.listeners.focus(); await flush(); assert.equal(f.calls.length, 2, 'moins de 4 s depuis le dernier contrôle : rien');
   f.listeners.online(); await flush(); assert.ok(f.calls.length >= 3, 'retour du réseau : contrôle forcé');
-  const c0 = f.calls.length; f.t += 1000; f.docL.click(); await flush(); assert.equal(f.calls.length, c0, 'toucher moins de 5 s après un contrôle : rien'); f.t += 6000; f.docL.click(); await flush(); assert.equal(f.calls.length, c0 + 1, 'toucher dans l\'application : contrôle'); s.stop(); assert.equal(f.win.__cleared, true);
+  const c0 = f.calls.length; f.t += 1000; f.docL.click(); await flush(); assert.equal(f.calls.length, c0, 'toucher moins de 4 s après un contrôle : rien'); f.t += 6000; f.docL.click(); await flush(); assert.equal(f.calls.length, c0 + 1, 'toucher dans l\'application : contrôle'); s.stop(); assert.equal(f.win.__cleared, true);
 });
 
 test('UB6 service worker remplacé pendant que la page tourne : bannière ; premier service worker de la vie de la page : rien', async () => {
@@ -108,7 +108,7 @@ test('UBB1 Chromium : la bannière apparaît toute seule quand la version change
     await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
     await page.goto(base + '/'); await page.waitForSelector('#app'); await page.waitForFunction(() => window.__dermaiUpdate && window.__dermaiUpdate.state.baseline === 'build-1', null, { timeout: 10000 });
     assert.equal(await page.locator('[data-update-banner]').count(), 0, 'même version : pas de bannière');
-    /* un contrôle rapide avec la même page : on branche un second guetteur à 200 ms (le vrai tourne à 15 s) */
+    /* un contrôle rapide avec la même page : on branche un second guetteur à 200 ms (le vrai tourne à 5 s) */
     await page.evaluate(() => { window.__w = DermaiUpdate.watch(window, document, { interval: 200 }); });
     await page.waitForTimeout(600); assert.equal(await page.locator('[data-update-banner]').count(), 0);
     current = 'build-2';
