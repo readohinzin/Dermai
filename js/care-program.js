@@ -1,4 +1,4 @@
-/* DERMAI : écran « Programme de 30 jours » (suivi quotidien, tolérance, bilan hebdomadaire). Chargé avant app.js, après js/engine/program.js.
+/* DermAI : écran « Programme de 30 jours » (suivi quotidien, tolérance, bilan hebdomadaire). Chargé avant app.js, après js/engine/program.js.
    Aucune décision cosmétique ici : le plan vient de la routine DÉJÀ calculée (Engine.run → routinePlan, synthesis), les règles de calendrier de
    js/engine/program.js. Ce module ne contacte jamais le réseau et n'appelle jamais le service d'analyse : il ne fait que lire un résultat existant,
    tenir un petit journal local et afficher.
@@ -14,6 +14,8 @@
 })(typeof self !== 'undefined' ? self : this, function (root) {
   'use strict';
   const prog = () => (typeof module === 'object' && module.exports ? require('./engine/program.js') : root.DermaiEngine.program);
+  const sunData = () => (typeof module === 'object' && module.exports ? require('./engine/data/sun.js') : root.DermaiEngine.sunData);
+  const referralData = () => (typeof module === 'object' && module.exports ? require('./engine/data/referral.js') : root.DermaiEngine.referralData);
   const KEY_PREFIX = 'dermai.care.';
   const NAME_OF_KIND = { cleanse: 'Nettoyage doux', treatment: 'Soin ciblé', moisturize: 'Hydratation', spf: 'Protection solaire' };
   const SLOT = { morning: ['Matin', 'sun'], evening: ['Soir', 'moon'] };
@@ -116,6 +118,10 @@
     const viewDay = st => { const cur = Math.min(P.dayNumber(st.start, today()), P.DAYS) || 1; return ui.day && ui.day <= cur ? ui.day : cur; };
     const list = items => `<ul class="l-list" style="margin-top:0">${items.map(t => `<li>${ic('check')}<span>${esc(t)}</span></li>`).join('')}</ul>`;
     const safety = () => `<section class="sand" style="margin-top:24px"><h2 class="h3" style="margin-bottom:10px">${esc(C.safetyTitle)}</h2><ul class="l-list" style="margin-top:0">${C.safety.map(t => `<li>${ic('info')}<span>${esc(t)}</span></li>`).join('')}</ul></section>`;
+    /* Protection solaire pour toutes les peaux : la règle (« le soleil fonce les marques »), les critères de choix, la préférence « sans trace blanche » (textes : data/sun.js). */
+    const sunBlock = () => { const T = sunData().TEXT; return `<section class="sand" style="margin-top:24px" data-sun-block><h2 class="h3" style="margin-bottom:10px">${esc(T.title)}</h2><p style="margin-bottom:10px">${esc(T.rule)}</p><h3 class="h4" style="margin:12px 0 6px">${esc(T.criteriaTitle)}</h3><ul class="l-list" style="margin-top:0">${T.criteria.map(t => `<li>${ic('info')}<span>${esc(t)}</span></li>`).join('')}</ul><p class="muted" style="margin-top:10px">${esc(T.selection)} ${esc(T.none)}</p></section>`; };
+    /* Cas préoccupants : orientation vers un dermatologue, sans interprétation (textes : data/referral.js). */
+    const referralBlock = () => { const R = referralData(), T = R.TEXT; return `<section class="sand" style="margin-top:24px" data-referral-block><h2 class="h3" style="margin-bottom:10px">${esc(T.title)}</h2><p style="margin-bottom:10px">${esc(T.intro)}</p><ul class="l-list" style="margin-top:0">${T.signs.map(t => `<li>${ic('info')}<span>${esc(t)}</span></li>`).join('')}</ul>${R.CLOSING.map(t => `<p class="muted" style="margin-top:8px">${esc(t)}</p>`).join('')}</section>`; };
     const budget = () => `<details class="c-why" style="margin-top:18px"><summary>${esc(C.budgetTitle)}</summary>${C.budget.map(t => `<p>${esc(t)}</p>`).join('')}</details>`;
     const notice = (html, cls) => `<div class="c-notice${cls ? ' ' + cls : ''} u-my-5" role="status">${ic('info')}<div>${html}</div></div>`;
 
@@ -130,7 +136,7 @@
       return `<div class="pagehead"><p class="kicker">Programme de soins</p><h1>${esc(C.title)}</h1><p>${esc(C.intro)}</p></div>
       ${preview}<section style="margin-bottom:24px">${list(C.how)}</section>
       ${notice(esc(C.notPromise))}
-      <button class="c-btn c-btn--primary c-btn--block" data-cp="start">Commencer aujourd'hui</button>${budget()}${safety()}`;
+      <button class="c-btn c-btn--primary c-btn--block" data-cp="start">Commencer aujourd'hui</button>${budget()}${sunBlock()}${referralBlock()}${safety()}`;
     }
 
     function stepRow(it, i, day, cur) {
@@ -193,7 +199,7 @@
         ${ui.notice && !(view.suspended && ui.notice === C.reaction.strong) ? notice(esc(ui.notice)) : ''}
         ${view.suspended ? `<div class="c-notice c-notice--error u-my-5" role="alert">${ic('info')}<div>${esc(C.reaction.strong)}<p style="margin-top:8px">${esc(C.resumeNote)}</p><button class="c-btn c-btn--secondary c-btn--block" style="margin-top:10px" data-cp="resume">${esc(C.resumeBtn)}</button></div></div>` : ''}
         ${nav}<p class="muted" style="margin-bottom:12px">${day === cur && !over ? 'Aujourd\'hui' : `Jour ${day}`} : ${view.done} sur ${view.expected} actions prévues faites.</p>
-        ${slots}${toleranceBlock(st, day)}${reviewBlock(st)}${evolutionLink()}${budget()}${safety()}
+        ${slots}${toleranceBlock(st, day)}${reviewBlock(st)}${evolutionLink()}${budget()}${sunBlock()}${referralBlock()}${safety()}
         <div class="stack" style="margin-top:24px;gap:8px"><button class="link" data-cp="restart">Recommencer le programme</button><button class="link" data-cp="erase">Effacer mon suivi</button></div>${confirmBox}
         <p class="c-disclaimer">Conseils cosmétiques d'information, ce n'est pas un diagnostic médical. En cas de doute ou de réaction importante, demandez l'avis d'un professionnel de santé.</p>`;
     }

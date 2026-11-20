@@ -1,4 +1,4 @@
-/* DERMAI : œil « afficher / masquer le mot de passe » dans chaque champ de mot de passe. Chargé avant app.js.
+/* DermAI : œil « afficher / masquer le mot de passe » dans chaque champ de mot de passe. Chargé avant app.js.
    Aucun changement du code de l'application : ce module repère les champs de mot de passe à chaque réaffichage de l'écran et leur ajoute un bouton.
    Le mot de passe reste MASQUÉ par défaut (chaque réaffichage recrée un champ masqué). Il est remasqué dès que la page passe en arrière-plan ou est quittée.
    Aucune valeur n'est lue, copiée, gardée ni envoyée ici : le module ne change que le type du champ (password / text). */

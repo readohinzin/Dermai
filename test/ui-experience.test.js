@@ -21,7 +21,7 @@ test('X1 résultat → routine personnalisée : CTA, synthèse dynamique du mote
   assert.match(app, /Voir ma routine personnalisée/);
   assert.match(app, /data-go="routine">Voir ma routine personnalisée/);
   assert.match(app, /eng\.synthesis\.strategy\.text/);   // étape 22 : la stratégie calculée remplace le résumé générique
-  for (const k of ['Ce que DERMAI observe', 'Ce que vous souhaitez travailler', 'Ce que DERMAI recommande']) assert.ok(app.includes(k), k);
+  for (const k of ['Ce que DermAI observe', 'Ce que vous souhaitez travailler', 'Ce que DermAI recommande']) assert.ok(app.includes(k), k);
   assert.match(app, /Le score global est une information séparée/);
   const r = run({ acne: 30, hydration: 40 }, {}, { goals: ['hydration'] });
   assert.match(r.personalization.headline, /^Votre analyse indique des repères plus faibles sur/);
@@ -34,7 +34,7 @@ test('X2 priorités : détail accessible, maintenance sans priorité inventée',
   assert.match(app, /data-go="concern:\$\{m\.indicator\}">Voir le détail/);
   const m = run({});
   assert.deepEqual(m.priorities.items, []);
-  assert.equal(copy.MAINTENANCE.title, 'DERMAI ne retient aucun besoin particulier.');
+  assert.equal(copy.MAINTENANCE.title, 'DermAI ne retient aucun besoin particulier.');
   assert.match(copy.MAINTENANCE.text, /routine d'entretien de base : nettoyage doux, hydratation et protection solaire/);
   assert.ok(run({ acne: 20, pores: 25, hydration: 30, texture: 35, redness: 40 }).priorities.items.length <= 3);
 });
@@ -63,7 +63,7 @@ test('X4 niveau de routine : Minimal / Simple / Complète, mappés sur none / si
 
 test('X5 approche douce : la routine le reflète (note du moteur), sans message alarmiste', () => {
   const r = run({ acne: 30 }, {}, { comfort: { preferGentle: true } });
-  assert.equal(r.personalization.approachNote, 'DERMAI privilégie ici une routine plus progressive.');
+  assert.equal(r.personalization.approachNote, 'DermAI privilégie ici une routine plus progressive.');
   assert.equal(run({ acne: 30 }).personalization.approachNote, null);
   assert.match(app, /PZ\.approachNote/);
 });

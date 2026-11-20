@@ -177,8 +177,8 @@ test('MK-10 plusieurs observations : priorité LOCAL, REGIONAL, IMPORT ; le dét
 test('MK-11 cas de référence Bénin / Lynia : LOCAL uniquement parce que les preuves de marché indiquent le Bénin', () => {
   const ha = IDENT.products['to-hyaluronic-b5-ceramides'];
   const lynia = {
-    id: 'lynia-bj', seller: { name: 'Lynia Shop', type: 'retailer', country: { value: 'BJ', basis: 'team_provided', source: 'relevé fourni par l\'équipe DERMAI (Lynia Shop, lynia-shop.com) : vendeur au Bénin' } },
-    price: { amount: 12700, currency: 'XOF' }, stock: 'in_stock', url: null, source: { kind: 'team_provided', label: 'relevé de l\'équipe DERMAI', reopened: false }, checkedAt: '2026-10-08', shipsTo: []
+    id: 'lynia-bj', seller: { name: 'Lynia Shop', type: 'retailer', country: { value: 'BJ', basis: 'team_provided', source: 'relevé fourni par l\'équipe DermAI (Lynia Shop, lynia-shop.com) : vendeur au Bénin' } },
+    price: { amount: 12700, currency: 'XOF' }, stock: 'in_stock', url: null, source: { kind: 'team_provided', label: 'relevé de l\'équipe DermAI', reopened: false }, checkedAt: '2026-10-08', shipsTo: []
   };
   const title = { exact: 'The Ordinary Acide Hyaluronique 2% + B5 30ml avec céramides', possible: 'The Ordinary Acide Hyaluronique 2% + B5 30ml vendu au bénin' };
   const exact = M.matchCandidate({ title: title.exact }, ha, { productId: 'to-hyaluronic-b5-ceramides' });

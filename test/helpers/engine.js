@@ -3,7 +3,7 @@
 const M = require('../../js/skin-model.js');
 const Engine = require('../../js/engine/index.js');
 
-/* ui : { clé DERMAI: uiScore }. Toute clé non citée vaut `fill` (80 = « Bien »). null/undefined = absent.
+/* ui : { clé DermAI: uiScore }. Toute clé non citée vaut `fill` (80 = « Bien »). null/undefined = absent.
    rawScore : absent par défaut (base « ui », compatibilité). o.raw : même rawScore partout. o.rawMap : rawScore par clé, les autres valent
    o.rawFill (absent si non précisé) : pour éprouver la base de décision « raw » (étape 25). */
 function norm(ui = {}, o = {}) {

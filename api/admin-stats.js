@@ -58,7 +58,7 @@ async function remembered(key, load) {
   if (hit && Date.now() - hit.at < (hit.error ? TTL.error : TTL[key])) return Object.assign({}, hit.value, { cached: true });
   let value, error = false;
   try { value = Object.assign({ status: 'ok' }, await load(), { fetchedAt: new Date().toISOString() }); }
-  catch (err) { error = true; value = { status: 'unavailable', reason: reasonOf(err), fetchedAt: new Date().toISOString() }; console.warn('[DERMAI] Admin read failed:', key, reasonOf(err)); }
+  catch (err) { error = true; value = { status: 'unavailable', reason: reasonOf(err), fetchedAt: new Date().toISOString() }; console.warn('[DermAI] Admin read failed:', key, reasonOf(err)); }
   memo.set(key, { at: Date.now(), value, error });
   return Object.assign({}, value, { cached: false });
 }
@@ -82,14 +82,14 @@ async function handler(req, res) {
   const budget = createBudget({ totalMs: BUDGET_MS });
   let user;
   try { user = await auth.verifyUser(req, process.env, { budget }); }
-  catch (err) { console.warn('[DERMAI] Admin refused:', err instanceof AnalysisError ? err.code : 'auth'); return notFound(res); }
-  if (!isAdminAllowed(user.id)) { console.warn('[DERMAI] Admin refused: not allowed'); return notFound(res); }
+  catch (err) { console.warn('[DermAI] Admin refused:', err instanceof AnalysisError ? err.code : 'auth'); return notFound(res); }
+  if (!isAdminAllowed(user.id)) { console.warn('[DermAI] Admin refused: not allowed'); return notFound(res); }
   if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return send(res, 405, { ok: false, error: toUserMessage('METHOD_NOT_ALLOWED') }); }
   let names;
   try { names = new URL(req.url || '', 'http://x').searchParams.getAll('section'); } catch (e) { names = []; }
   if (names.length !== 1 || !SECTIONS.includes(names[0])) return send(res, 400, { ok: false, error: 'Section inconnue.' });
   try { return send(res, 200, await section(names[0], auth.bearerToken(req))); }
-  catch (err) { console.error('[DERMAI] Admin failed:', err instanceof AnalysisError ? err.code : 'unknown'); return send(res, 500, { ok: false, error: toUserMessage('UNKNOWN') }); }
+  catch (err) { console.error('[DermAI] Admin failed:', err instanceof AnalysisError ? err.code : 'unknown'); return send(res, 500, { ok: false, error: toUserMessage('UNKNOWN') }); }
 }
 
 module.exports = handler;

@@ -1,4 +1,4 @@
-/* DERMAI : compte utilisateur et profil persistant (Supabase Auth + table `profiles`, par l'API REST publique).
+/* DermAI : compte utilisateur et profil persistant (Supabase Auth + table `profiles`, par l'API REST publique).
    Aucune dépendance, aucun moteur cosmétique ici : seulement identité, session et lecture/écriture des préférences de personnalisation.
    Sécurité : seule la clé publique (anon) est utilisée. L'identité vient du jeton de session ; `user_id` n'est JAMAIS envoyé par le navigateur
    (la base le déduit de auth.uid() et RLS limite chaque lecture et écriture à la ligne de l'utilisateur connecté).
@@ -406,7 +406,7 @@
     }
 
     /* ---------- Confirmation d'adresse, récupération et changement de mot de passe, suppression du compte ---------- */
-    /* Les mots de passe ne sont jamais écrits ni conservés par DERMAI : ils ne font que transiter vers Supabase Auth. */
+    /* Les mots de passe ne sont jamais écrits ni conservés par DermAI : ils ne font que transiter vers Supabase Auth. */
     async function requestPasswordReset(email) {
       if (!available) return { ok: false, error: MSG.unavailable };
       if (!EMAIL_RE.test(String(email || '').trim())) return { ok: false, error: MSG.emailInvalid };
@@ -509,7 +509,7 @@
       return { ok: true };
     }
 
-    /* Jeton d'accès de la session (rafraîchi s'il est sur le point d'expirer) pour appeler le backend DERMAI ; null sans session.
+    /* Jeton d'accès de la session (rafraîchi s'il est sur le point d'expirer) pour appeler le backend DermAI ; null sans session.
        Le serveur le vérifie auprès de Supabase : le navigateur ne prouve rien par lui-même. */
     async function accessToken() {
       if (!available || !session) return null;

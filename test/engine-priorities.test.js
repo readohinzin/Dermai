@@ -15,7 +15,7 @@ test('PR2 un seul score faible : une seule priorité, avec sa raison et son expl
   assert.deepEqual(ids(r.priorities.items), ['pores']);
   const it = r.priorities.items[0];
   assert.deepEqual([it.score, it.band, it.domain, it.objectiveMatch, it.actionability, it.confidence, it.rank], [40, 'mid', 'oil_pores', false, 'actionable', 'medium', 1]);
-  assert.match(it.reason, /sous les repères DERMAI : DERMAI le retient comme axe à soutenir\./);   // repère « mid » : axe à soutenir (étape 26)
+  assert.match(it.reason, /sous les repères DermAI : DermAI le retient comme axe à soutenir\./);   // repère « mid » : axe à soutenir (étape 26)
   assert.equal(r.priorities.mode, 'action');
 });
 
@@ -71,7 +71,7 @@ test('PR10 aucun indicateur actionnable sous « Bien » : mode maintenance, jama
   const r = run({ acne: 61, pores: 90, hydration: 100 });
   assert.equal(r.priorities.mode, 'maintenance');
   assert.deepEqual(r.priorities.items, []);
-  assert.ok(r.explanations.some(e => e.kind === 'mode' && /DERMAI ne retient aucun besoin particulier/.test(e.text)));
+  assert.ok(r.explanations.some(e => e.kind === 'mode' && /DermAI ne retient aucun besoin particulier/.test(e.text)));
   assert.equal(run({ acne: 60 }).priorities.mode, 'action');                                  // 60 : « À soutenir »
 });
 

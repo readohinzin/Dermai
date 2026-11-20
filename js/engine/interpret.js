@@ -1,7 +1,7 @@
 /* Couche INTERPRÉTATION : normalized → signaux interprétables. Aucun score secondaire n'est créé.
    Deux lectures séparées, jamais mélangées :
      - AFFICHAGE : `score` = uiScore tel qu'affiché (SkinModel.displayScore), `uiBand` = bande d'affichage (SkinModel.scoreBand) ;
-     - DÉCISION  : `value` = rawScore (base « raw »), `band` = repère DERMAI provisoire (data/decision.js). Seule la décision est lue par
+     - DÉCISION  : `value` = rawScore (base « raw »), `band` = repère DermAI provisoire (data/decision.js). Seule la décision est lue par
                    les priorités, la personnalisation, la routine et la synthèse.
    Base de décision, par analyse : « raw » si chaque indicateur affiché a un rawScore exploitable ; sinon « ui » (compatibilité, par
    exemple une analyse ancienne de l'historique) : la décision lit alors le score affiché avec les anciens repères 61 / 31, et rien n'est

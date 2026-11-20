@@ -132,7 +132,7 @@ test('VE9 R3 : protection solaire seulement si une fiche la demande ET qu\'aucun
 });
 
 test('VE10 R4 : composition inconnue ou sans aucun ingrédient reconnu = vérification impossible ou limitée ; rien si au moins un ingrédient est reconnu', () => {
-  const unk = pts([mk('a', 'Sans liste', 'serum', ['morning'], [])], 'R4'); assert.equal(unk.length, 1); assert.match(unk[0].title, /Composition inconnue/);
+  const unk = pts([mk('a', 'Sans liste', 'serum', ['morning'], [])], 'R4'); assert.equal(unk.length, 1); assert.match(unk[0].title, /Composition non vérifiable/); assert.match(unk[0].text, /La composition de « Sans liste » est inconnue/); assert.match(unk[0].text, /DermAI ne le recommande jamais/); assert.match(unk[0].text, /mercure, de l'hydroquinone ou des corticoïdes sans l'indiquer/);
   const none = pts([mk('b', 'Liste inconnue', 'serum', ['morning'], ['Aqua', 'Parfum', 'Phenoxyethanol'])], 'R4'); assert.equal(none.length, 1); assert.match(none[0].title, /Aucun ingrédient reconnu/); assert.match(none[0].text, /ni bons ni mauvais/);
   assert.equal(pts([mk('c', 'Liste', 'serum', ['morning'], ['Aqua', 'Glycerin'])], 'R4').length, 0);
   assert.equal(pts([mk('d', 'Substance', 'serum', ['morning'], ['Hydroquinone'])], 'R4').length, 0, 'une substance de EXCLUDED est « reconnue » : seul le message de prudence s\'applique');
@@ -152,10 +152,14 @@ test('VE11 R5 : vitamine C et rétinoïde au même moment = « à valider », ja
   try { assert.equal(pts([mk('a', 'V', 'serum', ['evening'], ['Ascorbic Acid']), mk('b', 'R', 'serum', ['evening'], ['Retinol'])], 'R5')[0].level, 'precaution', 'le niveau suit le statut de la règle'); } finally { rule.status = saved; }
 });
 
-test('VE12 substances EXCLUDED : message de prudence neutre, sans recommandation supplémentaire ; aucune autre détection par ressemblance', () => {
+test('VE12 substances EXCLUDED : message de prévention précis pour les éclaircissants (lot 4), message neutre pour les autres ; aucune autre détection par ressemblance', () => {
   const r = pts([mk('a', 'Crème', 'moisturizer', ['evening'], ['Aqua', 'Hydroquinone', 'Mercuric Chloride'])], 'EXCLUDED');
-  assert.equal(r.length, 2); r.forEach(p => { assert.equal(p.level, 'prudence'); assert.match(p.text, /fait partie des substances sur lesquelles DERMAI ne donne pas de conseil\. Demandez l'avis d'un professionnel \(pharmacien, médecin\)\.$/); });
-  assert.ok(r[0].text.startsWith('« Hydroquinone »')); assert.match(r[0].why.source, /EXCLUDED/);
+  assert.equal(r.length, 2); r.forEach(p => { assert.equal(p.level, 'prudence'); assert.match(p.title, /^Produit éclaircissant : prudence avec « Crème »$/); assert.match(p.text, /parlez-en/); });
+  assert.ok(r[0].text.startsWith('« Hydroquinone » : L\'hydroquinone est une substance utilisée pour dépigmenter la peau')); assert.match(r[0].text, /DermAI ne conseille pas les produits qui en contiennent/); assert.match(r[0].why.source, /EXCLUDED/); assert.match(r[0].why.rule, /ne recommande jamais de produit qui éclaircit/);
+  assert.match(r[1].text, /^« Mercuric Chloride » : Le mercure est toxique, notamment pour les reins et le système nerveux/);
+  /* substances exclues qui ne servent pas à éclaircir : message neutre inchangé */
+  const n = pts([mk('n', 'Gel', 'serum', ['evening'], ['Aqua', 'Benzoyl Peroxide'])], 'EXCLUDED');
+  assert.equal(n.length, 1); assert.match(n[0].text, /fait partie des substances sur lesquelles DermAI ne donne pas de conseil\. Demandez l'avis d'un professionnel \(pharmacien, médecin\)\.$/); assert.match(n[0].title, /^Substance sans conseil DermAI/);
   assert.equal(pts([mk('a', 'Crème', 'moisturizer', ['evening'], ['Hydroxyethylcellulose', 'Hydrogenated Lecithin', 'Mercaptoethanol'])], 'EXCLUDED').length, 0);
   assert.equal(E.analyze([mk('a', 'Crème', 'moisturizer', ['evening'], ['Hydroquinone'])]).points[0].level, 'prudence', 'la prudence passe avant les autres niveaux');
 });
@@ -196,7 +200,7 @@ test('VE15 chaque point porte motif, source et validation ; ordre par gravité ;
   assert.equal(E.analyze(Array.from({ length: 30 }, (_, i) => mk('p' + i, 'P' + i, 'serum', ['morning'], ['Aqua']))).products.length, E.MAX_PRODUCTS);
 });
 
-test('VE16 ordre matin / soir : ordre DERMAI des catégories, « Autre » à la fin, créneaux respectés', () => {
+test('VE16 ordre matin / soir : ordre DermAI des catégories, « Autre » à la fin, créneaux respectés', () => {
   const list = ['spf', 'other', 'moisturizer', 'cleanser', 'serum'].map((c, i) => E.cleanProduct(mk('p' + i, c, c, i === 0 ? ['morning'] : ['morning', 'evening'], [])));
   assert.deepEqual(E.bySlot(list, 'morning').map(p => p.category), ['cleanser', 'serum', 'moisturizer', 'spf', 'other']);
   assert.deepEqual(E.bySlot(list, 'evening').map(p => p.category), ['cleanser', 'serum', 'moisturizer', 'other']);
@@ -213,7 +217,7 @@ test('VE17 le catalogue vérifié est exploitable tel quel : chaque produit util
     assert.ok(p && p.origin.kind === 'catalog' && p.inci.length === new Set(c.inci.map(E.normalizeName)).size, c.id);
     const a = E.analyzeProduct(p); assert.ok(a.known && a.actives.length >= 1, `au moins un actif reconnu : ${c.id}`); assert.equal(a.excluded.length, 0, c.id);
     /* Chaque actif validé que le catalogue relie au produit est reconnu dans son INCI, sauf un cas connu et documenté : « Céramides » du produit The Ordinary HA + B5, dont l'INCI
-       ne liste que « Phospholipids » et « Sphingolipids » : DERMAI ne devine pas, l'actif reste non reconnu pour ce produit. */
+       ne liste que « Phospholipids » et « Sphingolipids » : DermAI ne devine pas, l'actif reste non reconnu pour ce produit. */
     for (const link of c.ingredients.filter(i => i.activeId && A.ACTIVES.find(x => x.id === i.activeId).status === 'validated')) {
       const known = c.id === 'to-hyaluronic-b5-ceramides' && link.activeId === 'ceramides';
       assert.equal(a.actives.some(x => x.id === link.activeId), !known, `${c.id} : actif ${link.activeId}`);

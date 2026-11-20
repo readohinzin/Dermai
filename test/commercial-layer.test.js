@@ -1,6 +1,6 @@
 'use strict';
 /* Étape 20 : cohérence de la couche commerciale V1. Le MOTEUR décide du produit ; le MARCHÉ explique comment le trouver. Les relevés ci-dessous sont les données déjà intégrées :
-   ce ne sont PAS des vérifications faites par DERMAI (checkedAt = date du relevé ; verifiedAt n'existe que pour une page réellement rouverte). */
+   ce ne sont PAS des vérifications faites par DermAI (checkedAt = date du relevé ; verifiedAt n'existe que pour une page réellement rouverte). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -92,7 +92,7 @@ test('U3 checkedAt ≠ verifiedAt : « Relevé le … » toujours ; jamais « V�
   const app = strip(read('js/app.js'));
   assert.match(app, /Relevé le \$\{dFr\(o\.checkedAt\)\} \(\$\{esc\(o\.source\)\}\)/);
   assert.doesNotMatch(app.slice(app.indexOf('const offerRow='), app.indexOf('const byCountry=')), /verifiedAt|[Vv]érifiée? (le|par)/, 'la ligne d\'offre n\'affiche jamais « vérifié » : seul le relevé est montré');
-  assert.doesNotMatch(app, /Vérifié le|Vérifiée le|vérifiée par DERMAI|vérifié par DERMAI|Prix vérifié|Stock vérifié/i);
+  assert.doesNotMatch(app, /Vérifié le|Vérifiée le|vérifiée par DermAI|vérifié par DermAI|Prix vérifié|Stock vérifié/i);
   assert.ok(P.validateOffer({ market: 'GH', retailer: 'X', type: 'retailer', availability: 'unknown', source: 's', checkedAt: '2026-10-07', verifiedAt: 'hier' }).length, 'verifiedAt doit être une vraie date');
 });
 

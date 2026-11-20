@@ -1,4 +1,4 @@
-/* DERMAI : générateur de PDF, sans dépendance, sans réseau, sans stockage. Pur : des blocs de mise en page entrent, des octets PDF sortent.
+/* DermAI : générateur de PDF, sans dépendance, sans réseau, sans stockage. Pur : des blocs de mise en page entrent, des octets PDF sortent.
    Polices standard du PDF (Helvetica, Helvetica-Bold, encodage WinAnsi) : rien n'est embarqué, tous les accents français sont couverts.
    Une photo n'entre que sous forme d'un JPEG déjà nettoyé par l'appelant (js/export-view.js : repassé par un canvas, donc sans métadonnées EXIF ni
    position GPS) ; ce module ne lit ni ne conserve rien d'autre.
@@ -96,7 +96,7 @@
         case 'space': y += blk.h || 8; break;
         case 'title': {
           ensure(70);
-          text('dermai', MARGIN, 26, true, PLUM); y += 32;
+          text('DermAI', MARGIN, 26, true, PLUM); y += 32;
           if (blk.sub) { text(blk.sub, MARGIN, 11, false, MUTED); y += 15; }
           if (blk.date) { text(blk.date, MARGIN, 10, false, MUTED); y += 14; }
           rect(MARGIN, y + 2, CW, 1.2, ACCENT); y += 12;
@@ -176,7 +176,7 @@
     add('PAGES');           // rempli à la fin
     add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
     add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-    add(`<< /Title ${utf16hex(doc.title || 'DERMAI')} /Producer ${utf16hex('DERMAI')} /CreationDate (${stamp(doc.date instanceof Date ? doc.date : new Date(0))}) >>`);
+    add(`<< /Title ${utf16hex(doc.title || 'DermAI')} /Producer ${utf16hex('DermAI')} /CreationDate (${stamp(doc.date instanceof Date ? doc.date : new Date(0))}) >>`);
     const imgIds = images.map(im => {
       const info = jpegInfo(im.bytes);
       return add(`<< /Type /XObject /Subtype /Image /Width ${info.width} /Height ${info.height} /ColorSpace /${info.components === 1 ? 'DeviceGray' : 'DeviceRGB'} /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>`, im.bytes);

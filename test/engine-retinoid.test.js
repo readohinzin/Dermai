@@ -47,7 +47,7 @@ test('RT7 le rétinoïde est au catalogue avec le statut « à_valider », consu
   assert.equal(r.consultable, true);
   assert.equal(r.label, 'Rétinoïde cosmétique');
   assert.equal(actives.isValidated(r), false);
-  assert.match(r.cautions[0], /ne sont pas proposés automatiquement par DERMAI/);
+  assert.match(r.cautions[0], /ne sont pas proposés automatiquement par DermAI/);
   assert.match(r.cautions[0], /grossesse ou de projet de grossesse, demandez conseil à un professionnel de santé/);
   assert.doesNotMatch(r.cautions[0], /vous (êtes|etes)|votre grossesse/i, 'ne prétend pas connaître la situation de l\'utilisateur');
   assert.deepEqual(r.groups, ['evening_strong']);

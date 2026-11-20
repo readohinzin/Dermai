@@ -39,16 +39,16 @@
   /* Contenu : une diapositive = un message, dit une fois. Les valeurs de scores sont des EXEMPLES (100 = meilleur résultat, comme dans l'application). */
   const SLIDES = [
     { id: 'scan', theme: 'rose', kicker: 'Analyse cosmétique par intelligence artificielle', title: ['Votre peau.', 'Votre analyse.', 'Votre routine.'],
-      text: 'Prenez une photo : l\'intelligence artificielle analyse votre peau, puis DERMAI vous propose une routine cosmétique personnalisée.', more: ['how', 'En savoir plus'],
+      text: 'Prenez une photo : l\'intelligence artificielle analyse votre peau, puis DermAI vous propose une routine cosmétique personnalisée.', more: ['how', 'En savoir plus'],
       person: 1, alt: 'Portrait fictif d\'une femme, avec un cadre de détection du visage' },
     { id: 'scores', theme: 'lilac', kicker: 'Votre analyse', title: ['Des scores clairs,', 'zone par zone.'],
-      text: 'DERMAI lit quinze indicateurs visibles sur l\'ensemble du visage et vous donne un score de 0 à 100 pour chacun, 100 étant le meilleur résultat.', more: ['observe', 'Ce que DERMAI observe'],
+      text: 'DermAI lit quinze indicateurs visibles sur l\'ensemble du visage et vous donne un score de 0 à 100 pour chacun, 100 étant le meilleur résultat.', more: ['observe', 'Ce que DermAI observe'],
       person: 2, alt: 'Portrait fictif d\'une femme, avec des scores d\'exemple placés autour du visage' },
     { id: 'actives', theme: 'sand', kicker: 'Votre routine', title: ['Des actifs choisis', 'pour vous.'],
       text: 'Des actifs cosmétiques en lien avec vos priorités, introduits un par un, avec leurs précautions.', more: ['routine-sec', 'Voir la routine'],
       person: 6, alt: 'Portrait fictif d\'une femme, avec des exemples d\'actifs cosmétiques' },
     { id: 'progress', theme: 'sky', kicker: 'Votre évolution', title: ['Votre peau évolue.', 'Suivez-la.'],
-      text: 'Refaites une analyse quand vous voulez : DERMAI la compare à vos observations précédentes.', more: ['evolve', 'En savoir plus'],
+      text: 'Refaites une analyse quand vous voulez : DermAI la compare à vos observations précédentes.', more: ['evolve', 'En savoir plus'],
       person: 3, alt: 'Portrait fictif d\'une femme, avec un exemple de suivi du score global' }
   ];
 
@@ -59,7 +59,7 @@
   /* Scores d'exemple (diapositive 2) : bulle (x, y en millièmes du CADRE), point d'ancrage sur le visage défini par rapport aux yeux ou à la bouche. */
   const BUBBLES = [
     { k: 'hydration', v: 64, x: 120, y: 270, from: 'eL', a: -0.06, b: 0.135 }, { k: 'pores', v: 58, x: 95, y: 500, from: 'eL', a: -0.15, b: 0.62 }, { k: 'texture', v: 76, x: 150, y: 730, from: 'm', a: -0.25, b: 0.19 },
-    { k: 'pigmentation', v: 52, x: 880, y: 270, from: 'eR', a: 0.08, b: 0.1 }, { k: 'redness', v: 81, x: 905, y: 500, from: 'eR', a: 0.19, b: 0.63 }, { k: 'oiliness', v: 69, x: 850, y: 730, from: 'm', a: 0.33, b: 0.19 }
+    { k: 'pigmentation', v: 52, x: 880, y: 270, from: 'eR', a: 0.08, b: 0.1 }, { k: 'acne', v: 66, x: 905, y: 500, from: 'eR', a: 0.19, b: 0.63 }, { k: 'oiliness', v: 69, x: 850, y: 730, from: 'm', a: 0.33, b: 0.19 }
   ];
   const band = v => (v >= 70 ? 'good' : v >= 55 ? 'mid' : 'low');
   const PROGRESS = { from: 58, to: 72, points: [58, 61, 60, 66, 69, 72] };
@@ -113,7 +113,7 @@
         <div class="hc-art"><p class="u-sr">${SR_NOTE}</p><div class="hc-face hc-face--${s.id}"><div class="hc-pic"><img src="${personSrc(s.person)}" width="504" height="504" alt="${esc(s.alt)}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>${pic(s.person)[s.id] || ''}</div>${outer(s.person)[s.id] || ''}</div></div>
       </div></article>`;
     };
-    return `<section class="hc" data-hc aria-roledescription="carrousel" aria-label="Présentation de DERMAI">
+    return `<section class="hc" data-hc aria-roledescription="carrousel" aria-label="Présentation de DermAI">
       <div class="hc-stage" aria-live="off">${SLIDES.map(slide).join('')}</div>
       <div class="hc-ctl"><div class="hc-dots-row">
         <button type="button" class="hc-pause" data-hc-pause aria-label="Mettre en pause le défilement"><svg class="p1" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><svg class="p2" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg></button>

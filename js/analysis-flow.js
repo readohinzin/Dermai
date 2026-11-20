@@ -1,10 +1,10 @@
-/* DERMAI : lancement unique d'une analyse payante, conservation d'un résultat reçu et reprise de son enregistrement.
+/* DermAI : lancement unique d'une analyse payante, conservation d'un résultat reçu et reprise de son enregistrement.
    Module sans accès au DOM ni au réseau : tout ce qui touche le navigateur ou Supabase est injecté (voir create). Il n'appelle jamais
    /api/skin-analysis : il ne fait qu'autoriser (ou refuser) le lancement, et enregistrer le résultat DÉJÀ reçu (ligne `skin_analyses`).
 
    1. Un lancement = une intention explicite (arm) consommée une seule fois (begin). Un rendu, un changement d'écran ou une reprise
       d'enregistrement ne peuvent donc jamais relancer une analyse. Une analyse à la fois par onglet (verrou posé avant tout await).
-   2. Issue ambiguë (aucune réponse DERMAI exploitable : coupure, délai dépassé, page rechargée) : le fournisseur a pu terminer et décompter
+   2. Issue ambiguë (aucune réponse DermAI exploitable : coupure, délai dépassé, page rechargée) : le fournisseur a pu terminer et décompter
       l'analyse. Blocage de 65 s (≥ maxDuration 60 s du serveur + marge), puis confirmation explicite avant toute nouvelle analyse.
       Le marqueur est dans sessionStorage : un rechargement de l'onglet conserve le blocage.
    3. Tampon d'enregistrement (sessionStorage, clé dermai.pending) : le résultat reçu y est écrit AVANT l'envoi à Supabase. Il ne contient que
@@ -97,7 +97,7 @@
 
     /* ---------- Lancement ---------- */
     /* Un marqueur par compte (le quota est propre à chaque compte) : { t: début de la requête, s: run | amb }. Il disparaît quand le serveur
-       DERMAI a répondu (succès ou refus), et reste dans le cas contraire : requête sans réponse, délai dépassé, page rechargée. */
+       DermAI a répondu (succès ou refus), et reste dans le cas contraire : requête sans réponse, délai dépassé, page rechargée. */
     const readRuns = () => { try { const m = JSON.parse(rd(RUN_KEY)); return m && typeof m === 'object' && !Array.isArray(m) ? m : {}; } catch (e) { return {}; } };
     const setRun = (u, v) => { const m = readRuns(); if (v) m[u] = v; else delete m[u]; const k = Object.keys(m); wr(RUN_KEY, k.length ? JSON.stringify(Object.fromEntries(k.slice(-5).map(x => [x, m[x]]))) : null); };
     const me = () => uid() || 'anon';

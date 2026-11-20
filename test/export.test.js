@@ -100,20 +100,20 @@ test('EXP4 modèle : ce que l\'écran montre (scores affichés, axes, accompagne
   assert.match(m.accompaniment, /^Acné \(78\) et pores \(78\) : ne sont pas des priorités dans cette analyse/);
   assert.match(m.strategy, /^Stratégie : soutenir hydratation \(38\)/);
   assert.deepEqual(m.routine.morning.map(s => s.label), ['Nettoyage doux', 'Soin d\'accompagnement', 'Hydratation', 'Protection solaire']);
-  assert.match(m.routine.morning[1].detail, /Acné \(78\) et pores \(78\) : accompagnement léger.*Proposé par DERMAI : Niacinamide 10% \+ Zinc 1%/);
+  assert.match(m.routine.morning[1].detail, /Acné \(78\) et pores \(78\) : accompagnement léger.*Proposé par DermAI : Niacinamide 10% \+ Zinc 1%/);
   assert.equal(m.routine.evening.length, 2);
   const pdf = await pdfOf(ctx, {}), p = parse(await bytesOfBlob(pdf.blob));
   for (const bad of [/rawScore|raw_score|raw_metrics/i, /\b42\.08|\b30\.0\b|\b70\.0\b/, /localization|mask/i]) { assert.doesNotMatch(JSON.stringify(m), bad); assert.doesNotMatch(p.text, bad); }
   assert.ok(p.text.includes('75/100') && p.text.includes('Peau sèche') && p.text.includes('Âge cutané estimé : 37 ans') && p.text.includes('Soin d\'accompagnement'));
-  assert.ok(p.text.includes('Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.'));
+  assert.ok(p.text.includes('Analyse cosmétique visuelle. DermAI ne pose pas de diagnostic médical.'));
   assert.equal(pdf.withPhoto, false);
 });
 
 test('EXP5 analyse sans priorité ni accompagnement : texte d\'entretien, pas de section vide', async () => {
   const ctx = ctxOf({}), m = X.modelOf(ctx), p = parse(await bytesOfBlob((await pdfOf(ctx, {})).blob));
-  assert.deepEqual(m.priorities, []); assert.equal(m.accompaniment, ''); assert.match(m.maintenance, /^DERMAI ne retient aucun besoin particulier\./);
+  assert.deepEqual(m.priorities, []); assert.equal(m.accompaniment, ''); assert.match(m.maintenance, /^DermAI ne retient aucun besoin particulier\./);
   assert.ok(!p.text.includes('Accompagnement léger\n') || !m.accompaniment, 'aucune section d\'accompagnement vide');
-  assert.ok(p.text.includes('DERMAI ne retient aucun besoin particulier.'));
+  assert.ok(p.text.includes('DermAI ne retient aucun besoin particulier.'));
   const none = X.modelOf(ctxOf({}, {}, {})), G = Object.assign({}, none, { global: { score: null, bandLabel: null } });
   assert.ok(X.blocksOf(G).some(b => b.t === 'hero' && b.lines.some(l => l.text === 'Score global indisponible')));
 });
@@ -123,9 +123,9 @@ test('EXP6 analyse plus ancienne : priorités enregistrées à sa date, ni strat
   ctx.s.rec = { priorities: [{ id: 'hydration', label: 'Hydratation', score: 38, band: 'mid' }], goals: ['hydration'] };
   const m = X.modelOf(ctx), p = parse(await bytesOfBlob((await pdfOf(ctx, {})).blob));
   assert.equal(m.H, true); assert.equal(m.routine, null); assert.equal(m.strategy, ''); assert.equal(m.accompaniment, '');
-  assert.deepEqual(m.priorities.map(x => [x.label, x.score, x.level]), [['Hydratation', 38, 'Retenu par DERMAI']]);
+  assert.deepEqual(m.priorities.map(x => [x.label, x.score, x.level]), [['Hydratation', 38, 'Retenu par DermAI']]);
   assert.deepEqual(m.goals, [copy.GOAL_LABELS.hydration]);
-  assert.equal(m.indicators.find(i => i.id === 'acne').level, 'Niveau élevé', 'bandes d\'affichage de l\'analyse, pas les statuts d\'aujourd\'hui');
+  assert.equal(m.indicators.find(i => i.id === 'acne').level, 'Score élevé', 'bandes d\'affichage de l\'analyse, pas les statuts d\'aujourd\'hui');
   assert.ok(p.text.includes('Analyse du 10 octobre 2026 · analyse précédente') && p.text.includes('Axes retenus à cette date'));
   assert.ok(p.text.includes('la routine de l\'application correspond à votre analyse la plus récente'));
   assert.ok(!p.text.includes('Votre routine\n'));
@@ -141,7 +141,7 @@ test('EXP7 vocabulaire : aucun mot médical ni promesse dans le document (hors l
 
 test('EXP8 résumé de partage : texte court, scores affichés, aucune photo ni donnée brute', () => {
   const t = X.summaryOf(X.modelOf(ctxOf({ hydration: 30, acne: 70, pores: 70 })));
-  assert.equal(t, 'Mon analyse DERMAI du 10 octobre 2026 : score global 75/100 (Bien). Peau sèche. Axes de soin : hydratation (38). Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.');
+  assert.equal(t, 'Mon analyse DermAI du 10 octobre 2026 : score global 75/100 (Bien). Peau sèche. Axes de soin : hydratation (38). Analyse cosmétique visuelle. DermAI ne pose pas de diagnostic médical.');
   assert.ok(t.length < 400);
   assert.doesNotMatch(t, /raw|photo|http/i);
   const ctx = ctxOf({ hydration: 30 }, {}, { H: true }); ctx.s.rec = { priorities: [{ id: 'hydration', label: 'Hydratation', score: 38, band: 'mid' }], goals: [] };
@@ -195,7 +195,7 @@ test('EXP11 partager : fichier PDF si l\'appareil le permet, sinon texte, sinon 
   const r1 = await X.perform('share', ctx, {}, fakeEnv(nav1));
   assert.deepEqual([r1.ok, r1.via, r1.message], [true, 'file', '']);
   assert.equal(calls[0].files[0].name, 'dermai-analyse-2026-10-10.pdf'); assert.equal(calls[0].files[0].type, 'application/pdf');
-  assert.equal(calls[0].title, 'Mon analyse DERMAI'); assert.match(calls[0].text, /^Mon analyse DERMAI du 10 octobre 2026 : score global 75\/100/);
+  assert.equal(calls[0].title, 'Mon analyse DermAI'); assert.match(calls[0].text, /^Mon analyse DermAI du 10 octobre 2026 : score global 75\/100/);
   // 2. l'appareil ne partage pas de fichier : texte et adresse du site (jamais le résultat)
   const calls2 = [], nav2 = { canShare: () => false, share: async d => { calls2.push(d); } };
   const r2 = await X.perform('share', ctx, {}, fakeEnv(nav2));
@@ -203,7 +203,7 @@ test('EXP11 partager : fichier PDF si l\'appareil le permet, sinon texte, sinon 
   // 3. pas de partage : presse-papiers
   const written = [], r3 = await X.perform('share', ctx, {}, fakeEnv({ clipboard: { writeText: async t => { written.push(t); } } }));
   assert.deepEqual([r3.via, r3.message], ['clipboard', 'Résumé copié : vous pouvez le coller où vous voulez.']);
-  assert.match(written[0], /Mon analyse DERMAI du 10 octobre 2026[\s\S]*\nhttps:\/\/dermai\.example$/);
+  assert.match(written[0], /Mon analyse DermAI du 10 octobre 2026[\s\S]*\nhttps:\/\/dermai\.example$/);
   // 4. ni partage ni presse-papiers : le PDF est téléchargé, et on le dit
   const env4 = fakeEnv({}), r4 = await X.perform('share', ctx, {}, env4);
   assert.deepEqual([r4.via, r4.message, env4.log.anchors.length], ['download', 'Le partage n\'est pas disponible ici : le PDF a été téléchargé.', 1]);
@@ -245,7 +245,7 @@ test('EXP12b case « Inclure ma photo » : au moment de la cocher, rappel que le
   global.document = { querySelector: sel => (sel === '[data-export-status]' ? status : null) };
   try {
     const box = checked => ({ target: { matches: sel => sel === '[data-export-photo]', checked } });
-    X.onChange(box(true)); assert.equal(status.textContent, 'Le fichier pourra circuler hors de DERMAI.');
+    X.onChange(box(true)); assert.equal(status.textContent, 'Le fichier pourra circuler hors de DermAI.');
     X.onChange(box(false)); assert.equal(status.textContent, '');
     status.textContent = 'PDF téléchargé.'; X.onChange({ target: { matches: () => false } }); assert.equal(status.textContent, 'PDF téléchargé.', 'une autre case ne touche pas au message');
   } finally { global.document = saved; }
@@ -275,7 +275,7 @@ test('EXP15 copier le résumé : texte court et adresse du site, sans fabriquer 
   const written = [], env1 = fakeEnv({ clipboard: { writeText: async t => { written.push(t); } } });
   const r1 = await X.perform('copy', ctx, {}, env1);
   assert.deepEqual([r1.ok, r1.via, r1.message, r1.withPhoto], [true, 'copy', 'Résumé copié : vous pouvez le coller où vous voulez.', false]);
-  assert.equal(written[0], 'Mon analyse DERMAI du 10 octobre 2026 : score global 75/100 (Bien). Peau sèche. Axes de soin : hydratation (38). Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.\nhttps://dermai.example');
+  assert.equal(written[0], 'Mon analyse DermAI du 10 octobre 2026 : score global 75/100 (Bien). Peau sèche. Axes de soin : hydratation (38). Analyse cosmétique visuelle. DermAI ne pose pas de diagnostic médical.\nhttps://dermai.example');
   assert.deepEqual([env1.log.created.length, env1.log.anchors.length], [0, 0], 'aucun PDF, aucun téléchargement');
   assert.doesNotMatch(written[0], /raw|photo|rawScore/i);
   // le presse-papiers moderne échoue (page non sécurisée, permission refusée) : copie par sélection
@@ -284,7 +284,7 @@ test('EXP15 copier le résumé : texte court et adresse du site, sans fabriquer 
   const r2 = await X.perform('copy', ctx, {}, { nav: { clipboard: { writeText: async () => { throw new Error('refusé'); } } }, doc });
   assert.deepEqual([r2.ok, r2.via], [true, 'copy']);
   assert.deepEqual(sel.map(x => x[0]), ['append', 'select', 'copy', 'remove']);
-  assert.match(sel[0][1], /^Mon analyse DERMAI du 10 octobre 2026[\s\S]*\nhttps:\/\/dermai\.example$/);
+  assert.match(sel[0][1], /^Mon analyse DermAI du 10 octobre 2026[\s\S]*\nhttps:\/\/dermai\.example$/);
   // aucune copie possible : message clair
   const r3 = await X.perform('copy', ctx, {}, { nav: {}, doc: Object.assign({}, doc, { execCommand: () => false }) });
   assert.deepEqual([r3.ok, r3.message], [false, 'La copie n\'a pas fonctionné. Vous pouvez télécharger le PDF à la place.']);

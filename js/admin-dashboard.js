@@ -1,4 +1,4 @@
-/* DERMAI : page d'administration PRIVÉE du fondateur, V1, LECTURE SEULE (via /api/admin-stats). Module INDÉPENDANT du Studio Beauté : chargé avant js/app.js, qui le crée (AD) et lui donne sa propre vue (V.admin) et sa propre
+/* DermAI : page d'administration PRIVÉE du fondateur, V1, LECTURE SEULE (via /api/admin-stats). Module INDÉPENDANT du Studio Beauté : chargé avant js/app.js, qui le crée (AD) et lui donne sa propre vue (V.admin) et sa propre
    dépendance de menu ; il ne connaît ni le Studio ni ses fichiers.
    Ce module n'est PAS un contrôle d'accès : l'API refuse (404) tout compte non autorisé. L'entrée de menu n'apparaît que si l'API a répondu « fondateur » à une requête d'accès authentifiée ;
    sinon la page se présente comme une page inexistante, sans rien révéler.
@@ -151,7 +151,7 @@ const POLL_MS = 10000;   // liste des comptes ouverte : relue toutes les 10 s ta
         const exp = (c.expected.find(e => e.category === g.category) || { slugs: [] }).slugs;
         return `<div class="c-ad-group"><h3 class="c-ad-h">${esc(g.category)}</h3>${g.items.length ? `<ul class="c-ad-list">${g.items.map(costItem).join('')}</ul>` : `<p class="muted">Aucun coût officiel rapproché de cette fonction (identifiants attendus : ${exp.map(s => `<code>${esc(s)}</code>`).join(', ') || 'aucun'}).</p>`}</div>`;
       }).join('');
-      const un = c.unmatched.length ? `<details class="c-why"><summary>Non rapprochés d'une fonction DERMAI (${c.unmatched.length})</summary><ul class="c-ad-list">${c.unmatched.map(costItem).join('')}</ul></details>` : '';
+      const un = c.unmatched.length ? `<details class="c-why"><summary>Non rapprochés d'une fonction DermAI (${c.unmatched.length})</summary><ul class="c-ad-list">${c.unmatched.map(costItem).join('')}</ul></details>` : '';
       return `<p class="muted">Coût officiel ANNONCÉ par Perfect Corp, par type d'opération. Ce n'est pas la consommation réelle observée, qui n'est pas disponible. Plusieurs lignes peuvent exister pour une même fonction : aucun coût unique n'est attribué à une catégorie.</p>${groups}${un}${c.truncated ? note('Liste tronquée : toutes les pages n\'ont pas été lues.', 'c-notice--warning') : ''}<p class="muted c-ad-stamp">${esc(String(c.total))} ligne${c.total > 1 ? 's' : ''} sur ${esc(String(c.pages))} page${c.pages > 1 ? 's' : ''}.</p>${stamp(c)}`;
     }
 
@@ -216,7 +216,7 @@ const POLL_MS = 10000;   // liste des comptes ouverte : relue toutes les 10 s ta
       return `<p class="c-ad-onl"><b>${esc(num(o.total))}</b> compte${o.total > 1 ? 's' : ''} · <span class="c-ad-on"><b>${on}</b> en ligne</span></p>
         ${o.accounts.length ? `<ul class="c-ad-accs">${o.accounts.map(accountRow).join('')}</ul>` : '<p class="muted">Aucun compte.</p>'}
         ${o.truncated ? note(`Les ${o.accounts.length} comptes les plus récents sur ${num(o.total)}.`, 'c-notice--warning') : ''}
-        <p class="muted c-ad-stamp">Mise à jour automatique toutes les ${POLL_MS / 1000} s tant que cette liste est ouverte. « En ligne » : activité il y a moins de 75 s, page DERMAI ouverte et visible. Les adresses e-mail sont des données personnelles : elles ne sont affichées qu'ici, à vous seul, et oubliées dès que la liste se referme.</p>`;
+        <p class="muted c-ad-stamp">Mise à jour automatique toutes les ${POLL_MS / 1000} s tant que cette liste est ouverte. « En ligne » : activité il y a moins de 75 s, page DermAI ouverte et visible. Les adresses e-mail sont des données personnelles : elles ne sont affichées qu'ici, à vous seul, et oubliées dès que la liste se referme.</p>`;
     }
     function accountsCard() {
       const a = ui.acc, u = ui.sec.usage, uo = u && u.status === 'ok' && u.data && u.data.usage && u.data.usage.status === 'ok' ? u.data.usage : null;

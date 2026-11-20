@@ -82,7 +82,7 @@ test('P8 un objectif n\'est pas un diagnostic : il ne crée ni priorité, ni act
   }
   const r = run({}, {}, { goals: ['hydration'] });
   assert.match(r.personalization.goals[0].text, /aucun actif n'est ajouté/);
-  assert.match(r.explanations.find(e => e.kind === 'mode').text, /DERMAI ne retient aucun besoin particulier/);
+  assert.match(r.explanations.find(e => e.kind === 'mode').text, /DermAI ne retient aucun besoin particulier/);
 });
 
 test('P9 confort choisi par l\'utilisateur : aucun rétinoïde, aucun actif à forte irritation, base d\'hydratation, SPF', () => {

@@ -101,7 +101,7 @@ test('SU6 photo conservée dans le compte : récupérée (JPEG seulement) ; autr
     t = make({ responses: [avail(true), bad] }); t.st.scan = { real: true, rec: { id: 's1' }, photo: 'https://demo.supabase.co/storage/v1/object/sign/x?token=1' };
     await ready(t); t.click('pick', { c: 'acne' }); t.click('run'); await new Promise(r => setTimeout(r, 20));
     assert.equal(t.log.fetch.filter(f => f.method === 'POST').length, 0); assert.equal(t.api.state().needPhoto, true);
-    assert.match(t.api.page(t.st.scan), /La photo de cette analyse n'est plus disponible dans DERMAI/);
+    assert.match(t.api.page(t.st.scan), /La photo de cette analyse n'est plus disponible dans DermAI/);
   }
   t = make({ responses: [avail(true)] }); t.st.scan = { real: true, rec: { id: 's1' }, photo: 'http://insecure/x' };
   await ready(t); assert.match(t.api.page(t.st.scan), /Une photo est nécessaire/); t.click('pick', { c: 'acne' }); t.click('run'); await new Promise(r => setTimeout(r, 10));

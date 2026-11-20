@@ -1,4 +1,4 @@
-/* CATALOGUE RÉEL de produits DERMAI (Afrique entière). Mode réel : seuls les produits listés ICI peuvent apparaître. Aucun produit de démonstration
+/* CATALOGUE RÉEL de produits DermAI (Afrique entière). Mode réel : seuls les produits listés ICI peuvent apparaître. Aucun produit de démonstration
    (data/products.js) n'est jamais montré en mode réel.
 
    PRINCIPE : UN produit → PLUSIEURS offres → plusieurs pays → prix locaux (devise du pays, jamais convertie) → disponibilité locale. Aucun prix ni aucune
@@ -6,7 +6,7 @@
 
    Ajouter un produit = une entrée ci-dessous, avec uniquement des informations vérifiées (un test valide chaque entrée : validateProduct) :
      { id, name, brand, format: '30 ml' | null, category: 'cleanser' | 'serum' | 'moisturizer' | 'spf',
-       ingredients: [{ activeId: 'niacinamide' | … | null, label }],     // activeId = actif DERMAI EXISTANT uniquement ; null pour tout autre ingrédient (jamais de nouvel actif)
+       ingredients: [{ activeId: 'niacinamide' | … | null, label }],     // activeId = actif DermAI EXISTANT uniquement ; null pour tout autre ingrédient (jamais de nouvel actif)
        primaryActiveId, skinTypes: ['all'], skinTypesDocumented: true | false,   // « all » = aucune restriction de classement ; n'est AFFICHÉ que si documenté
        targets, description, active, demo: false,
        status: 'validated' | 'to_verify',   // validated exige : format, INCI complet, source fabricant, actif relié. to_verify : active:false + verification.missing
@@ -20,7 +20,7 @@
    searched_none = une recherche a été faite et n'a trouvé aucune offre fiable (le statut UNAVAILABLE ne s'obtient que comme cela, jamais par simple absence d'offre ici) ; searched_found exige une offre
    valide du même pays. Sans recherche : statut UNKNOWN. Aucune recherche n'est enregistrée à ce jour : les pistes web (Côte d'Ivoire, Nigeria, Ghana...) ne sont pas des vérifications. Aucun effet sur le choix des produits.
    Une annonce de place de marché est une offre de type « marketplace » : ce n'est pas une preuve d'authenticité ni de distribution officielle.
-   editorialPriority (facultatif) : { activeId: rang } — décision éditoriale DERMAI entre produits compatibles avec le MÊME actif (1 = d'abord). Renseigné seulement là où plusieurs produits concourent
+   editorialPriority (facultatif) : { activeId: rang } — décision éditoriale DermAI entre produits compatibles avec le MÊME actif (1 = d'abord). Renseigné seulement là où plusieurs produits concourent
    réellement pour un même pas de routine : vitamin_c (Ascorbyl Glucoside 1, CeraVe Skin Renewing 2) et salicylic (Salicylic Acid 2 % 1, La Roche-Posay Pure Vitamin C10 2). C'est l'ordre éditorial
    ACTUEL, pas un jugement de valeur : il ne dit rien de l'efficacité, du prix ni de la marque. Sans priorité explicite, les produits suivent l'ordre du catalogue, après ceux qui en ont une.
    Aucun champ de score ou de « correspondance ». Les champs commerciaux plats (price, vendor, url, availability) sont interdits ici : tout passe par `offers`.
@@ -30,7 +30,7 @@
    fabricant du produit ; sinon `image: null` et l'interface affiche « Image à venir ». Visuels recadrés en carré (fond transparent) et convertis en WebP.
 
    OFFRES (2026-10-07, étape 16) : prix, vendeur, disponibilité et lien viennent de relevés faits sur les pages marchandes (Jumia, Konga, Swanky Beauty Supply, Care to Beauty) et fournis à
-   DERMAI ; `checkedAt` est la date d'intégration. Ces pages n'ont PAS pu être rouvertes depuis l'environnement d'intégration (réseau bloqué) : chaque offre reste un instantané commercial
+   DermAI ; `checkedAt` est la date d'intégration. Ces pages n'ont PAS pu être rouvertes depuis l'environnement d'intégration (réseau bloqué) : chaque offre reste un instantané commercial
    (prix et stock changent), à revérifier avant tout lancement public. Aucun prix n'est converti ; le prix barré d'une annonce n'est jamais le prix actuel. Un statut « in_stock » n'est posé
    que si la page affiche un stock ; sinon « unknown ». « Few units left » s'écrit en note de stock (stockNote), sans nouveau statut.
    ÉTAT (2026-10-06) : les pages fabricant de The Ordinary (6 produits), CeraVe Afrique (Blemish Control Gel) et La Roche-Posay Afrique (Cicaplast, Pure
@@ -51,9 +51,11 @@
   const MD = 'Page fabricant ouverte directement (téléchargement HTTP) et lue le jour du relevé';
   const src = (label, url, kind) => ({ kind: kind || 'manufacturer', label, url, checkedAt: D, method: M });
   const direct = (label, url) => ({ kind: 'manufacturer', label, url, checkedAt: D, method: MD });
-  const MF = 'Fiche fabricant relevée par l\'équipe DERMAI et fournie au projet ; page non rouverte depuis l\'environnement d\'intégration (réseau bloqué)';
+  const MF = 'Fiche fabricant relevée par l\'équipe DermAI et fournie au projet ; page non rouverte depuis l\'environnement d\'intégration (réseau bloqué)';
   const fournie = (label, url) => ({ kind: 'manufacturer', label, url, checkedAt: D2, method: MF });
   const TO = 'The Ordinary';
+  const D4 = '2026-11-20';   // date de lecture des pages fabricant solaires (lot 5)
+  const MD4 = 'Page fabricant ouverte et lue le jour du relevé (outil de lecture de pages) ; aucune liste INCI ni point de vente par pays sur la page';
 
   const PRODUCTS = [
     { id: 'to-salicylic-2-solution', name: 'Salicylic Acid 2% Solution', brand: TO, format: '30 ml', category: 'serum',
@@ -98,7 +100,7 @@
       description: 'Solution aqueuse à 12 % d\'ascorbyl glucoside, un dérivé hydrosoluble de la vitamine C qui s\'y convertit sur la peau selon la marque. Protection solaire conseillée le jour.',
       active: true, demo: false, status: 'validated',
       inci: ['Aqua (Water)', 'Ascorbyl Glucoside', 'Propanediol', 'Aminomethyl Propanol', 'Triethanolamine', 'Isoceteth-20', 'Xanthan Gum', 'Dimethyl Isosorbide', 'Ethoxydiglycol', 'Trisodium Ethylenediamine Disuccinate', '1,2-Hexanediol', 'Caprylyl Glycol'],
-      inciNote: 'Dérivé de vitamine C (pas de l\'acide ascorbique pur) : rattaché à l\'actif DERMAI « Vitamine C » sans prétendre à la même puissance.',
+      inciNote: 'Dérivé de vitamine C (pas de l\'acide ascorbique pur) : rattaché à l\'actif DermAI « Vitamine C » sans prétendre à la même puissance.',
       sources: [direct('The Ordinary : Ascorbyl Glucoside Solution 12% (30 ml)', 'https://theordinary.com/en-us/ascorbyl-glucoside-solution-12-vitamin-c-100405.html')],
       offers: [
         { market: 'NG', retailer: 'Konga', seller: 'smile time', type: 'marketplace', currency: 'NGN', price: 10000, availability: 'unknown', stockNote: 'Achat proposé sur la fiche, sous réserve de disponibilité locale', url: 'https://www.konga.com/product/the-ordinary-ascorbyl-glucoside-solution-12-30ml-6447242', shipping: null, source: 'Konga : fiche produit', checkedAt: D2 },
@@ -111,7 +113,7 @@
       description: 'Sérum aqueux à 10 % d\'acide mandélique (AHA), présenté par la marque pour la texture et l\'uniformité du teint. Exfoliant : à éviter sur peau sensible, qui pèle ou abîmée, selon la marque.',
       active: true, demo: false, status: 'validated',
       inci: ['Propanediol', 'Aqua (Water)', 'Mandelic Acid', 'Glycerin', 'Dimethyl Isosorbide', 'Sodium Hyaluronate Crosspolymer', 'Tasmannia Lanceolata Fruit/Leaf Extract', 'Pentylene Glycol', 'Polysorbate 20', 'Sodium Hydroxide', 'Ethylhexylglycerin', '1,2-Hexanediol', 'Caprylyl Glycol'],
-      inciNote: 'Rattaché à l\'actif DERMAI existant « Exfoliants chimiques AHA ou PHA » : aucun actif « mandélique » n\'est créé.',
+      inciNote: 'Rattaché à l\'actif DermAI existant « Exfoliants chimiques AHA ou PHA » : aucun actif « mandélique » n\'est créé.',
       sources: [direct('The Ordinary : Mandelic Acid 10% + HA (30 ml)', 'https://theordinary.com/en-us/mandelic-acid-10-ha-exfoliator-100429.html')],
       offers: [
         { market: 'GH', retailer: 'Swanky Beauty Supply', city: 'Accra', type: 'retailer', currency: 'GHS', price: 220, availability: 'unknown', stockNote: 'Retrait en boutique proposé ; stock non affiché', url: 'https://www.swankybeautygh.com/products/the-ordinary-mandelic-acid-10-ha', shipping: null, source: 'Swanky Beauty Supply Ghana : fiche produit', checkedAt: D2 },
@@ -128,9 +130,9 @@
       sources: [direct('The Ordinary : Hyaluronic Acid 2% + B5 (with Ceramides), 30 ml et 60 ml', 'https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html')],
       offers: [
         { market: 'BJ', retailer: 'Lynia Shop', type: 'retailer', currency: 'XOF', price: 12700, availability: 'in_stock', url: null, shipping: null,
-          source: 'Lynia Shop (lynia-shop.com) : relevé fourni par l\'équipe DERMAI, correspondance « with Ceramides » confirmée par elle ; page non rouverte ici', checkedAt: D3 }
+          source: 'Lynia Shop (lynia-shop.com) : relevé fourni par l\'équipe DermAI, correspondance « with Ceramides » confirmée par elle ; page non rouverte ici', checkedAt: D3 }
       ],
-      marketChecks: [{ market: 'BJ', status: 'searched_found', checkedAt: D3, method: 'Fiche vendeur Lynia Shop relevée par l\'équipe DERMAI et fournie au projet ; page non rouverte depuis l\'environnement d\'intégration', note: 'Lien exact de la fiche, ville et type de vendeur à confirmer' }],
+      marketChecks: [{ market: 'BJ', status: 'searched_found', checkedAt: D3, method: 'Fiche vendeur Lynia Shop relevée par l\'équipe DermAI et fournie au projet ; page non rouverte depuis l\'environnement d\'intégration', note: 'Lien exact de la fiche, ville et type de vendeur à confirmer' }],
       image: { src: 'img/products/to-hyaluronic-b5-ceramides.webp', alt: 'Flacon The Ordinary Hyaluronic Acid 2% + B5 (with Ceramides)', sourceUrl: 'https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html', checkedAt: D, credit: 'Visuel : The Ordinary' } },
 
     { id: 'cerave-hydrating-ha-serum', name: 'Hydrating Hyaluronic Acid Serum', brand: 'CeraVe', format: '30 ml', category: 'serum',
@@ -164,9 +166,9 @@
       description: 'Sérum à la vitamine C pure (acide ascorbique, 10 % selon la marque), avec trois céramides, de l\'acide hyaluronique et du panthénol. Présenté par la marque pour l\'éclat et l\'apparence du teint ; le matin, visage et cou, hors contour des yeux.',
       active: true, demo: false, status: 'validated',
       inci: ['Water', 'Ascorbic Acid', 'Glycerin', 'Dimethicone', 'Cetearyl Ethylhexanoate', 'Alcohol Denat.', 'Sodium Hydroxide', 'Ammonium Polyacryloyldimethyl Taurate', 'Panthenol', 'Ceramide NP', 'Ceramide AP', 'Ceramide EOP', 'Carbomer', 'Cetearyl Alcohol', 'Behentrimonium Methosulfate', 'Sodium Hyaluronate', 'Sodium Lauroyl Lactylate', 'Cholesterol', 'Phenoxyethanol', 'Tocopheryl Acetate', 'Disodium EDTA', 'Isopropyl Myristate', 'Caprylyl Glycol', 'Xanthan Gum', 'Phytosphingosine', 'Ethylhexylglycerin'],
-      inciNote: 'Liste publiée par CeraVe au moment du relevé : la marque la met à jour régulièrement et recommande de vérifier l\'emballage. Les céramides, l\'acide hyaluronique, le panthénol et l\'alcool dénaturé figurent dans la formule mais ne créent aucun actif DERMAI : seul l\'actif « Vitamine C » est retenu.',
+      inciNote: 'Liste publiée par CeraVe au moment du relevé : la marque la met à jour régulièrement et recommande de vérifier l\'emballage. Les céramides, l\'acide hyaluronique, le panthénol et l\'alcool dénaturé figurent dans la formule mais ne créent aucun actif DermAI : seul l\'actif « Vitamine C » est retenu.',
       sources: [fournie('CeraVe : Skin Renewing Vitamin C Serum (30 ml)', 'https://www.cerave.com/skincare/facial-serums/skin-renewing-vitamin-c-serum')],
-      /* Offres : `checkedAt` est la date du RELEVÉ (recherche), pas une vérification indépendante par DERMAI (`verifiedAt`, absent ici). À revérifier avant tout lancement public.
+      /* Offres : `checkedAt` est la date du RELEVÉ (recherche), pas une vérification indépendante par DermAI (`verifiedAt`, absent ici). À revérifier avant tout lancement public.
          Non intégrées : Dis-Chem (Afrique du Sud, 530 ZAR repérés) faute de lien vendeur direct ; Jumia Nigeria « Generic » (7 999 NGN), qui n'est pas une offre CeraVe officielle. */
       offers: [
         { market: 'ZA', retailer: 'Clicks', type: 'retailer', currency: 'ZAR', price: 550, availability: 'in_stock', url: 'https://www.clicks.co.za/cerave_skin-renew-vitamin-c-serum-30ml/p/405225', shipping: null, source: 'Clicks South Africa : fiche produit', checkedAt: D2 },
@@ -222,6 +224,23 @@
       active: false, demo: false, status: 'to_verify', inci: null,
       sources: [src('Vichy France : Liftactiv Sérum Vitamine C (20 ml)', 'https://www.vichy.fr/tous-les-produits/soins-de-la-peau/serums-pour-le-visage/signes-de-lage/liftactiv-vitaminc-serum-20ml'), src('Vichy UK : Liftactiv Vitamin C Serum', 'https://www.vichy.co.uk/all-products/skincare/face-serums/ageing-signs/liftactiv-vitamin-c-serum')],
       verification: { missing: ['Nom exact non confirmé : « Liftactiv Vitamin C Serum » (20 ml) et « Liftactiv Supreme Vitamin C Brightening Skin Corrector » sont deux références distinctes chez Vichy', 'Format, dosage et liste INCI de la référence retenue à confirmer sur la fiche fabricant'] },
+      offers: [], image: null },
+
+    /* PROTECTION SOLAIRE (lot 5). Seule fiche fabricant lue : La Roche-Posay Afrique (versions anglaise et française, 2026-11-20). Bioderma et Eucerin : sites africains inaccessibles depuis l'environnement
+       de travail, rien n'est repris de mémoire. « À VÉRIFIER » : jamais recommandé tant que la liste INCI et la disponibilité en Afrique de l'Ouest francophone ne sont pas établies. */
+    { id: 'lrp-anthelios-uvmune-400-invisible-fluid', name: 'Anthelios UVMune 400 Invisible Fluid SPF50+ (non parfumé)', brand: 'La Roche-Posay', format: '50 ml', category: 'spf',
+      ingredients: [{ activeId: null, label: 'Filtres UV (liste INCI non lue : à vérifier)' }],
+      skinTypes: ['all'], skinTypesDocumented: true, targets: [],
+      description: 'Fluide solaire visage SPF 50+, non parfumé, à la texture invisible (fini invisible, non gras, non collant), présenté par la marque pour tous les types de peau et tous les phototypes. La page fabricant en français dit qu\'il ne laisse pas de traces blanches.',
+      sun: { spf: '50+', filters: 'unknown', noWhiteCast: { claimed: true, quote: 'Il ne laisse pas de traces blanches ni de résidu gras, offrant un aspect naturel « peau nue » après l\'application.', source: 'La Roche-Posay Afrique, page produit en français, question « laisse-t-il un fini visible sur la peau ? »' } },
+      active: false, demo: false, status: 'to_verify', inci: null,
+      inciNote: 'Aucune liste d\'ingrédients sur les pages fabricant lues : à relever sur l\'emballage ou auprès de la marque.',
+      sources: [{ kind: 'manufacturer', label: 'La Roche-Posay Afrique : Anthelios UVMune 400 Invisible Fluid SPF50+ non parfumé (page en français)', url: 'https://africa.laroche-posay.com/fr/anthelios/anthelios-uvmune/anthelios-uvmune-400-invisible-fluid-spf50-plus-non-perfumed', checkedAt: D4, method: MD4 },
+        { kind: 'manufacturer', label: 'La Roche-Posay Afrique : Anthelios UVMune 400 Invisible Fluid SPF50+ non perfumed (page en anglais)', url: 'https://africa.laroche-posay.com/en-za/anthelios/anthelios-uvmune/anthelios-uvmune-400-invisible-fluid-spf50-plus-non-perfumed', checkedAt: D4, method: MD4 }],
+      verification: { missing: ['Liste d\'ingrédients (INCI) absente des pages fabricant lues : à relever sur l\'emballage ou auprès de La Roche-Posay',
+        'Disponibilité au Bénin et en Afrique de l\'Ouest francophone NON établie : les pages ne citent aucun pays ni revendeur (« No retailers are selected for this product »)',
+        'Mention « sans traces blanches » lue dans la version française seulement : à confirmer sur l\'emballage',
+        'Aucune offre (prix, vendeur, lien d\'achat) relevée'] },
       offers: [], image: null }
   ];
   return { PRODUCTS };

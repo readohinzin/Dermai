@@ -30,7 +30,7 @@ const EXPECTED = [
   ['cerave-skin-renewing-vitamin-c-serum', 'KE', 'Cosmetics Kenya', null, 'retailer', 'KES', 4995, 'unknown', 'https://cosmetics.ke/skincare/vitamin-c-serums/cerave-vitamin-c-serum/'],
   ['cerave-skin-renewing-vitamin-c-serum', 'NG', 'Konga', null, 'marketplace', 'NGN', 25481, 'unknown', 'https://www.konga.com/product/cerave-skin-renewing-vitamin-c-serum-6770300']
 ];
-/* Phase 3 : première offre béninoise (Lynia Shop), relevée par l'équipe DERMAI le 2026-10-08. Le lien exact de la fiche n'a pas été fourni : url null, jamais inventée. */
+/* Phase 3 : première offre béninoise (Lynia Shop), relevée par l'équipe DermAI le 2026-10-08. Le lien exact de la fiche n'a pas été fourni : url null, jamais inventée. */
 const BENIN = [['to-hyaluronic-b5-ceramides', 'BJ', 'Lynia Shop', null, 'retailer', 'XOF', 12700, 'in_stock', null]];
 const offerOf = (id, market, retailer) => P.offersOf(P.byId(id, REAL) || { demo: true }).find(o => o.market === market && o.retailer === retailer);
 const INV = require('./fixtures/catalog-inventory.js');
@@ -132,7 +132,7 @@ test('V7 place de marché : Jumia et Konga restent des places de marché, avec l
   assert.ok(n > 0);
   const jumiaNg = offerOf('cerave-hydrating-ha-serum', 'NG', 'Jumia Nigeria'); if (jumiaNg) assert.equal(jumiaNg.seller, 'Annette Trudan');
   const konga = rawOf('to-ascorbyl-glucoside-12', 'NG', 'Konga'); if (konga) assert.equal(konga.seller, 'smile time');
-  assert.match(copy().OFFER_TEXTS.marketplace, /DERMAI ne garantit pas l'authenticité/);
+  assert.match(copy().OFFER_TEXTS.marketplace, /DermAI ne garantit pas l'authenticité/);
   assert.deepEqual(P.validateOffer({ market: 'NG', retailer: 'Konga', type: 'marketplace', availability: 'unknown', source: 's', checkedAt: DAY, seller: '' }).length > 0, true, 'seller vide refusé');
   // règle générale : une place de marché (type marketplace) est toujours présentée comme telle, jamais comme le site du fabricant
   for (const p of REAL) for (const o of P.offersOf(p)) assert.equal(o.marketplace, o.type === 'marketplace');

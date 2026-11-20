@@ -116,10 +116,10 @@ test('BJ-K donnée de marché invalide → validation rejetée ; toute offre BJ 
   }
 });
 
-/* Cas de référence figé (Lynia Shop, relevé du 2026-10-08, fourni par l'équipe DERMAI) : l'observation exacte, indépendante du contenu courant du catalogue. */
+/* Cas de référence figé (Lynia Shop, relevé du 2026-10-08, fourni par l'équipe DermAI) : l'observation exacte, indépendante du contenu courant du catalogue. */
 const LYNIA = { market: 'BJ', retailer: 'Lynia Shop', type: 'retailer', currency: 'XOF', price: 12700, availability: 'in_stock', url: null, shipping: null,
-  source: 'Lynia Shop (lynia-shop.com) : relevé fourni par l\'équipe DERMAI, correspondance « with Ceramides » confirmée par elle ; page non rouverte ici', checkedAt: '2026-10-08' };
-const LYNIA_CHECK = { market: 'BJ', status: 'searched_found', checkedAt: '2026-10-08', method: 'Fiche vendeur relevée par l\'équipe DERMAI et fournie au projet ; page non rouverte' };
+  source: 'Lynia Shop (lynia-shop.com) : relevé fourni par l\'équipe DermAI, correspondance « with Ceramides » confirmée par elle ; page non rouverte ici', checkedAt: '2026-10-08' };
+const LYNIA_CHECK = { market: 'BJ', status: 'searched_found', checkedAt: '2026-10-08', method: 'Fiche vendeur relevée par l\'équipe DermAI et fournie au projet ; page non rouverte' };
 
 test('BJ-L1 cas de référence Lynia (observation figée) : LOCAL, offre partielle sans lien, rien d\'inventé, décision inchangée', () => {
   const base = REAL.find(x => x.id === HYA) || INV.usableProducts[0];

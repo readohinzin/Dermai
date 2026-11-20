@@ -13,7 +13,7 @@
     { id: 'p1', name: 'Gel nettoyant doux', brand: 'Nuru Lab', category: 'cleanser', type: 'pump', color: '#E9C4CC', price: { amount: 6500, currency: 'XOF' },
       ingredients: [{ activeId: 'glycerin', label: 'Glycérine' }, { activeId: 'salicylic', label: 'Acide salicylique 0,5 %' }], skinTypes: ['combination'], targets: ['pores', 'acne'],
       vendor: null, availability: null, url: null, demo: true },
-    { id: 'p2', name: 'Sérum Éclat Vitamine C 10 %', brand: 'Oria', category: 'serum', type: 'dropper', color: '#E9B99A', price: { amount: 12900, currency: 'XOF' },
+    { id: 'p2', name: 'Sérum Teint Uniforme Vitamine C 10 %', brand: 'Oria', category: 'serum', type: 'dropper', color: '#E9B99A', price: { amount: 12900, currency: 'XOF' },
       ingredients: [{ activeId: 'vitamin_c', label: 'Vitamine C 10 %' }, { activeId: null, label: 'Vitamine E' }], skinTypes: ['all'], targets: ['pigmentation', 'radiance'],
       vendor: null, availability: null, url: null, demo: true },
     { id: 'p3', name: 'Sérum Uniformité Acide azélaïque 10 %', brand: 'Kalma', category: 'serum', type: 'dropper', color: '#D9A3B0', price: { amount: 15500, currency: 'XOF' },

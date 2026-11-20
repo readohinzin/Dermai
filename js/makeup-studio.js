@@ -1,4 +1,4 @@
-/* DERMAI : « Studio Beauté », essayage virtuel de maquillage (Perfect Corp AI Makeup Virtual Try-On, via /api/makeup-vto). Chargé avant app.js, après js/makeup-data.js.
+/* DermAI : « Studio Beauté », essayage virtuel de maquillage (Perfect Corp AI Makeup Virtual Try-On, via /api/makeup-vto). Chargé avant app.js, après js/makeup-data.js.
    L'image obtenue est une ILLUSTRATION générée par ordinateur, pas une promesse de rendu : le rendu réel d'un produit peut différer. L'écran le dit.
 
    Ce module ne parle qu'à /api/makeup-vto (jamais à Perfect Corp, jamais à l'analyse ni à la simulation) et ne lance JAMAIS d'analyse.
@@ -34,7 +34,7 @@
     unreadable: 'Impossible de lire cette photo. Essayez une autre image.',
     download: 'Le téléchargement direct n\'est pas possible ici : l\'image s\'est ouverte dans un nouvel onglet. Appuyez longuement dessus pour l\'enregistrer.'
   };
-  const DATA_NOTE = 'Aperçu généré par ordinateur : le rendu réel d\'un produit peut différer (couleur, texture, tenue). Votre peau n\'est pas retouchée : DERMAI n\'applique aucun lissage et ne modifie ni vos scores ni votre analyse.';
+  const DATA_NOTE = 'Aperçu généré par ordinateur : le rendu réel d\'un produit peut différer (couleur, texture, tenue). Votre peau n\'est pas retouchée : DermAI n\'applique aucun lissage et ne modifie ni vos scores ni votre analyse.';
   const okImage = u => {
     if (typeof u !== 'string' || u.length > 4096) return false;
     try {

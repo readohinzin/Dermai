@@ -8,7 +8,7 @@
    vide tant qu'aucune donnée vérifiée n'existe). L'appelant choisit le catalogue ; sans choix, le moteur utilise la démonstration (tests).
 
    MODÈLE D'UN PRODUIT (voir validateProduct) :
-     éditorial (décidé par DERMAI) : id, name, brand, category, ingredients [{ activeId | null, label }], skinTypes, targets, description, active, demo, editorialPriority (facultatif)
+     éditorial (décidé par DermAI) : id, name, brand, category, ingredients [{ activeId | null, label }], skinTypes, targets, description, active, demo, editorialPriority (facultatif)
      Départage entre produits compatibles avec le même actif : actifs recherchés présents, type de peau, `editorialPriority[actif]` explicite (1 = d'abord), puis ordre du catalogue en repli. Indépendant du marché.
      identité vérifiée (produits réels) : status ('validated' | 'to_verify'), format, inci, sources [{ kind, label, url, checkedAt, method }], verification
      commercial, produits RÉELS : `offers` [{ market, retailer, type, currency, price, availability, url, source, checkedAt, shipping }]. UN produit, PLUSIEURS offres,
@@ -22,8 +22,8 @@
   const isNode = typeof module === 'object' && module.exports;
   const E = root.DermaiEngine || {};
   const dep = isNode
-    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js'), markets: require('./data/markets.js') }
-    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel, markets: E.marketsData };
+    ? { pdata: require('./data/products.js'), actives: require('./actives.js'), copy: require('./copy.fr.js'), indicators: require('./data/indicators.js'), skin: require('../skin-model.js'), markets: require('./data/markets.js'), prevention: require('./data/prevention.js'), sun: require('./data/sun.js') }
+    : { pdata: E.productsData, actives: E.actives, copy: E.copy, indicators: E.indicatorsData, skin: root.SkinModel, markets: E.marketsData, prevention: E.preventionData, sun: E.sunData };
   const api = factory(dep);
   if (isNode) module.exports = api;
   else { const NS = (root.DermaiEngine = root.DermaiEngine || {}); NS.products = api; }
@@ -60,7 +60,9 @@
   const strong = id => { const a = actives.byId(id); return !!a && a.groups.length > 0; };
   const skinOk = (p, base) => !base || p.skinTypes.includes('all') || p.skinTypes.includes(base);
   /* Un produit désactivé (`active: false`) n'est ni recommandé ni listé. */
-  const usable = catalog => (catalog || PRODUCTS).filter(p => p && p.active !== false && p.status !== 'to_verify');
+  /* Un produit n'est JAMAIS sélectionné s'il contient une substance exclue (hydroquinone, mercure, corticoïdes, arbutine, acide kojique, glutathion…) ou s'il promet d'éclaircir la peau.
+     Un produit réel sans liste INCI (composition non vérifiable) est refusé à la validation du catalogue et ne peut pas être actif : data/prevention.js. */
+  const usable = catalog => (catalog || PRODUCTS).filter(p => p && p.active !== false && p.status !== 'to_verify' && !dep.prevention.blocked(p));
 
   /* ---------- Validation du modèle ---------- */
   const isHttps = u => { try { const x = new URL(u); return x.protocol === 'https:' && u.length <= 500; } catch (e) { return false; } };
@@ -84,7 +86,7 @@
     for (const [k, max] of [['seller', 80], ['city', 60], ['stockNote', 100]]) if (o[k] != null && !text(o[k], max)) e.push('offre : ' + k + ' invalide');
     if (!text(o.source, 160)) e.push('offre : source manquante');
     if (!isDate(o.checkedAt)) e.push('offre : date de vérification manquante');
-    /* checkedAt = date du RELEVÉ (source, recherche). verifiedAt = date d'une vérification indépendante par DERMAI, absente tant qu'aucune n'a eu lieu : un relevé n'est pas une vérification. */
+    /* checkedAt = date du RELEVÉ (source, recherche). verifiedAt = date d'une vérification indépendante par DermAI, absente tant qu'aucune n'a eu lieu : un relevé n'est pas une vérification. */
     if (o.verifiedAt != null && !isDate(o.verifiedAt)) e.push('offre : date de vérification indépendante invalide');
     if (o.url != null && !isRealLink(o.url)) e.push('offre : lien d\'achat invalide (https réel obligatoire)');
     if (o.price != null) {
@@ -126,7 +128,7 @@
     if (!Array.isArray(p.targets) || p.targets.some(t => !dep.skin.METRIC_KEYS.includes(t))) e.push('indicateurs ciblés invalides');
     if (p.category === 'serum' && Array.isArray(p.ingredients) && !p.ingredients.some(i => i && i.activeId)) e.push('un soin ciblé doit être relié à un actif');
     if (p.primaryActiveId != null && !(Array.isArray(p.ingredients) && p.ingredients.some(i => i && i.activeId === p.primaryActiveId))) e.push('actif principal absent des ingrédients');
-    /* editorialPriority : { activeId: entier ≥ 1 } — ordre éditorial voulu par DERMAI entre produits compatibles avec le MÊME actif (1 = d'abord). Valeur relative, sans calcul, jamais affichée. */
+    /* editorialPriority : { activeId: entier ≥ 1 } — ordre éditorial voulu par DermAI entre produits compatibles avec le MÊME actif (1 = d'abord). Valeur relative, sans calcul, jamais affichée. */
     if (p.editorialPriority != null) {
       const ep = p.editorialPriority;
       if (typeof ep !== 'object' || Array.isArray(ep)) e.push('editorialPriority doit être un objet { actif: rang }');
@@ -202,6 +204,11 @@
         if (!isRealLink(p.image.sourceUrl) || !isDate(p.image.checkedAt) || !text(p.image.credit, 80)) e.push('image réelle : page d\'origine (https), date et crédit obligatoires');
       }
     }
+    for (const m of dep.sun.validate(p)) e.push(m);
+    const sf = dep.prevention.check(p);
+    if (sf.excluded.length) e.push('substance exclue (' + sf.excluded.join(', ') + ') : jamais dans le catalogue');
+    if (sf.claims.length) e.push('promesse d\'éclaircissement (« ' + sf.claims[0] + ' ») : jamais dans le catalogue');
+    if (sf.unverifiable && p.status === 'validated') e.push('composition non vérifiable : un produit validé exige sa liste INCI');
     return e;
   }
   function validateCatalog(list) {
@@ -318,7 +325,8 @@
     for (const slot of ['morning', 'evening']) {
       routine.slots[slot].forEach(step => {
         if (step.owned) return;
-        const candidates = list.map((p, order) => ({ p, order })).filter(({ p }) => fitsStep(p, step)).filter(({ p }) => rejection(p, step, ctx) === null);
+        const ranked = step.kind === 'spf' ? [...list].sort((x, y) => (dep.sun.claimsNoWhiteCast(x) ? 0 : 1) - (dep.sun.claimsNoWhiteCast(y) ? 0 : 1)) : list;   // solaire : « sans trace blanche » (mention du fabricant) d'abord, tri stable
+        const candidates = ranked.map((p, order) => ({ p, order })).filter(({ p }) => fitsStep(p, step)).filter(({ p }) => rejection(p, step, ctx) === null);
         let wanted = [];
         if (step.kind === 'treatment') wanted = [step.activeId];
         if (step.kind === 'moisturize') wanted = step.supportIds;
@@ -333,13 +341,17 @@
         /* Justification obligatoire (produits réels) : un produit n'est proposé que si sa fiche contient ce que l'étape recherche
            (l'actif du soin ciblé, ou un ingrédient de soutien retenu pour l'hydratant). Une étape qui ne recherche rien (hydratant
            d'entretien, nettoyant, protection solaire) ne reçoit aucun produit réel « par défaut ». Les produits de démonstration restent des exemples. */
-        if (!wanted.length) pool = pool.filter(c => c.p.demo === true);
+        /* Protection solaire (réel) : proposée seulement si sa fiche porte un indice de 30 ou plus et une liste INCI lisible (data/sun.js) ; parmi elles, celles dont le fabricant dit « sans trace blanche »
+           passent d'abord (préférence, jamais un score : elle réordonne le point de départ du catalogue, la chaîne de tri reste actifs, peau, priorité, ordre). Un produit solaire « à vérifier » est déjà écarté par usable(). */
+        if (step.kind === 'spf') pool = pool.filter(c => c.p.demo === true || dep.sun.isSunOk(c.p));
+        else if (!wanted.length) pool = pool.filter(c => c.p.demo === true);
+        const whiteCast = p => (step.kind === 'spf' && dep.sun.claimsNoWhiteCast(p) ? 0 : 1);   // sert à nommer la règle appliquée (white_cast)
         pool = pool.sort((a, b) => score(b) - score(a) || (skinOk(b.p, routine.skinBase) - skinOk(a.p, routine.skinBase)) || byPrio(a, b) || a.order - b.order);
         if (!pool.length) return;
         const p = pool[0].p, because = wanted.filter(id => ids(p).includes(id));
         /* Règle de départage réellement appliquée (pour expliquer « pourquoi celui-ci plutôt qu'un autre ») */
         const sec = pool[1];
-        const rule = !sec ? 'only' : score(pool[0]) !== score(sec) ? 'more_actives' : skinOk(p, routine.skinBase) !== skinOk(sec.p, routine.skinBase) ? 'skin' : byPrio(pool[0], sec) !== 0 ? 'editorial' : 'order';
+        const rule = !sec ? 'only' : score(pool[0]) !== score(sec) ? 'more_actives' : skinOk(p, routine.skinBase) !== skinOk(sec.p, routine.skinBase) ? 'skin' : whiteCast(p) !== whiteCast(sec.p) ? 'white_cast' : byPrio(pool[0], sec) !== 0 ? 'editorial' : 'order';
         out.push(Object.assign({ stepId: step.id, kind: step.kind, productId: p.id, activeIds: because,
           because: because.length ? copy.productBecause(because.map(id => actives.byId(id).label)) : null, demo: p.demo === true,
           selection: { rule, candidates: pool.length } }, step.origin === 'accompaniment' ? { origin: 'accompaniment' } : {}));   // l'origine n'est notée que pour un soin d'accompagnement

@@ -30,7 +30,7 @@ test('PH2 cas évidents bloquants : trop petite, format panoramique, presque noi
   const black = check({ gray: make(192, 256, () => 6) }); assert.equal(black.level, 'block'); assert.ok(codes(black).includes('black'));
   const white = check({ gray: make(192, 256, () => 252) }); assert.equal(white.level, 'block'); assert.ok(codes(white).includes('white'));
   assert.equal(PC.assess({ width: 0, height: 0 }).level, 'block');
-  for (const r of [check({ width: 200, height: 260 }), black, white]) { assert.equal(r.title, 'Photo inutilisable'); assert.ok(r.issues.every(i => i.text.length > 20)); }
+  for (const r of [check({ width: 200, height: 260 }), black, white]) { assert.equal(r.title, 'Photo à refaire' /* lot 6 : ex-« Photo inutilisable » */); assert.ok(r.issues.every(i => i.text.length > 20)); }
 });
 
 test('PH3 doutes non bloquants : petite, sombre, surexposée, floue ; l\'utilisatrice garde le choix', () => {

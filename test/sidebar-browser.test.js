@@ -39,7 +39,7 @@ const clean = env => {
   assert.deepEqual(env.stats.escaped.filter(u => !/fonts\.(googleapis|gstatic)\.com/.test(u)), []);
   assert.ok(!env.stats.escaped.some(u => /perfectcorp|youcam|yce|makeupar/i.test(u)));
 };
-const TARGETS = [['Tableau de bord', 'home'], ['Analyser ma peau', 'scan'], ['Mes analyses', 'analyses'], ['DERMAI Évolution', 'progress'], ['Programme de soins', 'program'], ['Vérif\'Routine', 'verif'], ['Ma routine', 'routine'], ['Profil et paramètres', 'profile']];
+const TARGETS = [['Tableau de bord', 'home'], ['Analyser ma peau', 'scan'], ['Mes analyses', 'analyses'], ['DermAI Évolution', 'progress'], ['Programme de soins', 'program'], ['Vérif\'Routine', 'verif'], ['Ma routine', 'routine'], ['Profil et paramètres', 'profile']];
 const visible = (page, sel) => page.locator(sel).first().isVisible();
 const wait = page => page.waitForTimeout(350);        // durée de la transition du panneau (0,22 s)
 const hOverflow = page => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -95,7 +95,7 @@ test('SBB2 chaque entrée ouvre la bonne vraie vue, avec la bonne adresse et la 
   await page.evaluate(() => go('privacy'));
   assert.ok((await page.locator('#sidebar [aria-current="page"]').innerText()).startsWith('Profil et paramètres'));
   // l'entrée « Évolution » ouvre le vrai écran (bilan puis comparatif)
-  await page.locator('#sidebar .sidebar__link', { hasText: 'DERMAI Évolution' }).click();
+  await page.locator('#sidebar .sidebar__link', { hasText: 'DermAI Évolution' }).click();
   const t = await page.locator('main.main').innerText();
   assert.match(t, /Votre évolution/); assert.match(t, /Bilan de votre évolution/);
   await page.locator('#sidebar .sidebar__link', { hasText: 'Programme de soins' }).click();
@@ -240,7 +240,7 @@ test('SBB9 les écrans existants fonctionnent avec la nouvelle navigation : menu
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   seed(env); await boot(env);
   const { page } = env;
-  for (const [label, route] of [['Ma routine', 'routine'], ['DERMAI Évolution', 'progress'], ['Profil et paramètres', 'profile'], ['Tableau de bord', 'home']]) {
+  for (const [label, route] of [['Ma routine', 'routine'], ['DermAI Évolution', 'progress'], ['Profil et paramètres', 'profile'], ['Tableau de bord', 'home']]) {
     await page.click('.sidebar__toggle'); await wait(page);
     await page.locator('#sidebar .sidebar__link', { hasText: label }).click();
     await page.waitForFunction(r => state.route === r, route);
@@ -275,7 +275,7 @@ test('SBB11 simulation ouverte pour le compte : l\'entrée apparaît (ordinateur
   await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(150);
   const entry = page.locator('#sidebar .sidebar__link', { hasText: 'Simulation cosmétique' });
   await entry.waitFor({ state: 'visible', timeout: 10000 });
-  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DERMAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres', 'Se déconnecter']);
+  assert.deepEqual(await page.locator('#sidebar .sidebar__text').allInnerTexts(), ['Tableau de bord', 'Analyser ma peau', 'Mes analyses', 'DermAI Évolution', 'Programme de soins', 'Vérif\'Routine', 'Simulation cosmétique', 'Ma routine', 'Profil et paramètres', 'Se déconnecter']);
   assert.equal(await page.locator('.sidebar__badge').count(), 1, 'le badge reste réservé à Évolution');
   await entry.click();
   await page.waitForFunction(() => state.route === 'simulation');
@@ -391,12 +391,12 @@ test('SBB16 depuis le profil : le bouton « Se déconnecter » existant fonction
   clean(env); await env.close();
 });
 
-test('SBB14 mobile : bouton de menu à DROITE (logo centré), estompé quand le panneau est ouvert ; croix nue à droite de l\'en-tête ; entrées aérées, « Se déconnecter » en couleur d\'alerte', opts, async () => {
+test('SBB14 mobile : bouton de menu à DROITE (le bouton clair / sombre juste avant, logo à gauche), estompé quand le panneau est ouvert ; croix nue à droite de l\'en-tête ; entrées aérées, « Se déconnecter » en couleur d\'alerte', opts, async () => {
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   seed(env); await boot(env);
   const { page } = env, tg = page.locator('.sidebar__toggle');
   const W = 420, tb = await tg.boundingBox(), logo = await page.locator('.m-brand .brand').first().boundingBox();
-  assert.ok(tb.x + tb.width > W - 40 && tb.x > W / 2, 'bouton à droite : ' + JSON.stringify(tb)); assert.ok(Math.abs((logo.x + logo.width / 2) - W / 2) < 30, 'le logo reste centré : ' + JSON.stringify(logo));
+  assert.ok(tb.x + tb.width > W - 40 && tb.x > W / 2, 'bouton à droite : ' + JSON.stringify(tb)); assert.ok(Math.abs(logo.x - 12) <= 1 && logo.x + logo.width < tb.x, 'le logo est à l\'extrême gauche : ' + JSON.stringify(logo));
   const look = () => page.evaluate(() => { const s = getComputedStyle(document.querySelector('.sidebar__toggle')); return { border: s.borderTopColor, color: s.color, bg: s.backgroundColor }; });
   const closed = await look();
   await tg.click(); await wait(page);

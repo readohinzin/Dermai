@@ -14,8 +14,8 @@ const app = read('js/app.js');
 const STEPS = r => [...r.routinePlan.slots.morning, ...r.routinePlan.slots.evening];
 
 test('UX1 « aucune priorité forte » : message mesuré, sans « parfaite », « aucun problème » ni diagnostic', () => {
-  /* Étape 25 : « priorité » est réservé à une vraie décision DERMAI ; sans besoin retenu, on le dit simplement. */
-  assert.equal(copy.MAINTENANCE.title, 'DERMAI ne retient aucun besoin particulier.');
+  /* Étape 25 : « priorité » est réservé à une vraie décision DermAI ; sans besoin retenu, on le dit simplement. */
+  assert.equal(copy.MAINTENANCE.title, 'DermAI ne retient aucun besoin particulier.');
   assert.equal(copy.MAINTENANCE.text, 'Votre routine reste une routine d\'entretien de base : nettoyage doux, hydratation et protection solaire.');
   const all = [copy.MAINTENANCE.title, copy.MAINTENANCE.text, copy.PERSONAL.measuredNone].join(' ');
   assert.doesNotMatch(all, /parfait|aucun probl[eè]me|aucune imperfection|tout va bien|diagnostic/i);
@@ -81,7 +81,7 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
   assert.equal(copy.EYE_GROUP_TITLE, 'Contour des yeux — à titre informatif');
   assert.match(app, /const rest=H\?\[\]:eng\.interpretation\.indicators\.filter\(i=>!P\.items\.some\(p=>p\.indicator===i\.id\)\)\.map\(asShown\),eyeOf=m=>m\.score!==null&&isInfo\(m\)/);
   assert.match(app, /asShown=m=>Object\.assign\(\{\},m,\{band:m\.uiBand,bandLabel:m\.uiBandLabel\}\)/, 'badges et barres : bande du score affiché, jamais la décision');
-  assert.equal((app.match(/P\.items\.map\(asShown\)/g) || []).length, 2, 'accueil et résultat : besoins retenus affichés avec le score affiché et « Retenu par DERMAI »');
+  assert.equal((app.match(/P\.items\.map\(asShown\)/g) || []).length, 2, 'accueil et résultat : besoins retenus affichés avec le score affiché et « Retenu par DermAI »');
   assert.match(app, /others=H\?othersH:rest\.filter\(m=>!eyeOf\(m\)\)\.map\(rowOf\)\.join\(``\),eyeRows=rest\.filter\(eyeOf\)\.map\(rowOf\)\.join\(``\)/);
   assert.match(app, /\$\{eyeRows\?`<div class="c-indicators-group"><h3 class="c-indicators-group__title">\$\{Engine\.copy\.EYE_GROUP_TITLE\}<\/h3><ul class="c-indicators">\$\{eyeRows\}<\/ul><\/div>`:``\}/);
   // chaque ligne informative garde son badge « À titre d'information » et aucune recommandation
@@ -95,8 +95,11 @@ test('UX6 contour des yeux : les indicateurs informatifs sont regroupés sous un
 /* Empreinte des sorties du moteur (décisions ET textes) sur 1500 profils. Étape 27 : `overflow` (priorities) et `origin` (étapes de routine) sont des clés
    AJOUTÉES, pas des décisions ; `uiBandLabel` est un LIBELLÉ d'affichage renommé (« Favorable » devient « Niveau élevé », il contredisait un accompagnement) : remappé ici à son ancienne valeur. Le libellé du domaine « Imperfections » est devenu « Acné et imperfections » (texte seulement, pour que les personnes retrouvent le mot « acné ») : remappé de même.
    Clés ajoutées exclues, libellé remappé : l'empreinte d'avant l'accompagnement est retrouvée octet pour octet. */
+/* Lot 2 (peaux foncées) : badges « Score élevé / intermédiaire / plus bas » (« Niveau élevé » se lisait comme beaucoup d'acné) : remappés à leur ancienne valeur, comme à l'étape 27. */
+/* Écriture de la marque : l'ancienne écriture en capitales devient « DermAI » partout (texte seulement) : remappée à l'ancienne valeur, l'empreinte reste identique. */
+const UX7_OLD_BAND = { 'Score élevé': 'Favorable', 'Score intermédiaire': 'Intermédiaire', 'Score plus bas': 'Plus bas' };
 function ux7Fingerprint() {
-  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || k === 'origin' || (k === 'reason' && this.slot && this.kind)) ? undefined : (k === 'uiBandLabel' && v === 'Niveau élevé' ? 'Favorable' : (typeof v === 'string' ? v.replace(/([Aa])cné et imperfections/g, (m, c) => (c === 'A' ? 'Imperfections' : 'imperfections')) : v)); };
+  const replacer = function (k, v) { return (k === 'texture' || k === 'overflow' || k === 'origin' || (k === 'reason' && this.slot && this.kind)) ? undefined : (k === 'uiBandLabel' && v in UX7_OLD_BAND ? UX7_OLD_BAND[v] : (typeof v === 'string' ? v.replace(/([Aa])cné et imperfections/g, (m, c) => (c === 'A' ? 'Imperfections' : 'imperfections')).replace(/DermAI/g, 'DERM' + 'AI') : v)); };
   const out = [];
   for (let s = 1; s <= 1500; s++) {
     const c = randomCase(s * 37 + 5), r = Engine.run(norm(c.ui, c.o), c.profile, { catalog: C.PRODUCTS });

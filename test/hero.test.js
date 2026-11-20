@@ -18,7 +18,7 @@ const html = Hero.html(ctx);
 test('H1 balisage : région carrousel, 4 diapositives étiquetées, un seul h1, seule la première exposée, commandes accessibles', () => {
   assert.equal((html.match(/class="hc-slide /g) || []).length, 4);
   assert.equal((html.match(/<h1 /g) || []).length, 1); assert.equal((html.match(/<h2 /g) || []).length, 3);
-  assert.match(html, /<section class="hc" data-hc aria-roledescription="carrousel" aria-label="Présentation de DERMAI">/);
+  assert.match(html, /<section class="hc" data-hc aria-roledescription="carrousel" aria-label="Présentation de DermAI">/);
   for (let i = 1; i <= 4; i++) assert.match(html, new RegExp(`role="group" aria-roledescription="diapositive" aria-label="${i} sur 4"`));
   assert.equal((html.match(/aria-hidden="true" inert>/g) || []).length, 3, 'les diapositives masquées sont inertes');
   assert.equal((html.match(/data-hc-go="\d"/g) || []).length, 4);
@@ -35,7 +35,7 @@ test('H2 contenu : titres, boutons et mention d\'illustration ; textes en franç
   assert.deepEqual(lines(html).slice(3), ['Des scores clairs,', 'zone par zone.', 'Des actifs choisis', 'pour vous.', 'Votre peau évolue.', 'Suivez-la.']);
   assert.equal((html.match(/data-go="signup"/g) || []).length, 4, 'le bouton principal de chaque diapositive mène à l\'inscription (visiteur)');
   assert.equal(Hero.html({ ...ctx, cta: { go: 'scan' } }).match(/data-go="scan"/g).length, 4, 'connecté : vers l\'analyse');
-  // mention visible retirée à la demande de l'équipe : l'équivalent texte reste lu par les lecteurs d'écran, la section « Ce que DERMAI observe » garde la sienne
+  // mention visible retirée à la demande de l'équipe : l'équivalent texte reste lu par les lecteurs d'écran, la section « Ce que DermAI observe » garde la sienne
   assert.doesNotMatch(html, /hc-cap|Illustration : personne fictive/);
   assert.equal((html.match(/<p class="u-sr">Exemple illustratif : personne fictive, scores d'exemple, aucun résultat réel\.<\/p>/g) || []).length, 4);
   assert.doesNotMatch(html, /[—–]/, 'aucun tiret cadratin');
@@ -113,7 +113,7 @@ test('H7 branchement : module chargé avant l\'application, démarré à l\'accu
   assert.match(app, /if\(state\.route===`landing`\)\{const el=document\.querySelector\(`\[data-hc\]`\);if\(el\)heroCtl=DermaiHero\.init\(el,\{reduced:false,/);
   for (const id of ['how', 'observe', 'routine-sec', 'evolve']) assert.match(app, new RegExp(`id="${id}"`), id);
   for (const s of Hero.SLIDES) assert.ok(app.includes(`id="${s.more[0]}"`), 'cible du bouton secondaire : ' + s.more[0]);
-  // l'ancien visage du hero n'est plus utilisé dans la bannière, la section « Ce que DERMAI observe » garde le sien ; le trio de visages est décoratif et décrit une fois
+  // l'ancien visage du hero n'est plus utilisé dans la bannière, la section « Ce que DermAI observe » garde le sien ; le trio de visages est décoratif et décrit une fois
   assert.equal((app.match(/<div class="facebox">\$\{portrait\(/g) || []).length, 1);
   assert.match(app, /\$\{faces\(\[4,5,1\]\)\}/); assert.match(app, /role="img" aria-label="Trois portraits fictifs de femmes/); assert.match(app, /<span class="fc fc--\$\{i\+1\}" aria-hidden="true"><img src="\$\{DermaiHero\.personSrc\(n\)\}" width="504" height="504" alt=""/);
 });

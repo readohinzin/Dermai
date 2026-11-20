@@ -38,7 +38,7 @@ async function ready(browserOpts, { openScan = true } = {}) {
   if (openScan) await pickPhoto(env);
   return env;
 }
-function checkClean(env) {   // rien n'a quitté le banc d'essai, rien n'a atteint un serveur DERMAI ni Perfect Corp
+function checkClean(env) {   // rien n'a quitté le banc d'essai, rien n'a atteint un serveur DermAI ni Perfect Corp
   const bad = env.stats.escaped.filter(u => !/fonts\.(googleapis|gstatic)\.com/.test(u));
   assert.deepEqual(bad, [], 'aucune requête sortante');
   assert.deepEqual(env.stats.serverApi, [], 'aucune requête /api/ n\'a atteint le serveur local');
@@ -179,7 +179,7 @@ test('B7 issue ambiguë : message honnête, blocage 65 s (même après rechargem
   checkClean(env); await env.close();
 });
 
-test('B8 réponse sans verdict DERMAI (page d\'erreur de la plateforme) : traitée comme incertaine ; refus JSON du serveur : pas de blocage', opts, async () => {
+test('B8 réponse sans verdict DermAI (page d\'erreur de la plateforme) : traitée comme incertaine ; refus JSON du serveur : pas de blocage', opts, async () => {
   let env = await ready({ user: { email: 'a@exemple.com' }, behaviors: [{ status: 504, contentType: 'text/html', body: '<html>FUNCTION_INVOCATION_TIMEOUT</html>' }] });
   await env.page.click('[data-act=analyze]');
   await env.page.waitForFunction(() => state.route === 'scan' && state.scanError);

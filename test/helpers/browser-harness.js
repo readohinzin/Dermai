@@ -39,6 +39,7 @@ function startServer(stats) {
     const srv = http.createServer((req, res) => {
       const url = new URL(req.url, 'http://x');
       if (url.pathname === '/api/config-js') { res.setHeader('Content-Type', MIME['.js']); return res.end(`window.DERMAI_CONFIG={demoMode:false,supabaseUrl:${JSON.stringify(SB)},supabaseAnonKey:"anon-key-for-tests"};`); }
+      if (url.pathname === '/api/version') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ version: stats.version || 'test' })); }   // bannière de mise à jour : version constante, aucune bannière
       if (url.pathname.startsWith('/api/')) { stats.serverApi.push(url.pathname); res.statusCode = 599; return res.end('blocked by test'); }   // ne doit jamais arriver
       let file = path.join(ROOT, decodeURIComponent(url.pathname));
       if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(ROOT, 'index.html');   // comme vercel.json

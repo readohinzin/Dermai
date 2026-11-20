@@ -1,4 +1,4 @@
-/* DERMAI : barre latérale de navigation. Un seul élément <aside> : colonne fixe à gauche sur ordinateur (dès 920 px), panneau coulissant sur mobile ouvert par une icône de menu.
+/* DermAI : barre latérale de navigation. Un seul élément <aside> : colonne fixe à gauche sur ordinateur (dès 920 px), panneau coulissant sur mobile ouvert par une icône de menu.
    Chargé avant app.js. Le module ne connaît ni le réseau, ni le stockage, ni les analyses : il écrit du HTML (liste d'entrées vers les écrans EXISTANTS, via le mécanisme
    de navigation déjà en place : attributs data-go, traités par app.js) et gère l'ouverture du panneau mobile (bouton, fond, Échap, clavier). Aucune entrée ne contourne
    l'authentification : un clic appelle go(), comme la barre du bas, et chaque écran applique ses propres protections.
@@ -16,7 +16,7 @@
     { id: 'home', label: 'Tableau de bord', icon: 'home', go: 'home', routes: ['home', 'result', 'concern'] },
     { id: 'scan', label: 'Analyser ma peau', icon: 'scan', go: 'scan', routes: ['scan', 'analyzing'] },
     { id: 'analyses', label: 'Mes analyses', icon: 'layers', go: 'analyses', routes: ['analyses'] },
-    { id: 'progress', label: 'DERMAI Évolution', icon: 'chart', go: 'progress', routes: ['progress'], fresh: true },
+    { id: 'progress', label: 'DermAI Évolution', icon: 'chart', go: 'progress', routes: ['progress'], fresh: true },
     { id: 'program', label: 'Programme de soins', icon: 'calendar', go: 'program', routes: ['program'] },
     { id: 'verif', label: 'Vérif\'Routine', icon: 'shield', go: 'verif', routes: ['verif'] },
     { id: 'simulation', label: 'Simulation cosmétique', icon: 'sparkle', go: 'simulation', routes: ['simulation'], when: 'simulation' },
@@ -27,7 +27,7 @@
   const OTHERS = [
     { id: 'profile', label: 'Profil et paramètres', icon: 'user', go: 'profile', routes: ['profile', 'privacy'], avatar: true }
   ];
-  /* Indicateur « Nouveau » sur DERMAI Évolution : limité dans le temps (aucun stockage), puis il disparaît tout seul. */
+  /* Indicateur « Nouveau » sur DermAI Évolution : limité dans le temps (aucun stockage), puis il disparaît tout seul. */
   const NEW_UNTIL = Date.parse('2026-12-15T00:00:00Z');
   const WIDE = '(min-width:920px)';
 
@@ -74,7 +74,7 @@
       <div class="sidebar__head">${d.brand ? d.brand(52) : ''}<button type="button" class="sidebar__close" data-sb="close" aria-label="Fermer le menu">${ic('close')}</button></div>
       <nav aria-label="Menu principal"><ul class="sidebar__list">${ITEMS.filter(allowed).map(i => link(i, cur)).join('')}</ul></nav>
       <div class="sidebar__foot"><p class="sidebar__label">Autres accès</p><nav aria-label="Compte"><ul class="sidebar__list">${OTHERS.map(i => link(i, cur)).join('')}${signedIn() ? logoutItem() : ''}</ul></nav>
-      <small>Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.</small></div></aside>
+      ${typeof DermaiTheme !== 'undefined' ? DermaiTheme.compact() : ''}<small>Analyse cosmétique visuelle. DermAI ne pose pas de diagnostic médical.</small></div></aside>
       <div class="sidebar__scrim" data-sb="close"${open ? ' data-open="1"' : ''} aria-hidden="true"></div>`;
     }
     /* Icône de menu (mobile), placée dans l'en-tête de page. */

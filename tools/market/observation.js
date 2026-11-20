@@ -13,7 +13,7 @@
 const P = require('../../js/engine/products.js');
 
 const SCHEMA_VERSION = 1;
-const MARKETS = P.MARKETS;                                        // pays connus de DERMAI (code ISO → nom) : même source que le catalogue et availabilityStatus
+const MARKETS = P.MARKETS;                                        // pays connus de DermAI (code ISO → nom) : même source que le catalogue et availabilityStatus
 
 /* Identité du produit vis-à-vis du produit visé, déduite de la CLASSE du matcher (jamais d'un score). */
 const IDENTITY_OF_CLASS = { EXACT_MATCH: 'TARGET', STRONG_MATCH: 'TARGET', POSSIBLE_MATCH: 'AMBIGUOUS', VARIANT_MATCH: 'VARIANT', NO_MATCH: 'OTHER' };
@@ -23,7 +23,7 @@ const STOCK_STATES = ['IN_STOCK', 'OUT_OF_STOCK', 'COMING_SOON', 'UNKNOWN'];
 const STOCK_ALIASES = { in_stock: 'IN_STOCK', out_of_stock: 'OUT_OF_STOCK', coming_soon: 'COMING_SOON', unknown: 'UNKNOWN' };
 const SELLER_TYPES = ['retailer', 'pharmacy', 'marketplace', 'brand', 'brand_site', 'importer', 'other'];
 const SOURCE_KINDS = ['seller_page', 'marketplace_listing', 'team_provided', 'manufacturer_page', 'search_engine', 'snippet', 'secondary'];
-/* Base d'un pays de vendeur. ÉTABLIE : la page du vendeur le dit, un registre vérifié le dit, l'équipe DERMAI l'a relevé, le catalogue l'a enregistré avec sa source. Les autres sont des INDICES. */
+/* Base d'un pays de vendeur. ÉTABLIE : la page du vendeur le dit, un registre vérifié le dit, l'équipe DermAI l'a relevé, le catalogue l'a enregistré avec sa source. Les autres sont des INDICES. */
 const COUNTRY_BASES_ESTABLISHED = ['seller_page', 'registry', 'team_provided', 'catalog_offer'];
 const COUNTRY_BASES_HINT = ['currency', 'domain', 'language', 'phone', 'shipping_mention', 'inferred'];
 const URL_KINDS = ['product_page', 'seller', 'category', 'search', 'unclassified'];

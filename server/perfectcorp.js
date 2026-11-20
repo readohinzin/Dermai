@@ -30,7 +30,7 @@ function requireKey(env) {
 
 const authHeaders = env => ({ Authorization: `Bearer ${env.apiKey}` });
 
-/* Traduit un statut HTTP en erreur DERMAI. Le corps n'est jamais renvoyé au client. */
+/* Traduit un statut HTTP en erreur DermAI. Le corps n'est jamais renvoyé au client. */
 async function httpError(res, step) {
   let body = '';
   try { body = (await res.text()).slice(0, 500); } catch (e) { /* ignoré */ }
@@ -97,7 +97,7 @@ async function requestUploadUrl({ size, mime, fileName = 'photo.jpg' }, env = ma
   if (!file || !file.file_id || !req0 || !req0.url) {
     throw new AnalysisError('SERVICE_UNAVAILABLE', { status: 502, detail: 'file : file_id ou url absents de la réponse' });
   }
-  console.log('[DERMAI] Perfect Corp upload URL obtained');
+  console.log('[DermAI] Perfect Corp upload URL obtained');
   return { fileId: file.file_id, url: req0.url, method: req0.method || 'PUT', headers: req0.headers || {} };
 }
 
@@ -106,7 +106,7 @@ async function uploadFile({ url, method = 'PUT', headers = {}, buffer, mime }, e
   const h = { ...headers };
   if (!Object.keys(h).some(k => k.toLowerCase() === 'content-type')) h['Content-Type'] = mime;
   await call(env, 'upload', url, { method, headers: h, body: buffer });
-  console.log('[DERMAI] Perfect Corp file uploaded');
+  console.log('[DermAI] Perfect Corp file uploaded');
 }
 
 /* 3. Création de la tâche (actions SD uniquement, résultat en JSON). Renvoie le task_id. */
@@ -119,7 +119,7 @@ async function createSkinAnalysisTask({ fileId, actions = PERFECT_CORP_SKIN_ACTI
   }, readJson, env.budget.minTaskMs);   // seuil plus haut : ne pas créer une tâche (crédit engagé) sans de quoi l'interroger au moins une fois
   const taskId = json && json.data && json.data.task_id;
   if (!taskId) throw new AnalysisError('SERVICE_UNAVAILABLE', { status: 502, detail: 'task : task_id absent de la réponse' });
-  console.log('[DERMAI] Task created');
+  console.log('[DermAI] Task created');
   return taskId;
 }
 
@@ -141,7 +141,7 @@ async function pollSkinAnalysisTask(taskId, env = makeEnv()) {
     const json = await getSkinAnalysisTask(taskId, env);
     const status = json && json.data && json.data.task_status;
     if (status === 'success') {
-      console.log('[DERMAI] Task completed');
+      console.log('[DermAI] Task completed');
       return json;
     }
     if (status === 'error') {

@@ -30,7 +30,7 @@
 
   const activeRule = id => data.CONFLICT_RULES.find(r => r.id === id && r.status === 'validated');
 
-  /* Force du lien actif → indicateur (voir `evidence` des données) : 2 preuve directe, 1 indirecte, 0 règle éditoriale DERMAI seulement. */
+  /* Force du lien actif → indicateur (voir `evidence` des données) : 2 preuve directe, 1 indirecte, 0 règle éditoriale DermAI seulement. */
   const strength = (a, ind) => (a.evidence.direct.includes(ind) ? 2 : a.evidence.indirect.includes(ind) ? 1 : 0);
   /* Couverture : seuls les liens directs ou indirects comptent ; une simple règle éditoriale ne justifie pas de remplacer un meilleur choix. */
   const coverage = (a, prio) => prio.filter(i => strength(a, i) >= 1).length;

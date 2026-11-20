@@ -1,8 +1,8 @@
-/* Couche ACCOMPAGNEMENT (étape 27) : quels indicateurs, sans être une priorité, DERMAI peut accompagner avec un soin doux, et pourquoi.
+/* Couche ACCOMPAGNEMENT (étape 27) : quels indicateurs, sans être une priorité, DermAI peut accompagner avec un soin doux, et pourquoi.
    Deuxième voie, calculée APRÈS les priorités : priorities.js reste inchangé (mêmes repères 50 / 25, même ordre, même plafond de 3).
 
    Trois niveaux, jamais confondus :
-     1. AXE d'accompagnement : cet indicateur peut faire partie de ce que DERMAI propose (ce module) ;
+     1. AXE d'accompagnement : cet indicateur peut faire partie de ce que DermAI propose (ce module) ;
      2. RECOMMANDATION       : l'actif doux concerné et l'état du produit (actives.js, products.js) ;
      3. SOIN ajouté          : une étape réellement présente dans la routine (actives.addAccompaniment, routine.js).
    Un axe identifié n'est PAS un soin automatiquement ajouté.

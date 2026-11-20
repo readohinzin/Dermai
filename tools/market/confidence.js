@@ -35,7 +35,7 @@ const REASONS = {
   URL_PRODUCT_PAGE: 'lien : fiche produit', URL_SELLER_ROOT: 'lien : page d\'accueil du vendeur (pas une fiche produit)', URL_CATEGORY: 'lien : page de catégorie (pas une fiche produit)', URL_SEARCH: 'lien : page de recherche (pas une fiche produit)',
   URL_KIND_UNKNOWN: 'lien : présent, nature non établie', URL_ABSENT: 'lien : absent',
   // source
-  SOURCE_SELLER_PAGE_REOPENED: 'source : page du vendeur, rouverte', SOURCE_SELLER_PAGE_NOT_REOPENED: 'source : page du vendeur, non rouverte', SOURCE_TEAM_PROVIDED: 'source : relevé fourni par l\'équipe DERMAI, page non rouverte',
+  SOURCE_SELLER_PAGE_REOPENED: 'source : page du vendeur, rouverte', SOURCE_SELLER_PAGE_NOT_REOPENED: 'source : page du vendeur, non rouverte', SOURCE_TEAM_PROVIDED: 'source : relevé fourni par l\'équipe DermAI, page non rouverte',
   SOURCE_MARKETPLACE_REOPENED: 'source : fiche de place de marché, rouverte', SOURCE_MARKETPLACE_NOT_REOPENED: 'source : fiche de place de marché, non rouverte',
   SOURCE_MANUFACTURER_ONLY: 'source : fiche fabricant (établit le produit, pas une vente)', SOURCE_WEAK: 'source : moteur de recherche, extrait ou source secondaire', SOURCE_UNKNOWN: 'source : non indiquée',
   // fraîcheur
@@ -43,7 +43,7 @@ const REASONS = {
   FRESHNESS_UNKNOWN: 'fraîcheur : date du relevé absente, invalide ou référence temporelle non fournie', FRESHNESS_FUTURE_DATE: 'fraîcheur : date du relevé postérieure à la date de référence',
   // plafonds du niveau global
   CAP_PRODUCT_NOT_TARGET: 'plafond : le produit n\'est pas établi comme le produit visé', CAP_CONTRADICTION: 'plafond : indications contradictoires dans l\'observation',
-  CAP_SOURCE_WEAK: 'plafond : source faible ou non indiquée', CAP_SOURCE_NOT_FIRST_HAND: 'plafond : source non rouverte par DERMAI', CAP_SELLER_UNKNOWN: 'plafond : vendeur inconnu',
+  CAP_SOURCE_WEAK: 'plafond : source faible ou non indiquée', CAP_SOURCE_NOT_FIRST_HAND: 'plafond : source non rouverte par DermAI', CAP_SELLER_UNKNOWN: 'plafond : vendeur inconnu',
   CAP_FRESHNESS: 'plafond : relevé ni frais ni daté', CAP_INCOMPLETE: 'plafond : fiche incomplète (prix, stock explicite ou fiche produit manquants)',
   // résultat
   ALL_REQUIREMENTS_MET: 'toutes les conditions du niveau élevé sont réunies',
@@ -107,7 +107,7 @@ function urlDim(o) {
   return dim(table[k][0], table[k][1], { kind: k });
 }
 /* Hiérarchie des sources, justifiée par CE QU'ELLE PEUT ÉTABLIR (une vente, un prix, un stock, un vendeur) et par la possibilité de le revérifier :
-   - la page du vendeur établit tout cela ; rouverte par DERMAI, elle est de première main (HIGH) ; non rouverte, on s'appuie sur un relevé (MEDIUM) ;
+   - la page du vendeur établit tout cela ; rouverte par DermAI, elle est de première main (HIGH) ; non rouverte, on s'appuie sur un relevé (MEDIUM) ;
    - un relevé fourni par l'équipe est humain mais indirect (MEDIUM) ; une fiche de place de marché porte un vendeur tiers (MEDIUM si rouverte, sinon LOW) ;
    - la fiche fabricant établit le PRODUIT, jamais une vente (LOW pour une offre) ; moteur de recherche, extrait et source secondaire sont incomplets ou indirects (LOW). */
 function sourceDim(o) {

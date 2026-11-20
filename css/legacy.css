@@ -1,5 +1,4 @@
-/* Feuille historique de la maquette, inchangée sauf : thème sombre automatique retiré
-   (Design System v1, option B : clair uniquement pour l'instant). Chargée dans @layer legacy. */
+/* Feuille historique de la maquette. Thème sombre : voir css/tokens.css (même règle : réglage du système, sauf choix « Clair »). Chargée dans @layer legacy. */
 :root{
   --bg:#FFF9FA;--surface:#FFFFFF;--surface-2:#FBECEF;--surface-3:#F8E7EA;--rose:#F5DDE2;--rose-deep:#D98F9F;
   --ink:#211B1D;--ink-2:#5C4E53;--ink-3:#77676C;--line:rgba(84,47,59,.13);
@@ -9,7 +8,8 @@
   color-scheme:light;
   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
-:root[data-theme="dark"]{--bg:#171214;--surface:#211A1D;--surface-2:#2A2024;--surface-3:#33262B;--rose:#3A2A30;--rose-deep:#D98F9F;--ink:#F7EEF0;--ink-2:#CDBDC2;--ink-3:#A8979D;--line:rgba(248,231,234,.14);--accent:#F0BBC7;--accent-soft:#3A2A30;--btn:#F0BBC7;--on-btn:#2A1219;--on-ink:#171214;--cam:#120C0F}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#171214;--surface:#211A1D;--surface-2:#2A2024;--surface-3:#33262B;--rose:#3A2A30;--rose-deep:#D98F9F;--ink:#F7EEF0;--ink-2:#CDBDC2;--ink-3:#A8979D;--line:rgba(248,231,234,.14);--accent:#F0BBC7;--accent-soft:#3A2A30;--btn:#F0BBC7;--on-btn:#2A1219;--on-ink:#171214;--cam:#120C0F;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#171214;--surface:#211A1D;--surface-2:#2A2024;--surface-3:#33262B;--rose:#3A2A30;--rose-deep:#D98F9F;--ink:#F7EEF0;--ink-2:#CDBDC2;--ink-3:#A8979D;--line:rgba(248,231,234,.14);--accent:#F0BBC7;--accent-soft:#3A2A30;--btn:#F0BBC7;--on-btn:#2A1219;--on-ink:#171214;--cam:#120C0F;color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 *{box-sizing:border-box;margin:0}
 body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;font-size:16px;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
@@ -122,7 +122,7 @@ section+section{margin-top:0}
 .cam{position:relative;aspect-ratio:3/4;background:var(--cam);border-radius:30px;overflow:hidden;color:#F6F3EE;isolation:isolate}
 .cam.ready .oval{border-color:#A9D3C1}
 .cam .label{position:absolute;top:16px;left:0;right:0;text-align:center;font-size:14px;z-index:2;color:#F6F3EE}
-.cam .label span{display:inline-block;padding:6px 14px;border-radius:99px;background:rgba(22,21,20,.6)}
+.cam .label span{display:inline-block;padding:6px 14px;border-radius:99px;background:rgba(22,21,20,.78)}   /* sur n'importe quelle photo : au moins 7 pour 1 */
 .qual{position:absolute;bottom:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:center;gap:10px;z-index:2;padding:10px 14px;border-radius:99px;background:rgba(22,21,20,.68);font-size:14px;color:#F6F3EE}
 .qual .qd{display:flex;gap:3px;align-items:flex-end}
 .qual .qd i{width:4px;background:rgba(246,243,238,.35);border-radius:2px}
@@ -286,7 +286,7 @@ select.sel{min-height:44px;border-radius:99px;border:1px solid var(--line);backg
 .next .cal small{font-size:12px;color:var(--ink-3)}
 
 /* =========================================================
-   DERMAI v2 : identité rose poudré, portrait, animations
+   DermAI v2 : identité rose poudré, portrait, animations
    ========================================================= */
 h1,h2,h3,.h3{font-family:var(--serif);font-weight:400}
 h1{font-size:clamp(2.1rem,8vw,3.1rem);line-height:1.08}

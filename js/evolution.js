@@ -1,4 +1,4 @@
-/* DERMAI Évolution : bilan en langage clair entre deux analyses ENREGISTRÉES, raccourcis de sélection, photos côte à côte. Chargé avant app.js.
+/* DermAI Évolution : bilan en langage clair entre deux analyses ENREGISTRÉES, raccourcis de sélection, photos côte à côte. Chargé avant app.js.
    Module sans accès au réseau, au stockage ni au fournisseur d'analyse : il ne lit que les analyses déjà chargées dans l'application (tableau SCANS) et l'état du
    programme de 30 jours déjà présent dans ce navigateur. Il ne lance jamais d'analyse, n'écrit rien, ne garde aucun lien de photo.
 
@@ -17,6 +17,8 @@
 })(typeof self !== 'undefined' ? self : this, function (root) {
   'use strict';
   const skin = () => (typeof module === 'object' && module.exports ? require('./skin-model.js') : root.SkinModel);
+  /* Teint foncé : la mesure de rougeur est masquée à l'affichage (copie, jamais la donnée enregistrée). */
+  const shown = n => (root.DermaiTone && root.DermaiTone.view ? root.DermaiTone.view(n) : n);
   const NEUTRAL = ['oiliness', 'texture', 'radiance'];                                   // direction non documentée par le fournisseur
   const EYE = ['eyeBag', 'tearTrough', 'darkCircle', 'droopyUpperEyelid', 'droopyLowerEyelid'];   // information indicative seulement
   const DAY_MS = 86400000;
@@ -40,7 +42,7 @@
     unsavedSome: 'Une analyse récente n\'est pas encore enregistrée : elle n\'est pas incluse dans ce bilan.',
     hasMore: 'Votre historique contient d\'autres analyses, plus anciennes que celles affichées. Affichez-les avec « Voir plus d\'analyses » dans « Mes analyses » pour comparer depuis votre toute première analyse.',
     programMissing: 'L\'analyse de départ de votre programme est introuvable : elle a pu être supprimée, ne pas être enregistrée, ou ne pas être encore chargée. Choisissez les deux analyses à comparer ci-dessous.',
-    programLatest: 'Aucune analyse n\'est plus récente que celle du début de votre programme. Une nouvelle analyse reste possible quand vous le souhaitez ; DERMAI n\'en lance jamais automatiquement.',
+    programLatest: 'Aucune analyse n\'est plus récente que celle du début de votre programme. Une nouvelle analyse reste possible quand vous le souhaitez ; DermAI n\'en lance jamais automatiquement.',
     programNone: 'Aucun programme de soins n\'est commencé sur cet appareil.',
     programInfo: (s, a) => `Programme commencé le ${s}${a ? `, à partir de votre analyse du ${a}` : ''}. Ces dates sont indicatives : elles ne disent pas que le programme a causé les variations.`,
     photoBoth: 'Photos côte à côte',
@@ -56,7 +58,7 @@
 
   /* Forme neutre d'une analyse chargée (entrée SCANS de l'application) : { saved, at, scores, global }. Rien n'est déduit : un score invalide donne null. */
   function fromScan(scan) {
-    const M = skin(), n = scan && scan.normalized;
+    const M = skin(), n = scan && shown(scan.normalized);
     if (!scan || !n) return null;
     const scores = {};
     M.METRIC_KEYS.forEach(k => { const v = M.displayScore(n[k] && n[k].uiScore); scores[k] = isScore(v) ? v : null; });

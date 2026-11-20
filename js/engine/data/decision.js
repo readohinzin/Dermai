@@ -1,5 +1,5 @@
-/* Configuration de DÉCISION du moteur DERMAI : sur quelle donnée DERMAI décide, avec quels repères, et quel rôle a chaque indicateur.
-   Aucune logique ici. Tout ce qui suit est un choix DERMAI, PROVISOIRE : rien de cela n'est fourni ni validé par Perfect Corp.
+/* Configuration de DÉCISION du moteur DermAI : sur quelle donnée DermAI décide, avec quels repères, et quel rôle a chaque indicateur.
+   Aucune logique ici. Tout ce qui suit est un choix DermAI, PROVISOIRE : rien de cela n'est fourni ni validé par Perfect Corp.
 
    Ce que dit Perfect Corp (documentation Skin Analysis) :
      - raw_score : nombre de 1 à 100, plus haut = meilleur état cutané : c'est la mesure de l'analyse ;
@@ -8,13 +8,13 @@
      - aucune bande, aucun seuil, aucun « problème » n'est défini par le fournisseur.
    Donc : le score AFFICHÉ reste le ui_score ; les DÉCISIONS (comparer, classer, retenir un besoin) lisent le raw_score.
 
-   Repères de décision sur raw_score (« repères DERMAI provisoires ») :
+   Repères de décision sur raw_score (« repères DermAI provisoires ») :
      - good : 50 et plus  → moitié haute de l'échelle documentée (1 à 100) : jamais un besoin ;
-     - mid  : 25 à 49,99  → moitié basse : un besoin peut être retenu, seulement pour un indicateur actionnable avec une règle DERMAI ;
+     - mid  : 25 à 49,99  → moitié basse : un besoin peut être retenu, seulement pour un indicateur actionnable avec une règle DermAI ;
      - low  : moins de 25 → quart le plus bas : même règle, avec plus de prudence (mode confort pour les rougeurs).
    Ce ne sont PAS les seuils d'affichage 61 / 31 transposés : ceux-là portaient sur le ui_score et ne sont plus utilisés pour décider,
    sauf en compatibilité, pour une analyse ancienne qui n'a pas de raw_score (rien n'est alors inventé ni reconstruit).
-   À revoir dès que DERMAI dispose de données de calibration réelles. */
+   À revoir dès que DermAI dispose de données de calibration réelles. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -27,7 +27,7 @@
   /* Base de décision préférée. « ui » n'est utilisé qu'en compatibilité, quand l'analyse n'a pas de raw_score exploitable. */
   const PREFERRED_BASIS = 'raw';
 
-  /* Repères DERMAI provisoires sur raw_score (voir l'en-tête). Ordre décroissant de `min`. */
+  /* Repères DermAI provisoires sur raw_score (voir l'en-tête). Ordre décroissant de `min`. */
   const RAW_BANDS = [
     { key: 'good', label: 'Repère favorable', min: 50 },
     { key: 'mid', label: 'Repère moins élevé', min: 25 },
@@ -44,7 +44,7 @@
   const TIE_TOLERANCE = 2;
 
   /* Rôle de chaque indicateur dans la décision.
-     actionable  : un besoin peut être retenu (repère mid ou low) quand une règle DERMAI et un actif validé existent ;
+     actionable  : un besoin peut être retenu (repère mid ou low) quand une règle DermAI et un actif validé existent ;
      goal_gated  : information seulement, SAUF si l'utilisateur a choisi l'objectif indiqué (`goal`) ET que le repère est mid ou low ;
      descriptive : décrit seulement, jamais d'actif automatique (direction ou levier cosmétique non établis) ;
      informative : contour des yeux, information seulement.
@@ -68,7 +68,7 @@
   };
 
   /* ACCOMPAGNEMENT des indicateurs au niveau « good » (étape 27). Une deuxième voie, ajoutée APRÈS les priorités LOW/MID, qui ne les modifie pas.
-     Trois niveaux distincts : un AXE d'accompagnement (ce que DERMAI repère), une RECOMMANDATION (l'actif doux concerné et l'état du produit),
+     Trois niveaux distincts : un AXE d'accompagnement (ce que DermAI repère), une RECOMMANDATION (l'actif doux concerné et l'état du produit),
      un SOIN d'accompagnement (une étape réellement ajoutée à la routine). Un axe identifié n'est jamais un soin automatiquement ajouté.
      MAX_ACCOMPANIMENT_AXES        : axes nommés au plus. Ne règle QUE l'affichage et la sélection : n'augmente aucun plafond de soins.
                                      0 désactive l'accompagnement (preuve que la nouvelle voie est additive : C0).

@@ -63,11 +63,11 @@ test('G6 azélaïque : ni exfoliant ni rétinoïde (hors groupe evening_strong),
   for (const a of data.ACTIVES) assert.ok(!('conflicts' in a) && !('pairsWith' in a), a.id);
 });
 
-test('G7 seuils : 61 Bien, 60 À soutenir, 31 À soutenir, 30 À surveiller (éditoriaux DERMAI)', () => {
+test('G7 seuils : 61 Bien, 60 À soutenir, 31 À soutenir, 30 À surveiller (éditoriaux DermAI)', () => {
   const band = v => M.scoreBand(v).label;
   assert.deepEqual([61, 60, 31, 30].map(band), ['Bien', 'À soutenir', 'À soutenir', 'À surveiller']);
   const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../js/skin-model.js'), 'utf8');
-  assert.match(src, /Editorial DERMAI thresholds .* NOT supplied by Perfect Corp/);
+  assert.match(src, /Editorial DermAI thresholds .* NOT supplied by Perfect Corp/);
 });
 
 test('G8 contour des yeux : informatif, jamais une priorité ni un actif', () => {
@@ -80,7 +80,7 @@ test('G8 contour des yeux : informatif, jamais une priorité ni un actif', () =>
 });
 
 test('G9 rawScore complet : il décide seul ; le score affiché ne change aucune décision', () => {
-  /* Étape 25 : quand chaque indicateur a un rawScore, les décisions lisent le rawScore (repères DERMAI provisoires) ; le ui_score ne sert
+  /* Étape 25 : quand chaque indicateur a un rawScore, les décisions lisent le rawScore (repères DermAI provisoires) ; le ui_score ne sert
      plus qu'à l'affichage. Même raw, ui très différents → mêmes décisions. */
   const raw = { acne: 30, hydration: 40 };
   const a = run({ acne: 95, hydration: 90 }, { rawMap: raw, rawFill: 80 }), b = run({ acne: 20, hydration: 10 }, { rawMap: raw, rawFill: 80 });

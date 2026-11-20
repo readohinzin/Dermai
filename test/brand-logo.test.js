@@ -1,5 +1,5 @@
 'use strict';
-/* Logo DERMAI : fichiers du projet (fond transparent, WebP), intégration accessible, favicon et icône iOS. */
+/* Logo DermAI : fichiers du projet (fond transparent, WebP), intégration accessible, favicon et icône iOS. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -34,14 +34,14 @@ test('B2 icônes : favicon (ico et png 32), icône iOS 180 px, déclarées dans 
   assert.match(html, /<link rel="icon" href="\/favicon\.ico" sizes="any">/);
   assert.match(html, /<link rel="icon" type="image\/png" sizes="32x32" href="\/img\/brand\/favicon-32\.png">/);
   assert.match(html, /<link rel="apple-touch-icon" href="\/apple-touch-icon\.png">/);
-  assert.match(html, /<meta name="theme-color" content="#FFF9FA">/);
+  assert.match(html, /<meta name="theme-color" content="#FFF9FA"( media="\(prefers-color-scheme: light\)")?>/);   // thème sombre : une seconde balise suit le réglage du système
 });
 
 test('B3 intégration : bouton accessible, image décorative aux dimensions fixes, aucun logo en texte, aucune ressource distante', () => {
   const app = read('js/app.js'), css = read('css/components/nav.css');
-  assert.match(app, /const brandBtn=h=>`<button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DERMAI, page d'accueil"><img class="brand-logo" src="img\/brand\/dermai-logo-360\.webp" width="\$\{Math\.round\(h\*BRAND_AR\)\}" height="\$\{h\}" alt="" decoding="async"><\/button>`/);
+  assert.match(app, /const brandBtn=h=>`<button class="brand" type="button" data-go="landing" data-reset="1" aria-label="DermAI, page d'accueil"><img class="brand-logo" src="img\/brand\/dermai-logo-360\.webp" width="\$\{Math\.round\(h\*BRAND_AR\)\}" height="\$\{h\}" alt="" decoding="async"><\/button>`/);
   assert.match(app, /src="img\/brand\/dermai-mark-256\.webp"/);
-  assert.doesNotMatch(app, />DERMAI<\/button>/);
+  assert.doesNotMatch(app, />DermAI<\/button>/);
   assert.match(css, /\.brand \.brand-logo\{[^}]*max-width:100%[^}]*height:auto\}/);
   assert.doesNotMatch(css.match(/\.brand \.brand-logo\{[^}]*\}/)[0], /width:auto/, 'ne pas écraser la largeur déclarée');
   assert.match(css, /button\.brand\{[^}]*min-height:var\(--tap\)/, 'zone de toucher conservée');
@@ -50,7 +50,7 @@ test('B3 intégration : bouton accessible, image décorative aux dimensions fixe
 
 test('B4 titre et aperçu de lien : plus de « maquette », description, Open Graph avec une image de partage CARRÉE (le D seul, vignette compacte dans WhatsApp)', () => {
   const html = read('index.html');
-  assert.match(html, /<title>DERMAI, analyse de peau par IA et routine personnalisée<\/title>/);
+  assert.match(html, /<title>DermAI, analyse de peau par IA et routine personnalisée<\/title>/);
   assert.match(html, /name="description" content="[^"]*par IA[^"]*pas un diagnostic médical/, 'l\'IA est mise en avant, la mention « pas un diagnostic médical » reste');
   assert.doesNotMatch(html, /dermatolog/i, 'aucune allégation dermatologique : l\'analyse est cosmétique');
   assert.doesNotMatch(html, /maquette/i);

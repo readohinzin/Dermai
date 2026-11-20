@@ -54,20 +54,20 @@ test('REF-A la carte des preuves est valide, couvre les 15 indicateurs et classe
   assert.ok(EV.ENTRIES.filter(x => x.sourceUrl && /perfectcorp\.com/.test(x.sourceUrl)).every(x => x.consulted === 'search_excerpt'));
   // le rétinol reste rangé sous « retinoid » (à valider) : aucun id « retinol »
   assert.ok(!EV.ENTRIES.some(x => x.activeId === 'retinol'));
-  // une ligne « dermAI_inference » sur un actif DERMAI doit exister réellement dans les préférences du moteur (la carte décrit le moteur, ne le pilote pas)
+  // une ligne « dermAI_inference » sur un actif DermAI doit exister réellement dans les préférences du moteur (la carte décrit le moteur, ne le pilote pas)
   for (const x of EV.ENTRIES.filter(y => y.evidenceLevel === 'dermAI_inference')) assert.ok((AD.PREFERENCE[x.indicator] || []).includes(x.activeId), 'PREFERENCE : ' + x.indicator + '/' + x.activeId);
 });
 
-test('REF-A2 trois actifs candidats : documentés, jamais activés', () => {
-  assert.deepEqual(EV.CANDIDATE_ACTIVES, ['benzoyl_peroxide', 'tea_tree', 'alpha_arbutin']);
+test('REF-A2 deux actifs candidats : documentés, jamais activés (l\'alpha-arbutine, un éclaircissant, n\'en fait plus partie : lot 4)', () => {
+  assert.deepEqual(EV.CANDIDATE_ACTIVES, ['benzoyl_peroxide', 'tea_tree']);
   const cands = EV.ENTRIES.filter(x => x.status === 'candidate_not_enabled');
-  assert.deepEqual(cands.map(x => x.activeId).sort(), ['alpha_arbutin', 'benzoyl_peroxide', 'tea_tree']);
+  assert.deepEqual(cands.map(x => x.activeId).sort(), ['benzoyl_peroxide', 'tea_tree']);
+  assert.ok(!EV.ENTRIES.some(x => x.activeId === 'alpha_arbutin'), 'aucune ligne sur un éclaircissant');
   assert.equal(entry('acne', 'benzoyl_peroxide').evidenceLevel, 'explicit_perfectcorp');
   assert.equal(entry('acne', 'tea_tree').evidenceLevel, 'not_documented');
-  assert.equal(entry('pigmentation', 'alpha_arbutin').evidenceLevel, 'market_only');
   const ids = AD.ACTIVES.map(a => a.id);
   for (const c of EV.CANDIDATE_ACTIVES) {
-    assert.ok(!ids.includes(c), c + ' n\'est pas un actif DERMAI');
+    assert.ok(!ids.includes(c), c + ' n\'est pas un actif DermAI');
     assert.equal(require('../js/engine/actives.js').byId(c), null);
     for (const list of Object.values(AD.PREFERENCE)) assert.ok(!list.includes(c), c + ' hors PREFERENCE');
     for (const p of REAL.concat(require('../js/engine/data/products.js').PRODUCTS)) assert.ok(!p.ingredients.some(i => i.activeId === c), p.id + ' : ' + c + ' relié');
@@ -94,7 +94,7 @@ test('REF-C sourceKind invalide → rejet ; niveau et source doivent s\'accorder
   assert.ok(EV.validateEntry(Object.assign({}, x, { sourceUrl: 'http://www.perfectcorp.com/x' })).some(m => /sourceUrl|perfectcorp/.test(m)), 'http refusé');
   assert.ok(EV.validateEntry(Object.assign({}, x, { sourceUrl: 'https://perfectcorp.com.evil.org/x' })).some(m => /perfectcorp\.com/.test(m)), 'faux domaine refusé');
   assert.ok(EV.validateEntry(Object.assign({}, x, { consulted: 'none' })).some(m => /consultation/.test(m)));
-  // une règle DERMAI ne porte jamais de lien externe ; une absence de source non plus
+  // une règle DermAI ne porte jamais de lien externe ; une absence de source non plus
   const inf = clone(entry('pores', 'niacinamide')), abs = clone(entry('tearTrough', null));
   assert.ok(EV.validateEntry(Object.assign({}, inf, { sourceUrl: 'https://www.perfectcorp.com/x' })).length);
   assert.ok(EV.validateEntry(Object.assign({}, inf, { sourceKind: 'official_blog' })).length);
@@ -103,10 +103,10 @@ test('REF-C sourceKind invalide → rejet ; niveau et source doivent s\'accorder
 
 test('REF-A3 la carte refuse les erreurs de structure : actif inconnu, candidat déguisé, doublon, champ de décision', () => {
   const x = clone(entry('acne', 'salicylic'));
-  assert.ok(EV.validateEntry(Object.assign({}, x, { activeId: 'benzoyl_peroxide' })).some(m => /candidate_not_enabled/.test(m)), 'un actif non DERMAI exige le statut candidat');
+  assert.ok(EV.validateEntry(Object.assign({}, x, { activeId: 'benzoyl_peroxide' })).some(m => /candidate_not_enabled/.test(m)), 'un actif non DermAI exige le statut candidat');
   assert.ok(EV.validateEntry(Object.assign({}, x, { activeId: 'inconnu_total' })).length);
   const cand = clone(entry('acne', 'benzoyl_peroxide'));
-  assert.ok(EV.validateEntry(Object.assign({}, cand, { activeId: 'niacinamide' })).some(m => /déjà un actif DERMAI/.test(m)), 'un candidat ne peut pas porter un actif déjà actif');
+  assert.ok(EV.validateEntry(Object.assign({}, cand, { activeId: 'niacinamide' })).some(m => /déjà un actif DermAI/.test(m)), 'un candidat ne peut pas porter un actif déjà actif');
   assert.ok(EV.validateEntry(Object.assign({}, cand, { activeId: 'peptides' })).length);
   assert.ok(EV.validateEntry(Object.assign({}, x, { status: 'enabled' })).some(m => /status/.test(m)));
   assert.ok(EV.validateEntry(Object.assign({}, x, { indicator: 'acné' })).some(m => /indicateur/.test(m)));

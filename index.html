@@ -4,33 +4,43 @@
 <meta charset="utf-8">
 <base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>DERMAI, analyse de peau par IA et routine personnalisée</title>
+<title>DermAI, analyse de peau par IA et routine personnalisée</title>
 <meta name="description" content="Analyse de peau par IA à partir d'une photo, puis routine cosmétique personnalisée. Pensé pour l'Afrique. Analyse cosmétique, pas un diagnostic médical.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="DERMAI">
+<meta property="og:site_name" content="DermAI">
 <meta property="og:locale" content="fr_FR">
-<meta property="og:title" content="DERMAI, analyse de peau par IA et routine personnalisée">
+<meta property="og:title" content="DermAI, analyse de peau par IA et routine personnalisée">
 <meta property="og:description" content="Une photo, une analyse cosmétique par intelligence artificielle, puis une routine personnalisée. Pensé pour l'Afrique.">
 <meta property="og:url" content="https://dermai-afric.vercel.app/">
 <meta property="og:image" content="https://dermai-afric.vercel.app/img/brand/og-square-512.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="512">
 <meta property="og:image:height" content="512">
-<meta property="og:image:alt" content="Logo DERMAI">
+<meta property="og:image:alt" content="Logo DermAI">
 <meta name="twitter:card" content="summary">
 
 <!-- ========================================== -->
 <!-- BALISES PWA                                -->
 <!-- ========================================== -->
-<meta name="theme-color" content="#FFF9FA">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFF9FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171214" media="(prefers-color-scheme: dark)">
+<script>try{var t=localStorage.getItem("dermai.theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <link rel="manifest" href="/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="DERMAI">
+<meta name="apple-mobile-web-app-title" content="DermAI">
+<meta name="application-name" content="DermAI">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
 
 <link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/img/icons/favicon-48.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/img/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/img/icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,13 +52,6 @@
 <input type="file" id="photoInput" accept="image/*" hidden>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<!-- ========================================== -->
-<!-- BOUTON D'INSTALLATION PWA (Caché par défaut) -->
-<!-- ========================================== -->
-<button id="pwa-install-btn" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 12px 24px; background: #0f172a; color: #fff; border: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; font-family: 'Manrope', sans-serif; align-items: center; gap: 8px;">
-  📲 Installer l'application
-</button>
-
 <script src="/api/config-js"></script>
 <script src="js/skin-model.js"></script>
 <script src="js/engine/data/indicators.js"></script>
@@ -58,6 +61,9 @@
 <script src="js/engine/data/catalog.js"></script>
 <script src="js/engine/data/markets.js"></script>
 <script src="js/engine/data/inci-aliases.js"></script>
+<script src="js/engine/data/prevention.js"></script>
+<script src="js/engine/data/sun.js"></script>
+<script src="js/engine/data/referral.js"></script>
 <script src="js/engine/copy.fr.js"></script>
 <script src="js/engine/interpret.js"></script>
 <script src="js/engine/actives.js"></script>
@@ -74,6 +80,10 @@
 <script src="js/photo-check.js"></script>
 <script src="js/face-map.js"></script>
 <script src="js/insight-view.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/skin-tone.js"></script>
+<script src="js/confidence.js"></script>
+<script src="js/declared-concerns.js"></script>
 <script src="js/export-pdf.js"></script>
 <script src="js/export-view.js"></script>
 <script src="js/photos-view.js"></script>
@@ -96,68 +106,7 @@
 <script src="js/makeup-studio.js"></script>
 <script src="js/app.js"></script>
 
-<!-- ========================================== -->
-<!-- SCRIPT COMPLET POUR LA PWA                 -->
-<!-- ========================================== -->
-<script>
-  // 1. ENREGISTREMENT DU SERVICE WORKER
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('ServiceWorker PWA enregistré:', registration.scope);
-        })
-        .catch((error) => {
-          console.log('Échec de l\'enregistrement du ServiceWorker:', error);
-        });
-    });
-  }
-
-  // 2. GESTION DU BOUTON D'INSTALLATION (Chrome / Edge / Android)
-  let deferredPrompt;
-  const installBtn = document.getElementById('pwa-install-btn');
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // Empêche Chrome d'afficher sa propre mini-bannière par défaut
-    e.preventDefault();
-    // Sauvegarde l'événement pour le déclencher au clic
-    deferredPrompt = e;
-    // Affiche notre bouton personnalisé
-    if (installBtn) installBtn.style.display = 'flex';
-  });
-
-  if (installBtn) {
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      
-      // Affiche la vraie popup d'installation
-      deferredPrompt.prompt();
-      
-      // Attend le choix de l'utilisateur
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log(`L'utilisateur a choisi : ${outcome}`);
-      
-      // Cache le bouton
-      deferredPrompt = null;
-      installBtn.style.display = 'none';
-    });
-  }
-
-  // Cache le bouton si l'application est déjà installée
-  window.addEventListener('appinstalled', () => {
-    if (installBtn) installBtn.style.display = 'none';
-    console.log('PWA installée avec succès !');
-  });
-
-  // 3. DÉTECTION IOS (Safari sur iPhone/iPad)
-  // Safari ne permet pas les popups d'installation automatiques.
-  // On peut afficher un petit message d'aide si besoin.
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  
-  if (isIOS) {
-    console.log("Utilisateur sur iOS : Instructions manuelles requises pour installer l'app.");
-    // Optionnel : Tu peux créer un script qui affiche une bulle "Appuyez sur Partager puis 'Sur l'écran d'accueil'"
-  }
-</script>
+<script src="js/pwa-install.js"></script>
+<script src="js/update-banner.js"></script>
 </body>
 </html>

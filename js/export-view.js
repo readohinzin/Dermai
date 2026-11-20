@@ -1,4 +1,4 @@
-/* DERMAI : exporter et partager le résultat d'une analyse (PDF créé SUR L'APPAREIL, partage du système).
+/* DermAI : exporter et partager le résultat d'une analyse (PDF créé SUR L'APPAREIL, partage du système).
    Aucune décision ici : tout vient du moteur (Engine.run → synthesis) et de l'analyse affichée ; ce module met en page ce que l'écran Résultat montre.
    Confidentialité :
      - rien n'est envoyé à un serveur, rien n'est enregistré (ni localStorage, ni base, ni URL) : le fichier naît dans le navigateur ;
@@ -16,15 +16,15 @@
 
   const TEXT = {
     group: 'Exporter le résultat', copy: 'Copier le résumé', share: 'Partager', download: 'Télécharger en PDF',
-    photo: 'Inclure ma photo', photoNote: 'Le fichier pourra circuler hors de DERMAI.',
+    photo: 'Inclure ma photo', photoNote: 'Le fichier pourra circuler hors de DermAI.',
     downloaded: 'PDF téléchargé.', downloadedNoPhoto: 'PDF téléchargé sans la photo : elle n\'a pas pu être ajoutée.', sharedNoPhoto: 'PDF partagé sans la photo : elle n\'a pas pu être ajoutée.',
     copied: 'Résumé copié : vous pouvez le coller où vous voulez.',
     sharedFallback: 'Le partage n\'est pas disponible ici : le PDF a été téléchargé.',
     failed: 'Le PDF n\'a pas pu être créé. Réessayez.', copyFailed: 'La copie n\'a pas fonctionné. Vous pouvez télécharger le PDF à la place.', shareFailed: 'Le partage n\'a pas pu se faire. Vous pouvez télécharger le PDF.',
-    footer: 'Analyse cosmétique visuelle. DERMAI ne pose pas de diagnostic médical.',
+    footer: 'Analyse cosmétique visuelle. DermAI ne pose pas de diagnostic médical.',
     disclaimer: 'Analyse cosmétique de l\'état apparent de la peau, ce n\'est pas un diagnostic médical. Les résultats peuvent varier selon la lumière et la prise de vue.',
     subtitle: 'Analyse cosmétique de la peau', earlier: 'Cette analyse n\'est pas la plus récente : la routine de l\'application correspond à votre analyse la plus récente.',
-    unavailable: 'Donnée indisponible', info: 'Information', kept: 'Retenu par DERMAI'
+    unavailable: 'Donnée indisponible', info: 'Information', kept: 'Retenu par DermAI'
   };
   /* Icônes (traits arrondis, couleur du texte) : copier, partager, télécharger. Décoratives : le nom accessible est celui du bouton. */
   const SVG = d => `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">${d}</svg>`;
@@ -45,7 +45,7 @@
   /* Modèle du document : uniquement des textes et des scores AFFICHÉS, déjà produits par le moteur. ctx : { eng, s, H, catalog }.
      H : analyse plus ancienne que la dernière : seules les priorités enregistrées à sa date sont montrées (comme l'écran), jamais recalculées. */
   function modelOf(ctx) {
-    const { eng, s, H, catalog } = ctx, M = SM(), E = EN(), S = E.copy.SYNTH, Y = eng.synthesis, r = M.toResultView(s.normalized), DEC = E.decisionData;
+    const { eng, s, H, catalog } = ctx, M = SM(), E = EN(), S = E.copy.SYNTH, Y = eng.synthesis, r = M.toResultView((root.DermaiTone ? root.DermaiTone.view(s.normalized) : s.normalized)), DEC = E.decisionData;
     const indicators = M.METRIC_KEYS.map(k => {
       const i = eng.interpretation.indicators.find(x => x.id === k), st = Y.indicators[k];
       const level = i.score === null ? TEXT.unavailable : DEC.isInformative(k) ? TEXT.info : (!H && st ? st.level : i.uiBandLabel) || '';
@@ -55,7 +55,7 @@
       : eng.priorityItems.map(p => ({ label: p.label, score: p.score, level: S.LEVELS[p.band === 'low' ? 'priority' : 'support'], reason: p.reason }));
     const stepOf = st => {
       const m = eng.productMatches.find(x => x.stepId === st.id), p = m && E.products.byId(m.productId, catalog);
-      const product = p ? (p.demo ? 'Exemple (démonstration) : ' : 'Proposé par DERMAI : ') + p.name : '';
+      const product = p ? (p.demo ? 'Exemple (démonstration) : ' : 'Proposé par DermAI : ') + p.name : '';
       return { label: E.copy.STEP_LABELS[st.origin === 'accompaniment' ? 'accompaniment' : st.kind], name: stepName(st), detail: [Y.steps[st.id] || st.reason, product].filter(Boolean).join(' ') };
     };
     return {
@@ -71,7 +71,7 @@
 
   /* Résumé court, pour le partage en texte : scores et axes affichés, aucune photo, aucune donnée brute. */
   function summaryOf(m) {
-    const parts = ['Mon analyse DERMAI' + (m.date ? ' du ' + m.date : '') + (m.global.score === null ? '.' : ' : score global ' + m.global.score + '/100' + (m.global.bandLabel ? ' (' + m.global.bandLabel + ').' : '.'))];
+    const parts = ['Mon analyse DermAI' + (m.date ? ' du ' + m.date : '') + (m.global.score === null ? '.' : ' : score global ' + m.global.score + '/100' + (m.global.bandLabel ? ' (' + m.global.bandLabel + ').' : '.'))];
     if (m.skin) parts.push(m.skin.label + '.');
     if (m.priorities.length) parts.push((m.H ? 'Axes retenus : ' : 'Axes de soin : ') + m.priorities.map(p => lowerFirst(p.label) + (p.score === null ? '' : ' (' + p.score + ')')).join(', ') + '.');
     parts.push(TEXT.footer);
@@ -135,7 +135,7 @@
 
   async function makePdf(ctx, opts, env) {
     const m = modelOf(ctx), photo = opts && opts.photo && (ctx.blob || ctx.photoUrl) ? await photoOf(ctx.blob || ctx.photoUrl, env) : null;
-    const bytes = PDF().build({ title: 'Résultat de votre analyse DERMAI', footer: TEXT.footer, date: env.now(), blocks: blocksOf(m, photo) });
+    const bytes = PDF().build({ title: 'Résultat de votre analyse DermAI', footer: TEXT.footer, date: env.now(), blocks: blocksOf(m, photo) });
     return { blob: new env.Blob([bytes], { type: 'application/pdf' }), name: m.slug, model: m, withPhoto: !!photo };
   }
 
@@ -173,9 +173,9 @@
     try {
       if (nav.share && nav.canShare && env.File) {
         const file = new env.File([pdf.blob], pdf.name, { type: 'application/pdf' });
-        if (nav.canShare({ files: [file] })) { await nav.share({ files: [file], title: 'Mon analyse DERMAI', text }); return { ok: true, message: opts && opts.photo && !pdf.withPhoto ? TEXT.sharedNoPhoto : '', via: 'file', withPhoto: pdf.withPhoto }; }
+        if (nav.canShare({ files: [file] })) { await nav.share({ files: [file], title: 'Mon analyse DermAI', text }); return { ok: true, message: opts && opts.photo && !pdf.withPhoto ? TEXT.sharedNoPhoto : '', via: 'file', withPhoto: pdf.withPhoto }; }
       }
-      if (nav.share) { await nav.share({ title: 'Mon analyse DERMAI', text, url }); return { ok: true, message: '', via: 'text', withPhoto: false }; }
+      if (nav.share) { await nav.share({ title: 'Mon analyse DermAI', text, url }); return { ok: true, message: '', via: 'text', withPhoto: false }; }
     } catch (e) {
       if (e && e.name === 'AbortError') return { ok: true, message: '', via: 'cancelled', withPhoto: false };
       return { ok: false, message: TEXT.shareFailed, via: 'error' };

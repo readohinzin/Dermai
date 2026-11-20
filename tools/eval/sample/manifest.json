@@ -1,0 +1,2394 @@
+{
+ "fictive": true,
+ "note": "DONNÉES FICTIVES générées pour essayer l'outil. Aucune personne réelle, aucune photo. Les chiffres ne disent rien du moteur.",
+ "items": [
+  {
+   "id": "S001",
+   "monk": 2,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 73.2,
+     "uiScore": 81
+    },
+    "pores": {
+     "rawScore": 37.9,
+     "uiScore": 46
+    },
+    "oiliness": {
+     "rawScore": 8.6,
+     "uiScore": 17
+    },
+    "texture": {
+     "rawScore": 58.7,
+     "uiScore": 67
+    },
+    "hydration": {
+     "rawScore": 40,
+     "uiScore": 48
+    },
+    "redness": {
+     "rawScore": 83.4,
+     "uiScore": 91
+    },
+    "pigmentation": {
+     "rawScore": 8,
+     "uiScore": 16
+    },
+    "wrinkles": {
+     "rawScore": 35.4,
+     "uiScore": 43
+    },
+    "radiance": {
+     "rawScore": 64.4,
+     "uiScore": 72
+    },
+    "darkCircle": {
+     "rawScore": 64.3,
+     "uiScore": 72
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 0,
+      "pores": 2,
+      "oiliness": 3,
+      "texture": 1,
+      "hydration": 2,
+      "redness": 0,
+      "pigmentation": 3,
+      "wrinkles": 2,
+      "radiance": 1,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S002",
+   "monk": 3,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 34.9,
+     "uiScore": 43
+    },
+    "pores": {
+     "rawScore": 55,
+     "uiScore": 63
+    },
+    "oiliness": {
+     "rawScore": 60.5,
+     "uiScore": 68
+    },
+    "texture": {
+     "rawScore": 74.2,
+     "uiScore": 82
+    },
+    "hydration": {
+     "rawScore": 11.4,
+     "uiScore": 19
+    },
+    "redness": {
+     "rawScore": 79.5,
+     "uiScore": 87
+    },
+    "pigmentation": {
+     "rawScore": 59,
+     "uiScore": 67
+    },
+    "wrinkles": {
+     "rawScore": 7.2,
+     "uiScore": 15
+    },
+    "radiance": {
+     "rawScore": 11.2,
+     "uiScore": 19
+    },
+    "darkCircle": {
+     "rawScore": 64.4,
+     "uiScore": 72
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 1,
+      "oiliness": 1,
+      "texture": 0,
+      "hydration": 3,
+      "redness": 0,
+      "pigmentation": 1,
+      "wrinkles": 3,
+      "radiance": 3,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S003",
+   "monk": 2,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 38.2,
+     "uiScore": 46
+    },
+    "pores": {
+     "rawScore": 31.3,
+     "uiScore": 39
+    },
+    "oiliness": {
+     "rawScore": 17.7,
+     "uiScore": 26
+    },
+    "texture": {
+     "rawScore": 61.2,
+     "uiScore": 69
+    },
+    "hydration": {
+     "rawScore": 61,
+     "uiScore": 69
+    },
+    "redness": {
+     "rawScore": 39.7,
+     "uiScore": 48
+    },
+    "pigmentation": {
+     "rawScore": 53.9,
+     "uiScore": 62
+    },
+    "wrinkles": {
+     "rawScore": 60.4,
+     "uiScore": 68
+    },
+    "radiance": {
+     "rawScore": 41.2,
+     "uiScore": 49
+    },
+    "darkCircle": {
+     "rawScore": 64,
+     "uiScore": 72
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 2,
+      "oiliness": 3,
+      "texture": 1,
+      "hydration": 1,
+      "redness": 2,
+      "pigmentation": 1,
+      "wrinkles": 1,
+      "radiance": 2,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S004",
+   "monk": 1,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 82.6,
+     "uiScore": 91
+    },
+    "pores": {
+     "rawScore": 56,
+     "uiScore": 64
+    },
+    "oiliness": {
+     "rawScore": 18.2,
+     "uiScore": 26
+    },
+    "texture": {
+     "rawScore": 74.7,
+     "uiScore": 83
+    },
+    "hydration": {
+     "rawScore": 63.2,
+     "uiScore": 71
+    },
+    "redness": {
+     "rawScore": 36.5,
+     "uiScore": 45
+    },
+    "pigmentation": {
+     "rawScore": 78.5,
+     "uiScore": 86
+    },
+    "wrinkles": {
+     "rawScore": 18.4,
+     "uiScore": 26
+    },
+    "radiance": {
+     "rawScore": 62.7,
+     "uiScore": 71
+    },
+    "darkCircle": {
+     "rawScore": 36.4,
+     "uiScore": 44
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 0,
+      "pores": 1,
+      "oiliness": 3,
+      "texture": 0,
+      "hydration": 1,
+      "redness": 2,
+      "pigmentation": 0,
+      "wrinkles": 3,
+      "radiance": 1,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S005",
+   "monk": 3,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 41.9,
+     "uiScore": 50
+    },
+    "pores": {
+     "rawScore": 62,
+     "uiScore": 70
+    },
+    "oiliness": {
+     "rawScore": 8.4,
+     "uiScore": 16
+    },
+    "texture": {
+     "rawScore": 37.6,
+     "uiScore": 46
+    },
+    "hydration": {
+     "rawScore": 81.1,
+     "uiScore": 89
+    },
+    "redness": {
+     "rawScore": 8.3,
+     "uiScore": 16
+    },
+    "pigmentation": {
+     "rawScore": 61.9,
+     "uiScore": 70
+    },
+    "wrinkles": {
+     "rawScore": 34.3,
+     "uiScore": 42
+    },
+    "radiance": {
+     "rawScore": 76.9,
+     "uiScore": 85
+    },
+    "darkCircle": {
+     "rawScore": 12.5,
+     "uiScore": 20
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 1,
+      "oiliness": 3,
+      "texture": 2,
+      "hydration": 0,
+      "redness": 3,
+      "pigmentation": 1,
+      "wrinkles": 2,
+      "radiance": 0,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S006",
+   "monk": 4,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 30.3,
+     "uiScore": 38
+    },
+    "pores": {
+     "rawScore": 40.8,
+     "uiScore": 49
+    },
+    "oiliness": {
+     "rawScore": 32,
+     "uiScore": 40
+    },
+    "texture": {
+     "rawScore": 12.6,
+     "uiScore": 21
+    },
+    "hydration": {
+     "rawScore": 82.5,
+     "uiScore": 91
+    },
+    "redness": {
+     "rawScore": 21,
+     "uiScore": 29
+    },
+    "pigmentation": {
+     "rawScore": 82.2,
+     "uiScore": 90
+    },
+    "wrinkles": {
+     "rawScore": 77.9,
+     "uiScore": 86
+    },
+    "radiance": {
+     "rawScore": 80.2,
+     "uiScore": 88
+    },
+    "darkCircle": {
+     "rawScore": 20.8,
+     "uiScore": 29
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 2,
+      "oiliness": 2,
+      "texture": 3,
+      "hydration": 0,
+      "redness": 3,
+      "pigmentation": 0,
+      "wrinkles": 0,
+      "radiance": 0,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S007",
+   "monk": 5,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 64,
+     "uiScore": 72
+    },
+    "pores": {
+     "rawScore": 9.6,
+     "uiScore": 18
+    },
+    "oiliness": {
+     "rawScore": 37.4,
+     "uiScore": 45
+    },
+    "texture": {
+     "rawScore": 55.8,
+     "uiScore": 64
+    },
+    "hydration": {
+     "rawScore": 17.8,
+     "uiScore": 26
+    },
+    "redness": {
+     "rawScore": 35.3,
+     "uiScore": 43
+    },
+    "pigmentation": {
+     "rawScore": 57.9,
+     "uiScore": 66
+    },
+    "wrinkles": {
+     "rawScore": 56,
+     "uiScore": 64
+    },
+    "radiance": {
+     "rawScore": 12.4,
+     "uiScore": 20
+    },
+    "darkCircle": {
+     "rawScore": 81.8,
+     "uiScore": 90
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 1,
+      "pores": 3,
+      "oiliness": 2,
+      "texture": 1,
+      "hydration": 3,
+      "redness": 2,
+      "pigmentation": 1,
+      "wrinkles": 1,
+      "radiance": 3,
+      "darkCircle": 0
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S008",
+   "monk": 4,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 62.9,
+     "uiScore": 71
+    },
+    "pores": {
+     "rawScore": 74.8,
+     "uiScore": 83
+    },
+    "oiliness": {
+     "rawScore": 37,
+     "uiScore": 45
+    },
+    "texture": {
+     "rawScore": 35.3,
+     "uiScore": 43
+    },
+    "hydration": {
+     "rawScore": 59.1,
+     "uiScore": 67
+    },
+    "redness": {
+     "rawScore": 59.9,
+     "uiScore": 68
+    },
+    "pigmentation": {
+     "rawScore": 77.3,
+     "uiScore": 85
+    },
+    "wrinkles": {
+     "rawScore": 81.1,
+     "uiScore": 89
+    },
+    "radiance": {
+     "rawScore": 74.4,
+     "uiScore": 82
+    },
+    "darkCircle": {
+     "rawScore": 10.5,
+     "uiScore": 18
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 1,
+      "pores": 0,
+      "oiliness": 2,
+      "texture": 2,
+      "hydration": 1,
+      "redness": 1,
+      "pigmentation": 0,
+      "wrinkles": 0,
+      "radiance": 0,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S009",
+   "monk": 5,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 78,
+     "uiScore": 86
+    },
+    "pores": {
+     "rawScore": 29.1,
+     "uiScore": 37
+    },
+    "oiliness": {
+     "rawScore": 75,
+     "uiScore": 83
+    },
+    "texture": {
+     "rawScore": 10.1,
+     "uiScore": 18
+    },
+    "hydration": {
+     "rawScore": 77.6,
+     "uiScore": 86
+    },
+    "redness": {
+     "rawScore": 34.3,
+     "uiScore": 42
+    },
+    "pigmentation": {
+     "rawScore": 39.2,
+     "uiScore": 47
+    },
+    "wrinkles": {
+     "rawScore": 74.4,
+     "uiScore": 82
+    },
+    "radiance": {
+     "rawScore": 30.8,
+     "uiScore": 39
+    },
+    "darkCircle": {
+     "rawScore": 52.1,
+     "uiScore": 60
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 0,
+      "pores": 2,
+      "oiliness": 0,
+      "texture": 3,
+      "hydration": 0,
+      "redness": 2,
+      "pigmentation": 2,
+      "wrinkles": 0,
+      "radiance": 2,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S010",
+   "monk": 4,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 10.7,
+     "uiScore": 19
+    },
+    "pores": {
+     "rawScore": 33.5,
+     "uiScore": 41
+    },
+    "oiliness": {
+     "rawScore": 61.3,
+     "uiScore": 69
+    },
+    "texture": {
+     "rawScore": 30.8,
+     "uiScore": 39
+    },
+    "hydration": {
+     "rawScore": 42.9,
+     "uiScore": 51
+    },
+    "redness": {
+     "rawScore": 76.4,
+     "uiScore": 84
+    },
+    "pigmentation": {
+     "rawScore": 63.1,
+     "uiScore": 71
+    },
+    "wrinkles": {
+     "rawScore": 12.8,
+     "uiScore": 21
+    },
+    "radiance": {
+     "rawScore": 34.8,
+     "uiScore": 43
+    },
+    "darkCircle": {
+     "rawScore": 75.9,
+     "uiScore": 84
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 2,
+      "oiliness": 1,
+      "texture": 2,
+      "hydration": 2,
+      "redness": 0,
+      "pigmentation": 1,
+      "wrinkles": 3,
+      "radiance": 2,
+      "darkCircle": 0
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S011",
+   "monk": 6,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 68.2,
+     "uiScore": 76
+    },
+    "pores": {
+     "rawScore": 56.5,
+     "uiScore": 65
+    },
+    "oiliness": {
+     "rawScore": 9.1,
+     "uiScore": 17
+    },
+    "texture": {
+     "rawScore": 42.8,
+     "uiScore": 51
+    },
+    "hydration": {
+     "rawScore": 33.1,
+     "uiScore": 41
+    },
+    "redness": {
+     "rawScore": 60.6,
+     "uiScore": 69
+    },
+    "pigmentation": {
+     "rawScore": 62.7,
+     "uiScore": 71
+    },
+    "wrinkles": {
+     "rawScore": 40.7,
+     "uiScore": 49
+    },
+    "radiance": {
+     "rawScore": 39.4,
+     "uiScore": 47
+    },
+    "darkCircle": {
+     "rawScore": 42.3,
+     "uiScore": 50
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 1,
+      "oiliness": 3,
+      "texture": 2,
+      "hydration": 2,
+      "redness": 1,
+      "pigmentation": 1,
+      "wrinkles": 2,
+      "radiance": 2,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": true,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S012",
+   "monk": 7,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 85.1,
+     "uiScore": 93
+    },
+    "pores": {
+     "rawScore": 80.7,
+     "uiScore": 89
+    },
+    "oiliness": {
+     "rawScore": 41.3,
+     "uiScore": 49
+    },
+    "texture": {
+     "rawScore": 81.3,
+     "uiScore": 89
+    },
+    "hydration": {
+     "rawScore": 19.6,
+     "uiScore": 28
+    },
+    "redness": {
+     "rawScore": 75.5,
+     "uiScore": 84
+    },
+    "pigmentation": {
+     "rawScore": 68.7,
+     "uiScore": 77
+    },
+    "wrinkles": {
+     "rawScore": 36.2,
+     "uiScore": 44
+    },
+    "radiance": {
+     "rawScore": 37.1,
+     "uiScore": 45
+    },
+    "darkCircle": {
+     "rawScore": 55.9,
+     "uiScore": 64
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 0,
+      "pores": 0,
+      "oiliness": 2,
+      "texture": 0,
+      "hydration": 3,
+      "redness": 0,
+      "pigmentation": 2,
+      "wrinkles": 2,
+      "radiance": 2,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": true,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S013",
+   "monk": 8,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 68.5,
+     "uiScore": 77
+    },
+    "pores": {
+     "rawScore": 75.6,
+     "uiScore": 84
+    },
+    "oiliness": {
+     "rawScore": 86.3,
+     "uiScore": 94
+    },
+    "texture": {
+     "rawScore": 54.8,
+     "uiScore": 63
+    },
+    "hydration": {
+     "rawScore": 18.2,
+     "uiScore": 26
+    },
+    "redness": {
+     "rawScore": 11.3,
+     "uiScore": 19
+    },
+    "pigmentation": {
+     "rawScore": 85.2,
+     "uiScore": 93
+    },
+    "wrinkles": {
+     "rawScore": 42,
+     "uiScore": 50
+    },
+    "radiance": {
+     "rawScore": 75.2,
+     "uiScore": 83
+    },
+    "darkCircle": {
+     "rawScore": 78.8,
+     "uiScore": 87
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 0,
+      "oiliness": 0,
+      "texture": 1,
+      "hydration": 3,
+      "redness": 3,
+      "pigmentation": 0,
+      "wrinkles": 2,
+      "radiance": 0,
+      "darkCircle": 0
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": true,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S014",
+   "monk": 6,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 70.6,
+     "uiScore": 79
+    },
+    "pores": {
+     "rawScore": 51.8,
+     "uiScore": 60
+    },
+    "oiliness": {
+     "rawScore": 56,
+     "uiScore": 64
+    },
+    "texture": {
+     "rawScore": 53.8,
+     "uiScore": 62
+    },
+    "hydration": {
+     "rawScore": 19,
+     "uiScore": 27
+    },
+    "redness": {
+     "rawScore": 79.6,
+     "uiScore": 88
+    },
+    "pigmentation": {
+     "rawScore": 60.9,
+     "uiScore": 69
+    },
+    "wrinkles": {
+     "rawScore": 85.5,
+     "uiScore": 93
+    },
+    "radiance": {
+     "rawScore": 7.9,
+     "uiScore": 16
+    },
+    "darkCircle": {
+     "rawScore": 8.2,
+     "uiScore": 16
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 1,
+      "oiliness": 1,
+      "texture": 1,
+      "hydration": 3,
+      "redness": 0,
+      "pigmentation": 1,
+      "wrinkles": 0,
+      "radiance": 3,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": true,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S015",
+   "monk": 9,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 62.4,
+     "uiScore": 70
+    },
+    "pores": {
+     "rawScore": 59.3,
+     "uiScore": 67
+    },
+    "oiliness": {
+     "rawScore": 15.7,
+     "uiScore": 24
+    },
+    "texture": {
+     "rawScore": 10.1,
+     "uiScore": 18
+    },
+    "hydration": {
+     "rawScore": 51.8,
+     "uiScore": 60
+    },
+    "redness": {
+     "rawScore": 41.1,
+     "uiScore": 49
+    },
+    "pigmentation": {
+     "rawScore": 64.9,
+     "uiScore": 73
+    },
+    "wrinkles": {
+     "rawScore": 51.6,
+     "uiScore": 60
+    },
+    "radiance": {
+     "rawScore": 60,
+     "uiScore": 68
+    },
+    "darkCircle": {
+     "rawScore": 62.6,
+     "uiScore": 71
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 1,
+      "pores": 1,
+      "oiliness": 3,
+      "texture": 3,
+      "hydration": 1,
+      "redness": 2,
+      "pigmentation": 1,
+      "wrinkles": 1,
+      "radiance": 1,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S016",
+   "monk": 7,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 79.6,
+     "uiScore": 88
+    },
+    "pores": {
+     "rawScore": 57.9,
+     "uiScore": 66
+    },
+    "oiliness": {
+     "rawScore": 63,
+     "uiScore": 71
+    },
+    "texture": {
+     "rawScore": 16,
+     "uiScore": 24
+    },
+    "hydration": {
+     "rawScore": 35.7,
+     "uiScore": 44
+    },
+    "redness": {
+     "rawScore": 38.1,
+     "uiScore": 46
+    },
+    "pigmentation": {
+     "rawScore": 73,
+     "uiScore": 81
+    },
+    "wrinkles": {
+     "rawScore": 29.5,
+     "uiScore": 38
+    },
+    "radiance": {
+     "rawScore": 33.3,
+     "uiScore": 41
+    },
+    "darkCircle": {
+     "rawScore": 35.2,
+     "uiScore": 43
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 1,
+      "oiliness": 1,
+      "texture": 3,
+      "hydration": 2,
+      "redness": 2,
+      "pigmentation": 3,
+      "wrinkles": 2,
+      "radiance": 2,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": true,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S017",
+   "monk": 10,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 75.1,
+     "uiScore": 83
+    },
+    "pores": {
+     "rawScore": 84,
+     "uiScore": 92
+    },
+    "oiliness": {
+     "rawScore": 84.6,
+     "uiScore": 93
+    },
+    "texture": {
+     "rawScore": 86.3,
+     "uiScore": 94
+    },
+    "hydration": {
+     "rawScore": 32.5,
+     "uiScore": 40
+    },
+    "redness": {
+     "rawScore": 34.1,
+     "uiScore": 42
+    },
+    "pigmentation": {
+     "rawScore": 84,
+     "uiScore": 92
+    },
+    "wrinkles": {
+     "rawScore": 53.7,
+     "uiScore": 62
+    },
+    "radiance": {
+     "rawScore": 86.6,
+     "uiScore": 95
+    },
+    "darkCircle": {
+     "rawScore": 86.4,
+     "uiScore": 94
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 0,
+      "oiliness": 0,
+      "texture": 0,
+      "hydration": 2,
+      "redness": 2,
+      "pigmentation": 0,
+      "wrinkles": 1,
+      "radiance": 0,
+      "darkCircle": 0
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S018",
+   "monk": 8,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 76.8,
+     "uiScore": 85
+    },
+    "pores": {
+     "rawScore": 29,
+     "uiScore": 37
+    },
+    "oiliness": {
+     "rawScore": 63.5,
+     "uiScore": 72
+    },
+    "texture": {
+     "rawScore": 81.3,
+     "uiScore": 89
+    },
+    "hydration": {
+     "rawScore": 56.9,
+     "uiScore": 65
+    },
+    "redness": {
+     "rawScore": 16.8,
+     "uiScore": 25
+    },
+    "pigmentation": {
+     "rawScore": 85.3,
+     "uiScore": 93
+    },
+    "wrinkles": {
+     "rawScore": 37.8,
+     "uiScore": 46
+    },
+    "radiance": {
+     "rawScore": 76.5,
+     "uiScore": 84
+    },
+    "darkCircle": {
+     "rawScore": 58.2,
+     "uiScore": 66
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 0,
+      "pores": 2,
+      "oiliness": 1,
+      "texture": 0,
+      "hydration": 1,
+      "redness": 3,
+      "pigmentation": 0,
+      "wrinkles": 2,
+      "radiance": 0,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": true,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S019",
+   "monk": 6,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 62.4,
+     "uiScore": 70
+    },
+    "pores": {
+     "rawScore": 11.4,
+     "uiScore": 19
+    },
+    "oiliness": {
+     "rawScore": 10.5,
+     "uiScore": 19
+    },
+    "texture": {
+     "rawScore": 7.5,
+     "uiScore": 16
+    },
+    "hydration": {
+     "rawScore": 13.5,
+     "uiScore": 22
+    },
+    "redness": {
+     "rawScore": 29.3,
+     "uiScore": 37
+    },
+    "pigmentation": {
+     "rawScore": 82.9,
+     "uiScore": 91
+    },
+    "wrinkles": {
+     "rawScore": 32.9,
+     "uiScore": 41
+    },
+    "radiance": {
+     "rawScore": 13.3,
+     "uiScore": 21
+    },
+    "darkCircle": {
+     "rawScore": 41.6,
+     "uiScore": 50
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 3,
+      "oiliness": 3,
+      "texture": 3,
+      "hydration": 3,
+      "redness": 2,
+      "pigmentation": 0,
+      "wrinkles": 2,
+      "radiance": 3,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": true,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S020",
+   "monk": 7,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 76.3,
+     "uiScore": 84
+    },
+    "pores": {
+     "rawScore": 58.8,
+     "uiScore": 67
+    },
+    "oiliness": {
+     "rawScore": 56.9,
+     "uiScore": 65
+    },
+    "texture": {
+     "rawScore": 20.4,
+     "uiScore": 28
+    },
+    "hydration": {
+     "rawScore": 60.9,
+     "uiScore": 69
+    },
+    "redness": {
+     "rawScore": 10.9,
+     "uiScore": 19
+    },
+    "pigmentation": {
+     "rawScore": 51.8,
+     "uiScore": 60
+    },
+    "wrinkles": {
+     "rawScore": 40.6,
+     "uiScore": 49
+    },
+    "radiance": {
+     "rawScore": 20.9,
+     "uiScore": 29
+    },
+    "darkCircle": {
+     "rawScore": 37.7,
+     "uiScore": 46
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 0,
+      "pores": 1,
+      "oiliness": 1,
+      "texture": 3,
+      "hydration": 1,
+      "redness": 3,
+      "pigmentation": 1,
+      "wrinkles": 2,
+      "radiance": 3,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S021",
+   "monk": 8,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 62.7,
+     "uiScore": 71
+    },
+    "pores": {
+     "rawScore": 86.6,
+     "uiScore": 95
+    },
+    "oiliness": {
+     "rawScore": 80.3,
+     "uiScore": 88
+    },
+    "texture": {
+     "rawScore": 51.5,
+     "uiScore": 60
+    },
+    "hydration": {
+     "rawScore": 36.8,
+     "uiScore": 45
+    },
+    "redness": {
+     "rawScore": 20.9,
+     "uiScore": 29
+    },
+    "pigmentation": {
+     "rawScore": 64.3,
+     "uiScore": 72
+    },
+    "wrinkles": {
+     "rawScore": 75.8,
+     "uiScore": 84
+    },
+    "radiance": {
+     "rawScore": 10.7,
+     "uiScore": 19
+    },
+    "darkCircle": {
+     "rawScore": 56,
+     "uiScore": 64
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 0,
+      "oiliness": 0,
+      "texture": 1,
+      "hydration": 2,
+      "redness": 3,
+      "pigmentation": 3,
+      "wrinkles": 0,
+      "radiance": 3,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": true,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S022",
+   "monk": 9,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 76.1,
+     "uiScore": 84
+    },
+    "pores": {
+     "rawScore": 77.7,
+     "uiScore": 86
+    },
+    "oiliness": {
+     "rawScore": 64.8,
+     "uiScore": 73
+    },
+    "texture": {
+     "rawScore": 59.9,
+     "uiScore": 68
+    },
+    "hydration": {
+     "rawScore": 60.1,
+     "uiScore": 68
+    },
+    "redness": {
+     "rawScore": 77,
+     "uiScore": 85
+    },
+    "pigmentation": {
+     "rawScore": 85.1,
+     "uiScore": 93
+    },
+    "wrinkles": {
+     "rawScore": 38.5,
+     "uiScore": 47
+    },
+    "radiance": {
+     "rawScore": 11.5,
+     "uiScore": 19
+    },
+    "darkCircle": {
+     "rawScore": 13.3,
+     "uiScore": 21
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 0,
+      "oiliness": 1,
+      "texture": 1,
+      "hydration": 1,
+      "redness": 0,
+      "pigmentation": 0,
+      "wrinkles": 2,
+      "radiance": 3,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": true,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S023",
+   "monk": 6,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 80.5,
+     "uiScore": 88
+    },
+    "pores": {
+     "rawScore": 53,
+     "uiScore": 61
+    },
+    "oiliness": {
+     "rawScore": 83.5,
+     "uiScore": 92
+    },
+    "texture": {
+     "rawScore": 40.8,
+     "uiScore": 49
+    },
+    "hydration": {
+     "rawScore": 75.6,
+     "uiScore": 84
+    },
+    "redness": {
+     "rawScore": 58,
+     "uiScore": 66
+    },
+    "pigmentation": {
+     "rawScore": 76,
+     "uiScore": 84
+    },
+    "wrinkles": {
+     "rawScore": 17.8,
+     "uiScore": 26
+    },
+    "radiance": {
+     "rawScore": 17.6,
+     "uiScore": 26
+    },
+    "darkCircle": {
+     "rawScore": 51.2,
+     "uiScore": 59
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 1,
+      "oiliness": 0,
+      "texture": 2,
+      "hydration": 0,
+      "redness": 1,
+      "pigmentation": 3,
+      "wrinkles": 3,
+      "radiance": 3,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S024",
+   "monk": 7,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 78.2,
+     "uiScore": 86
+    },
+    "pores": {
+     "rawScore": 82.3,
+     "uiScore": 90
+    },
+    "oiliness": {
+     "rawScore": 17.9,
+     "uiScore": 26
+    },
+    "texture": {
+     "rawScore": 19.7,
+     "uiScore": 28
+    },
+    "hydration": {
+     "rawScore": 10.7,
+     "uiScore": 19
+    },
+    "redness": {
+     "rawScore": 17.9,
+     "uiScore": 26
+    },
+    "pigmentation": {
+     "rawScore": 59.4,
+     "uiScore": 67
+    },
+    "wrinkles": {
+     "rawScore": 7.7,
+     "uiScore": 16
+    },
+    "radiance": {
+     "rawScore": 9.2,
+     "uiScore": 17
+    },
+    "darkCircle": {
+     "rawScore": 42.1,
+     "uiScore": 50
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 0,
+      "oiliness": 3,
+      "texture": 3,
+      "hydration": 3,
+      "redness": 3,
+      "pigmentation": 1,
+      "wrinkles": 3,
+      "radiance": 3,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S025",
+   "monk": 10,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 62.2,
+     "uiScore": 70
+    },
+    "pores": {
+     "rawScore": 60.1,
+     "uiScore": 68
+    },
+    "oiliness": {
+     "rawScore": 13.8,
+     "uiScore": 22
+    },
+    "texture": {
+     "rawScore": 16.1,
+     "uiScore": 24
+    },
+    "hydration": {
+     "rawScore": 76,
+     "uiScore": 84
+    },
+    "redness": {
+     "rawScore": 40.1,
+     "uiScore": 48
+    },
+    "pigmentation": {
+     "rawScore": 78.8,
+     "uiScore": 87
+    },
+    "wrinkles": {
+     "rawScore": 35.3,
+     "uiScore": 43
+    },
+    "radiance": {
+     "rawScore": 9.5,
+     "uiScore": 17
+    },
+    "darkCircle": {
+     "rawScore": 82,
+     "uiScore": 90
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 1,
+      "oiliness": 3,
+      "texture": 3,
+      "hydration": 0,
+      "redness": 2,
+      "pigmentation": 3,
+      "wrinkles": 2,
+      "radiance": 3,
+      "darkCircle": 0
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": true,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S026",
+   "monk": 8,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 76.2,
+     "uiScore": 84
+    },
+    "pores": {
+     "rawScore": 8.7,
+     "uiScore": 17
+    },
+    "oiliness": {
+     "rawScore": 18.1,
+     "uiScore": 26
+    },
+    "texture": {
+     "rawScore": 59.2,
+     "uiScore": 67
+    },
+    "hydration": {
+     "rawScore": 60.8,
+     "uiScore": 69
+    },
+    "redness": {
+     "rawScore": 77,
+     "uiScore": 85
+    },
+    "pigmentation": {
+     "rawScore": 62.5,
+     "uiScore": 70
+    },
+    "wrinkles": {
+     "rawScore": 20.2,
+     "uiScore": 28
+    },
+    "radiance": {
+     "rawScore": 57.7,
+     "uiScore": 66
+    },
+    "darkCircle": {
+     "rawScore": 38.4,
+     "uiScore": 46
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 3,
+      "oiliness": 3,
+      "texture": 1,
+      "hydration": 1,
+      "redness": 0,
+      "pigmentation": 2,
+      "wrinkles": 3,
+      "radiance": 1,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S027",
+   "monk": 7,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 63.9,
+     "uiScore": 72
+    },
+    "pores": {
+     "rawScore": 37.4,
+     "uiScore": 45
+    },
+    "oiliness": {
+     "rawScore": 60.3,
+     "uiScore": 68
+    },
+    "texture": {
+     "rawScore": 13.5,
+     "uiScore": 22
+    },
+    "hydration": {
+     "rawScore": 15.6,
+     "uiScore": 24
+    },
+    "redness": {
+     "rawScore": 36.5,
+     "uiScore": 45
+    },
+    "pigmentation": {
+     "rawScore": 60.4,
+     "uiScore": 68
+    },
+    "wrinkles": {
+     "rawScore": 52.9,
+     "uiScore": 61
+    },
+    "radiance": {
+     "rawScore": 81.9,
+     "uiScore": 90
+    },
+    "darkCircle": {
+     "rawScore": 31,
+     "uiScore": 39
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 2,
+      "oiliness": 1,
+      "texture": 3,
+      "hydration": 3,
+      "redness": 2,
+      "pigmentation": 1,
+      "wrinkles": 1,
+      "radiance": 0,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S028",
+   "monk": 6,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 81.1,
+     "uiScore": 89
+    },
+    "pores": {
+     "rawScore": 36.3,
+     "uiScore": 44
+    },
+    "oiliness": {
+     "rawScore": 63.7,
+     "uiScore": 72
+    },
+    "texture": {
+     "rawScore": 32.6,
+     "uiScore": 41
+    },
+    "hydration": {
+     "rawScore": 8.3,
+     "uiScore": 16
+    },
+    "redness": {
+     "rawScore": 83.1,
+     "uiScore": 91
+    },
+    "pigmentation": {
+     "rawScore": 80.6,
+     "uiScore": 89
+    },
+    "wrinkles": {
+     "rawScore": 52.8,
+     "uiScore": 61
+    },
+    "radiance": {
+     "rawScore": 85.1,
+     "uiScore": 93
+    },
+    "darkCircle": {
+     "rawScore": 55.3,
+     "uiScore": 63
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 0,
+      "pores": 2,
+      "oiliness": 1,
+      "texture": 2,
+      "hydration": 3,
+      "redness": 0,
+      "pigmentation": 3,
+      "wrinkles": 1,
+      "radiance": 0,
+      "darkCircle": 1
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S029",
+   "monk": 9,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 69.6,
+     "uiScore": 78
+    },
+    "pores": {
+     "rawScore": 19.5,
+     "uiScore": 27
+    },
+    "oiliness": {
+     "rawScore": 16.6,
+     "uiScore": 25
+    },
+    "texture": {
+     "rawScore": 82.3,
+     "uiScore": 90
+    },
+    "hydration": {
+     "rawScore": 35.2,
+     "uiScore": 43
+    },
+    "redness": {
+     "rawScore": 15.7,
+     "uiScore": 24
+    },
+    "pigmentation": {
+     "rawScore": 65.6,
+     "uiScore": 74
+    },
+    "wrinkles": {
+     "rawScore": 57.2,
+     "uiScore": 65
+    },
+    "radiance": {
+     "rawScore": 57.9,
+     "uiScore": 66
+    },
+    "darkCircle": {
+     "rawScore": 18.9,
+     "uiScore": 27
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 3,
+      "oiliness": 3,
+      "texture": 0,
+      "hydration": 2,
+      "redness": 3,
+      "pigmentation": 2,
+      "wrinkles": 1,
+      "radiance": 1,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": false,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S030",
+   "monk": 8,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 64.4,
+     "uiScore": 72
+    },
+    "pores": {
+     "rawScore": 9.3,
+     "uiScore": 17
+    },
+    "oiliness": {
+     "rawScore": 41.4,
+     "uiScore": 49
+    },
+    "texture": {
+     "rawScore": 41.8,
+     "uiScore": 50
+    },
+    "hydration": {
+     "rawScore": 9.1,
+     "uiScore": 17
+    },
+    "redness": {
+     "rawScore": 51.8,
+     "uiScore": 60
+    },
+    "pigmentation": {
+     "rawScore": 59.5,
+     "uiScore": 68
+    },
+    "wrinkles": {
+     "rawScore": 39.7,
+     "uiScore": 48
+    },
+    "radiance": {
+     "rawScore": 11.5,
+     "uiScore": 20
+    },
+    "darkCircle": {
+     "rawScore": 9.7,
+     "uiScore": 18
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 3,
+      "oiliness": 2,
+      "texture": 2,
+      "hydration": 3,
+      "redness": 1,
+      "pigmentation": 1,
+      "wrinkles": 2,
+      "radiance": 3,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": true,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S031",
+   "monk": 7,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 74.1,
+     "uiScore": 82
+    },
+    "pores": {
+     "rawScore": 82.3,
+     "uiScore": 90
+    },
+    "oiliness": {
+     "rawScore": 80.1,
+     "uiScore": 88
+    },
+    "texture": {
+     "rawScore": 64.7,
+     "uiScore": 73
+    },
+    "hydration": {
+     "rawScore": 58.2,
+     "uiScore": 66
+    },
+    "redness": {
+     "rawScore": 37.8,
+     "uiScore": 46
+    },
+    "pigmentation": {
+     "rawScore": 51.8,
+     "uiScore": 60
+    },
+    "wrinkles": {
+     "rawScore": 31.6,
+     "uiScore": 40
+    },
+    "radiance": {
+     "rawScore": 77.2,
+     "uiScore": 85
+    },
+    "darkCircle": {
+     "rawScore": 9.7,
+     "uiScore": 18
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 2,
+      "pores": 0,
+      "oiliness": 0,
+      "texture": 1,
+      "hydration": 1,
+      "redness": 2,
+      "pigmentation": 1,
+      "wrinkles": 2,
+      "radiance": 0,
+      "darkCircle": 3
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": false,
+      "scars": false,
+      "ashiness": true
+     }
+    }
+   }
+  },
+  {
+   "id": "S032",
+   "monk": 6,
+   "photo": "fictif.jpg",
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "données FICTIVES de démonstration, aucune personne réelle"
+   },
+   "engine": {
+    "acne": {
+     "rawScore": 71.5,
+     "uiScore": 80
+    },
+    "pores": {
+     "rawScore": 33.1,
+     "uiScore": 41
+    },
+    "oiliness": {
+     "rawScore": 17.6,
+     "uiScore": 26
+    },
+    "texture": {
+     "rawScore": 16.2,
+     "uiScore": 24
+    },
+    "hydration": {
+     "rawScore": 77.3,
+     "uiScore": 85
+    },
+    "redness": {
+     "rawScore": 33.6,
+     "uiScore": 42
+    },
+    "pigmentation": {
+     "rawScore": 56.3,
+     "uiScore": 64
+    },
+    "wrinkles": {
+     "rawScore": 85.5,
+     "uiScore": 93
+    },
+    "radiance": {
+     "rawScore": 7.3,
+     "uiScore": 15
+    },
+    "darkCircle": {
+     "rawScore": 37.3,
+     "uiScore": 45
+    }
+   },
+   "raters": {
+    "R1": {
+     "levels": {
+      "acne": 3,
+      "pores": 2,
+      "oiliness": 3,
+      "texture": 3,
+      "hydration": 0,
+      "redness": 2,
+      "pigmentation": 1,
+      "wrinkles": 0,
+      "radiance": 3,
+      "darkCircle": 2
+     },
+     "only": {
+      "postAcneMarks": true,
+      "razorBumps": true,
+      "scars": false,
+      "ashiness": false
+     }
+    }
+   }
+  },
+  {
+   "id": "S900",
+   "monk": 7,
+   "photo": "fictif.jpg",
+   "engine": {},
+   "raters": {}
+  },
+  {
+   "id": "S901",
+   "monk": 8,
+   "photo": "fictif.jpg",
+   "withdrawn": true,
+   "consent": {
+    "given": true,
+    "date": "2026-01-01",
+    "scope": "x"
+   },
+   "engine": {},
+   "raters": {}
+  }
+ ]
+}

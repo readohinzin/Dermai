@@ -32,9 +32,9 @@ function diagnosticLines(envelope) {
   out.forEach((el, i) => {
     if (el === null || typeof el !== 'object' || Array.isArray(el) || !TYPES.includes(el.type)) return;
     counts[el.type]++;
-    lines.push(`[DERMAI][DIAG] output[${i}] ` + FIELDS.map(f => `${f}=${show(el, f)}`).join(' '));
+    lines.push(`[DermAI][DIAG] output[${i}] ` + FIELDS.map(f => `${f}=${show(el, f)}`).join(' '));
   });
-  lines.unshift(`[DERMAI][DIAG] éléments lus : ${TYPES.map(t => `${t}=${counts[t]}`).join(' ')} (sur ${out.length} éléments)`);
+  lines.unshift(`[DermAI][DIAG] éléments lus : ${TYPES.map(t => `${t}=${counts[t]}`).join(' ')} (sur ${out.length} éléments)`);
   return lines;
 }
 
@@ -51,7 +51,7 @@ function repetitionLine(envelope) {
     if (el === null || typeof el !== 'object' || Array.isArray(el)) continue;
     if (typeof el.type === 'string' && Object.prototype.hasOwnProperty.call(counts, el.type)) counts[el.type]++;
   }
-  return `[DERMAI][DIAG] répétitions : ${METRIC_TYPES.map(t => `${t}=${counts[t]}`).join(', ')}`;
+  return `[DermAI][DIAG] répétitions : ${METRIC_TYPES.map(t => `${t}=${counts[t]}`).join(', ')}`;
 }
 
 module.exports = { diagnosticLines, repetitionLine, TYPES, FIELDS, METRIC_TYPES };

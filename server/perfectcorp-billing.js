@@ -1,6 +1,6 @@
 'use strict';
 /* Page d'administration du fondateur : LECTURES Perfect Corp seulement (solde d'unités, coûts officiels). Deux GET, jamais de POST, jamais de tâche : aucune unité n'est dépensée par ce module.
-   Contrat (source : scripts officiels du dépôt YouCam-API/skills, instantané du 2026-09-01, lus HORS dépôt DERMAI ; le README officiel les décrit « gratuits » ; la documentation en ligne n'a PAS pu être
+   Contrat (source : scripts officiels du dépôt YouCam-API/skills, instantané du 2026-09-01, lus HORS dépôt DermAI ; le README officiel les décrit « gratuits » ; la documentation en ligne n'a PAS pu être
    consultée) :
      solde   GET /s2s/v1.0/client/credit             → { results: [ { type, amount, … } ] } ; les unités dépensables sont les lots dont `type` commence par « Api » (convention du code officiel)
      coûts   GET /s2s/v2.0/credit/feature-cost       → { result: { skus: [ { description, amount, unit, proc_unit, run_task_url } ], next_token } } ; pagination page_size + starting_token

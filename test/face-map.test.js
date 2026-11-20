@@ -207,8 +207,8 @@ test('FM13 handler : masques réels présents → `localization` (data URL) à c
   } finally { perfectcorp.analyzeSkin = orig; console.log = quiet; }
 });
 
-test('FM14 rien n\'est ajouté par DERMAI sur la photo : ni étiquette, ni trait, ni point, ni contour anatomique (étape 26)', () => {
-  /* Les étiquettes et leurs traits de liaison étaient dessinés par DERMAI (pas par Perfect Corp) : retirés. Le seul dessin est le masque
+test('FM14 rien n\'est ajouté par DermAI sur la photo : ni étiquette, ni trait, ni point, ni contour anatomique (étape 26)', () => {
+  /* Les étiquettes et leurs traits de liaison étaient dessinés par DermAI (pas par Perfect Corp) : retirés. Le seul dessin est le masque
      reçu (remplissage + liseré clair au bord de SES pixels, calculé à partir du masque lui-même). */
   const src = code('js/face-map.js');
   assert.doesNotMatch(src, /zoneGeometry|layoutTags|c-fm-tag|<line|<circle|svg|lineTo|arc\(|strokeRect|ellipse/i);

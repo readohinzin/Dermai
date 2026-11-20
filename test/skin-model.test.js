@@ -7,14 +7,14 @@ const M = require('../js/skin-model.js');
 const CONFIG = require('../server/config');
 
 /* Deux fixtures aux rôles distincts :
-   - JSON_RESP : réponse de statut AI Skin Analysis v2.1 avec format = "json" (data.results.output[]). SEULE source parsée par DERMAI.
+   - JSON_RESP : réponse de statut AI Skin Analysis v2.1 avec format = "json" (data.results.output[]). SEULE source parsée par DermAI.
      Contient les 15 métriques (valeurs du résultat de référence) et les éléments skin_type, all et skin_age tels que montrés par
      l'OpenAPI officiel (valeurs d'exemple de l'OpenAPI : Combination / Oily / Dry & Redness, 28.5, 29).
-   - SCORE_INFO : contenu de score_info.json du format ZIP (objet indexé par métrique). Non parsé par DERMAI : référence de valeurs. */
+   - SCORE_INFO : contenu de score_info.json du format ZIP (objet indexé par métrique). Non parsé par DermAI : référence de valeurs. */
 const JSON_RESP = require('./fixtures/perfectcorp-json-response.json');
 const SCORE_INFO = require('./fixtures/perfectcorp-score-info.json');
 
-/* Spécification du mapping, écrite ICI indépendamment du module : type Perfect Corp → clé DERMAI (15 métriques à deux scores). */
+/* Spécification du mapping, écrite ICI indépendamment du module : type Perfect Corp → clé DermAI (15 métriques à deux scores). */
 const SPEC = {
   acne: 'acne', pore: 'pores', oiliness: 'oiliness', texture: 'texture', moisture: 'hydration', redness: 'redness',
   age_spot: 'pigmentation', wrinkle: 'wrinkles', firmness: 'firmness', radiance: 'radiance', eye_bag: 'eyeBag',
@@ -84,7 +84,7 @@ test('A5 mask_urls, url et champs inconnus ne sont jamais exposés dans normaliz
   assert.deepEqual(r.normalized, normOf(OUT));                           // aucun champ non listé n'a d'effet
 });
 
-test('A6 normalized : champs connus seulement, aucun calcul DERMAI', () => {
+test('A6 normalized : champs connus seulement, aucun calcul DermAI', () => {
   const n = normOf(OUT);
   assert.deepEqual(Object.keys(n).sort(), [...Object.values(SPEC), 'globalScore', 'skinType', 'skinAge'].sort());
   for (const key of Object.values(SPEC)) assert.deepEqual(Object.keys(n[key]).sort(), ['rawScore', 'uiScore']);
@@ -403,7 +403,7 @@ test('D1 sanitizeNormalized : aller-retour fidèle (y compris global, âge, type
 });
 
 /* ================= E. score_info.json : non supporté (le format ZIP n'est jamais demandé) ================= */
-test('E1 DERMAI n\'expose aucun parseur de score_info.json ; le format ZIP n\'est jamais demandé', () => {
+test('E1 DermAI n\'expose aucun parseur de score_info.json ; le format ZIP n\'est jamais demandé', () => {
   assert.equal(M.normalizeSkinResult, undefined);
   assert.equal(M.normalizeResultObject, undefined);
   assert.equal(M.parseScoreInfo, undefined);

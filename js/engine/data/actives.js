@@ -1,7 +1,7 @@
 /* Catalogue éditorial des actifs cosmétiques. Aucune logique ici (voir ../actives.js).
 
    status : « validated » = retenu pour l'usage automatique du moteur ; « à_valider » = présent pour mémoire, JAMAIS sélectionné.
-   Le statut « validated » est une décision de projet (règle éditoriale DERMAI). Les preuves réellement consultées sont décrites dans `evidence`
+   Le statut « validated » est une décision de projet (règle éditoriale DermAI). Les preuves réellement consultées sont décrites dans `evidence`
    (voir plus bas) ; quand aucune source n'a été retenue, c'est écrit « SOURCE À AJOUTER » : rien n'est inventé. Relecture par un cosmétologue requise avant un lancement public.
 
    consultable : actif « à_valider » dont la fiche reste lisible (consultation), sans jamais être proposé automatiquement.
@@ -22,12 +22,12 @@
 
   /* ---- Preuves ----
      Trois niveaux à ne jamais confondre : (A) ce que Perfect Corp mesure, (B) ce que la littérature cosmétique permet de dire d'un actif,
-     (C) la règle éditoriale DERMAI qui décide de le proposer. Une relation métrique → actif est TOUJOURS une règle DERMAI (C),
+     (C) la règle éditoriale DermAI qui décide de le proposer. Une relation métrique → actif est TOUJOURS une règle DermAI (C),
      jamais une recommandation de Perfect Corp. `evidence` décrit (B) :
        refs      : sources réellement consultées (audit 6B-2), avec ce qu'elles soutiennent. Aucune référence n'est inventée.
        direct    : cibles soutenues directement par une source consultée ;
        indirect  : cibles soutenues par une preuve indirecte (autre critère, autre dosage, produit voisin) ;
-       editorial : cibles plausibles retenues comme règle DERMAI prudente, sans source directe consultée. Absence de preuve consultée
+       editorial : cibles plausibles retenues comme règle DermAI prudente, sans source directe consultée. Absence de preuve consultée
                    n'est PAS une preuve que la relation est fausse.
      sourceStatus : 'sourced' | 'partial' | 'to_add' (« SOURCE À AJOUTER »). */
   const REF = {
@@ -46,17 +46,17 @@
   };
   const ev = (sourceStatus, refs, direct, indirect, editorial, note) => ({ sourceStatus, refs, direct, indirect, editorial, note: note || '' });
   const EV = {
-    niacinamide: ev('partial', [REF.niacinamide], ['oiliness', 'pores', 'acne'], [], ['texture', 'redness', 'pigmentation'], 'Texture, rougeurs et taches : propriétés plausibles, règle DERMAI prudente sans source directe retenue.'),
+    niacinamide: ev('partial', [REF.niacinamide], ['oiliness', 'pores', 'acne'], [], ['texture', 'redness', 'pigmentation'], 'Texture, rougeurs et taches : propriétés plausibles, règle DermAI prudente sans source directe retenue.'),
     salicylic: ev('sourced', [REF.salicylicStudy, REF.salicylicSccs], ['acne'], ['pores'], [], 'Pores : effet comédolytique, preuve indirecte. Aucune cible oiliness ni texture.'),
     azelaic: ev('sourced', [REF.azelaicJdd, REF.azelaicJabfm], ['acne'], ['redness', 'pigmentation'], [], 'Preuves surtout aux dosages médicamenteux ; « rougeurs » mesurées par la caméra ne sont pas une rosacée.'),
-    vitamin_c: ev('sourced', [REF.vitCJcad, REF.vitCPmc], ['pigmentation'], ['radiance', 'wrinkles'], ['firmness'], 'Éclat et rides : preuve indirecte (teint, photovieillissement). Fermeté : règle DERMAI prudente.'),
+    vitamin_c: ev('sourced', [REF.vitCJcad, REF.vitCPmc], ['pigmentation'], ['radiance', 'wrinkles'], ['firmness'], 'Éclat et rides : preuve indirecte (teint, photovieillissement). Fermeté : règle DermAI prudente.'),
     retinoid: ev('to_add', [REF.retinoidPregnancy], [], [], ['wrinkles', 'firmness', 'texture'], 'À valider : aucune source d\'efficacité cosmétique retenue, donc jamais sélectionné automatiquement. La source présente ne couvre que la sécurité (grossesse).'),
     aha_pha: ev('partial', [REF.ahaFda, REF.ahaReview, REF.phaReview], [], ['texture', 'radiance', 'pigmentation'], [], 'Regroupe AHA et PHA : la preuve est plus abondante pour les AHA ; les PHA sont décrits comme mieux tolérés.'),
-    hyaluronic: ev('to_add', [], [], [], ['hydration'], 'Humectant de base : règle DERMAI.'),
-    glycerin: ev('to_add', [], [], [], ['hydration'], 'Humectant de base : règle DERMAI.'),
-    ceramides: ev('to_add', [], [], [], ['hydration', 'redness'], 'Soutien de la barrière : règle DERMAI.'),
-    panthenol: ev('to_add', [], [], [], ['hydration', 'redness'], 'Confort de la peau : règle DERMAI.'),
-    squalane: ev('to_add', [], [], [], ['hydration'], 'Émollient : règle DERMAI.')
+    hyaluronic: ev('to_add', [], [], [], ['hydration'], 'Humectant de base : règle DermAI.'),
+    glycerin: ev('to_add', [], [], [], ['hydration'], 'Humectant de base : règle DermAI.'),
+    ceramides: ev('to_add', [], [], [], ['hydration', 'redness'], 'Soutien de la barrière : règle DermAI.'),
+    panthenol: ev('to_add', [], [], [], ['hydration', 'redness'], 'Confort de la peau : règle DermAI.'),
+    squalane: ev('to_add', [], [], [], ['hydration'], 'Émollient : règle DermAI.')
   };
   const NONE = ev('to_add', [], [], [], [], 'À valider avant usage : aucune source retenue.');
   const srcText = e => (e.sourceStatus === 'to_add' ? 'SOURCE À AJOUTER' : (e.sourceStatus === 'partial' ? 'Sources partielles : ' : 'Sources consultées : ') + e.refs.map(r => r.label).join(' ; ')) + (e.note ? ' | ' + e.note : '');
@@ -97,7 +97,7 @@
       id: 'vitamin_c', label: 'Vitamine C', kind: 'treatment', role: 'antioxidant_tone', irritation: 'moderate', groups: [],
       targets: ['pigmentation', 'radiance', 'wrinkles', 'firmness'], objectives: ['tone', 'aging'],
       confidence: 'medium', status: 'validated', source: srcText(EV.vitamin_c), evidence: EV.vitamin_c,
-      summary: 'Éclat et uniformité', description: 'Aide à rendre le teint plus lumineux et plus uniforme, et accompagne la protection de la peau.',
+      summary: 'Atténue les taches', description: 'Antioxydant qui aide à unifier le teint et à atténuer l\'aspect des taches, et accompagne la protection de la peau.',
       cautions: ['Peut piquer sur peau sensible.', 'Conservez le produit à l\'abri de la lumière et de la chaleur.', MARKS],
       when: 'morning', defaultSlot: 'morning',
       introduction: { frequency: 'Un matin sur deux au début', note: 'Appliquez avant la protection solaire.' }
@@ -107,7 +107,7 @@
       targets: ['wrinkles', 'firmness', 'texture'], objectives: ['aging', 'texture'],
       confidence: 'medium', status: 'à_valider', source: srcText(EV.retinoid), evidence: EV.retinoid,
       summary: 'Renouvelle la texture', description: 'Dérivés cosmétiques de la vitamine A (par exemple le rétinol), jamais un médicament. Aident à lisser le grain de peau et à estomper l\'aspect des signes visibles du vieillissement.',
-      cautions: ['Par prudence, les rétinoïdes cosmétiques ne sont pas proposés automatiquement par DERMAI. En cas de grossesse ou de projet de grossesse, demandez conseil à un professionnel de santé avant d\'utiliser ce type d\'actif.', 'Protection solaire indispensable le lendemain.', 'Peuvent irriter : commencez très doucement.', MARKS],
+      cautions: ['Par prudence, les rétinoïdes cosmétiques ne sont pas proposés automatiquement par DermAI. En cas de grossesse ou de projet de grossesse, demandez conseil à un professionnel de santé avant d\'utiliser ce type d\'actif.', 'Protection solaire indispensable le lendemain.', 'Peuvent irriter : commencez très doucement.', MARKS],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Un soir par semaine au début', note: 'Passez à deux soirs par semaine après quelques semaines si tout va bien.' }
     },
@@ -115,7 +115,7 @@
       id: 'aha_pha', label: 'Exfoliants chimiques AHA ou PHA', kind: 'treatment', role: 'exfoliation', irritation: 'moderate', groups: ['evening_strong'],
       targets: ['texture', 'radiance', 'pigmentation'], objectives: ['texture', 'tone'],
       confidence: 'medium', status: 'validated', source: srcText(EV.aha_pha), evidence: EV.aha_pha,
-      summary: 'Affine le grain de peau', description: 'Exfoliants qui aident à lisser le grain de peau et à raviver l\'éclat.',
+      summary: 'Affine le grain de peau', description: 'Exfoliants qui aident à lisser le grain de peau et à unifier l\'aspect du teint.',
       cautions: ['Protection solaire indispensable.', 'Peuvent irriter : espacez en cas de tiraillement.', PREGNANCY, MARKS],
       when: 'evening', defaultSlot: 'evening',
       introduction: { frequency: 'Un soir par semaine au début', note: 'Augmentez très progressivement.' }
@@ -201,10 +201,11 @@
     { id: 'vitamin_c_retinoid', status: 'à_valider', pair: ['vitamin_c', 'retinoid'], text: 'Vitamine C et rétinoïde au même moment (association débattue).' }
   ];
 
-  /* Exclus du périmètre cosmétique : jamais recommandés, jamais présents dans le catalogue de produits. */
-  const EXCLUDED = ['hydroquinone', 'corticoids', 'mercury', 'benzoyl_peroxide', 'adapalene', 'tretinoin'];
+  /* Exclus du périmètre cosmétique : jamais recommandés, jamais présents dans le catalogue de produits. Éclaircissants / dépigmentants (data/prevention.js, LIGHTENING_IDS) :
+     hydroquinone, corticoïdes, mercure, arbutine, acide kojique, glutathion. Les noms INCI exacts sont dans inci-aliases.js (EXCLUDED_NAMES). */
+  const EXCLUDED = ['hydroquinone', 'corticoids', 'mercury', 'benzoyl_peroxide', 'adapalene', 'tretinoin', 'arbutin', 'kojic_acid', 'glutathione'];
 
-  /* Plafonds de routine par niveau déclaré : choix UX / éditorial DERMAI (garder une routine courte et tolérable), PAS une règle scientifique.
+  /* Plafonds de routine par niveau déclaré : choix UX / éditorial DermAI (garder une routine courte et tolérable), PAS une règle scientifique.
      Même nature : MAX_SUPPORTS (actives.js), « un seul actif par rôle » (anti-doublon, UX) et « un seul exfoliant ou rétinoïde par soir »
      (prudence éditoriale contre l'empilement irritant ; elle n'affirme aucune incompatibilité chimique). */
   const LIMITS = {

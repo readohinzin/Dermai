@@ -37,7 +37,7 @@
 .m-ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.22;transform:scale(0);pointer-events:none;animation:mRipple .65s ease-out forwards}
 @keyframes mRipple{to{transform:scale(1);opacity:0}}
 
-/* Appel final : halo qui respire ; visage de la section « ce que DERMAI observe » qui flotte doucement */
+/* Appel final : halo qui respire ; visage de la section « ce que DermAI observe » qui flotte doucement */
 .sec.alt[style*="center"] .c-btn--primary{animation:mPulse 2.8s ease-in-out infinite}
 @keyframes mPulse{0%,100%{box-shadow:0 12px 26px -14px rgba(84,47,59,.55),0 0 0 0 rgba(84,47,59,.28)}50%{box-shadow:0 12px 26px -14px rgba(84,47,59,.55),0 0 0 14px rgba(84,47,59,0)}}
 .facebox .portrait{animation:mFloat 7s ease-in-out infinite}

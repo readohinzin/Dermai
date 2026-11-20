@@ -1,5 +1,5 @@
 'use strict';
-/* DERMAI Évolution (js/evolution.js) : bilan en langage clair entre deux analyses ENREGISTRÉES. Tests purs, sans navigateur ni réseau.
+/* DermAI Évolution (js/evolution.js) : bilan en langage clair entre deux analyses ENREGISTRÉES. Tests purs, sans navigateur ni réseau.
    Vérifie : classement exact au seuil technique provisoire, indicateurs absents jamais classés, huile / texture / radiance et contour des yeux traités sans jugement,
    analyses non enregistrées exclues, cas à une seule analyse ou sans photo, départ du programme, aucune causalité, aucun accès réseau. */
 const test = require('node:test');

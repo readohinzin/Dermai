@@ -108,7 +108,7 @@ test('verrou fermé : la requête n\'est même pas lue (pas de validation, pas d
 });
 
 const JSON_RESP = require('./fixtures/perfectcorp-json-response.json');   // réponse format = "json" : data.results.output[]
-const SCORE_INFO = require('./fixtures/perfectcorp-score-info.json');     // score_info.json (ZIP) : non parsé par DERMAI
+const SCORE_INFO = require('./fixtures/perfectcorp-score-info.json');     // score_info.json (ZIP) : non parsé par DermAI
 const skinModel = require('../js/skin-model.js');
 const EXPECTED = skinModel.parseSkinResponse(JSON_RESP).normalized;
 /* Enveloppe de statut simulée, volontairement « sale » : task_id, URL de masque, champs et éléments inconnus. */
@@ -198,7 +198,7 @@ test('log : structure (noms et types), chemin et noms de types ; jamais de valeu
     assert.ok(chemin, 'chemin du résultat non journalisé');
     assert.ok(chemin.includes('skin_type') && chemin.includes('inconnu_type'), 'types ignorés non journalisés (noms)');
     /* hors lignes [DIAG] (qui affichent volontairement les valeurs de skin_type, all et skin_age) : aucune valeur */
-    const tout = logs.filter(l => !l.startsWith('[DERMAI][DIAG]')).join('\n');
+    const tout = logs.filter(l => !l.startsWith('[DermAI][DIAG]')).join('\n');
     for (const interdit of ['MASQUE_SECRET', 'TASKID_SECRET', 'TYPE_SECRET', 'cdn.example', 'https://', 'sig=abc', 'CLE_SECRETE_XYZ', 'Oily', 'Combination', 'Dry & Redness', '28.5', String(JSON_RESP.data.results.output[0].raw_score)]) {
       assert.ok(!tout.includes(interdit), 'fuite dans les logs : ' + interdit);
     }
@@ -234,7 +234,7 @@ function realShapedEnvelope() {
 
 test('DIAG : lignes pour skin_type, all et skin_age avec leurs champs scalaires explicites', () => {
   const lignes = diagnosticLines(realShapedEnvelope());
-  assert.equal(lignes[0], '[DERMAI][DIAG] éléments lus : skin_type=3 all=1 skin_age=1 (sur 21 éléments)');   // 15 métriques + 3 skin_type + all + skin_age + resize_image
+  assert.equal(lignes[0], '[DermAI][DIAG] éléments lus : skin_type=3 all=1 skin_age=1 (sur 21 éléments)');   // 15 métriques + 3 skin_type + all + skin_age + resize_image
   assert.equal(lignes.length, 1 + 5);
   const st = lignes.filter(l => l.includes('type="skin_type"'));
   assert.equal(st.length, 3);
@@ -264,13 +264,13 @@ test('DIAG : champs absents signalés, valeurs non scalaires ou ressemblant à u
 test('DIAG : sans tableau data.results.output, aucune ligne ; aucun élément ciblé : seulement le comptage', () => {
   for (const x of [null, undefined, {}, { data: { results: { output: {} } } }, { data: { results: { output: 'x' } } }]) assert.deepEqual(diagnosticLines(x), []);
   assert.deepEqual(diagnosticLines({ data: { results: { output: [{ type: 'acne', raw_score: 1 }, null, 'x'] } } }),
-    ['[DERMAI][DIAG] éléments lus : skin_type=0 all=0 skin_age=0 (sur 3 éléments)']);
+    ['[DermAI][DIAG] éléments lus : skin_type=0 all=0 skin_age=0 (sur 3 éléments)']);
 });
 
 test('DIAG : dans les logs du handler, uniquement ces champs ; aucune fuite (JSON brut, mask_urls, url, task_id, clé, autres scores)', async () => {
   await withEnv({ PERFECT_CORP_API_KEY: 'CLE_SECRETE_XYZ' }, () => withStub(realShapedEnvelope(), async () => {
     const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
-    const diag = logs.filter(l => l.startsWith('[DERMAI][DIAG]') && !l.includes('répétitions'));   // diagnostic skin_type / all / skin_age, inchangé
+    const diag = logs.filter(l => l.startsWith('[DermAI][DIAG]') && !l.includes('répétitions'));   // diagnostic skin_type / all / skin_age, inchangé
     assert.equal(diag.length, 6);
     assert.ok(diag.join('\n').includes('skin_type="Oily"') && diag.join('\n').includes('score=28.5 ') && diag.join('\n').includes('score=29 '));
     const tout = logs.join('\n');
@@ -291,13 +291,13 @@ test('DIAG : le diagnostic journalise aussi quand le résultat est refusé (ambi
   await withStub(env, async () => {
     const [r, logs] = await captureLogs(() => call('POST', { 'content-type': 'image/jpeg' }, JPEG));
     assert.equal(r.status, 502);
-    assert.ok(logs.some(l => l.startsWith('[DERMAI][DIAG] éléments lus : skin_type=3 all=1 skin_age=1')));
+    assert.ok(logs.some(l => l.startsWith('[DermAI][DIAG] éléments lus : skin_type=3 all=1 skin_age=1')));
   });
 });
 
 /* ---------- DIAGNOSTIC TEMPORAIRE : comptage des répétitions par type (voir server/diagnostic.js) ---------- */
 const { repetitionLine, METRIC_TYPES } = require('../server/diagnostic');
-const REP_ATTENDU = '[DERMAI][DIAG] répétitions : ' + [...METRIC_TYPES].map(t => `${t}=1`).join(', ');
+const REP_ATTENDU = '[DermAI][DIAG] répétitions : ' + [...METRIC_TYPES].map(t => `${t}=1`).join(', ');
 
 test('REP : 15 types de métriques connus, ordre du parseur, une occurrence chacun', () => {
   assert.equal(METRIC_TYPES.length, 15);
@@ -333,7 +333,7 @@ test('REP : sans tableau data.results.output → null ; éléments hostiles igno
 
 test('REP : la ligne ne contient que des noms de types et des nombres : jamais valeurs, URL, task_id, clé ni JSON', () => {
   const l = repetitionLine(realShapedEnvelope());
-  assert.match(l, /^\[DERMAI\]\[DIAG\] répétitions : [a-z_0-9]+=\d+(, [a-z_0-9]+=\d+)*$/);
+  assert.match(l, /^\[DermAI\]\[DIAG\] répétitions : [a-z_0-9]+=\d+(, [a-z_0-9]+=\d+)*$/);
   for (const interdit of ['https', 'cdn.example', 'MASQUE', 'RESIZED', 'TASKID', 'Oily', '61.5', '{', '[]']) assert.ok(!l.includes(interdit), interdit);
 });
 

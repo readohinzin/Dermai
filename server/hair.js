@@ -6,7 +6,7 @@
      bangs       AI Bangs Filter Virtual Try-On      modèle (template_id)                                                                      1 unité
      wavy        AI Wavy Hair Virtual Try-On         modèle (template_id)                                                                      1 unité
      volume      AI Hair Volume Virtual Try-On       modèle (template_id)                                                                      2 unités
-   Les unités sont celles ANNONCÉES par la documentation (jamais mesurées sur le compte DERMAI).
+   Les unités sont celles ANNONCÉES par la documentation (jamais mesurées sur le compte DermAI).
 
    SOURCES. Corps de requête de chaque fonction : outils « AI-… » du dépôt officiel YouCam-API/beauty-skin-care-mcp (lhm.plugin.json) : établis. Chemins REST :
    dépôt officiel YouCam-API/skills (api-fallback.yaml, instantané du 2026-09-01) : CONFIRMÉS pour hair-transfer (V2.1, création + liste des modèles) et hair-color ; le statut est
@@ -134,7 +134,7 @@ function checkImage(buffer) {
   if (!size) throw new AnalysisError('HR_INVALID_IMAGE', { status: 400, detail: 'dimensions JPEG illisibles' });
   const long = Math.max(size.width, size.height), short = Math.min(size.width, size.height);
   if (long > LIMITS.maxLongSide) throw new AnalysisError('HR_INVALID_IMAGE', { status: 400, detail: `grand côté ${long} px (limite : ${LIMITS.maxLongSide})` });
-  if (short < LIMITS.minShortSide) throw new AnalysisError('HR_INVALID_IMAGE', { status: 400, detail: `petit côté ${short} px (minimum DERMAI : ${LIMITS.minShortSide})` });
+  if (short < LIMITS.minShortSide) throw new AnalysisError('HR_INVALID_IMAGE', { status: 400, detail: `petit côté ${short} px (minimum DermAI : ${LIMITS.minShortSide})` });
   return size;
 }
 

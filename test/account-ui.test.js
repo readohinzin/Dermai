@@ -13,7 +13,7 @@ const app = read('js/app.js'), code = strip(app);
 
 function config(env) {
   const saved = { ...process.env };
-  for (const k of Object.keys(process.env)) if (/^(SUPABASE|DERMAI)/.test(k)) delete process.env[k];
+  for (const k of Object.keys(process.env)) if (/^(SUPABASE|DermAI)/.test(k)) delete process.env[k];
   Object.assign(process.env, env);
   let body = '';
   handler({ method: 'GET' }, { setHeader() {}, end(x) { body = x; } });

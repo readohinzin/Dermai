@@ -20,6 +20,8 @@ const P = (id, category, ingredients, extra) => Object.assign({ id, name: 'Produ
   status: 'validated', format: '30 ml', inci: ['Aqua / Water'], sources: TSRC, offers: [] }, extra || {});
 const OFFER = (extra) => Object.assign({ market: 'BJ', retailer: 'Boutique de test', type: 'retailer', currency: 'XOF', price: 9500, availability: 'in_stock', url: 'https://vendeur-de-test.shop/produit', shipping: 'local', source: 'Relevé de test', checkedAt: '2026-10-01' }, extra || {});
 const FULL = { description: 'Fiche de test.', offers: [OFFER()], image: { src: 'img/products/test.jpg', alt: 'Produit de test', sourceUrl: 'https://fabricant-de-test.com/fiche', checkedAt: '2026-10-01', credit: 'Visuel : Marque de test' } };
+/* Lot 5 : un produit solaire réel porte son modèle `sun` (data/sun.js). */
+const SUNX = { sun: { spf: '50+', filters: 'unknown', noWhiteCast: { claimed: false, quote: null, source: null } } };
 const FIX = [
   P('cl-a', 'cleanser', [ing('glycerin')]),
   P('cl-strong', 'cleanser', [ing('glycerin'), ing('salicylic')]),
@@ -33,7 +35,7 @@ const FIX = [
   P('m-a', 'moisturizer', [ing('hyaluronic'), ing('ceramides')]),
   P('m-b', 'moisturizer', [ing('glycerin')]),
   P('m-hidden', 'moisturizer', [ing('hyaluronic'), ing('azelaic')]),
-  P('spf-a', 'spf', [ing(null, 'Filtres UV large spectre')])
+  P('spf-a', 'spf', [ing(null, 'Filtres UV large spectre')], SUNX)
 ];
 const profile = (extra) => Object.assign({ goals: [], level: 'full', cats: [] }, extra || {});
 const run = (ui, prof, o) => Engine.run(norm(ui, o), profile(prof), { catalog: FIX });
@@ -72,13 +74,13 @@ test('PC2 le modèle exige un produit complet et refuse les données douteuses',
   bad(P('y8', 'serum', [ing('azelaic')], { demo: undefined }), /demo/);
   bad(P('y9', 'serum', [ing('azelaic')], { primaryActiveId: 'niacinamide' }), /actif principal/);
   bad(P('Z Z', 'serum', [ing('azelaic')]), /id invalide/);
-  assert.ok(products.validateCatalog([P('dup', 'spf', [ing(null, 'UV')]), P('dup', 'spf', [ing(null, 'UV')])]).some(m => /double/.test(m)));
+  assert.ok(products.validateCatalog([P('dup', 'spf', [ing(null, 'UV')], SUNX), P('dup', 'spf', [ing(null, 'UV')], SUNX)]).some(m => /double/.test(m)));
   assert.deepEqual(products.validateProduct(P('ok', 'serum', [ing('azelaic')], FULL)), [], 'une fiche réelle complète et sourcée est valide');
   bad(P('z1', 'serum', [ing('azelaic')], { status: undefined }), /statut/);
   bad(P('z2', 'serum', [ing('azelaic')], { format: null }), /format/);
   bad(P('z3', 'serum', [ing('azelaic')], { inci: null }), /INCI/);
   bad(P('z4', 'serum', [ing('azelaic')], { sources: [] }), /source fabricant/);
-  assert.deepEqual(products.validateProduct(P('ok2', 'spf', [ing(null, 'UV')])), [], 'un produit sans aucune donnée commerciale est valide (champs nuls)');
+  assert.deepEqual(products.validateProduct(P('ok2', 'spf', [ing(null, 'UV')], SUNX)), [], 'un produit sans aucune donnée commerciale est valide (champs nuls)');
 });
 
 test('PC3 A : un soin est relié à l\'actif retenu pour l\'étape ; H/I : catégorie et créneau corrects', () => {
@@ -225,15 +227,15 @@ test('PC11 « pourquoi ce produit » : rôle et actif de l\'étape, sans promess
     if (s.kind === 'treatment') assert.ok(s.activeIds.length === 1 && s.why.toLowerCase().includes(actives.byId(s.activeIds[0]).label.toLowerCase()), s.why);
     assert.doesNotMatch(s.why, /va traiter|guérit|élimine|corrige|efface|100 ?%|garanti/i);
   }
-  assert.equal(copy.productWhy('cleanse', []), 'Proposé par DERMAI. Nettoyant doux pour l\'étape de nettoyage de votre routine.');
-  for (const k of ['treatment', 'moisturize', 'cleanse', 'spf']) assert.match(copy.productWhy(k, ['Niacinamide']), /^Proposé par DERMAI\. /, k);
+  assert.equal(copy.productWhy('cleanse', []), 'Proposé par DermAI. Nettoyant doux pour l\'étape de nettoyage de votre routine.');
+  for (const k of ['treatment', 'moisturize', 'cleanse', 'spf']) assert.match(copy.productWhy(k, ['Niacinamide']), /^Proposé par DermAI\. /, k);
   assert.match(copy.productWhy('spf', []), /Protection solaire/);
 });
 
 test('PC12 K/L : mode réel = catalogue réel seulement ; démonstration séparée ; aucune donnée commerciale de démonstration montrée', () => {
   const app = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
   assert.match(app, /const catalogNow=\(\)=>DEMO_MODE\?Engine\.products\.PRODUCTS:Engine\.catalogData\.PRODUCTS/);
-  assert.match(app, /Object\.assign\(\{catalog:catalogNow\(\)\}/);
+  assert.match(app, /Object\.assign\(\{catalog:catalogNow\(\)[,}]/);   // le commit « masks » (27 oct.) a ajouté une clé après catalog : l'invariant reste « le catalogue vient de catalogNow() »
   assert.doesNotMatch(app.replace(/\/\*[\s\S]*?\*\//g, ''), /Engine\.products\.PRODUCTS(?!:Engine)/.source ? /Engine\.products\.PRODUCTS\.(filter|map|find)/ : /x/, 'aucune lecture directe du catalogue de démonstration');
   assert.match(app, /p\.demo\?bottle\(p\.type,p\.color\)/);                                    // illustration réservée à la démonstration
   assert.match(app, /Image à venir/);

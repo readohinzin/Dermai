@@ -30,7 +30,7 @@ const MAX_CONFIG_CHARS = 2000;
    on envoie donc l'effet avec les valeurs minimales documentées (0). */
 const SKIN_SMOOTH = { category: 'skin_smooth', skinSmoothStrength: 0, skinSmoothColorIntensity: 0 };
 
-/* Champs propres à une texture, exigés par les descriptions officielles. Les VALEURS sont des choix de conception DERMAI (entiers dans la plage documentée),
+/* Champs propres à une texture, exigés par les descriptions officielles. Les VALEURS sont des choix de conception DermAI (entiers dans la plage documentée),
    pas des valeurs imposées par le fournisseur ; la couleur des paillettes est une version éclaircie de la couleur choisie. */
 const COMPANIONS = {
   lips: {
@@ -105,7 +105,7 @@ function parseConfig(text) {
   return normalizeConfig(json);
 }
 
-/* Palette d'un effet à texture : couleur, texture, intensité + champs propres à la texture (valeurs DERMAI, paillettes = couleur éclaircie). */
+/* Palette d'un effet à texture : couleur, texture, intensité + champs propres à la texture (valeurs DermAI, paillettes = couleur éclaircie). */
 function palette(cat, e) {
   const p = { color: e.color, texture: e.texture, colorIntensity: e.colorIntensity };
   const defaults = (DEFAULTS[cat] || {})[e.texture] || {};
@@ -149,7 +149,7 @@ function jpegSize(buf) {
   return null;
 }
 /* Exigences annoncées pour V1.0 : JPG/JPEG/PNG, moins de 10 Mo, grand côté inférieur à 1 920 px, visage assez grand. Ici : JPEG réel (le navigateur convertit tout en JPEG), taille
-   serveur ≤ IMAGE.maxBytes (4 Mo, limite d'une fonction Vercel), grand côté < 1 920 px (strict : valeur prudente), petit côté ≥ 256 px (choix DERMAI, pas une règle du fournisseur).
+   serveur ≤ IMAGE.maxBytes (4 Mo, limite d'une fonction Vercel), grand côté < 1 920 px (strict : valeur prudente), petit côté ≥ 256 px (choix DermAI, pas une règle du fournisseur).
    La taille du visage est jugée dans le navigateur (js/photo-check.js) puis par le fournisseur. */
 const LIMITS = { maxLongSide: 1920, minShortSide: 256 };
 function checkImage(buffer) {
@@ -157,7 +157,7 @@ function checkImage(buffer) {
   if (!size) throw new AnalysisError('MK_INVALID_IMAGE', { status: 400, detail: 'dimensions JPEG illisibles' });
   const long = Math.max(size.width, size.height), short = Math.min(size.width, size.height);
   if (long >= LIMITS.maxLongSide) throw new AnalysisError('MK_INVALID_IMAGE', { status: 400, detail: `grand côté ${long} px (limite : moins de ${LIMITS.maxLongSide})` });
-  if (short < LIMITS.minShortSide) throw new AnalysisError('MK_INVALID_IMAGE', { status: 400, detail: `petit côté ${short} px (minimum DERMAI : ${LIMITS.minShortSide})` });
+  if (short < LIMITS.minShortSide) throw new AnalysisError('MK_INVALID_IMAGE', { status: 400, detail: `petit côté ${short} px (minimum DermAI : ${LIMITS.minShortSide})` });
   if (buffer.length >= IMAGE.maxBytes + 1) throw new AnalysisError('TOO_LARGE', { status: 413 });
   return size;
 }

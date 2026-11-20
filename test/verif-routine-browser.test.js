@@ -60,15 +60,15 @@ test('VB1 catalogue : recherche, ajout au matin ou au soir, origine sourcée, fi
   assert.match(await text(page), /Choisissez au moins un moment/, 'un moment est obligatoire');
   await page.check('input[name=vr-slot][value=evening]'); await page.click('[data-vr=slots-save]');
   let t = await text(page);
-  assert.match(t, /Produit ajouté à votre routine/); assert.match(t, /Soir[\s\S]*Salicylic Acid 2% Solution/); assert.match(t, /Aucun produit pour le matin/); assert.match(t, /Catalogue DERMAI sourcé/);
+  assert.match(t, /Produit ajouté à votre routine/); assert.match(t, /Soir[\s\S]*Salicylic Acid 2% Solution/); assert.match(t, /Aucun produit pour le matin/); assert.match(t, /Catalogue DermAI sourcé/);
   let s = await stored(page);
   assert.equal(s.v, 1); assert.equal(s.products.length, 1); assert.deepEqual(s.products[0].slots, ['evening']); assert.equal(s.products[0].origin.kind, 'catalog'); assert.equal(s.products[0].origin.productId, 'to-salicylic-2-solution'); assert.equal(s.products[0].origin.checkedAt, '2026-10-06'); assert.equal(s.products[0].inci.length, 12);
   await page.reload(); await page.waitForFunction(() => state.account.status === 'signedIn' && state.history.status === 'ready'); await page.evaluate(() => go('verif'));
   assert.match(await text(page), /Salicylic Acid 2% Solution/, 'persiste après rechargement');
   await page.click('[data-vr=view]');
   t = await text(page);
-  assert.match(t, /Catalogue DERMAI sourcé/); assert.match(t, /The Ordinary : Salicylic Acid 2% Solution/); assert.match(t, /Relevé le 6 octobre 2026/); assert.match(t, /Salicylic Acid 2%\s*:\s*Acide salicylique/);
-  assert.match(t, /Repère DERMAI pour Acide salicylique :\s*Deux soirs par semaine/); assert.match(t, /suivez la notice du fabricant/); assert.match(t, /Peut dessécher/);
+  assert.match(t, /Catalogue DermAI sourcé/); assert.match(t, /The Ordinary : Salicylic Acid 2% Solution/); assert.match(t, /Relevé le 6 octobre 2026/); assert.match(t, /Salicylic Acid 2%\s*:\s*Acide salicylique/);
+  assert.match(t, /Repère DermAI pour Acide salicylique :\s*Deux soirs par semaine/); assert.match(t, /suivez la notice du fabricant/); assert.match(t, /Peut dessécher/);
   assert.match(t, /Ingrédients non reconnus \(10\)/);
   await page.click('[data-vr=edit]');
   assert.equal(await page.locator('textarea').count(), 0, 'la liste INCI du catalogue n\'est pas modifiable');
@@ -100,9 +100,9 @@ test('VB2 saisie manuelle : liste INCI découpée, ingrédients corrigés et ret
   assert.match(await text(page), /Produit enregistré/);
   const s = await stored(page); assert.deepEqual(s.products[0].inci, ['Aqua (Water)', 'Niacinamide 10%', 'Glycerin', 'Panthenol']); assert.deepEqual(s.products[0].origin, { kind: 'user' }); assert.deepEqual(s.products[0].slots, ['morning', 'evening']);
   await page.click('[data-vr=view]'); const t = await text(page);
-  assert.match(t, /Saisi par vous/); assert.match(t, /DERMAI ne l'a pas vérifiée sur l'emballage/); assert.match(t, /Niacinamide 10%\s*:\s*Niacinamide/); assert.match(t, /3 reconnus, 1 non reconnu/);
-  assert.match(t, /Repère DERMAI pour Niacinamide :\s*Une fois par jour/); assert.ok(!/Aqua \(Water\)\s*:/.test(t), 'un ingrédient non reconnu ne reçoit aucune fonction');
-  await page.locator('details.c-why summary', { hasText: 'Ingrédients non reconnus' }).click(); assert.match(await text(page), /Non reconnu : DERMAI n'a pas de fiche pour cet ingrédient\. Ce n'est ni bon ni mauvais/);
+  assert.match(t, /Saisi par vous/); assert.match(t, /DermAI ne l'a pas vérifiée sur l'emballage/); assert.match(t, /Niacinamide 10%\s*:\s*Niacinamide/); assert.match(t, /3 reconnus, 1 non reconnu/);
+  assert.match(t, /Repère DermAI pour Niacinamide :\s*Une fois par jour/); assert.ok(!/Aqua \(Water\)\s*:/.test(t), 'un ingrédient non reconnu ne reçoit aucune fonction');
+  await page.locator('details.c-why summary', { hasText: 'Ingrédients non reconnus' }).click(); assert.match(await text(page), /Non reconnu : DermAI n'a pas de fiche pour cet ingrédient\. Ce n'est ni bon ni mauvais/);
   // modification : le nom, la catégorie, les moments et la liste restent corrigeables
   await page.click('[data-vr=edit]');
   assert.equal(await page.inputValue('#vr-name'), 'Mon sérum'); await page.fill('#vr-name', 'Mon sérum du soir'); await page.uncheck('input[name=vr-slot][value=morning]'); await page.fill('#vr-inci', 'Aqua, Salicylic Acid');
@@ -116,13 +116,13 @@ test('VB3 nom seul : enregistré en composition inconnue, aucune analyse invent�
   const env = await H.open(browser, server, { user: { email: 'a@exemple.com' } });
   await boot(env); const { page } = env;
   await addManual(page, { name: 'Sérum Acide Salicylique Rétinol 10 % Hydroquinone', slots: ['morning', 'evening'] });
-  assert.match(await text(page), /Aucune liste INCI saisie : le produit sera enregistré avec une « composition inconnue »/); assert.equal(await page.locator('input[data-vr-row]').count(), 0);
+  assert.match(await text(page), /Aucune liste INCI saisie : le produit sera enregistré avec une « composition non vérifiable »/); assert.equal(await page.locator('input[data-vr-row]').count(), 0);
   await page.click('[data-vr=review-save]');
   const t = await text(page);
-  assert.match(t, /Composition inconnue/); assert.match(t, /La composition de « Sérum Acide Salicylique Rétinol 10 % Hydroquinone » est inconnue : DERMAI ne peut rien vérifier/);
+  assert.match(t, /Composition non vérifiable/); assert.match(t, /La composition de « Sérum Acide Salicylique Rétinol 10 % Hydroquinone » est inconnue : DermAI ne peut rien vérifier/);
   assert.equal(await page.locator('.c-vr-point').count(), 1, 'un seul point : l\'information manquante'); assert.ok(!/Précaution|Prudence|Substance sans conseil|exfoliant/.test(await page.locator('.c-vr-points').innerText()));
   await page.click('[data-vr=view]'); const d = await text(page);
-  assert.match(d, /Aucune liste INCI enregistrée pour ce produit/); assert.match(d, /Composition inconnue : DERMAI ne propose aucune fréquence/); assert.equal((d.match(/DERMAI ne propose aucune fréquence/g) || []).length, 1); assert.ok(!/Repère DERMAI|Précautions des fiches/.test(d));
+  assert.match(d, /Aucune liste INCI enregistrée pour ce produit/); assert.match(d, /Composition non vérifiable : DermAI ne propose aucune fréquence/); assert.equal((d.match(/DermAI ne propose aucune fréquence/g) || []).length, 1); assert.ok(!/Repère DermAI|Précautions des fiches/.test(d));
   assert.deepEqual((await stored(page)).products[0].inci, []);
   clean(env); await env.close();
 });
@@ -138,8 +138,8 @@ test('VB4 points d\'attention : R1 à R5, prudence et irritation avec leur « Po
   assert.equal(by(/Plusieurs exfoliants ou rétinoïdes/).level, 'Précaution'); assert.match(by(/Plusieurs exfoliants ou rétinoïdes/).text, /Un seul exfoliant ou rétinoïde par soir\./);
   assert.equal(by(/Protection solaire non indiquée/).level, 'Précaution'); assert.match(by(/Protection solaire non indiquée/).text, /Protection solaire indispensable\./);
   assert.equal(by(/Vitamine C et rétinoïde le soir/).level, 'À valider'); assert.match(by(/Vitamine C et rétinoïde le soir/).text, /n'a pas validé de règle à ce sujet/);
-  assert.equal(by(/Composition inconnue/).level, 'Information manquante');
-  assert.equal(by(/Substance sans conseil DERMAI/).level, 'Prudence'); assert.match(by(/Substance sans conseil DERMAI/).text, /Demandez l'avis d'un professionnel \(pharmacien, médecin\)/);
+  assert.equal(by(/Composition non vérifiable/).level, 'Information manquante');
+  assert.equal(by(/Produit éclaircissant : prudence/).level, 'Prudence'); assert.match(by(/Produit éclaircissant : prudence/).text, /DermAI ne conseille pas les produits qui en contiennent/); assert.match(by(/Produit éclaircissant : prudence/).text, /parlez-en à un dermatologue ou à un pharmacien/);
   assert.equal(by(/vous a déjà irrité/).level, 'Prudence');
   for (const p of pts) { assert.match(p.why, /Règle :/); assert.match(p.why, /Source :/); assert.match(p.why, /Validation :/); }
   const order = ['Prudence', 'Précaution', 'À valider', 'Information', 'Information manquante']; const lv = pts.map(p => order.indexOf(p.level)); assert.deepEqual(lv, [...lv].sort((a, b) => a - b), 'classés par niveau');

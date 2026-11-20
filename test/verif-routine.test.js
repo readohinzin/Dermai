@@ -55,8 +55,8 @@ test('VR4 affichage : noms échappés, origine distinguée (catalogue sourcé / 
   const ctx = setup(); put(ctx, 'u1', [prod('p1', '<img src=x onerror=alert(1)>', { slots: ['morning', 'evening'] }), prod('p2', 'Catalogue', { origin: { kind: 'catalog', productId: 'to-x', label: 'The Ordinary : fiche', checkedAt: '2026-10-06' } }), prod('p3', 'Sans liste', { inci: [], category: 'moisturizer', slots: ['evening'] })]);
   const h = view(ctx);
   assert.ok(!/<img src=x/.test(h)); assert.match(h, /&lt;img src=x onerror=alert\(1\)&gt;/);
-  assert.match(h, /Catalogue DERMAI sourcé/); assert.match(h, /Saisi par vous/); assert.match(h, /Composition inconnue/);
-  assert.ok(h.indexOf('Matin') < h.indexOf('Soir')); assert.match(h, /Ordre indicatif DERMAI/);
+  assert.match(h, /Catalogue DermAI sourcé/); assert.match(h, /Saisi par vous/); assert.match(h, /Composition non vérifiable/);
+  assert.ok(h.indexOf('Matin') < h.indexOf('Soir')); assert.match(h, /Ordre indicatif DermAI/);
   assert.match(h, /Points d'attention/); assert.match(h, /Pourquoi ce message \?/); assert.match(h, /Repères d'information cosmétique/);
   assert.match(h, /3 produits sur 20/);
 });

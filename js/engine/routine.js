@@ -56,7 +56,7 @@
         reason: t.origin === 'accompaniment' ? copy.accompanimentStep(a.label, t.indicators.map(labelOf))
           : copy.activeReason(t.indicators.map(labelOf), t.gentleFallback, t.indicators.filter(i => a.evidence.editorial.includes(i)).map(labelOf)), indicators: t.indicators,
         introduction: { frequency: a.introduction.frequency, note: a.introduction.note, order: t.introductionOrder },
-        cautions: a.cautions, slowDown: (ctx.comfortMode || ctx.skinBase === 'dry' || rednessSoft) && a.irritation !== 'low' });
+        cautions: a.cautions, slowDown: (ctx.comfortMode || ctx.skinBase === 'dry' || rednessSoft || profile.marks === true) && a.irritation !== 'low' });
     }
     for (const slot of ['morning', 'evening']) {
       slots[slot].push({ id: slot + ':moisturize', slot, kind: 'moisturize', label: copy.STEP_LABELS.moisturize, owned: owned.has('moisturizer'), origin: 'base', supportIds, texture,
