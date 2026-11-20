@@ -87,10 +87,11 @@ const SIM_CONCERNS = {
   wrinkle: 'wrinkle', radiance: 'radiance', acne: 'acne', eye_bags: 'eye_bags', dark_circle: 'dark_circle',
   spots: 'spots', pores: 'pores', texture: 'texture', redness: 'redness'
 };
-/* Intensité de la simulation (0 = photo d'origine, 1 = effet maximal). Choisie côté serveur, jamais par le navigateur. Le premier essai à 0,5 (zone acné) n'a
-   donné aucune différence visible ; le guide du fournisseur (résumé, non lu directement) décrit 0,7 à 1,0 comme l'effet marqué. Défaut 0,8, réglable sans modifier
-   le code par DERMAI_SIMULATION_INTENSITY (nombre de 0,1 à 1 ; absent ou invalide : défaut). Valeur provisoire, à ajuster d'après les essais. */
-const SIM_INTENSITY = 0.8;
+/* Intensité de la simulation (0 = photo d'origine, 1 = effet maximal). Choisie côté serveur, jamais par le navigateur. Référence officielle LUE (docs.perfectcorp.com,
+   « Run an AI Skin Simulation task ») : champ `acne` « 0.0 for original skin, 1.0 for most acne/pimples removed » ; le guide décrit 0,7 à 1,0 comme la « correction complète ».
+   Essais réels sans différence visible sur l'acné à 0,5 puis à 0,8 : le défaut passe à 1 (le maximum documenté). Réglable sans modifier le code par
+   DERMAI_SIMULATION_INTENSITY (nombre de 0,1 à 1 ; absent ou invalide : défaut), qui reste prioritaire s'il est défini. */
+const SIM_INTENSITY = 1;
 const simulationIntensity = (env = process.env) => {
   const s = String(env.DERMAI_SIMULATION_INTENSITY === undefined ? '' : env.DERMAI_SIMULATION_INTENSITY).trim();
   const n = /^(?:0(?:\.\d{1,2})?|1(?:\.0{1,2})?|\.\d{1,2})$/.test(s) ? Number(s) : NaN;
