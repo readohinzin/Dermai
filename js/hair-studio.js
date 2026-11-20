@@ -248,6 +248,8 @@
       return `${modes}${templateGrid(fid)}<div class="c-ms-block"><p class="c-ms-label">Couleur des cheveux sur le résultat</p><div class="chips" role="group" aria-label="Couleur des cheveux">${chip(`data-hs="haircolor-src" data-f="${fid}" data-v="ref"`, v.hairColor !== 'src', 'Celle du modèle')}${chip(`data-hs="haircolor-src" data-f="${fid}" data-v="src"`, v.hairColor === 'src', 'La mienne')}</div></div>`;
     }
 
+    /* Curseur avant / après : tout à gauche = photo d'origine, tout à droite = image générée (découverte depuis le bord droit, donc toujours à droite comme l'étiquette « Après »). */
+    const clipOf = p => 'inset(0 0 0 ' + (100 - p) + '%)';
     function resultView(fid) {
       const s = st(fid), r = s.results[s.shown], p = c.photo();
       if (!r) return '';
@@ -255,9 +257,10 @@
       return `<section class="c-ms-result" id="hs-result"><div class="hd"><h2 class="h3">Résultat : ${esc(D.FEATURES[fid].kind)}</h2></div>${thumbs}
         ${r.expired || !p ? note(MSG.imageLoad, 'c-notice--error', 'alert') : `<div class="c-ms-compare" data-hs="frame">
           <img src="${esc(p.url)}" alt="Votre photo d'origine">
-          <img src="${esc(r.image)}" alt="Votre photo avec l'essai capillaire, image générée" data-hs="after" style="clip-path:inset(0 0 0 ${s.pos}%)">
-          <span class="c-ms-tag c-ms-tag--l">Avant</span><span class="c-ms-tag c-ms-tag--r">${esc(D.FEATURES[fid].label)}</span></div>
-        <input type="range" min="0" max="100" value="${s.pos}" data-hs="pos" data-f="${fid}" aria-label="Comparer avant et après" class="c-ms-pos">`}
+          <img src="${esc(r.image)}" alt="Votre photo avec l'essai capillaire, image générée" data-hs="after" style="clip-path:${clipOf(s.pos)}">
+          <span class="c-ms-tag c-ms-tag--l">Avant</span><span class="c-ms-tag c-ms-tag--r">Après : ${esc(D.FEATURES[fid].label)}</span></div>
+        <input type="range" min="0" max="100" value="${s.pos}" data-hs="pos" data-f="${fid}" aria-label="Comparer avant et après : à gauche la photo d'origine, à droite l'image générée" class="c-ms-pos">
+        <div class="c-sim-ends" aria-hidden="true"><span>Avant</span><span>Après</span></div>`}
         ${s.notice ? note(s.notice) : ''}
         <div class="stack" style="gap:8px;margin-top:12px"><button class="c-btn c-btn--secondary c-btn--block" data-hs="download" data-f="${fid}"${r.expired ? ' disabled' : ''}>Télécharger l'image</button><button class="c-btn c-btn--secondary c-btn--block" data-hs="again" data-f="${fid}">Changer de modèle ou de couleur</button></div>
         <p class="c-disclaimer">${esc(DATA_NOTE)}</p></section>`;
@@ -353,7 +356,7 @@
           const o = x.getElementById(`hs-${fid}-${k}-out`); if (o) o.textContent = k === 'offset' ? s.sel.offset.toFixed(2) : String(s.sel[k]);
         } else if (a === 'pos') {
           s.pos = Math.max(0, Math.min(100, Number(t.value) || 0));
-          const img = x.querySelector('[data-hs="after"]'); if (img) img.style.clipPath = 'inset(0 0 0 ' + s.pos + '%)';
+          const img = x.querySelector('[data-hs="after"]'); if (img) img.style.clipPath = clipOf(s.pos);
         }
       });
       x.addEventListener('toggle', ev => { if (ev.target && ev.target.id === 'hs-favs') favOpen = !!ev.target.open; }, true);

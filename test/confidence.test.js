@@ -88,7 +88,7 @@ test('CF7 câblage : module chargé après skin-tone, analyse enregistrée avant
   assert.ok(at('skin-tone.js') < at('confidence.js') && at('confidence.js') < at('declared-concerns.js') && at('photo-check.js') < at('confidence.js'));
   const app = read('js/app.js');
   assert.match(app, /DermaiConfidence\.note\(normalized,state\.photoCheck\)/); assert.match(app, /DermaiDeclared\.top\(eng,s\)/);
-  assert.equal(Buffer.byteLength(app), 149502, 'app.js : taille fixée, plafond non relevé');
+  assert.equal(Buffer.byteLength(app), 149389, 'app.js : taille fixée, plafond non relevé');
   assert.doesNotMatch(read('js/confidence.js').replace(/\/\*[\s\S]*?\*\//g, ''), /fetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.|window\./);
 });
 

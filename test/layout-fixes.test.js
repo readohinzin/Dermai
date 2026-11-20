@@ -25,15 +25,10 @@ test('LF2 mode réel : sans photo (analyse retrouvée, la photo n\'étant jamais
   assert.match(app, /state\.route===`scan`\|\|state\.route===`analyzing`\?state\.realPreview/);
 });
 
-test('LF3 bouton d\'analyse (téléphone) : cercle de 60 px centré en bas au-dessus de la zone sûre, icône sans texte, absent dès 920 px ; plus aucune règle de l\'ancienne barre à cinq onglets', () => {
+test('LF3 plus de bouton d\'analyse flottant : ni dans l\'application, ni dans les feuilles de style ; le contenu et le message ne gardent plus de place sous lui', () => {
   const nav = read('css/components/nav.css'), legacy = read('css/legacy.css');
-  const rule = nav.match(/\.c-scanfab\{[^}]*\}/)[0];
-  assert.match(rule, /position:fixed;left:50%;bottom:calc\(16px \+ env\(safe-area-inset-bottom,0px\)\)/); assert.match(rule, /width:60px;height:60px/); assert.match(rule, /border-radius:50%/); assert.match(rule, /transform:translateX\(-50%\)/);
-  assert.match(rule, /z-index:var\(--z-nav\)/, 'sous le menu (z-sheet) et le message (z-toast)');
-  assert.match(rule, /box-shadow:var\(--shadow-2\);/, 'seulement l\'ombre douce'); assert.ok(!/0 0 0 \d+px/.test(rule) && !/border:\s*[1-9]|outline:\s*[1-9]/.test(rule), 'aucun liseré ni contour autour du bouton (ni anneau de la couleur du fond)');
-  assert.match(nav, /@media \(min-width:920px\)\{\.c-scanfab\{display:none\}\}/);
-  assert.match(nav, /\.c-scanfab:focus-visible\{outline:none;box-shadow:var\(--focus-ring\)\}/, 'anneau de focus conservé');
+  assert.ok(!/scanfab/.test(read('js/app.js') + nav + legacy + read('css/components/pwa.css')), 'aucune trace du bouton rond');
   assert.ok(!/bottomnav/.test(nav) && !/\.nav\b/.test(nav + legacy), 'aucune règle .nav / .c-bottomnav restante');
-  assert.match(legacy, /@media \(max-width:919px\)\{\n  \.main\{padding-bottom:136px\}/, 'le contenu garde la place sous le bouton');
-  assert.match(legacy, /#toast\{position:fixed;left:50%;bottom:calc\(96px \+ env\(safe-area-inset-bottom,0px\)\)/, 'le message s\'affiche au-dessus du bouton (60 + 16 < 96)');
+  assert.match(legacy, /@media \(max-width:919px\)\{\n  \.main\{padding-bottom:calc\(48px \+ env\(safe-area-inset-bottom,0px\)\)\}/, 'le contenu s\'arrête au bord, au-dessus de la barre d\'accueil');
+  assert.match(legacy, /#toast\{position:fixed;left:50%;bottom:calc\(32px \+ env\(safe-area-inset-bottom,0px\)\)/);
 });

@@ -549,7 +549,6 @@ function shell(inner,{title=``,back=false}={}){
   return `<div class="app">
     ${SB.html()}
     <main class="main"><div class="m-brand">${DermaiTheme.toggle()}${SB.toggle()}${brandBtn(44)}</div>${back?`<header class="top"><button class="iconbtn c-icon-btn" data-act="back" aria-label="Retour">${ic(`back`)}</button><b>${title}</b></header>`:``}${DEMO_MODE?`<div class="demo-row">${demoTag()}</div>`:``}${inner}</main>
-    <button class="c-scanfab" data-go="scan" data-reset="1" aria-label="Analyser ma peau">${ic(`scan`)}</button>
   </div>`;
 }
 const V={};

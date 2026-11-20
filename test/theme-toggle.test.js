@@ -14,7 +14,7 @@ test('TT1 bouton : libellé accessible, lune et soleil, aucun tiret cadratin ; p
   assert.match(b, /^<button type="button" class="c-themebtn" data-theme-toggle aria-label="Changer le mode d&#39;affichage \(clair ou sombre\)">/);
   assert.match(b, /c-themebtn__moon/); assert.match(b, /c-themebtn__sun/); assert.ok(!/[—–]/.test(b));
   assert.match(read('js/app.js'), /<div class="m-brand">\$\{DermaiTheme\.toggle\(\)\}\$\{SB\.toggle\(\)\}\$\{brandBtn\(44\)\}<\/div>/);
-  assert.equal(Buffer.byteLength(read('js/app.js')), 149502, 'app.js : taille fixée, plafond non relevé');
+  assert.equal(Buffer.byteLength(read('js/app.js')), 149389, 'app.js : taille fixée, plafond non relevé');
 });
 
 test('TT2 style : même gabarit que le bouton du menu, collé à sa gauche, logo à l\'extrême gauche, couleur d\'accent (violet en clair, rose en sombre), jamais sur le bureau', () => {

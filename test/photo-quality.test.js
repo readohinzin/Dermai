@@ -85,7 +85,7 @@ test('PQ7 chaque message dit quoi faire ; ton cosmétique ; aucun tiret cadratin
   const fix = /(Placez-vous|Évitez|Tenez|Choisissez|rapprochez|Tournez-vous|gardez|évitez|Refaites|refaites)/i;
   for (const code of ['verydark', 'verybright', 'veryblur', 'unevenHard', 'uneven', 'backlight', 'dark', 'bright', 'blur']) { assert.match(PC.TEXT[code], fix, code); assert.ok(!/[—–]/.test(PC.TEXT[code]), code); }
   for (const t of Object.values(PC.TEXT)) assert.doesNotMatch(t, /(?<![\p{L}])(?:diagnostic|malad|patholog|traiter|il faut)(?![\p{L}])/iu, t);
-  assert.equal(Buffer.byteLength(read('js/app.js')), 149502, 'app.js : taille fixée, plafond non relevé');
+  assert.equal(Buffer.byteLength(read('js/app.js')), 149389, 'app.js : taille fixée, plafond non relevé');
   assert.doesNotMatch(read('js/photo-check.js').replace(/\/\*[\s\S]*?\*\//g, ''), /fetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.|window\.|navigator/);
 });
 

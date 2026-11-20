@@ -86,7 +86,7 @@ test('UB7 câblage : module chargé en dernier, textes sans tiret cadratin, aucu
   const pwaCss = read('css/components/pwa.css');
   assert.match(pwaCss, /\.update-banner\{position:fixed;[^}]*bottom:calc\(12px \+ env\(safe-area-inset-bottom,0px\)\)/, 'en bas de l\'écran');
   assert.doesNotMatch(pwaCss.match(/\.update-banner\{[^}]*\}/)[0], /top:/, 'plus en haut');
-  assert.match(pwaCss, /@media \(max-width:919\.98px\)\{body:has\(\.c-scanfab\) \.update-banner\{bottom:calc\(92px \+ env\(safe-area-inset-bottom,0px\)\)\}\}/, 'au-dessus du bouton rond d\'analyse sur téléphone');
+  assert.ok(!/scanfab/.test(pwaCss), 'plus de bouton rond à éviter : la bannière reste tout en bas');
   assert.match(pwaCss, /body:has\(\.update-banner\) \.pwa-banner\{display:none\}/, 'ne recouvre pas le bandeau d\'installation : il s\'efface le temps de la mise à jour');
 });
 
